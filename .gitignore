@@ -1,0 +1,32 @@
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Node
+node_modules/
+dist/
+build/
+coverage/
+.env
+.env.*
+
+# .NET
+bin/
+obj/
+TestResults/
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+venv/
+
+# Audit outputs
+audit-output/
+
+# Local OpenCode/cache
+.opencode/cache/

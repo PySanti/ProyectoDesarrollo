@@ -1,0 +1,676 @@
+@startuml
+title Modelo de Dominio Conceptual - Sistema UMBRAL
+
+left to right direction
+
+skinparam classAttributeIconSize 0
+skinparam linetype ortho
+skinparam packageStyle rectangle
+skinparam shadowing false
+skinparam handwritten false
+skinparam roundcorner 8
+
+hide methods
+
+' ============================================================
+' ENUMERACIONES DEL DOMINIO
+' ============================================================
+
+enum TipoRol {
+  ADMINISTRADOR
+  OPERADOR
+  PARTICIPANTE
+}
+
+enum EstadoUsuario {
+  ACTIVO
+  INACTIVO
+  DESACTIVADO
+}
+
+enum EstadoEquipo {
+  ACTIVO
+  INACTIVO
+}
+
+enum ModoJuego {
+  TRIVIA
+  BUSQUEDA_TESORO
+}
+
+enum EstadoSesion {
+  PROGRAMADA
+  EN_PREPARACION
+  ACTIVA
+  PAUSADA
+  FINALIZADA
+  CANCELADA
+}
+
+enum EstadoMision {
+  BORRADOR
+  ACTIVA
+  INACTIVA
+  ARCHIVADA
+}
+
+enum NivelDificultad {
+  BAJA
+  MEDIA
+  ALTA
+}
+
+enum EstadoQuiz {
+  BORRADOR
+  PUBLICADO
+  ARCHIVADO
+}
+
+enum EstadoPreguntaSesion {
+  PENDIENTE
+  ACTIVA
+  CERRADA
+}
+
+enum EstadoEvidencia {
+  PENDIENTE
+  ACEPTADA
+  RECHAZADA
+  PENALIZADA
+}
+
+enum ResultadoRespuesta {
+  PENDIENTE
+  CORRECTA
+  INCORRECTA
+  RECHAZADA
+}
+
+enum TipoEventoSesion {
+  CAMBIO_ESTADO
+  ASOCIACION_EQUIPO
+  LIBERACION_PISTA
+  ENVIO_EVIDENCIA
+  VALIDACION_EVIDENCIA
+  ENVIO_RESPUESTA
+  CIERRE_PREGUNTA
+  PENALIZACION
+  CAMBIO_PUNTAJE
+  RECONEXION_PARTICIPANTE
+}
+
+enum TipoMovimientoPuntaje {
+  RESPUESTA_TRIVIA
+  EVIDENCIA_VALIDADA
+  PENALIZACION
+  AJUSTE
+}
+
+enum EstadoSesionEquipo {
+  ASOCIADO
+  CONECTADO
+  DESCONECTADO
+  FINALIZADO
+}
+
+' ============================================================
+' ACCESO, USUARIOS Y ROLES
+' ============================================================
+
+package "Acceso y usuarios" {
+
+  abstract class Usuario {
+    +id: UUID
+    +nombre: String
+    +correo: String
+    +estado: EstadoUsuario
+    +fechaCreacion: DateTime
+    +ultimoAcceso: DateTime
+  }
+
+  class Administrador {
+    +codigoAdministrador: String
+  }
+
+  class Operador {
+    +codigoOperador: String
+  }
+
+  class Participante {
+    +codigoParticipante: String
+    +alias: String
+  }
+
+  class Rol {
+    +id: UUID
+    +nombre: String
+    +tipo: TipoRol
+    +descripcion: String
+  }
+
+  class Permiso {
+    +id: UUID
+    +codigo: String
+    +descripcion: String
+    +modulo: String
+  }
+
+  class UsuarioRol {
+    +id: UUID
+    +fechaAsignacion: DateTime
+    +activo: Boolean
+  }
+}
+
+' ============================================================
+' EQUIPOS
+' ============================================================
+
+package "Equipos" {
+
+  class Equipo {
+    +id: UUID
+    +nombre: String
+    +descripcion: String
+    +estado: EstadoEquipo
+    +fechaRegistro: DateTime
+  }
+
+  class EquipoParticipante {
+    +id: UUID
+    +fechaAsignacion: DateTime
+    +activo: Boolean
+  }
+}
+
+' ============================================================
+' SESIONES, RANKING, PUNTAJE E HISTORIAL
+' ============================================================
+
+package "Sesiones" {
+
+  abstract class Sesion {
+    +id: UUID
+    +codigoAcceso: String
+    +nombre: String
+    +estado: EstadoSesion
+    +fechaProgramada: DateTime
+    +fechaInicio: DateTime
+    +fechaFin: DateTime
+    +duracionMaximaMinutos: Integer
+    +criterioDesempate: String
+  }
+
+  class SesionTrivia {
+    +modo: ModoJuego = TRIVIA
+  }
+
+  class SesionBusquedaTesoro {
+    +modo: ModoJuego = BUSQUEDA_TESORO
+  }
+
+  class SesionEquipo {
+    +id: UUID
+    +fechaAsociacion: DateTime
+    +estadoEnSesion: EstadoSesionEquipo
+    +progresoActual: Decimal
+    +ultimoAcceso: DateTime
+  }
+
+  class TemporizadorSesion {
+    +id: UUID
+    +duracionSegundos: Integer
+    +tiempoRestanteSegundos: Integer
+    +fechaInicio: DateTime
+    +fechaPausa: DateTime
+    +activo: Boolean
+  }
+
+  class RankingSesion {
+    +id: UUID
+    +fechaActualizacion: DateTime
+    +criterioOrdenamiento: String
+  }
+
+  class PosicionRanking {
+    +id: UUID
+    +posicion: Integer
+    +puntajeAcumulado: Integer
+    +criterioDesempateValor: String
+  }
+
+  class PuntajeEquipoSesion {
+    +id: UUID
+    +puntajeTotal: Integer
+    +fechaActualizacion: DateTime
+  }
+
+  class MovimientoPuntaje {
+    +id: UUID
+    +tipo: TipoMovimientoPuntaje
+    +puntos: Integer
+    +descripcion: String
+    +fechaMovimiento: DateTime
+    +origenId: UUID
+  }
+
+  class Penalizacion {
+    +id: UUID
+    +motivo: String
+    +puntosDescontados: Integer
+    +fechaAplicacion: DateTime
+  }
+
+  class EventoSesion {
+    +id: UUID
+    +tipo: TipoEventoSesion
+    +descripcion: String
+    +fechaEvento: DateTime
+    +datos: Json
+  }
+}
+
+' ============================================================
+' BUSQUEDA DEL TESORO
+' ============================================================
+
+package "Búsqueda del Tesoro" {
+
+  class Mision {
+    +id: UUID
+    +nombre: String
+    +descripcion: String
+    +nivelDificultad: NivelDificultad
+    +estado: EstadoMision
+    +tiempoMaximoMinutos: Integer
+    +fechaCreacion: DateTime
+    +fechaActualizacion: DateTime
+  }
+
+  class Etapa {
+    +id: UUID
+    +nombre: String
+    +descripcion: String
+    +orden: Integer
+    +puntajeBase: Integer
+  }
+
+  class Nodo {
+    +id: UUID
+    +nombre: String
+    +descripcion: String
+    +orden: Integer
+  }
+
+  class Objetivo {
+    +id: UUID
+    +descripcion: String
+    +puntaje: Integer
+    +orden: Integer
+    +requiereEvidencia: Boolean
+  }
+
+  class Pista {
+    +id: UUID
+    +contenido: String
+    +orden: Integer
+    +penalizacionPorUso: Integer
+  }
+
+  class PistaLiberada {
+    +id: UUID
+    +fechaLiberacion: DateTime
+  }
+
+  class Evidencia {
+    +id: UUID
+    +descripcion: String
+    +urlArchivo: String
+    +fechaEnvio: DateTime
+    +estado: EstadoEvidencia
+    +observacionValidacion: String
+  }
+
+  class ValidacionEvidencia {
+    +id: UUID
+    +resultado: EstadoEvidencia
+    +comentario: String
+    +fechaValidacion: DateTime
+  }
+
+  class ProgresoMisionEquipo {
+    +id: UUID
+    +porcentajeAvance: Decimal
+    +fechaActualizacion: DateTime
+  }
+}
+
+' ============================================================
+' TRIVIA
+' ============================================================
+
+package "Trivia" {
+
+  class Quiz {
+    +id: UUID
+    +titulo: String
+    +descripcion: String
+    +estado: EstadoQuiz
+    +fechaCreacion: DateTime
+    +fechaPublicacion: DateTime
+  }
+
+  class Pregunta {
+    +id: UUID
+    +enunciado: String
+    +orden: Integer
+    +puntaje: Integer
+    +tiempoLimiteSegundos: Integer
+  }
+
+  class OpcionRespuesta {
+    +id: UUID
+    +texto: String
+    +orden: Integer
+    +esCorrecta: Boolean
+  }
+
+  class PreguntaSesion {
+    +id: UUID
+    +estado: EstadoPreguntaSesion
+    +fechaInicio: DateTime
+    +fechaCierre: DateTime
+    +tiempoLimiteSegundos: Integer
+  }
+
+  class RespuestaTrivia {
+    +id: UUID
+    +fechaEnvio: DateTime
+    +resultado: ResultadoRespuesta
+    +puntosObtenidos: Integer
+    +rechazoMotivo: String
+  }
+
+  class ResultadoPreguntaEquipo {
+    +id: UUID
+    +correcta: Boolean
+    +puntosObtenidos: Integer
+    +fechaResultado: DateTime
+  }
+}
+
+' ============================================================
+' RELACIONES - USUARIOS, ROLES Y PERMISOS
+' ============================================================
+
+Usuario <|-- Administrador
+Usuario <|-- Operador
+Usuario <|-- Participante
+
+Usuario "1" -- "0..*" UsuarioRol
+Rol "1" -- "0..*" UsuarioRol
+Rol "1" -- "0..*" Permiso
+
+' ============================================================
+' RELACIONES - EQUIPOS Y PARTICIPANTES
+' ============================================================
+
+Equipo "1" -- "0..*" EquipoParticipante
+Participante "1" -- "0..*" EquipoParticipante
+
+' ============================================================
+' RELACIONES - SESIONES
+' ============================================================
+
+Sesion <|-- SesionTrivia
+Sesion <|-- SesionBusquedaTesoro
+
+Operador "1" -- "0..*" Sesion : crea / administra >
+
+Sesion "1" -- "0..*" SesionEquipo
+Equipo "1" -- "0..*" SesionEquipo
+
+Sesion "1" *-- "0..1" TemporizadorSesion
+Sesion "1" *-- "0..1" RankingSesion
+
+RankingSesion "1" *-- "0..*" PosicionRanking
+PosicionRanking "1" --> "1" Equipo
+
+Sesion "1" *-- "0..*" EventoSesion
+EventoSesion "0..*" --> "0..1" Usuario : responsable >
+
+Sesion "1" *-- "0..*" PuntajeEquipoSesion
+Equipo "1" -- "0..*" PuntajeEquipoSesion
+
+Sesion "1" *-- "0..*" MovimientoPuntaje
+Equipo "1" -- "0..*" MovimientoPuntaje
+
+Sesion "1" *-- "0..*" Penalizacion
+Equipo "1" -- "0..*" Penalizacion
+Operador "1" -- "0..*" Penalizacion : aplica >
+
+MovimientoPuntaje "0..*" --> "0..1" Penalizacion : origen >
+MovimientoPuntaje "0..*" --> "0..1" RespuestaTrivia : origen >
+MovimientoPuntaje "0..*" --> "0..1" Evidencia : origen >
+
+' ============================================================
+' RELACIONES - BUSQUEDA DEL TESORO
+' ============================================================
+
+SesionBusquedaTesoro "1" --> "1" Mision : se crea desde >
+
+Mision "1" *-- "1..*" Etapa
+Etapa "1" *-- "0..*" Nodo
+Etapa "1" *-- "0..*" Objetivo : objetivos directos >
+Nodo "1" *-- "0..*" Objetivo
+Objetivo "1" *-- "0..*" Pista
+
+SesionBusquedaTesoro "1" *-- "0..*" PistaLiberada
+Pista "1" -- "0..*" PistaLiberada
+Equipo "1" -- "0..*" PistaLiberada
+Operador "1" -- "0..*" PistaLiberada : libera >
+Etapa "0..1" -- "0..*" PistaLiberada
+Objetivo "0..1" -- "0..*" PistaLiberada
+
+SesionBusquedaTesoro "1" *-- "0..*" Evidencia
+Participante "1" -- "0..*" Evidencia : envia >
+Equipo "1" -- "0..*" Evidencia
+Etapa "0..1" -- "0..*" Evidencia
+Nodo "0..1" -- "0..*" Evidencia
+Objetivo "0..1" -- "0..*" Evidencia
+
+Evidencia "1" -- "0..1" ValidacionEvidencia
+Operador "1" -- "0..*" ValidacionEvidencia : valida >
+
+SesionBusquedaTesoro "1" *-- "0..*" ProgresoMisionEquipo
+Equipo "1" -- "0..*" ProgresoMisionEquipo
+Etapa "0..1" -- "0..*" ProgresoMisionEquipo
+Objetivo "0..1" -- "0..*" ProgresoMisionEquipo
+
+' ============================================================
+' RELACIONES - TRIVIA
+' ============================================================
+
+SesionTrivia "1" --> "1" Quiz : se crea desde >
+
+Quiz "1" *-- "1..*" Pregunta
+Pregunta "1" *-- "2..*" OpcionRespuesta
+
+SesionTrivia "1" *-- "0..*" PreguntaSesion
+Pregunta "1" -- "0..*" PreguntaSesion
+
+PreguntaSesion "1" *-- "0..*" RespuestaTrivia
+Equipo "1" -- "0..*" RespuestaTrivia
+Participante "1" -- "0..*" RespuestaTrivia : envia >
+OpcionRespuesta "1" -- "0..*" RespuestaTrivia
+
+PreguntaSesion "1" *-- "0..*" ResultadoPreguntaEquipo
+Equipo "1" -- "0..*" ResultadoPreguntaEquipo
+RespuestaTrivia "0..1" -- "0..1" ResultadoPreguntaEquipo
+
+' ============================================================
+' NOTAS Y REGLAS DE NEGOCIO
+' ============================================================
+
+note right of Sesion
+Toda sesión pertenece exactamente a un modo de juego.
+El sistema solo permite Trivia o Búsqueda del Tesoro.
+No se modelan modos adicionales.
+end note
+
+note bottom of Sesion
+Los cambios de estado deben ser validados antes de aplicarse.
+
+Estados considerados:
+- programada
+- en preparación
+- activa
+- pausada
+- finalizada
+- cancelada
+end note
+
+note right of SesionTrivia
+Una sesión de Trivia solo puede crearse
+a partir de un quiz publicado y válido.
+end note
+
+note right of SesionBusquedaTesoro
+Una sesión de Búsqueda del Tesoro solo puede crearse
+a partir de una misión activa y válida.
+end note
+
+note right of SesionEquipo
+Una sesión no puede iniciar
+si no tiene al menos un equipo asociado.
+end note
+
+note bottom of Participante
+Un participante solo puede acceder
+a la sesión y al equipo que le correspondan.
+end note
+
+note right of Equipo
+Los equipos inactivos no deben asociarse
+a nuevas sesiones.
+La información histórica se conserva.
+end note
+
+note bottom of RankingSesion
+El ranking se ordena según el puntaje acumulado.
+En caso de empate se aplica el criterio
+de desempate definido para la sesión.
+end note
+
+note bottom of PuntajeEquipoSesion
+El puntaje del equipo se recalcula
+cuando ocurre una acción válida
+que afecta la puntuación.
+end note
+
+note bottom of MovimientoPuntaje
+Todo cambio de puntaje debe tener trazabilidad.
+El origen puede ser:
+- respuesta de Trivia
+- evidencia validada
+- penalización
+- ajuste justificado
+end note
+
+note right of Penalizacion
+Toda penalización debe registrar:
+- equipo
+- sesión
+- motivo
+- momento
+- responsable
+- puntos descontados
+end note
+
+note bottom of EventoSesion
+El historial conserva eventos relevantes:
+cambios de estado, acciones del operador,
+respuestas, evidencias, pistas liberadas,
+validaciones, penalizaciones y variaciones de puntaje.
+end note
+
+note right of Mision
+Una misión de Búsqueda del Tesoro
+puede organizarse mediante etapas,
+nodos, objetivos y pistas.
+end note
+
+note right of PistaLiberada
+No debe liberarse dos veces la misma pista
+al mismo equipo dentro de la misma sesión
+para la misma etapa u objetivo.
+end note
+
+note bottom of Evidencia
+Cada evidencia debe quedar asociada a:
+- participante o equipo
+- sesión
+- etapa, nodo u objetivo
+- fecha de envío
+- estado de validación
+end note
+
+note right of ValidacionEvidencia
+El operador puede aceptar o rechazar evidencias.
+La validación puede actualizar avance,
+puntaje o penalizaciones según corresponda.
+end note
+
+note bottom of ProgresoMisionEquipo
+El avance del equipo en Búsqueda del Tesoro
+se actualiza según evidencias validadas,
+objetivos alcanzados y reglas de la misión.
+end note
+
+note right of Quiz
+Un quiz publicado debe tener preguntas válidas.
+Solo quizzes publicados y completos
+pueden usarse para crear sesiones de Trivia.
+end note
+
+note right of Pregunta
+Cada pregunta debe tener:
+- opciones de respuesta
+- una respuesta correcta
+- puntaje asignado
+- tiempo límite
+end note
+
+note bottom of PreguntaSesion
+Durante una sesión de Trivia,
+la pregunta controla:
+- inicio
+- temporizador
+- cierre
+- estado activo o cerrado
+end note
+
+note right of RespuestaTrivia
+Cada equipo solo puede registrar
+una respuesta válida por pregunta activa.
+
+Se rechazan respuestas:
+- repetidas
+- tardías
+- fuera del estado válido
+end note
+
+note bottom of ResultadoPreguntaEquipo
+Al cerrar la pregunta,
+el resultado indica si la respuesta
+del equipo fue correcta o incorrecta,
+y actualiza puntaje y ranking.
+end note
+
+note top of Rol
+Las funcionalidades disponibles
+dependen del rol autenticado:
+Administrador, Operador o Participante.
+end note
+
+@enduml
