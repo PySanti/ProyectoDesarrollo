@@ -39,16 +39,61 @@ Do not use:
 - Do not use RabbitMQ for direct user-facing queries.
 - Do not put business decisions in consumers that belong to another service's domain.
 - Do not create Audit Service or Scoring Service events as standalone service contracts.
+- Do not use generic `Mission`, `Session` or `Evidence` event names unless the SDD explicitly maps them to current UMBRAL vocabulary.
 
 ## Event naming style
 
-Use past-tense names tied to the owning service context:
+Use past-tense names tied to the owning service context.
+
+Recommended examples:
 
 - `TeamCreated`
 - `TeamMemberJoined`
+- `TeamLeadershipTransferred`
+- `TeamDeleted`
+- `TriviaGameCreated`
+- `TriviaLobbyPublished`
 - `TriviaAnswerSubmitted`
-- `RespuestaTriviaValidada`
-- `PuntajeTriviaIncrementado`
+- `TriviaAnswerValidated`
+- `TriviaScoreIncremented`
+- `TriviaQuestionClosed`
+- `TriviaRankingUpdated`
+- `TreasureGameCreated`
+- `TreasureLobbyPublished`
 - `TreasureQrSubmitted`
-- `HitoBDTEncontrado`
+- `TreasureQrValidated`
+- `BdtStageWon`
+- `BdtStageClosed`
+- `BdtRankingUpdated`
+- `BdtClueSent`
+- `BdtGeolocationUpdated`
+
+## Trivia scoring events
+
+Trivia may publish score-related events because Trivia uses numeric score accumulation.
+
+Valid concepts:
+
+- `PuntajeAsignado`
+- `PuntajeAcumulado`
+- `PuntajeTriviaIncrementado`
+- `RankingTriviaActualizado`
+
+## BDT ranking events
+
+BDT must not publish events implying numeric score accumulation for ranking.
+
+Avoid as active BDT event names:
+
 - `PuntajeBDTIncrementado`
+- `BdtScoreIncremented`
+- `PuntajeEtapaAsignado`
+
+Use instead:
+
+- `EtapaBDTGanada`
+- `BdtStageWon`
+- `RankingBDTActualizado`
+- `BdtRankingUpdated`
+
+BDT ranking is based on stages won and accumulated time for won stages.

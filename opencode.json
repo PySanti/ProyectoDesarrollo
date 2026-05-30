@@ -5,6 +5,9 @@
     "docs/01-project-source/**/*.md",
     "docs/02-project-context/*.md",
     "docs/02-project-context/design/*.md",
+    "docs/02-project-context/adaptation-to-academic-brief.md",
+    "docs/02-project-context/mobile-participant-context.md",
+    "docs/02-project-context/bdt-ranking-clarification.md",
     "docs/03-microservices/*.md",
     "docs/03-microservices/services/*.md",
     "docs/04-sdd/*.md",
@@ -13,6 +16,7 @@
     "docs/05-decisions/*.md",
     "contracts/**/*.md",
     "frontend/frontend-context.md",
+    "mobile/mobile-context.md",
     "gateway/gateway-context.md",
     "services/**/service-context.md"
   ]

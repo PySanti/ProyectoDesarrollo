@@ -2,10 +2,14 @@
 
 ## Purpose
 
-The frontend is the web interface for UMBRAL. It supports administration, operation and participation in real-time games under the only two approved game modes:
+The frontend is the React web interface for UMBRAL.
+
+It supports administration and operation flows for the only two approved game modes:
 
 - Trivia
 - Búsqueda del Tesoro / BDT
+
+The React web frontend is **not** the participant gameplay client. Participant gameplay belongs to the React Native mobile app.
 
 Do not implement generic "missions", "sessions" or "evidence" screens from the academic base statement unless they are explicitly mapped to the current SRS vocabulary.
 
@@ -24,6 +28,16 @@ Use the current project vocabulary:
 - tesoro QR
 - pista
 - geolocalización BDT
+
+## Client split
+
+| Actor | Client |
+|---|---|
+| Administrador | React web |
+| Operador | React web |
+| Participante | React Native mobile |
+| Líder de equipo | React Native mobile when acting as participant |
+| Sistema | Backend |
 
 ## Active backend services
 
@@ -44,7 +58,7 @@ Do not reference these as active services:
 
 ## Required sources before frontend work
 
-Before implementing any frontend flow, read:
+Before implementing any frontend web flow, read:
 
 - `AGENTS.md`
 - `docs/04-sdd/SPECS-LIST.md`
@@ -53,11 +67,17 @@ Before implementing any frontend flow, read:
 - related event contract under `contracts/events/` when real-time behavior is involved
 - `docs/03-microservices/service-ownership.md`
 - `docs/02-project-context/first-delivery-scope.md`
+- `docs/02-project-context/mobile-participant-context.md`
 
-## Frontend boundaries
+## Frontend web boundaries
 
-The frontend must not:
+The React web frontend must not:
 
+- implement participant gameplay flows;
+- implement QR treasure upload screens for participant gameplay;
+- implement Trivia answer screens for participant gameplay;
+- implement BDT active-stage participant screens;
+- implement participant geolocation sharing;
 - invent backend endpoints;
 - invent game modes;
 - calculate authoritative scores;
@@ -66,16 +86,17 @@ The frontend must not:
 - treat leadership as a Keycloak role;
 - implement native mobile-only behavior.
 
-The frontend may:
+The React web frontend may:
 
-- render role-aware views;
+- render administrator views;
+- render operator views;
 - call documented HTTP endpoints;
 - subscribe to documented SignalR/WebSocket updates;
 - show validation messages returned by backend;
 - manage local UI state;
-- guide users through allowed flows.
+- guide users through allowed administrative or operator flows.
 
-## Role-aware areas
+## Role-aware web areas
 
 ### Administrador
 
@@ -83,7 +104,8 @@ Allowed UI areas depend on the active SDD, but may include:
 
 - user administration;
 - role assignment at user creation when supported by Identity Service;
-- team administration if included by the SRS/SDD.
+- team administration if included by the SRS/SDD;
+- read-only consultation of operational information when the SDD allows it.
 
 ### Operador
 
@@ -92,36 +114,47 @@ Allowed UI areas include:
 - creating and managing Trivia forms;
 - creating and publishing Trivia games;
 - creating and publishing BDT games;
+- configuring BDT stages;
 - viewing lobbies;
 - starting games;
-- closing Trivia questions;
-- closing BDT stages;
+- supervising Trivia ranking;
+- supervising BDT ranking;
 - sending BDT clues;
-- viewing rankings;
-- viewing relevant history/traces exposed by the owning game service.
+- viewing uploaded treasures and QR validation results;
+- viewing BDT geolocation map;
+- viewing relevant history/traces exposed by the owning game service;
+- cancelling games when allowed by the SRS/SDD.
 
 ### Participante
 
-Allowed UI areas include:
+Participant gameplay flows belong to the React Native mobile app.
+
+The React web frontend must not implement participant gameplay flows unless a specific SDD explicitly says otherwise.
+
+Participant-owned mobile flows include:
 
 - seeing published Trivia games;
 - seeing published BDT games;
 - filtering games by modality;
 - creating or joining teams;
+- leaving teams;
+- transferring leadership;
 - joining individual games;
-- entering team games only when leadership rules allow it;
+- preinscribing teams as leader;
+- accepting or rejecting convocatorias;
 - responding to Trivia;
 - viewing Trivia results/ranking;
 - viewing BDT active stage;
 - uploading a QR treasure image;
 - receiving BDT clues;
-- allowing geolocation for BDT when required.
+- allowing geolocation for BDT when required;
+- receiving participant notifications.
 
-## Core frontend flows by service
+## Core frontend web flows by service
 
 ### Identity Service
 
-Frontend flows:
+Web flows:
 
 - login / authenticated access through Keycloak;
 - user profile display where applicable;
@@ -133,14 +166,12 @@ Contracts:
 
 ### Team Service
 
-Frontend flows:
+Web flows:
 
-- create team;
-- join team using code;
-- delete team;
-- transfer leadership;
-- leave team;
-- show current team and leadership state.
+- administrator team management when active SDD requires it;
+- read-only team consultation for administrator/operator when active SDD requires it.
+
+Participant team management belongs to React Native mobile.
 
 Contracts:
 
@@ -149,21 +180,18 @@ Contracts:
 
 ### Trivia Game Service
 
-Frontend flows:
+Web flows:
 
-- list published Trivia games;
-- filter Trivia games by modality;
-- show warning when non-leader tries to enter team Trivia;
 - create Trivia forms;
 - create and publish Trivia games;
-- join individual Trivia;
-- join team Trivia as leader;
-- lobby/waiting screen;
+- view Trivia operator lobby;
 - view participants/equipes in lobby;
 - start Trivia as operator;
-- answer questions;
-- show question result after close;
-- show Trivia ranking.
+- supervise Trivia ranking;
+- cancel Trivia when allowed;
+- view Trivia details/history when exposed by SDD.
+
+Participant Trivia listing, joining, answering and result views belong to React Native mobile.
 
 Contracts:
 
@@ -172,23 +200,21 @@ Contracts:
 
 ### BDT Game Service
 
-Frontend flows:
+Web flows:
 
-- list published BDT games;
-- filter BDT games by modality;
-- show warning when non-leader tries to enter team BDT;
 - create BDT game;
-- join individual BDT;
-- join team BDT as leader;
-- view BDT lobby participants;
+- configure BDT stages;
+- view BDT operator lobby participants;
 - start BDT as operator;
-- show active stage;
-- upload QR treasure image;
-- show QR validation result;
-- close BDT stage;
-- send and receive clues;
-- show BDT ranking;
-- send/show geolocation when approved by SDD.
+- send clues to participants/equipes;
+- supervise uploaded treasures;
+- supervise QR validation results;
+- view BDT ranking;
+- view BDT geolocation map;
+- cancel BDT when allowed;
+- view BDT details/history when exposed by SDD.
+
+Participant BDT listing, joining, active stage, QR treasure upload, clue receipt and geolocation sharing belong to React Native mobile.
 
 Contracts:
 
@@ -199,47 +225,50 @@ Contracts:
 
 Use SignalR/WebSockets only when the approved SDD requires user-visible real-time updates.
 
-Examples:
+Examples for React web:
 
-- game publication updates;
+- game publication updates for operator/admin views;
 - lobby updates;
-- Trivia question activation/close;
 - Trivia ranking updates;
-- BDT stage updates;
-- BDT clue updates;
+- BDT ranking updates;
+- BDT uploaded treasure updates;
 - BDT QR validation result updates;
-- BDT geolocation updates.
+- BDT stage updates for operator supervision;
+- BDT geolocation map updates;
+- cancellation/state updates.
 
 SignalR/WebSockets must not replace persistence or backend validation.
 
 ## UI implementation guidance
 
-Organize frontend code into:
+Organize React web code into:
 
 ```txt
-src/
-  app/ or pages/
-  components/
-  features/
-    identity/
-    teams/
-    trivia/
-    bdt/
-  api/
-  hooks/
-  state/
-  routes/
-  tests/
+frontend/
+  src/
+    app/ or pages/
+    components/
+    features/
+      identity/
+      teams/
+      trivia/
+      bdt/
+    api/
+    hooks/
+    state/
+    routes/
+    tests/
 ```
 
 Feature modules should map to business areas, not to backend implementation details when that makes the UI clearer. However, API clients must respect backend service ownership and documented contracts.
 
 ## SDD rule
 
-Never implement a frontend flow unless:
+Never implement a React web flow unless:
 
 1. the HU appears in `docs/04-sdd/SPECS-LIST.md`;
 2. its SDD folder exists;
 3. `spec.md`, `design.md`, `tasks.md` and `acceptance.md` contain no unresolved TODO;
 4. the required HTTP/event contracts are documented;
-5. the owning service is one of the four approved services.
+5. the owning service is one of the four approved services;
+6. the target client is React web according to the SDD and actor/client routing rule.
