@@ -2,31 +2,50 @@
 
 ## Responsibility
 
-Manages local user references, roles, user state and Keycloak mapping.
+Identity Service owns identity-related application behavior inside UMBRAL.
+
+It integrates with Keycloak and stores only local references needed by the UMBRAL domain.
 
 ## Owns
 
-- Usuario
-- KeycloakId
-- RolUsuario
-- EstadoUsuario
-- local user references
-
-## Related stories
-
-- HU-01
-- HU-02
+- Usuario local.
+- KeycloakId reference.
+- Initial role assignment during user creation.
+- User consultation.
+- Editing general user data.
+- User deactivation when required by SDD.
+- Role read model for authorization decisions.
 
 ## Does not own
 
-- Teams
-- Team membership
-- Trivia sessions
-- BDT sessions
-- Game scoring
-- Game ranking
-- Game history
+- Team leadership.
+- Team membership.
+- Trivia gameplay.
+- BDT gameplay.
+- QR validation.
+- Game ranking.
+- Keycloak internal password storage.
 
-## Notes
+## Active first-sprint stories
 
-Authentication and authorization base are handled through Keycloak. UMBRAL stores only local references needed by the domain.
+| HU | Feature | Client |
+|---|---|---|
+| HU-01 | Crear usuario con rol inicial | React web |
+| HU-02 | Consultar y editar datos generales de usuario | React web |
+
+## Business rules
+
+- UMBRAL must not store passwords or sensitive credentials.
+- Role is assigned during user creation.
+- Role cannot be modified later from UMBRAL unless a future SDD explicitly changes this rule.
+- General user data can be edited by administrator according to SRS.
+- Identity Service may coordinate with Keycloak through an infrastructure adapter.
+
+## Expected SDD ownership
+
+HU-01 and HU-02 must create SDD folders before implementation:
+
+```txt
+docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/
+docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/
+```

@@ -1,90 +1,51 @@
-# Identity Service
+# Identity Service Context
 
-> **Regla de generación:** este contenido fue generado exclusivamente a partir de los archivos `diagrama de clases(2).md`, `enunciado-proyecto(1).md`, `historias de usuario(2).md`, `microservicios(2).md`, `modelo de dominio(2).md` y `srs(2).md`.
->
-> **No se agregan microservicios, endpoints, colas, eventos, bases de datos, rutas HTTP ni contratos que no estén indicados explícitamente en esas fuentes.** Cuando una responsabilidad aparece en el SRS/modelo pero no está asignada a un microservicio en `microservicios(2).md`, queda marcada como **no asignada / pendiente de decisión**.
+## Responsibility
 
+Identity Service owns identity-related application behavior inside UMBRAL.
 
-## Identificación
+It integrates with Keycloak and stores only local references needed by the UMBRAL domain.
 
-| Campo | Valor |
-|---|---|
-| Nombre | Identity Service |
-| Nombre en fuente | Microservicio de Identidad y Accesos |
-| Contexto DDD | Identity Context |
-| Tipo de subdominio | Genérico |
-| Historias asignadas | HU-01, HU-02 |
-| Persistencia indicada | Tabla única de usuarios y credenciales |
+## Owns
 
-## Responsabilidad explícita
+- Usuario local.
+- KeycloakId reference.
+- Initial role assignment during user creation.
+- User consultation.
+- Editing general user data.
+- User deactivation when required by SDD.
+- Role read model for authorization decisions.
 
-El Identity Service es responsable de:
+## Does not own
 
-- registro;
-- autenticación;
-- generación de tokens JWT;
-- control de roles base:
-  - Administrador;
-  - Operador;
-  - Participante.
+- Team leadership.
+- Team membership.
+- Trivia gameplay.
+- BDT gameplay.
+- QR validation.
+- Game ranking.
+- Keycloak internal password storage.
 
-## Reglas de negocio relacionadas
+## Active first-sprint stories
 
-| Regla | Contenido |
-|---|---|
-| RB-U01 | La autenticación de usuarios será gestionada por Keycloak. |
-| RB-U02 | Los roles base del sistema serán administrados mediante Keycloak: administrador, operador y participante. |
-| RB-U03 | UMBRAL no almacenará contraseñas ni credenciales sensibles de usuarios en su base de datos. |
-| RB-U04 | UMBRAL almacenará una referencia local al usuario autenticado mediante el identificador proveniente de Keycloak. |
-| RB-U05 | El administrador podrá crear usuarios desde UMBRAL mediante integración con Keycloak. |
-| RB-U06 | El administrador deberá asignar un rol inicial al usuario durante su creación. |
-| RB-U07 | Desde UMBRAL no se permitirá modificar el rol de un usuario después de su creación. |
-| RB-U08 | El administrador podrá consultar, editar datos generales y desactivar usuarios vinculados a Keycloak. |
-| RB-U09 | Un usuario desactivado no podrá acceder a partidas ni ejecutar acciones dentro del sistema. |
-| RB-U10 | El liderazgo de equipo no constituye un rol de Keycloak, sino una condición de negocio administrada dentro de UMBRAL. |
+| HU | Feature | Client |
+|---|---|---|
+| HU-01 | Crear usuario con rol inicial | React web |
+| HU-02 | Consultar y editar datos generales de usuario | React web |
 
-## Modelo de dominio asociado
+## Business rules
 
-| Elemento | Tipo |
-|---|---|
-| `Usuario` | Entidad / agregado raíz |
-| `RolUsuario` | Enum |
-| `EstadoUsuario` | Enum |
-| `KeycloakId` | Value Object |
+- UMBRAL must not store passwords or sensitive credentials.
+- Role is assigned during user creation.
+- Role cannot be modified later from UMBRAL unless a future SDD explicitly changes this rule.
+- General user data can be edited by administrator according to SRS.
+- Identity Service may coordinate with Keycloak through an infrastructure adapter.
 
-## Historias
+## Expected SDD ownership
 
-| HU | Descripción |
-|---|---|
-| HU-01 | Crear usuarios y asignar rol inicial. |
-| HU-02 | Consultar usuarios, editar datos generales y desactivar usuarios. |
+HU-01 and HU-02 must create SDD folders before implementation:
 
-## No responsabilidades
-
-Identity Service no debe asumir ownership de:
-
-- equipos;
-- liderazgo de equipo como rol de Keycloak;
-- partidas;
-- formularios de Trivia;
-- etapas BDT;
-- puntajes;
-- ranking;
-- historial de partidas;
-- QR;
-- pistas.
-
-## Dependencias externas indicadas
-
-| Dependencia | Estado |
-|---|---|
-| Keycloak | Especificada por SRS. |
-| PostgreSQL / EF Core | Especificada por SRS y persistencia del servicio. |
-| RabbitMQ | No se define uso específico para este servicio en `microservicios(2).md`. |
-| WebSockets | No se define uso específico para este servicio en `microservicios(2).md`. |
-
-## Pendientes antes de implementar
-
-- Definir contratos concretos para HU-01 y HU-02.
-- Definir cómo se integra técnicamente con Keycloak.
-- Definir qué metadata local se almacena exactamente.
+```txt
+docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/
+docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/
+```

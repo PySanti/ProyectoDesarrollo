@@ -1,116 +1,57 @@
-# UMBRAL — Active SDD Specs List
+# SPECS-LIST — Active First Sprint Specs
 
-## Purpose
+OpenCode must only create, plan or implement features listed here.
 
-This file is the official list of SDD specs to create/regenerate for the current UMBRAL project.
+## Active specs
 
-## Source basis
+| HU | Feature | Owning service | Client target | Actor | SDD folder | Status |
+| --- | --- | --- | --- | --- | --- | --- |
+| HU-01 | Crear usuario con rol inicial | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/ | Not started |
+| HU-02 | Consultar y editar datos generales de usuario | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/ | Not started |
+| HU-03 | Crear equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-03-crear-equipo/ | Not started |
+| HU-04 | Unirse a equipo usando código | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-04-unirse-a-equipo-usando-codigo/ | Not started |
+| HU-06 | Transferir liderazgo antes de salir del equipo | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-06-transferir-liderazgo-antes-de-salir-del-equipo/ | Not started |
+| HU-07 | Salir del equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-07-salir-del-equipo/ | Not started |
+| HU-10 | Ver partidas de BDT publicadas | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-10-ver-partidas-de-bdt-publicadas/ | Not started |
+| HU-12 | Filtrar partidas de BDT por modalidad | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-12-filtrar-partidas-de-bdt-por-modalidad/ | Not started |
+| HU-14 | Advertencia al entrar a BDT por equipo sin ser líder | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-14-advertencia-al-entrar-a-bdt-por-equipo-sin-ser-lider/ | Not started |
+| HU-34 | Crear partida de Búsqueda del Tesoro | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-34-crear-partida-de-busqueda-del-tesoro/ | Not started |
+| HU-37 | Ver lista de partidas de BDT publicadas | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-37-ver-lista-de-partidas-de-bdt-publicadas/ | Not started |
+| HU-39 | Unirse a BDT individual | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-39-unirse-a-bdt-individual/ | Not started |
+| HU-40 | Unir equipo a BDT por equipos | BDT Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-40-unir-equipo-a-bdt-por-equipos/ | Not started |
+| HU-42 | Ver participantes unidos a BDT publicada | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-42-ver-participantes-unidos-a-bdt-publicada/ | Not started |
+| HU-43 | Iniciar partida BDT | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-43-iniciar-partida-bdt/ | Not started |
+| HU-44 | Ver etapa activa y opción de subir tesoro | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-44-ver-etapa-activa-y-opcion-de-subir-tesoro/ | Not started |
+| HU-45 | Subir foto del tesoro QR | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-45-subir-foto-del-tesoro-qr/ | Not started |
+| HU-46 | Validar automáticamente QR enviado | BDT Game Service | Backend | Sistema | docs/04-sdd/specs/HU-46-validar-automaticamente-qr-enviado/ | Not started |
+| HU-47 | Cerrar etapa BDT | BDT Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-47-cerrar-etapa-bdt/ | Not started |
+| HU-49 | Enviar pistas a participantes durante BDT | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-49-enviar-pistas-a-participantes-durante-bdt/ | Not started |
+| HU-05 | Eliminar equipo creado | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-05-eliminar-equipo-creado/ | Not started |
+| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Not started |
+| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Not started |
+| HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-13-advertencia-al-entrar-a-trivia-por-equipo-sin-ser-lider/ | Not started |
+| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | Not started |
+| HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-17-crear-y-publicar-partida-de-trivia/ | Not started |
+| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Not started |
+| HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-19-unir-equipo-a-trivia-por-equipos/ | Not started |
+| HU-21 | Ver pantalla de espera de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-21-ver-pantalla-de-espera-de-trivia/ | Not started |
+| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Not started |
+| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Not started |
+| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Not started |
+| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Not started |
+| HU-27 | Responder Trivia por equipo | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-27-responder-trivia-por-equipo/ | Not started |
+| HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-28-ver-resultado-al-cerrar-pregunta-de-trivia/ | Not started |
+| HU-29 | Calcular puntaje de respuesta en Trivia | Trivia Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-29-calcular-puntaje-de-respuesta-en-trivia/ | Not started |
+| HU-30 | Ver ranking durante Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-30-ver-ranking-durante-trivia/ | Not started |
+| HU-35 | Ver lista de partidas de Trivia publicadas | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-35-ver-lista-de-partidas-de-trivia-publicadas/ | Not started |
 
-The active first-delivery scope is defined by:
+## Rules
 
-- `docs/01-project-source/historias de usuario.md`
-- `docs/02-project-context/first-delivery-scope.md`
-- `docs/03-microservices/service-ownership.md`
-- `docs/05-decisions/ADR-0006-four-service-topology.md`
-
-## Resolved business decisions
-
-All specs must apply these decisions:
-
-- Team cardinality is 1 to 5 members.
-- A team with one member is valid.
-- Trivia score does not consider time.
-- A correct Trivia answer adds the assigned question score directly.
-- Timers are valid for synchronization, closing and late-answer validation, not score calculation.
-
-## Valid owning services
-
-Only these backend services may own a spec:
-
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
-
-Do not assign specs to:
-
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
-- Notification Service
-
-## Active first-delivery specs
-
-### Team Service
-
-| HU | Spec folder | Feature | Responsible |
-|---|---|---|---|
-| HU-03 | `HU-03-crear-equipo` | Crear equipo | Santiago |
-| HU-04 | `HU-04-unirse-equipo-codigo` | Unirse a equipo usando código | Santiago |
-| HU-05 | `HU-05-eliminar-equipo` | Eliminar equipo creado | Mariangel |
-| HU-06 | `HU-06-transferir-liderazgo` | Transferir liderazgo antes de salir del equipo | Santiago |
-| HU-07 | `HU-07-salir-equipo` | Salir del equipo | Santiago |
-
-### Trivia Game Service
-
-| HU | Spec folder | Feature | Responsible |
-|---|---|---|---|
-| HU-09 | `HU-09-ver-trivias-publicadas` | Ver partidas de Trivia publicadas | Mariangel |
-| HU-11 | `HU-11-filtrar-trivias-modalidad` | Filtrar partidas de Trivia por modalidad | Mariangel |
-| HU-13 | `HU-13-advertencia-trivia-no-lider` | Advertencia al entrar a Trivia por equipo sin ser líder | Mariangel |
-| HU-15 | `HU-15-crear-formularios-trivia` | Crear formularios de Trivia | Mariangel |
-| HU-17 | `HU-17-crear-publicar-trivia` | Crear y publicar partida de Trivia | Mariangel |
-| HU-18 | `HU-18-unirse-trivia-individual` | Unirse a Trivia individual | Mariangel |
-| HU-19 | `HU-19-unir-equipo-trivia` | Unir equipo a Trivia por equipos | Mariangel |
-| HU-21 | `HU-21-pantalla-espera-trivia` | Ver pantalla de espera de Trivia | Mariangel |
-| HU-22 | `HU-22-ver-participantes-trivia` | Ver participantes unidos a Trivia publicada | Mariangel |
-| HU-23 | `HU-23-ver-equipos-trivia` | Ver equipos unidos a Trivia publicada | Mariangel |
-| HU-24 | `HU-24-iniciar-trivia` | Iniciar manualmente Trivia | Mariangel |
-| HU-26 | `HU-26-responder-trivia-individual` | Responder Trivia individual | Mariangel |
-| HU-27 | `HU-27-responder-trivia-equipo` | Responder Trivia por equipo | Mariangel |
-| HU-28 | `HU-28-resultado-cierre-pregunta-trivia` | Ver resultado al cerrar pregunta de Trivia | Mariangel |
-| HU-29 | `HU-29-calcular-puntaje-trivia` | Calcular puntaje de respuesta en Trivia | Mariangel |
-| HU-30 | `HU-30-ranking-trivia` | Ver ranking durante Trivia | Mariangel |
-| HU-35 | `HU-35-lista-trivias-publicadas` | Ver lista de partidas de Trivia publicadas | Mariangel |
-
-### BDT Game Service
-
-| HU | Spec folder | Feature | Responsible |
-|---|---|---|---|
-| HU-10 | `HU-10-ver-bdt-publicadas` | Ver partidas de BDT publicadas | Santiago |
-| HU-12 | `HU-12-filtrar-bdt-modalidad` | Filtrar partidas de BDT por modalidad | Santiago |
-| HU-14 | `HU-14-advertencia-bdt-no-lider` | Advertencia al entrar a BDT por equipo sin ser líder | Santiago |
-| HU-34 | `HU-34-crear-partida-bdt` | Crear partida de Búsqueda del Tesoro | Santiago |
-| HU-37 | `HU-37-lista-bdt-publicadas` | Ver lista de partidas de BDT publicadas | Santiago |
-| HU-39 | `HU-39-unirse-bdt-individual` | Unirse a BDT individual | Santiago |
-| HU-40 | `HU-40-unir-equipo-bdt` | Unir equipo a BDT por equipos | Santiago |
-| HU-42 | `HU-42-ver-participantes-bdt` | Ver participantes unidos a BDT publicada | Santiago |
-| HU-43 | `HU-43-iniciar-bdt` | Iniciar partida BDT | Santiago |
-| HU-44 | `HU-44-etapa-activa-subir-tesoro` | Ver etapa activa y opción de subir tesoro | Santiago |
-| HU-45 | `HU-45-subir-foto-tesoro-qr` | Subir foto del tesoro QR | Santiago |
-| HU-46 | `HU-46-validar-qr-bdt` | Validar automáticamente QR enviado | Santiago |
-| HU-47 | `HU-47-cerrar-etapa-bdt` | Cerrar etapa BDT | Santiago |
-| HU-49 | `HU-49-enviar-pistas-bdt` | Enviar pistas a participantes durante BDT | Santiago |
-
-## Required folder structure per spec
-
-Every active spec folder must contain:
-
-```txt
-docs/04-sdd/specs/<HU-ID>-<short-name>/
-  spec.md
-  design.md
-  tasks.md
-  acceptance.md
-```
-
-## Rule for old specs
-
-Any existing folder under `docs/04-sdd/specs/` that is not listed above must be moved to:
-
-```txt
-docs/04-sdd/specs/_deprecated/
-```
-
-before using OpenCode for implementation.
+- If a HU is not listed here, stop and report it as outside the active sprint scope.
+- Every active HU must eventually have:
+  - `spec.md`
+  - `design.md`
+  - `tasks.md`
+  - `acceptance.md`
+- Do not implement from `_deprecated`.
+- Do not implement code before the SDD folder is complete.

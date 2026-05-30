@@ -1,7 +1,11 @@
-## **Historias de Santiago**
+# Historias de usuario — Primer sprint
+
+## Historias de Santiago
 
 | ID | Nombre de historia | Responsable |
-| ----- | ----- | ----- |
+| --- | --- | --- |
+| HU-01 | Crear usuario con rol inicial | Santiago |
+| HU-02 | Consultar y editar datos generales de usuario | Santiago |
 | HU-03 | Crear equipo | Santiago |
 | HU-04 | Unirse a equipo usando código | Santiago |
 | HU-06 | Transferir liderazgo antes de salir del equipo | Santiago |
@@ -21,10 +25,10 @@
 | HU-47 | Cerrar etapa BDT | Santiago |
 | HU-49 | Enviar pistas a participantes durante BDT | Santiago |
 
-## **Historias de Mariangel**
+## Historias de Mariangel
 
 | ID | Nombre de historia | Responsable |
-| ----- | ----- | ----- |
+| --- | --- | --- |
 | HU-05 | Eliminar equipo creado | Mariangel |
 | HU-09 | Ver partidas de Trivia publicadas | Mariangel |
 | HU-11 | Filtrar partidas de Trivia por modalidad | Mariangel |
@@ -44,60 +48,65 @@
 | HU-30 | Ver ranking durante Trivia | Mariangel |
 | HU-35 | Ver lista de partidas de Trivia publicadas | Mariangel |
 
-## **Módulo 1: Registro y Gestión de Equipos**
+## Módulo 0: Gestión de Usuarios y Roles
 
-Este bloque permite a los usuarios organizarse antes de jugar. Al no haber competencia masiva, sirve para configurar el equipo que jugará la partida contra el reloj.
+Este bloque permite al administrador gestionar los usuarios base del sistema mediante integración con Keycloak, asignando un rol inicial durante la creación y manteniendo actualizados los datos generales de usuario.
 
-* **HU-03 (Crear equipo):** Un participante crea su equipo si no pertenece a otro, asume el rol de líder y el sistema le genera un código único.  
-   PDF  
-* **HU-04 (Unirse a equipo):** Un participante se une a un grupo existente validando el código, respetando el límite de máximo 5 jugadores.  
-* **HU-05 (Eliminar equipo):** El líder puede disolver el grupo completo, eliminándolo para el resto e informándoles de la acción.  
-* **HU-06 (Transferir liderazgo):** Si el líder decide salir y hay más jugadores, el sistema le exige designar un nuevo líder antes de marcharse.  
-* **HU-07 (Salir del equipo):** Un participante común puede abandonar el grupo directamente en cualquier momento.
+* **HU-01 (Crear usuario con rol inicial):** El administrador crea usuarios en la plataforma y asigna un rol inicial, que no podrá modificarse posteriormente desde UMBRAL.
+* **HU-02 (Consultar y editar datos generales de usuario):** El administrador consulta usuarios existentes y edita sus datos generales, sin modificar el rol asignado durante la creación.
 
-## **🧭 Módulo 2: Navegación, Filtros y Control de Accesos**
+## Módulo 1: Registro y Gestión de Equipos
 
-Regula la interfaz de la aplicación móvil para que el usuario encuentre los eventos y restringe el acceso según su rol.
+Este bloque permite a los usuarios organizarse antes de jugar. Sirve para configurar el equipo que podrá participar en partidas de Trivia o Búsqueda del Tesoro.
 
-* **HU-09 (Ver Trivias):** Panel del participante para visualizar todas las partidas de trivia que han sido publicadas.  
-* **HU-10 (Ver BDT):** Panel del participante para visualizar las partidas de Búsqueda del Tesoro publicadas.  
-* **HU-11 (Filtrar Trivia):** Permite al participante filtrar las trivias del listado entre individuales y de equipo.  
-* **HU-12 (Filtrar BDT):** Permite al participante filtrar las BDT del listado entre individuales y de equipo.  
-* **HU-13 (Advertencia Trivia):** Si un jugador común intenta acceder a una trivia grupal sin ser el líder de un equipo, el sistema bloquea el paso con una advertencia.  
-* **HU-14 (Advertencia BDT):** Si un jugador común intenta ingresar a una BDT grupal sin ser líder, el sistema bloquea el paso indicando que debe ser líder para inscribir al grupo.
+* **HU-03 (Crear equipo):** Un participante crea su equipo si no pertenece a otro, asume el rol de líder y el sistema le genera un código único.
+* **HU-04 (Unirse a equipo):** Un participante se une a un equipo existente validando el código, respetando el límite máximo de 5 jugadores.
+* **HU-05 (Eliminar equipo):** El líder puede eliminar su equipo, informando a los integrantes y conservando el historial previo según reglas del dominio.
+* **HU-06 (Transferir liderazgo):** Si el líder decide salir y hay más jugadores, debe designar un nuevo líder antes de salir.
+* **HU-07 (Salir del equipo):** Un participante común puede abandonar el equipo directamente.
 
-## **🧠 Módulo 3: Motor de Trivia (Individual o 1 Equipo Activo)**
+## Módulo 2: Navegación, Filtros y Control de Accesos
 
-Maneja el flujo de preguntas en tiempo real. Si juega un equipo, la primera respuesta congela la pantalla de los demás.
+Regula la interfaz de la aplicación móvil para que el participante encuentre partidas y el sistema restrinja el acceso según modalidad, liderazgo e inscripción.
 
-* **HU-15 (Crear formulario):** El operador diseña las preguntas, opciones, respuestas correctas, puntajes y tiempos límite.  
-* **HU-17 (Crear partida):** El operador publica una partida definiendo el nombre, formulario, límites y si es individual o por equipos.  
-* **HU-35 (Lista de Trivias):** Consola del operador para auditar y consultar los nombres y estados de las partidas publicadas.  
-* **HU-18 (Unión Individual):** Permite a cualquier jugador unirse por su cuenta a una trivia individual disponible.  
-* **HU-19 (Unión por Equipo):** El líder es el único facultado para inscribir a su equipo completo en una trivia grupal.  
-* **HU-21 (Lobby de espera):** Pantalla de espera para los participantes o equipos tras unirse exitosamente a la partida.  
-* **HU-22 (Observar lobby):** Panel donde el operador visualiza en tiempo real a los jugadores o equipos que están en la sala de espera.  
-* **HU-23 (Aceptar/Rechazar):** Permite al operador admitir o denegar manualmente el acceso de los competidores desde el lobby.  
-* **HU-24 (Inicio de Trivia):** La partida arranca al cumplirse el tiempo programado o cuando el operador la inicia manualmente.  
-* **HU-26 (Respuesta Individual):** En la modalidad individual, el sistema procesa y acepta una única respuesta por jugador para cada pregunta.  
-* **HU-27 (Respuesta por Equipo):** En la modalidad grupal, la primera respuesta enviada por cualquier integrante fija la opción válida para todo el equipo.  
-* **HU-28 (Cierre de pregunta):** La ronda se cierra cuando expira el tiempo, evaluando la respuesta y mostrando en la app móvil el resultado correcto.  
-* **HU-29 (Puntaje ponderado):** El sistema otorga y acumula los puntos preconfigurados únicamente si la opción seleccionada fue la correcta.  
-* **HU-30 (Panel de control):** Durante la partida, el operador visualiza el rendimiento o ranking en vivo del competidor actual y tiene la opción de cancelar el juego.
+* **HU-09 (Ver Trivias):** Panel del participante para visualizar las partidas de Trivia publicadas.
+* **HU-10 (Ver BDT):** Panel del participante para visualizar las partidas de Búsqueda del Tesoro publicadas.
+* **HU-11 (Filtrar Trivia):** Permite al participante filtrar las trivias del listado entre individuales y de equipo.
+* **HU-12 (Filtrar BDT):** Permite al participante filtrar las BDT del listado entre individuales y de equipo.
+* **HU-13 (Advertencia Trivia):** Si un participante no líder intenta acceder a una Trivia por equipo, el sistema bloquea el paso con una advertencia.
+* **HU-14 (Advertencia BDT):** Si un participante no líder intenta acceder a una BDT por equipo, el sistema bloquea el paso con una advertencia.
 
-## **🗺️ Módulo 4: Búsqueda del Tesoro (Individual o 1 Equipo Activo)**
+## Módulo 3: Motor de Trivia
 
-Controla el juego de hitos físicos validando códigos de barras bidimensionales mediante la cámara del celular.
+Maneja el flujo de preguntas en tiempo real, respuestas individuales o por equipo, cierre de preguntas y ranking.
 
-* **HU-34 (Crear BDT):** El operador configura la partida definiendo el área (texto), las etapas, el QR esperado y sus tiempos límites.  
-* **HU-37 (Lista de BDT):** Panel del operador para verificar el estado de las publicaciones de búsqueda de tesoro en el sistema.  
-* **HU-39 (Unión BDT Individual):** Permite a un jugador unirse por su cuenta a una partida de BDT individual y esperar en el lobby.  
-* **HU-40 (Unión BDT por Equipo):** Habilita al líder a inscribir a su grupo entero a un evento de búsqueda de tesoro.  
-* **HU-42 (Monitoreo de lobby):** Muestra al operador en tiempo real los individuos o equipos que se van sumando a la sala de espera de la BDT.  
-* **HU-43 (Inicio de BDT):** La partida da comienzo formal una vez que el operador verifica que se cumplen las condiciones mínimas.  
-* **HU-44 (Consola del jugador):** Interfaz móvil que le muestra al usuario o equipo la pista de la etapa activa, el temporizador y el botón de acción.  
-* **HU-45 (Subir tesoro):** Permite al participante capturar o subir la foto de un código QR desde el dispositivo móvil para que el sistema intente decodificarlo.  
-* **HU-46 (Validación automática):** El backend procesa el string decodificado del QR y determina automáticamente si corresponde al hito esperado de la etapa activa.  
-* **HU-47 (Cierre de etapa):** La fase concluye de inmediato si el competidor valida con éxito el código QR o si el temporizador de la etapa llega a cero.  
-* **HU-49 (Pistas del operador):** El operador puede redactar y enviar cadenas de texto en tiempo real dirigidas exclusivamente a los participantes para orientar su búsqueda.
+* **HU-15 (Crear formulario):** El operador diseña preguntas, opciones, respuestas correctas, puntajes y tiempos límite.
+* **HU-17 (Crear y publicar partida de Trivia):** El operador crea y publica una partida definiendo nombre, formulario, modalidad y límites de participación.
+* **HU-35 (Lista de Trivias):** El operador consulta los nombres y estados de las partidas de Trivia publicadas.
+* **HU-18 (Unión individual):** Permite a cualquier participante unirse por su cuenta a una Trivia individual.
+* **HU-19 (Unión por equipo):** El líder inscribe su equipo en una Trivia por equipos.
+* **HU-21 (Lobby de espera):** Pantalla de espera para participantes o equipos tras unirse exitosamente.
+* **HU-22 (Observar participantes):** Panel donde el operador visualiza en tiempo real a los participantes o equipos en lobby.
+* **HU-23 (Ver equipos unidos):** Permite al operador observar los equipos unidos a la partida de Trivia publicada.
+* **HU-24 (Inicio de Trivia):** El operador inicia manualmente la Trivia si se cumplen las condiciones mínimas.
+* **HU-26 (Respuesta individual):** En modalidad individual, el sistema acepta una única respuesta por jugador para cada pregunta.
+* **HU-27 (Respuesta por equipo):** En modalidad por equipo, la primera respuesta enviada por cualquier integrante activo fija la opción del equipo.
+* **HU-28 (Cierre de pregunta):** La pregunta se cierra al acertar o al agotar el temporizador y muestra la respuesta correcta.
+* **HU-29 (Calcular puntaje de respuesta en Trivia):** El sistema otorga el puntaje configurado solo si la respuesta es correcta, sin ponderación por tiempo.
+* **HU-30 (Ranking durante Trivia):** Durante la partida, el operador visualiza el ranking en vivo y puede cancelar si corresponde.
 
+## Módulo 4: Búsqueda del Tesoro
+
+Controla el juego de etapas, QR esperado, subida de tesoros, validación automática, pistas y ranking BDT.
+
+* **HU-34 (Crear BDT):** El operador configura la partida definiendo área de búsqueda textual, etapas, QR esperado y tiempos límite.
+* **HU-37 (Lista de BDT):** El operador consulta el estado de las partidas BDT publicadas.
+* **HU-39 (Unión BDT individual):** Permite a un participante unirse a una BDT individual y esperar en el lobby.
+* **HU-40 (Unión BDT por equipo):** El líder inscribe su equipo en una BDT por equipos.
+* **HU-42 (Monitoreo de lobby):** El operador visualiza en tiempo real los individuos o equipos que se suman al lobby.
+* **HU-43 (Inicio de BDT):** La partida inicia cuando se cumplen las condiciones mínimas.
+* **HU-44 (Consola del jugador):** La app móvil muestra etapa activa, temporizador y acción para subir tesoro.
+* **HU-45 (Subir tesoro):** El participante captura o sube una imagen de QR para que el sistema intente decodificarla.
+* **HU-46 (Validación automática):** El backend procesa el contenido decodificado del QR y lo compara con el QR esperado.
+* **HU-47 (Cierre de etapa):** La etapa concluye si se valida correctamente el QR o si vence el temporizador.
+* **HU-49 (Pistas del operador):** El operador envía pistas de texto en tiempo real a participantes o equipos.
