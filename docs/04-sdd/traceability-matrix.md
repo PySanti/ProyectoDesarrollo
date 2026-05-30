@@ -28,7 +28,7 @@ This matrix links active first-sprint user stories to requirements, services, cl
 | HU-09 | Ver partidas de Trivia publicadas | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-11 | Filtrar partidas de Trivia por modalidad | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
-| HU-15 | Crear formularios de Trivia | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
+| HU-15 | Crear formularios de Trivia | First sprint | Trivia Game Service | Identity Service (JWT / Operador role) | React web | `contracts/http/trivia-game-api.md` (POST/PUT/GET `/api/trivia/forms`) | SDD ready for review |
 | HU-17 | Crear y publicar partida de Trivia | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
 | HU-18 | Unirse a Trivia individual | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-19 | Unir equipo a Trivia por equipos | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |

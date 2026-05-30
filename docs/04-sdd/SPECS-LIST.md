@@ -30,7 +30,7 @@ OpenCode must only create, plan or implement features listed here.
 | HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Not started |
 | HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Not started |
 | HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-13-advertencia-al-entrar-a-trivia-por-equipo-sin-ser-lider/ | Not started |
-| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | Not started |
+| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | SDD ready for review |
 | HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-17-crear-y-publicar-partida-de-trivia/ | Not started |
 | HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Not started |
 | HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-19-unir-equipo-a-trivia-por-equipos/ | Not started |
