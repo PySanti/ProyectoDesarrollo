@@ -6,24 +6,37 @@ compatibility: opencode
 
 # CQRS + MediatR
 
-Based on:
+Base yourself on:
 
-- `docs/00-professor-source/skills/cqrs-mediatr-skill.md`
+- `docs/02-project-context/design/class-design-by-layer.md`
+- `docs/04-sdd/SPECS-LIST.md`
+- the related SDD feature folder
 
-Rules:
+## Rules
 
 - Commands change state.
 - Queries never change state.
-- Controllers call MediatR.
+- Controllers or endpoints call MediatR.
 - Handlers coordinate application flow.
 - Domain enforces business invariants.
 - Validators validate input and application preconditions.
-- Integration events are published after successful state changes.
+- Integration events are published after successful state changes when required by SDD.
+- Queries should return DTOs or read models, not aggregates.
 
-Every command/query folder should include:
+## Command/query folder pattern
 
-- Request object
-- Handler
-- Validator when needed
-- Response/DTO
-- Tests
+Each command/query should include, when applicable:
+
+- request object;
+- handler;
+- validator;
+- response / DTO;
+- tests.
+
+## Naming examples
+
+- `CreateTeamCommand`
+- `JoinTeamByCodeCommand`
+- `GetPublishedTriviaSessionsQuery`
+- `SubmitTriviaAnswerCommand`
+- `ValidateTreasureQrCommand`

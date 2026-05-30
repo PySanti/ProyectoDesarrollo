@@ -1,33 +1,43 @@
 ---
 name: ddd-modeling
-description: Apply DDD modeling for UMBRAL entities, aggregates, value objects, domain services and business rules.
+description: Apply DDD modeling for UMBRAL entities, aggregates, value objects, domain services, domain events and invariants.
 compatibility: opencode
 ---
 
 # DDD Modeling
 
-Based on:
+Base yourself on:
 
-- `docs/00-professor-source/skills/ddd-modeling-skill.md`
 - `docs/02-project-context/domain-model-summary.md`
 - `docs/02-project-context/business-rules.md`
+- `docs/02-project-context/design/domain-entities-by-context.md`
+- `docs/02-project-context/design/domain-business-rules.md`
+- `docs/03-microservices/service-ownership.md`
 
-Rules:
+## Rules
 
 - Keep domain independent from infrastructure.
 - Use aggregates to protect invariants.
 - Use value objects for meaningful domain concepts.
-- Use domain events for important business occurrences.
-- Do not put business rules in controllers.
+- Use domain events for important business facts.
+- Do not put business rules in controllers, hubs or EF configurations.
 - Do not leak EF Core attributes into domain entities unless explicitly accepted.
+- Do not reuse the same `Participante` class across contexts; keep context-specific meanings separate.
 
-Important UMBRAL concepts:
+## Core concepts
 
-- Mission
-- Quiz
-- Team
-- Session
-- Evidence
-- Score
+- Usuario
+- Equipo
+- CodigoAcceso
+- FormularioTrivia
+- Pregunta
+- Opcion
+- PartidaTrivia
+- PartidaBDT
+- EtapaBDT
+- Pista
+- Evidencia / Tesoro QR
+- PuntajeAcumulado
 - Ranking
-- SessionEvent
+- RegistroAuditoria
+- EventoHistorial

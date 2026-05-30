@@ -1,3 +1,0 @@
-# Audit Events
-
-- AuditEventRegistered

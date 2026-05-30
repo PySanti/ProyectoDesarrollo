@@ -1,98 +1,98 @@
-# Service Ownership Rules
+# Service Ownership
 
 ## Identity Service
 
 Owns:
 
-- User metadata.
-- Business roles.
-- Keycloak user mapping.
+- Usuario
+- KeycloakId
+- RolUsuario
+- EstadoUsuario
+- local user references
 
 Does not own:
 
-- Teams.
-- Sessions.
-- Scores.
-- Audit history.
+- teams
+- trivia sessions
+- BDT sessions
+- game scoring
+- game history
 
 ## Team Service
 
 Owns:
 
-- Teams.
-- Team members.
-- Team status.
-- Team access codes.
+- Equipo
+- Equipos.Participante
+- CodigoAcceso
+- liderazgo
+- estado del equipo
+- reglas de pertenencia a equipo
 
 Does not own:
 
-- Trivia questions.
-- Missions.
-- Scores.
-- Rankings.
+- formularios de Trivia
+- partidas de Trivia
+- partidas BDT
+- validación de respuestas
+- validación de QR
+- ranking de partidas
+- historial de partidas
 
-## Trivia Service
+## Trivia Game Service
 
 Owns:
 
-- Quizzes.
-- Questions.
-- Options.
-- Trivia sessions.
-- Trivia answers.
+- FormularioTrivia
+- Pregunta
+- Opcion
+- PuntajeAsignado
+- TiempoLimite
+- PartidaTrivia
+- Trivias.Participante
+- RespuestaTrivia
+- inscripciones de Trivia
+- convocatorias de Trivia
+- puntaje de Trivia
+- ranking de Trivia
+- historial de Trivia
+- eventos de Trivia
+- actualizaciones en tiempo real de Trivia
 
 Does not own:
 
-- Team master data.
-- Global score calculation.
-- Audit persistence.
-- Treasure Hunt missions.
+- usuarios
+- equipos como dato maestro
+- partidas BDT
+- QR BDT
+- pistas BDT
+- geolocalización BDT
 
-## Treasure Hunt Service
+## BDT Game Service
 
 Owns:
 
-- Missions.
-- Stages.
-- Nodes.
-- Objectives.
-- Clues.
-- Evidence.
-- Treasure Hunt sessions.
+- PartidaBDT
+- EtapaBDT
+- TesoroQR
+- Pista
+- AreaBusqueda
+- UbicacionGeografica
+- CodigoQREsperado
+- PuntajeEtapa
+- inscripciones BDT
+- convocatorias BDT
+- validación QR
+- puntaje BDT
+- ranking BDT
+- historial BDT
+- eventos BDT
+- actualizaciones en tiempo real BDT
 
 Does not own:
 
-- Global ranking.
-- Identity.
-- Team master data.
-- Trivia content.
-
-## Scoring Service
-
-Owns:
-
-- Scores.
-- Score movements.
-- Ranking.
-- Leaderboards.
-
-Does not own:
-
-- Evidence validation.
-- Trivia answer correctness.
-- Team creation.
-- Session state transitions.
-
-## Audit Service
-
-Owns:
-
-- Audit log.
-- Historical event trail.
-- Session event history.
-
-Does not own:
-
-- Business decisions.
-- Score calculation.
-- Session state transitions.
+- usuarios
+- equipos como dato maestro
+- formularios de Trivia
+- preguntas Trivia
+- respuestas Trivia

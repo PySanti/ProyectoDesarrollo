@@ -1,69 +1,100 @@
+# Docker Compose placeholder for the four-service UMBRAL topology.
+#
+# This file intentionally defines only the approved backend services:
+# - identity-service
+# - team-service
+# - trivia-game-service
+# - bdt-game-service
+#
+# Do not add audit-service, scoring-service, trivia-service or treasure-hunt-service
+# unless a future ADR changes the topology.
+
 services:
-  identity-db:
+  postgres:
     image: postgres:16
+    container_name: umbral-postgres
     environment:
-      POSTGRES_DB: identity_db
       POSTGRES_USER: umbral
       POSTGRES_PASSWORD: umbral
+      POSTGRES_DB: umbral
     ports:
-      - "5433:5432"
-
-  team-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: team_db
-      POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
-    ports:
-      - "5434:5432"
-
-  trivia-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: trivia_db
-      POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
-    ports:
-      - "5435:5432"
-
-  treasure-hunt-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: treasure_hunt_db
-      POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
-    ports:
-      - "5436:5432"
-
-  scoring-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: scoring_db
-      POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
-    ports:
-      - "5437:5432"
-
-  audit-db:
-    image: postgres:16
-    environment:
-      POSTGRES_DB: audit_db
-      POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
-    ports:
-      - "5438:5432"
+      - "5432:5432"
+    volumes:
+      - umbral-postgres-data:/var/lib/postgresql/data
+      - ./postgres/init:/docker-entrypoint-initdb.d
 
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: umbral-rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
 
   keycloak:
-    image: quay.io/keycloak/keycloak:latest
+    image: quay.io/keycloak/keycloak:25.0
+    container_name: umbral-keycloak
     command: start-dev
     environment:
-      KC_BOOTSTRAP_ADMIN_USERNAME: admin
-      KC_BOOTSTRAP_ADMIN_PASSWORD: admin
+      KEYCLOAK_ADMIN: admin
+      KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
+
+  identity-service:
+    build:
+      context: ../services/identity-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=umbral
+      RabbitMq__Host: rabbitmq
+      Keycloak__Authority: http://keycloak:8080
+    depends_on:
+      - postgres
+      - rabbitmq
+      - keycloak
+
+  team-service:
+    build:
+      context: ../services/team-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_team;Username=umbral;Password=umbral
+      RabbitMq__Host: rabbitmq
+      IdentityService__BaseUrl: http://identity-service
+    depends_on:
+      - postgres
+      - rabbitmq
+      - identity-service
+
+  trivia-game-service:
+    build:
+      context: ../services/trivia-game-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_trivia_game;Username=umbral;Password=umbral
+      RabbitMq__Host: rabbitmq
+      TeamService__BaseUrl: http://team-service
+      IdentityService__BaseUrl: http://identity-service
+    depends_on:
+      - postgres
+      - rabbitmq
+      - identity-service
+      - team-service
+
+  bdt-game-service:
+    build:
+      context: ../services/bdt-game-service
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=umbral
+      RabbitMq__Host: rabbitmq
+      TeamService__BaseUrl: http://team-service
+      IdentityService__BaseUrl: http://identity-service
+    depends_on:
+      - postgres
+      - rabbitmq
+      - identity-service
+      - team-service
+
+volumes:
+  umbral-postgres-data:

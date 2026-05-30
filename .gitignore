@@ -30,3 +30,6 @@ audit-output/
 
 # Local OpenCode/cache
 .opencode/cache/
+
+dump_proyecto.py
+proyecto_completo_dump.txt

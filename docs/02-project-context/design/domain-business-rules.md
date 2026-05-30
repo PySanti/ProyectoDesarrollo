@@ -1,31 +1,80 @@
-# Domain Business Rules
+# Domain Business Rules by Aggregate — UMBRAL
 
-## General rules
+## Identity / Usuario
 
-- The system only supports Trivia and Búsqueda del Tesoro.
-- Every session must belong to exactly one game mode.
-- A session cannot start without at least one associated team.
-- Session state changes must follow valid transitions.
-- Participants can only access their assigned session and team.
-- Every relevant session event must be recorded.
+| Regla | Ubicación sugerida |
+|---|---|
+| No almacenar contraseñas | Infrastructure/Auth Adapter + política de persistencia. |
+| Guardar referencia Keycloak | `Usuario` / `KeycloakId`. |
+| Rol inicial no modificable desde UMBRAL | Application handler de creación / actualización. |
+| Usuario desactivado no opera | Guards de Application + autorización. |
 
-## Treasure Hunt rules
+## Team / Equipo
 
-- A Treasure Hunt session can only be created from an active and valid mission.
-- Evidence must not be accepted if the session is paused, finalized or cancelled.
-- Evidence must be associated with participant/team, session and stage/objective.
-- A clue cannot be released twice to the same team for the same stage/objective.
+| Regla | Ubicación sugerida |
+|---|---|
+| Crear equipo solo si usuario no pertenece a otro | `CrearEquipoCommandHandler` consulta repositorio antes de crear. |
+| Creador queda líder | `Equipo.Crear(...)`. |
+| Código único generado | `CodigoAcceso.Generar()` + validación de unicidad en repositorio. |
+| Máximo 5 integrantes | `Equipo.AgregarParticipante(...)`. |
+| Un participante no puede pertenecer a dos equipos | Application handler + repositorio. |
+| Transferencia obligatoria si líder sale con miembros | `Equipo.RemoverParticipante(...)` o método específico. |
+| Si líder está solo y sale, equipo se elimina | `Equipo.Eliminar()` coordinado por handler. |
+| Equipo desactivado no se inscribe | Validación desde servicios dueños de partidas usando Team contract. |
 
-## Trivia rules
+## Trivia / FormularioTrivia
 
-- A Trivia session can only be created from a published and valid quiz.
-- Each team can submit only one valid answer per active question.
-- Repeated, late or invalid-state answers must be rejected.
-- Closing or validating a question can update score and ranking.
+| Regla | Ubicación sugerida |
+|---|---|
+| Solo operador crea formulario | Autorización + handler. |
+| Formulario debe tener preguntas | `FormularioTrivia.ValidarFormulario()`. |
+| Pregunta debe tener opciones | `Pregunta.EsValida()`. |
+| Pregunta debe tener respuesta correcta | `Pregunta.EsValida()`. |
+| Pregunta debe tener puntaje y tiempo | `Pregunta.EsValida()`. |
+| Formulario incompleto no crea partida | `CrearPartidaTriviaCommandHandler`. |
 
-## Scoring and audit rules
+## Trivia / PartidaTrivia
 
-- Every score change must have traceability of origin.
-- Ranking must be ordered from highest to lowest score.
-- Tie-breakers must follow the criterion defined for the session.
-- Every penalty must record reason, moment and responsible user.
+| Regla | Ubicación sugerida |
+|---|---|
+| Partida usa formulario válido | `PartidaTrivia.Crear(...)` o handler. |
+| Solo estados válidos | `PartidaTrivia.PublicarLobby()`, `IniciarPartida()`, `CancelarPartida()`, `FinalizarPartida()`. |
+| Inscripción solo en lobby | `PartidaTrivia.RegistrarInscripcion(...)`. |
+| Respuesta solo en partida iniciada y pregunta activa | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
+| Una respuesta por jugador/equipo | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
+| Primera respuesta de equipo es definitiva | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
+| Rechazar respuesta tardía/repetida/fuera de estado | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
+| Ranking actualizado al cerrar pregunta | Handler + domain service `ClasificadorRankingService`. |
+| Cancelación bloquea nuevas acciones | Métodos del agregado + guards. |
+
+## BDT / PartidaBDT
+
+| Regla | Ubicación sugerida |
+|---|---|
+| Solo operador crea BDT | Autorización + handler. |
+| BDT debe tener etapas válidas | `PartidaBDT.ValidarConfiguracion()` o `Crear(...)`. |
+| Etapa debe tener QR esperado y tiempo | `EtapaBDT.EsValida()`. |
+| Iniciar BDT activa primera etapa | `PartidaBDT.IniciarPartida()`. |
+| Subida QR solo en iniciada y etapa activa | `PartidaBDT.ValidarHito(...)`. |
+| Validación compara contra QR esperado | `CodigoQREsperado.CoincideCon(...)`. |
+| Cierre por QR válido o tiempo agotado | `EtapaBDT.Resolver()` / `Cerrar()`. |
+| Avance a siguiente etapa o finalización | `PartidaBDT.AvanzarEtapa()`. |
+| Enviar pista solo durante BDT iniciada | `PartidaBDT.DespacharPista(...)`. |
+| Ubicación solo con autorización | Application/UI + handler de ubicación. |
+
+## Auditoría / RegistroAuditoria
+
+| Regla | Ubicación sugerida |
+|---|---|
+| Cambios relevantes generan evento histórico | Event consumer / Audit application handler. |
+| Eventos son inmutables para consulta | `RegistroAuditoria.AgregarEvento(...)`. |
+| Puntajes deben tener trazabilidad de origen | Eventos de puntaje + historial. |
+
+## Cross-service
+
+| Regla | Ubicación sugerida |
+|---|---|
+| Servicios no acceden a base de datos ajena | Architecture rule / integration tests. |
+| Comunicación directa para consultas puntuales | HTTP contracts. |
+| Comunicación desacoplada para efectos secundarios | RabbitMQ events. |
+| Tiempo real visible al usuario | SignalR/WebSocket hubs del servicio dueño o gateway. |

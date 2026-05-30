@@ -1,19 +1,25 @@
-# UMBRAL Design Index
+# Design Context Index — UMBRAL
 
-## Source diagrams
+Este directorio contiene los documentos de diseño derivados del project-source.
 
-- Domain model: `docs/01-project-source/modelo-dominio.puml`
-- Class design: `docs/01-project-source/diagrama-clases.puml`
+## Archivos
 
-## Operational summaries
+| Archivo | Uso |
+|---|---|
+| `domain-business-rules.md` | Ubicar reglas dentro de agregados, entidades y servicios de dominio. |
+| `domain-entities-by-context.md` | Consultar entidades, agregados, value objects y enums por contexto. |
+| `class-design-by-layer.md` | Traducir clases a Clean Architecture / Hexagonal Architecture. |
+| `service-model-impact.md` | Determinar qué microservicio toca cada feature. |
+| `design-patterns-catalog.md` | Elegir patrones de diseño de forma justificada. |
 
-- `domain-business-rules.md`
-- `domain-entities-by-context.md`
-- `class-design-by-layer.md`
-- `service-model-impact.md`
+## Uso dentro de SDD
 
-## Rule for OpenCode
+Al crear `docs/04-sdd/specs/<HU>/design.md`, OpenCode debe consultar estos documentos y responder:
 
-Before implementing a feature, read the operational summaries first.
-
-Use the PlantUML files only when full detail is required.
+1. ¿Qué contexto acotado toca la HU?
+2. ¿Qué agregado protege las reglas?
+3. ¿Qué servicio o microservicio es dueño?
+4. ¿Qué comandos/queries se necesitan?
+5. ¿Qué eventos deben publicarse?
+6. ¿Qué reglas requieren pruebas?
+7. ¿Qué patrón de diseño se justifica y dónde?

@@ -1,36 +1,54 @@
 # Gateway Context
 
-## Responsibility
+## Purpose
 
-The gateway coordinates frontend access to backend microservices.
+The gateway, if included in the implementation, is an entry-point/routing component. It does not own domain logic and must not implement business rules.
 
-## Routes to
+## Active backend services
+
+The gateway may route requests only to these backend services:
 
 - Identity Service
 - Team Service
+- Trivia Game Service
+- BDT Game Service
+
+## Explicit non-services
+
+The gateway must not route to or reference these as active backend services:
+
+- Audit Service
+- Scoring Service
 - Trivia Service
 - Treasure Hunt Service
-- Scoring Service
-- Audit Service
+- Notification Service
 
-## Rules
+## Routing responsibility
 
-- The gateway does not own domain logic.
-- The gateway does not own persistence.
-- The gateway must not bypass service ownership.
-- The gateway may centralize routing, authentication forwarding and API composition.
-- The gateway must not access service databases directly.
+The gateway may:
 
-## Allowed responsibilities
+- forward HTTP requests to the owning service;
+- expose a unified frontend-facing base URL;
+- centralize cross-cutting concerns such as authentication forwarding, request correlation, logging or CORS configuration;
+- route WebSocket/SignalR connections when the approved design requires it.
 
-- Route HTTP requests.
-- Forward authentication context.
-- Aggregate read responses when useful for frontend screens.
-- Expose a stable frontend-facing API.
+The gateway must not:
 
-## Forbidden responsibilities
+- validate domain rules;
+- calculate scores;
+- decide rankings;
+- mutate another service's data directly;
+- access service databases;
+- create or consume domain events on behalf of a service unless explicitly defined by SDD.
 
-- Validate business rules.
-- Calculate scores.
-- Change session state by itself.
-- Write directly to service databases.
+## Suggested route ownership
+
+| Path family | Owning service |
+|---|---|
+| `/api/identity/*` | Identity Service |
+| `/api/users/*` | Identity Service |
+| `/api/teams/*` | Team Service |
+| `/api/trivia/*` | Trivia Game Service |
+| `/api/bdt/*` | BDT Game Service |
+
+Final endpoint paths must be confirmed in the related SDD and `contracts/http/*.md` before implementation.

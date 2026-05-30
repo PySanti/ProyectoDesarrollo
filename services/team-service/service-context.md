@@ -1,38 +1,38 @@
-# team-service Context
+# Team Service Context
 
 ## Responsibility
 
-Manages teams, team members and team status.
+Manages teams, team members, access codes, team status and leadership.
 
 ## Owns
 
-- Teams
-- TeamMembers
+- Equipo
+- Equipos.Participante
+- CodigoAcceso
+- EstadoEquipo
+- team membership rules
+- team leadership rules
 
 ## Related stories
 
-- HU-02
 - HU-03
+- HU-04
 - HU-05
+- HU-06
 - HU-07
-
-## Rules
-
-- Inactive teams cannot be associated to new sessions.
-- Team history must be preserved.
-- Participant-team association must be registered.
-
-## Publishes events
-
-- TeamCreated
-- TeamUpdated
-- TeamDeactivated
-- ParticipantAssignedToTeam
+- HU-08
 
 ## Does not own
 
-- Scores
-- Rankings
+- Users as identity records
 - Trivia content
-- Treasure Hunt missions
-- Audit history
+- Trivia sessions
+- BDT sessions
+- QR validation
+- Game scoring
+- Game ranking
+- Game history
+
+## Notes
+
+Game services may query Team Service to validate leadership, membership or active team status through explicit HTTP contracts.

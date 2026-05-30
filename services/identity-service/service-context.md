@@ -1,24 +1,32 @@
-# identity-service Context
+# Identity Service Context
 
 ## Responsibility
 
-Manages internal user metadata, business roles and Keycloak mapping.
+Manages local user references, roles, user state and Keycloak mapping.
 
 ## Owns
 
-- Users
-- Roles
-- Permissions
-- Keycloak user mapping
+- Usuario
+- KeycloakId
+- RolUsuario
+- EstadoUsuario
+- local user references
 
 ## Related stories
 
 - HU-01
-- HU-07
+- HU-02
 
 ## Does not own
 
 - Teams
-- Game sessions
-- Scores
-- Audit history
+- Team membership
+- Trivia sessions
+- BDT sessions
+- Game scoring
+- Game ranking
+- Game history
+
+## Notes
+
+Authentication and authorization base are handled through Keycloak. UMBRAL stores only local references needed by the domain.

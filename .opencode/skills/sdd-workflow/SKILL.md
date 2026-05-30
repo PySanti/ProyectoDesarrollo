@@ -1,55 +1,93 @@
 ---
 name: sdd-workflow
-description: Enforce UMBRAL Spec-Driven Development before planning, coding, reviewing or documenting any feature.
+description: Enforce Spec-Driven Development for every UMBRAL feature before coding.
 compatibility: opencode
 ---
 
 # SDD Workflow
 
-Use this skill before any implementation.
+Use this skill before any feature work.
+
+## Required SDD folder
+
+Every feature must have:
+
+```txt
+docs/04-sdd/specs/<HU-ID>-<short-name>/
+  spec.md
+  design.md
+  tasks.md
+  acceptance.md
+```
 
 ## Required process
 
 1. Identify the user story.
 2. Identify the owning microservice.
-3. Read the related service context.
-4. Read the related SDD folder.
-5. Ensure `spec.md`, `design.md`, `tasks.md` and `acceptance.md` exist.
-6. Implement only one task at a time.
-7. Update tests.
-8. Update acceptance status.
-9. Update traceability matrix.
+3. Read required context.
+4. Read the related service context.
+5. Read or create the related SDD folder.
+6. Complete or refine `spec.md`.
+7. Complete or refine `design.md`.
+8. Complete or refine `tasks.md`.
+9. Implement exactly one task at a time.
+10. Update tests.
+11. Update `acceptance.md`.
+12. Update `docs/04-sdd/traceability-matrix.md`.
 
 ## Required output before coding
 
-State:
+State explicitly:
 
 - User story
 - Owning microservice
-- Files to read
+- Supporting services
+- Files read
+- Current SDD status
 - Task to implement
 - Tests to update
+- Contracts to update
 - Traceability row to update
 
-## When SDD files contain TODO
+## TODO rule
 
-If any related SDD file contains TODO, do not start coding.
+If any of these files contains unresolved TODO sections, do not code:
+
+- `spec.md`
+- `design.md`
+- `tasks.md`
+- `acceptance.md`
 
 Instead:
 
-1. Read the requirement sources.
-2. Complete the missing SDD content.
-3. Ask for user review or approval.
-4. Only then proceed to implementation.
+1. Complete the missing SDD content using project sources.
+2. Report what changed.
+3. Ask for user approval before implementation.
 
 ## Required source files for SDD generation
 
-When generating SDD files, read:
+Use actual filenames present in the project:
 
-- `docs/01-project-source/Documento_SRS_Grupo_4.md`
-- `docs/01-project-source/Historias_de_usuario_primera_entrega_Grupo_4 (1).md`
+- `docs/01-project-source/srs.md`
+- `docs/01-project-source/historias de usuario.md`
+- `docs/01-project-source/modelo de dominio.md`
+- `docs/01-project-source/diagrama de clases.md`
+- `docs/01-project-source/microservicios.md`
+- `docs/01-project-source/enunciado-proyecto.md`
 - `docs/02-project-context/business-rules.md`
 - `docs/02-project-context/first-delivery-scope.md`
 - `docs/02-project-context/design/*.md`
 - `docs/03-microservices/service-ownership.md`
-- The related file under `docs/03-microservices/services/`
+- Related file under `docs/03-microservices/services/`
+- Related contracts under `contracts/`
+
+## Service topology rule
+
+Valid owning services are only:
+
+- Identity Service
+- Team Service
+- Trivia Game Service
+- BDT Game Service
+
+Stop if a feature points to Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service as owning service.
