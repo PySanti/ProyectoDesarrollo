@@ -4,8 +4,6 @@
 
 This file is the official list of SDD specs to create/regenerate for the current UMBRAL project.
 
-It replaces the old mission/session-oriented spec folders currently present under `docs/04-sdd/specs/`.
-
 ## Source basis
 
 The active first-delivery scope is defined by:
@@ -14,6 +12,16 @@ The active first-delivery scope is defined by:
 - `docs/02-project-context/first-delivery-scope.md`
 - `docs/03-microservices/service-ownership.md`
 - `docs/05-decisions/ADR-0006-four-service-topology.md`
+
+## Resolved business decisions
+
+All specs must apply these decisions:
+
+- Team cardinality is 1 to 5 members.
+- A team with one member is valid.
+- Trivia score does not consider time.
+- A correct Trivia answer adds the assigned question score directly.
+- Timers are valid for synchronization, closing and late-answer validation, not score calculation.
 
 ## Valid owning services
 
@@ -84,28 +92,6 @@ Do not assign specs to:
 | HU-46 | `HU-46-validar-qr-bdt` | Validar automáticamente QR enviado | Santiago |
 | HU-47 | `HU-47-cerrar-etapa-bdt` | Cerrar etapa BDT | Santiago |
 | HU-49 | `HU-49-enviar-pistas-bdt` | Enviar pistas a participantes durante BDT | Santiago |
-
-## Specs outside first delivery
-
-Do not create or implement specs outside the list above unless the user explicitly changes the delivery scope.
-
-Examples of specs that may exist in the SRS but are outside the current first-delivery list:
-
-- HU-01
-- HU-02
-- HU-08
-- HU-16
-- HU-20
-- HU-25
-- HU-31
-- HU-32
-- HU-33
-- HU-36
-- HU-38
-- HU-41
-- HU-48
-
-These may be technical dependencies or future work, but they are not active first-delivery specs.
 
 ## Required folder structure per spec
 

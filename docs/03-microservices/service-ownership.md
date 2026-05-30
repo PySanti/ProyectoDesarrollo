@@ -4,95 +4,119 @@
 
 Owns:
 
-- Usuario
-- KeycloakId
-- RolUsuario
-- EstadoUsuario
-- local user references
+- users;
+- roles as local references;
+- Keycloak mapping;
+- user status;
+- local user references.
 
 Does not own:
 
-- teams
-- trivia sessions
-- BDT sessions
-- game scoring
-- game history
+- teams;
+- Trivia games;
+- BDT games;
+- game scoring;
+- game ranking;
+- game history.
 
 ## Team Service
 
 Owns:
 
-- Equipo
-- Equipos.Participante
-- CodigoAcceso
-- liderazgo
-- estado del equipo
-- reglas de pertenencia a equipo
+- teams;
+- team access codes;
+- team members;
+- leadership;
+- team status;
+- team membership rules;
+- team cardinality.
+
+### Team cardinality rule
+
+```txt
+1 <= members <= 5
+```
+
+A team can exist with one member.
+
+The creator is the first member and leader.
+
+Team Service must reject attempts to add a sixth member.
 
 Does not own:
 
-- formularios de Trivia
-- partidas de Trivia
-- partidas BDT
-- validación de respuestas
-- validación de QR
-- ranking de partidas
-- historial de partidas
+- Trivia forms;
+- Trivia games;
+- BDT games;
+- QR validation;
+- game scoring;
+- game ranking;
+- game answers.
 
 ## Trivia Game Service
 
 Owns:
 
-- FormularioTrivia
-- Pregunta
-- Opcion
-- PuntajeAsignado
-- TiempoLimite
-- PartidaTrivia
-- Trivias.Participante
-- RespuestaTrivia
-- inscripciones de Trivia
-- convocatorias de Trivia
-- puntaje de Trivia
-- ranking de Trivia
-- historial de Trivia
-- eventos de Trivia
-- actualizaciones en tiempo real de Trivia
+- Trivia forms;
+- questions;
+- answer options;
+- assigned question score;
+- question time limits;
+- Trivia games;
+- Trivia lobby;
+- Trivia active participants;
+- Trivia answers;
+- Trivia scoring;
+- Trivia ranking;
+- Trivia history/event records;
+- Trivia real-time updates.
+
+### Trivia scoring rule
+
+Trivia score does not consider time.
+
+```txt
+scoreEarned = question.assignedScore
+participant.accumulatedScore += scoreEarned
+```
+
+The timer is used for synchronization, closing and late-answer validation, but not for score calculation.
 
 Does not own:
 
-- usuarios
-- equipos como dato maestro
-- partidas BDT
-- QR BDT
-- pistas BDT
-- geolocalización BDT
+- team master data;
+- BDT games;
+- QR validation;
+- BDT clues;
+- BDT geolocation.
 
 ## BDT Game Service
 
 Owns:
 
-- PartidaBDT
-- EtapaBDT
-- TesoroQR
-- Pista
-- AreaBusqueda
-- UbicacionGeografica
-- CodigoQREsperado
-- PuntajeEtapa
-- inscripciones BDT
-- convocatorias BDT
-- validación QR
-- puntaje BDT
-- ranking BDT
-- historial BDT
-- eventos BDT
-- actualizaciones en tiempo real BDT
+- BDT games;
+- areas;
+- stages;
+- clues;
+- expected QR codes;
+- treasure/QR uploads;
+- QR validation;
+- BDT progress;
+- BDT scoring;
+- BDT ranking;
+- BDT history/event records;
+- BDT geolocation updates;
+- BDT real-time updates.
 
 Does not own:
 
-- usuarios
-- equipos como dato maestro
-- formularios de Trivia
-- preguntas Trivia
-- respuestas Trivia
+- team master data;
+- Trivia forms;
+- Trivia questions;
+- Trivia answers.
+
+## Cross-service rules
+
+- Game services may query Team Service for team, leadership and membership validation.
+- Services must not read or write each other databases.
+- Cross-service facts must use HTTP, RabbitMQ or SignalR only when justified by SDD and contracts.

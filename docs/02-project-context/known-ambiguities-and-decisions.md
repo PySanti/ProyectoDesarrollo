@@ -1,23 +1,35 @@
-# Known Ambiguities and Required Decisions — UMBRAL
+# Known Ambiguities and Decisions
 
-Este archivo registra puntos del project-source que deben resolverse antes de implementar ciertas features.
+This file records ambiguities detected in the source material and the decisions adopted by the project setup.
 
-## 1. Topología de microservicios
+## Source priority
 
-### Estado
+When sources conflict, use this priority:
 
-Resuelto por `docs/05-decisions/ADR-0006-four-service-topology.md`.
+1. Explicit user decisions recorded in this file.
+2. `docs/05-decisions/` ADRs.
+3. `docs/01-project-source/srs.md`.
+4. `docs/01-project-source/modelo de dominio.md`.
+5. `docs/01-project-source/diagrama de clases.md`.
+6. Operational summaries under `docs/02-project-context/`.
+7. OpenCode commands, agents and skills.
 
-### Decisión vigente
+## 1. Microservice topology
 
-UMBRAL se implementa con cuatro microservicios físicos:
+### Status
 
-1. Identity Service
-2. Team Service
-3. Trivia Game Service
-4. BDT Game Service
+Resolved.
 
-No son microservicios físicos en la arquitectura vigente:
+### Decision
+
+UMBRAL uses four physical backend microservices:
+
+- Identity Service
+- Team Service
+- Trivia Game Service
+- BDT Game Service
+
+The following must not be implemented as active physical backend services:
 
 - Audit Service
 - Scoring Service
@@ -25,53 +37,104 @@ No son microservicios físicos en la arquitectura vigente:
 - Treasure Hunt Service
 - Notification Service
 
-### Regla para OpenCode
-
-OpenCode no debe crear, modificar, documentar ni referenciar esos nombres como servicios físicos activos.
-
-Las responsabilidades de puntaje, ranking, auditoría e historial se ubican dentro del servicio dueño del flujo:
-
-- Trivia Game Service para puntaje, ranking e historial de Trivia.
-- BDT Game Service para puntaje, ranking e historial de BDT.
-- Team Service para historial relacionado con equipos.
-- Identity Service para historial relacionado con usuarios.
-
-## 2. Puntaje de Trivia: fórmula del SRS vs acumulación directa
-
-### Observación
-
-El SRS indica que el puntaje puede calcularse con fórmula ponderada por tiempo restante:
+### Reference
 
 ```txt
-puntaje_obtenido = puntaje_pregunta * (tiempo_restante / tiempo_total)
+docs/05-decisions/ADR-0006-four-service-topology.md
 ```
 
-El modelo/diagrama de clases menciona acumulación directa del `PuntajeAsignado` al `PuntajeAcumulado`.
+## 2. Team cardinality
 
-### Decisión requerida
+### Status
 
-Antes de implementar HU-29, confirmar una de estas opciones:
+Resolved.
 
-- **Opción A — SRS estricto:** usar fórmula ponderada por tiempo restante.
-- **Opción B — Modelo de dominio confirmado:** sumar directamente el puntaje asignado si la respuesta es correcta.
+### Decision
 
-### Regla temporal
+A team can exist with 1 to 5 members.
 
-OpenCode no debe implementar HU-29 hasta que el `spec.md` de esa HU resuelva explícitamente esta decisión.
+```txt
+1 <= Equipo.Participantes.Count <= 5
+```
 
-## 3. Mínimo de integrantes de equipo
+The creator of the team is automatically registered as:
 
-### Observación
+- first team member;
+- team leader.
 
-Las historias de usuario permiten que un participante cree un equipo y quede como líder. El diagrama indica que un equipo contiene `1..5` participantes, pero una versión del modelo menciona una invariante `≥2 y ≤5`.
+### Consequences
 
-### Decisión requerida
+- HU-03 creates a valid team with exactly one member: the creator.
+- HU-04 can add members until the team reaches 5 members.
+- The system must reject attempts to add a sixth member.
+- The system must not reject a team just because it has one member.
+- If a non-leader leaves, the participant is removed directly.
+- If the leader leaves and there are other members, leadership must be transferred first.
+- If the leader leaves and is the only member, the team is deleted.
+- A team with one member may participate where the game modality and SDD allow it.
 
-Antes de implementar reglas de equipo, confirmar si el equipo puede existir con:
+### Applies to
 
-- **1 a 5 integrantes**, o
-- **2 a 5 integrantes**.
+- HU-03
+- HU-04
+- HU-05
+- HU-06
+- HU-07
+- HU-13
+- HU-14
+- HU-19
+- HU-40
 
-### Regla temporal
+## 3. Trivia scoring
 
-Para HU-03, HU-04, HU-05, HU-06 y HU-07, el SDD debe fijar explícitamente esta regla antes de implementar.
+### Status
+
+Resolved.
+
+### Decision
+
+Trivia score does not consider time.
+
+When a Trivia answer is correct, the system adds the assigned score of the question directly to the participant accumulated score.
+
+```txt
+scoreEarned = question.assignedScore
+participant.accumulatedScore += scoreEarned
+```
+
+Do not use this formula:
+
+```txt
+scoreEarned = question.assignedScore * (remainingTime / totalTime)
+```
+
+### Consequences
+
+- `TiempoLimite` still exists.
+- The timer still controls question visibility, closing and late-answer validation.
+- Time is not part of score calculation.
+- Remaining time must not multiply or modify the score.
+- Elapsed time must not multiply or modify the score.
+- Accumulated response time must not multiply or modify the score.
+- The main ranking is ordered by accumulated score descending.
+- Tie-breaking must be explicitly defined in the related SDD. Do not assume time-based tie-breaking.
+
+### Applies to
+
+- HU-26
+- HU-27
+- HU-28
+- HU-29
+- HU-30
+
+## 4. Remaining open questions
+
+No currently known microservice, team-cardinality or Trivia-scoring ambiguity remains open.
+
+Future SDD files may define local details such as:
+
+- endpoint paths;
+- event payloads;
+- ranking tie-breaking;
+- UI wording;
+- exact validation/error response shape.

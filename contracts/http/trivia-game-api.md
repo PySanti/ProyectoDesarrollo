@@ -6,6 +6,26 @@ Owning service: Trivia Game Service
 
 Endpoint details must be completed feature by feature in the related SDD before implementation.
 
+## Trivia scoring rule
+
+Any endpoint that submits, validates or closes a Trivia answer must respect:
+
+```txt
+scoreEarned = question.assignedScore
+```
+
+Time must not be included in score calculation.
+
+The timer can still be used to reject late answers.
+
+## Team modality rule
+
+When Trivia is team-based:
+
+- the team is represented as the active Trivia participant;
+- Team Service validates team existence, state and leadership;
+- a team can have 1 to 5 members.
+
 ## Required endpoint template
 
 ```md

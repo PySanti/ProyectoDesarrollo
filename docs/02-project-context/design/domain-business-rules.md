@@ -1,80 +1,143 @@
-# Domain Business Rules by Aggregate — UMBRAL
+# Domain Business Rules
 
-## Identity / Usuario
+## Team Service
 
-| Regla | Ubicación sugerida |
-|---|---|
-| No almacenar contraseñas | Infrastructure/Auth Adapter + política de persistencia. |
-| Guardar referencia Keycloak | `Usuario` / `KeycloakId`. |
-| Rol inicial no modificable desde UMBRAL | Application handler de creación / actualización. |
-| Usuario desactivado no opera | Guards de Application + autorización. |
+### TEAM-001 — Team cardinality
 
-## Team / Equipo
+A team must have from 1 to 5 members.
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Crear equipo solo si usuario no pertenece a otro | `CrearEquipoCommandHandler` consulta repositorio antes de crear. |
-| Creador queda líder | `Equipo.Crear(...)`. |
-| Código único generado | `CodigoAcceso.Generar()` + validación de unicidad en repositorio. |
-| Máximo 5 integrantes | `Equipo.AgregarParticipante(...)`. |
-| Un participante no puede pertenecer a dos equipos | Application handler + repositorio. |
-| Transferencia obligatoria si líder sale con miembros | `Equipo.RemoverParticipante(...)` o método específico. |
-| Si líder está solo y sale, equipo se elimina | `Equipo.Eliminar()` coordinado por handler. |
-| Equipo desactivado no se inscribe | Validación desde servicios dueños de partidas usando Team contract. |
+```txt
+1 <= Equipo.Participantes.Count <= 5
+```
 
-## Trivia / FormularioTrivia
+Do not enforce a minimum of 2 members.
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Solo operador crea formulario | Autorización + handler. |
-| Formulario debe tener preguntas | `FormularioTrivia.ValidarFormulario()`. |
-| Pregunta debe tener opciones | `Pregunta.EsValida()`. |
-| Pregunta debe tener respuesta correcta | `Pregunta.EsValida()`. |
-| Pregunta debe tener puntaje y tiempo | `Pregunta.EsValida()`. |
-| Formulario incompleto no crea partida | `CrearPartidaTriviaCommandHandler`. |
+### TEAM-002 — Creator as leader
 
-## Trivia / PartidaTrivia
+When a participant creates a team:
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Partida usa formulario válido | `PartidaTrivia.Crear(...)` o handler. |
-| Solo estados válidos | `PartidaTrivia.PublicarLobby()`, `IniciarPartida()`, `CancelarPartida()`, `FinalizarPartida()`. |
-| Inscripción solo en lobby | `PartidaTrivia.RegistrarInscripcion(...)`. |
-| Respuesta solo en partida iniciada y pregunta activa | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
-| Una respuesta por jugador/equipo | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
-| Primera respuesta de equipo es definitiva | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
-| Rechazar respuesta tardía/repetida/fuera de estado | `PartidaTrivia.RegistrarRespuestaDefinitiva(...)`. |
-| Ranking actualizado al cerrar pregunta | Handler + domain service `ClasificadorRankingService`. |
-| Cancelación bloquea nuevas acciones | Métodos del agregado + guards. |
+- the team is created as active;
+- the creator is added as first member;
+- the creator is marked as leader;
+- an access code is generated.
 
-## BDT / PartidaBDT
+### TEAM-003 — Maximum members
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Solo operador crea BDT | Autorización + handler. |
-| BDT debe tener etapas válidas | `PartidaBDT.ValidarConfiguracion()` o `Crear(...)`. |
-| Etapa debe tener QR esperado y tiempo | `EtapaBDT.EsValida()`. |
-| Iniciar BDT activa primera etapa | `PartidaBDT.IniciarPartida()`. |
-| Subida QR solo en iniciada y etapa activa | `PartidaBDT.ValidarHito(...)`. |
-| Validación compara contra QR esperado | `CodigoQREsperado.CoincideCon(...)`. |
-| Cierre por QR válido o tiempo agotado | `EtapaBDT.Resolver()` / `Cerrar()`. |
-| Avance a siguiente etapa o finalización | `PartidaBDT.AvanzarEtapa()`. |
-| Enviar pista solo durante BDT iniciada | `PartidaBDT.DespacharPista(...)`. |
-| Ubicación solo con autorización | Application/UI + handler de ubicación. |
+Team Service must reject attempts to add a sixth member.
 
-## Auditoría / RegistroAuditoria
+### TEAM-004 — One active team per participant
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Cambios relevantes generan evento histórico | Event consumer / Audit application handler. |
-| Eventos son inmutables para consulta | `RegistroAuditoria.AgregarEvento(...)`. |
-| Puntajes deben tener trazabilidad de origen | Eventos de puntaje + historial. |
+A participant cannot belong to more than one active team.
 
-## Cross-service
+### TEAM-005 — Non-leader exit
 
-| Regla | Ubicación sugerida |
-|---|---|
-| Servicios no acceden a base de datos ajena | Architecture rule / integration tests. |
-| Comunicación directa para consultas puntuales | HTTP contracts. |
-| Comunicación desacoplada para efectos secundarios | RabbitMQ events. |
-| Tiempo real visible al usuario | SignalR/WebSocket hubs del servicio dueño o gateway. |
+A non-leader participant can leave the team directly.
+
+### TEAM-006 — Leader exit with other members
+
+If the leader wants to leave and other members exist, the leader must transfer leadership before leaving.
+
+### TEAM-007 — Leader exit as only member
+
+If the leader wants to leave and is the only member, the team is deleted.
+
+## Trivia Game Service
+
+### TRIVIA-FORM-001 — Complete form
+
+A Trivia form must include:
+
+- at least one question;
+- answer options;
+- one correct answer per question;
+- assigned score per question;
+- time limit per question.
+
+### TRIVIA-ANSWER-001 — One definitive answer
+
+A participant can have only one definitive answer per active question.
+
+In team modality, the active participant is the team, so the first answer submitted for the team is definitive.
+
+### TRIVIA-ANSWER-002 — Late answers
+
+An answer submitted after the active question closes must be rejected.
+
+### TRIVIA-SCORE-001 — Direct score accumulation
+
+When a correct answer is validated, the earned score equals the assigned score of the question.
+
+```txt
+scoreEarned = question.assignedScore
+```
+
+### TRIVIA-SCORE-002 — Accumulated score
+
+The earned score is added directly to the participant accumulated score.
+
+```txt
+participant.accumulatedScore += scoreEarned
+```
+
+### TRIVIA-SCORE-003 — Time does not affect score
+
+The following values must not modify score:
+
+- remaining time;
+- elapsed time;
+- response time;
+- accumulated response time;
+- total question time.
+
+### TRIVIA-SCORE-004 — Timer validity
+
+The timer remains part of the domain to:
+
+- show countdown;
+- close questions;
+- reject late answers;
+- synchronize clients.
+
+The timer is not part of score calculation.
+
+### TRIVIA-RANKING-001 — Ranking order
+
+Trivia ranking is ordered by accumulated score descending.
+
+### TRIVIA-RANKING-002 — Tie-breaking
+
+Tie-breaking must be explicitly defined in the related SDD. Do not assume time-based tie-breaking.
+
+## BDT Game Service
+
+### BDT-QR-001 — Expected QR
+
+Each active stage has an expected QR value.
+
+### BDT-QR-002 — QR validation
+
+A treasure QR submission is valid only when the decoded value matches the expected QR of the active stage.
+
+### BDT-STAGE-001 — Stage progression
+
+Stage progression is controlled by BDT Game Service according to the active SDD.
+
+### BDT-SCORE-001 — BDT score ownership
+
+BDT score and ranking belong to BDT Game Service.
+
+## Cross-context rules
+
+### CROSS-001 — Team validation
+
+Game services may consult Team Service to validate:
+
+- team existence;
+- active state;
+- membership;
+- leadership;
+- team cardinality constraints.
+
+### CROSS-002 — No shared database
+
+No service may read or write another service database directly.

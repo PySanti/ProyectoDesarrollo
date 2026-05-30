@@ -1,123 +1,172 @@
-# Domain Entities by Context — UMBRAL
+# Domain Entities by Context
 
-Este documento organiza las entidades del dominio por contexto y por microservicio físico vigente.
+## Active physical service topology
 
-La topología aceptada está definida en:
+UMBRAL uses four physical backend microservices:
 
-```txt
-docs/05-decisions/ADR-0006-four-service-topology.md
-```
-
-## Microservicios físicos vigentes
-
-1. Identity Service
-2. Team Service
-3. Trivia Game Service
-4. BDT Game Service
-
-No existen como microservicios físicos activos:
-
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
+- Identity Service
+- Team Service
+- Trivia Game Service
+- BDT Game Service
 
 ## Identity Service
 
-| Elemento | Tipo | Atributos clave | Ownership |
-|---|---|---|---|
-| Usuario | Entidad / agregado raíz | UsuarioId, KeycloakId, Nombre, Correo, Rol, Estado | Identity Service |
-| KeycloakId | Value Object | Valor | Identity Service |
-| RolUsuario | Enum | Administrador, Operador, Participante | Identity Service / Keycloak |
-| EstadoUsuario | Enum | Activo, Desactivado | Identity Service |
+Owns:
 
-No posee equipos, partidas, ranking de juego, QR, pistas ni formularios de Trivia.
+- Usuario
+- KeycloakId
+- RolUsuario
+- EstadoUsuario
+- local user references
+
+Does not own:
+
+- teams
+- Trivia games
+- BDT games
+- game scoring
+- game ranking
+- game history
 
 ## Team Service
 
-| Elemento | Tipo | Atributos clave | Ownership |
-|---|---|---|---|
-| Equipo | Agregado raíz | EquipoId, NombreEquipo, CodigoAcceso, EstadoEquipo, Participantes | Team Service |
-| Equipos.Participante | Entidad hija | ParticipanteId, UsuarioId, FechaUnion, EsLider | Team Service |
-| EquipoId | Value Object | Valor | Team Service |
-| NombreEquipo | Value Object | Valor | Team Service |
-| CodigoAcceso | Value Object | Valor | Team Service |
-| EstadoEquipo | Enum | Activo, Desactivado, Eliminado | Team Service |
+Owns:
 
-No posee formularios de Trivia, partidas de Trivia, partidas BDT, respuestas, QR, pistas, ranking de partidas ni puntajes de partidas.
+- Equipo
+- Equipos.Participante
+- EquipoId
+- NombreEquipo
+- CodigoAcceso
+- EstadoEquipo
+- team membership
+- leadership
+
+Main invariant:
+
+```txt
+1 <= Equipo.Participantes.Count <= 5
+```
+
+The creator of a team is the first participant and leader.
+
+Team Service does not own:
+
+- Trivia forms
+- Trivia games
+- BDT games
+- game scoring
+- game ranking
+- game answers
+- QR validation
 
 ## Trivia Game Service
 
-### FormularioTrivia
+Owns:
 
-| Elemento | Tipo | Atributos clave | Ownership |
-|---|---|---|---|
-| FormularioTrivia | Agregado raíz | FormularioId, Titulo, Preguntas, OperadorId | Trivia Game Service |
-| Pregunta | Entidad hija | PreguntaId, Texto, Opciones, PuntajeAsignado, TiempoLimite | Trivia Game Service |
-| Opcion | Value Object | Texto, EsCorrecta | Trivia Game Service |
-| PuntajeAsignado | Value Object | Valor | Trivia Game Service |
-| TiempoLimite | Value Object | Segundos | Trivia Game Service |
+- FormularioTrivia
+- Pregunta
+- Opcion
+- PuntajeAsignado
+- TiempoLimite
+- PartidaTrivia
+- Trivias.Participante
+- RespuestaTrivia
+- Trivia inscriptions
+- Trivia convocations
+- Trivia score
+- Trivia ranking
+- Trivia history/event records
+- Trivia real-time updates
 
-### PartidaTrivia
+Scoring rule:
 
-| Elemento | Tipo | Atributos clave | Ownership |
-|---|---|---|---|
-| PartidaTrivia | Agregado raíz | PartidaId, Nombre, EstadoPartida, Modalidad, FormularioTriviaId, Participantes, PreguntaActualId, TiempoInicio | Trivia Game Service |
-| Trivias.Participante | Entidad hija | ParticipanteId, PuntajeAcumulado, TiempoRespuestaAcumulado | Trivia Game Service |
-| RespuestaTrivia | Entidad hija | RespuestaId, ParticipanteId, PreguntaId, OpcionSeleccionada, EsCorrecta, TiempoEmpleado | Trivia Game Service |
-| EstadoPartida | Enum | Lobby, Iniciada, Cancelada, Terminada | Trivia Game Service |
-| Modalidad | Enum | Individual, Equipos | Trivia Game Service |
-| RankingTrivia | Proyección / consulta | Participantes ordenados por puntaje y criterio de desempate | Trivia Game Service |
-| EventoHistorialTrivia | Registro histórico interno | TipoEvento, ActorId, Descripcion, FechaOcurrencia, Datos | Trivia Game Service |
+```txt
+if respuesta.EsCorrecta:
+    participante.PuntajeAcumulado += pregunta.PuntajeAsignado
+```
 
-No posee equipos como estructura social global ni datos maestros de usuario.
+Time rule:
+
+- `TiempoLimite` determines availability and late-answer validation.
+- Time does not modify score.
+- Time must not be used in the score formula.
+
+Optional auxiliary data:
+
+- `TiempoRespuestaAcumulado` may be recorded for history, telemetry or UI.
+- `TiempoRespuestaAcumulado` must not affect score unless a future ADR changes this decision.
+
+Trivia Game Service does not own:
+
+- team master data;
+- BDT games;
+- QR validation;
+- BDT clues;
+- BDT geolocation.
 
 ## BDT Game Service
 
-| Elemento | Tipo | Atributos clave | Ownership |
-|---|---|---|---|
-| PartidaBDT | Agregado raíz | PartidaId, Nombre, EstadoPartida, Modalidad, AreaBusqueda, Etapas, Participantes, IndiceEtapaActual | BDT Game Service |
-| EtapaBDT | Entidad hija | EtapaId, Orden, CodigoQREsperado, TiempoLimite, PuntajeEtapa, EstadoEtapa | BDT Game Service |
-| Bdt.Participante | Entidad hija | ParticipanteId, PuntajeAcumulado, UbicacionActual | BDT Game Service |
-| TesoroQR | Entidad hija | TesoroId, EtapaId, ParticipanteId, ImagenUrl, QrDecodificado, ResultadoValidacion, FechaEnvio | BDT Game Service |
-| Pista | Entidad hija | PistaId, Texto, DestinatarioId, FechaEnvio | BDT Game Service |
-| AreaBusqueda | Value Object | Descripcion | BDT Game Service |
-| UbicacionGeografica | Value Object | Latitud, Longitud, FechaRegistro | BDT Game Service |
-| CodigoQREsperado | Value Object | Valor | BDT Game Service |
-| PuntajeEtapa | Value Object | Valor | BDT Game Service |
-| EstadoEtapa | Enum | Pendiente, Activa, Resuelta, Cerrada | BDT Game Service |
-| ResultadoValidacionQR | Enum | Valido, Invalido, NoLegible, NoCorrespondeEtapaActiva | BDT Game Service |
-| RankingBDT | Proyección / consulta | Participantes ordenados por puntaje y criterio de desempate | BDT Game Service |
-| EventoHistorialBDT | Registro histórico interno | TipoEvento, ActorId, Descripcion, FechaOcurrencia, Datos | BDT Game Service |
+Owns:
 
-No posee formularios de Trivia, preguntas de Trivia, respuestas de Trivia ni equipos como estructura social global.
+- PartidaBDT
+- EtapaBDT
+- Bdt.Participante
+- TesoroQR
+- Pista
+- AreaBusqueda
+- UbicacionGeografica
+- CodigoQREsperado
+- PuntajeEtapa
+- EstadoEtapa
+- ResultadoValidacionQR
+- BDT inscriptions
+- BDT convocations
+- BDT score
+- BDT ranking
+- BDT history/event records
+- BDT real-time updates
 
-## Clases transversales del diagrama
+BDT Game Service does not own:
 
-El diagrama contiene `InscripcionPartida` y `Convocatoria` como clases transversales.
+- team master data;
+- Trivia forms;
+- Trivia questions;
+- Trivia answers.
 
-Para evitar crear microservicios adicionales, su ownership se resuelve por modo:
+## Transversal concepts
 
-| Concepto | Ownership vigente |
-|---|---|
-| Inscripcion de Trivia | Trivia Game Service |
-| Convocatoria de Trivia | Trivia Game Service |
-| Inscripcion de BDT | BDT Game Service |
-| Convocatoria de BDT | BDT Game Service |
+### InscripcionPartida
 
-Cuando una inscripción por equipo requiera validar liderazgo, membresía o estado del equipo, el servicio de juego consulta al Team Service mediante contrato explícito. No accede a su base de datos.
+Ownership depends on game mode:
 
-## Auditoría e historial
+- Trivia inscription belongs to Trivia Game Service.
+- BDT inscription belongs to BDT Game Service.
 
-El modelo contiene `RegistroAuditoria` y `EventoHistorial`.
+### Convocatoria
 
-En la topología vigente no existe `Audit Service`. Por tanto:
+Ownership depends on game mode:
 
-| Historial | Ownership vigente |
-|---|---|
-| Historial de usuarios | Identity Service |
-| Historial de equipos | Team Service |
-| Historial de Trivia | Trivia Game Service |
-| Historial de BDT | BDT Game Service |
+- Trivia team convocation belongs to Trivia Game Service.
+- BDT team convocation belongs to BDT Game Service.
 
-Si en el futuro se extrae un servicio de auditoría, debe crearse una nueva ADR.
+Team Service remains the owner of team membership and leadership validation.
+
+### RegistroAuditoria / EventoHistorial
+
+There is no physical Audit Service in the current topology.
+
+History is owned by the service that owns the business flow:
+
+- Trivia history belongs to Trivia Game Service.
+- BDT history belongs to BDT Game Service.
+- Team history belongs to Team Service.
+- Identity/user history belongs to Identity Service.
+
+### Puntaje / Ranking
+
+There is no physical Scoring Service in the current topology.
+
+Scoring and ranking are owned by the service that owns the game flow:
+
+- Trivia scoring/ranking belongs to Trivia Game Service.
+- BDT scoring/ranking belongs to BDT Game Service.

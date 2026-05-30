@@ -14,6 +14,22 @@ Suggested base path, pending SDD confirmation:
 /api/teams
 ```
 
+## Team cardinality rule
+
+All team endpoints must respect:
+
+```txt
+1 <= members <= 5
+```
+
+Examples:
+
+- `POST /api/teams` creates a team with exactly one member: the creator.
+- The creator is automatically the leader.
+- Joining a team is rejected if the team already has 5 members.
+- A team with one member is valid.
+- Do not enforce a minimum of 2 members.
+
 ## Required endpoint template
 
 ```md
@@ -68,4 +84,4 @@ Real-time updates:
 
 ## Notes
 
-Do not reuse the old incomplete `POST /api/teams` draft unless the corresponding HU SDD confirms its request, response and authorization.
+Do not reuse endpoint details unless the corresponding HU SDD confirms request, response, authorization and business rules.

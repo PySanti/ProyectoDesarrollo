@@ -34,7 +34,7 @@ Esta carpeta define el contexto operativo de microservicios de UMBRAL para que O
 
 ## Regla central
 
-El archivo `microservicios(2).md` titula la sección como **"Los 5 Microservicios de Negocio"**, pero solo detalla cuatro microservicios:
+El archivo `microservicios(2).md` titula la sección como **"Los 4 Microservicios de Negocio"**, pero solo detalla cuatro microservicios:
 
 1. Identity Service.
 2. Team Service.

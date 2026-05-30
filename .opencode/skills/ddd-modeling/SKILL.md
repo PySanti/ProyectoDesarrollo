@@ -24,6 +24,33 @@ Base yourself on:
 - Do not leak EF Core attributes into domain entities unless explicitly accepted.
 - Do not reuse the same `Participante` class across contexts; keep context-specific meanings separate.
 
+## Resolved domain decisions
+
+### Team cardinality
+
+A team can exist with 1 to 5 members.
+
+```txt
+1 <= Equipo.Participantes.Count <= 5
+```
+
+Do not enforce a minimum of 2 members.
+
+The creator is the first member and leader.
+
+### Trivia scoring
+
+Trivia score uses direct accumulation.
+
+```txt
+scoreEarned = pregunta.PuntajeAsignado
+participante.PuntajeAcumulado += scoreEarned
+```
+
+Do not use remaining time, elapsed time, response time or accumulated response time to calculate score.
+
+The timer remains valid for synchronization, closing and late-answer validation.
+
 ## Core concepts
 
 - Usuario
@@ -36,7 +63,7 @@ Base yourself on:
 - PartidaBDT
 - EtapaBDT
 - Pista
-- Evidencia / Tesoro QR
+- TesoroQR
 - PuntajeAcumulado
 - Ranking
 - RegistroAuditoria

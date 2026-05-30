@@ -131,6 +131,16 @@ Controllers and hubs must not contain business rules.
 - CodigoAcceso
 - EstadoEquipo
 
+### Team aggregate invariant
+
+```txt
+1 <= Equipo.Participantes.Count <= 5
+```
+
+The team creator is inserted as the first participant and marked as leader.
+
+Do not enforce a minimum of 2 members.
+
 ### Application
 
 - create team;
@@ -164,10 +174,36 @@ Controllers and hubs must not contain business rules.
 - RespuestaTrivia
 - trivia score/ranking/history concepts
 
+### Trivia score calculation
+
+The domain method for score accumulation must use direct accumulation.
+
+```txt
+if respuesta.EsCorrecta:
+    participante.PuntajeAcumulado += pregunta.PuntajeAsignado
+```
+
+The method must not multiply by:
+
+- remaining time;
+- elapsed time;
+- response time;
+- total question time.
+
+### Timer role
+
+The timer is still used to:
+
+- synchronize clients;
+- close questions;
+- reject late answers.
+
+The timer must not affect score.
+
 ### Application
 
 - create/edit/query forms;
-- create/publish Trivia sessions;
+- create/publish Trivia games;
 - join Trivia;
 - start Trivia;
 - submit Trivia answers;
@@ -177,7 +213,7 @@ Controllers and hubs must not contain business rules.
 
 ### Infrastructure
 
-- trivia persistence;
+- Trivia persistence;
 - RabbitMQ event publishing when required by SDD;
 - SignalR/WebSocket adapter for real-time Trivia updates;
 - Team Service HTTP client for team/leadership validation when required.
@@ -205,7 +241,7 @@ Controllers and hubs must not contain business rules.
 
 ### Application
 
-- create/publish BDT sessions;
+- create/publish BDT games;
 - configure stages;
 - join BDT;
 - start BDT;

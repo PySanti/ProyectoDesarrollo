@@ -1,23 +1,17 @@
-# Service Model Impact — UMBRAL
+# Service Model Impact
 
-Este archivo traduce el modelo de dominio y las historias de usuario a la topología física aceptada.
+The UML/domain model is global, but implementation uses four physical backend microservices.
 
-La topología vigente está definida en:
+## Active physical services
 
-```txt
-docs/05-decisions/ADR-0006-four-service-topology.md
-```
+- Identity Service
+- Team Service
+- Trivia Game Service
+- BDT Game Service
 
-## Regla principal
+## Explicit non-services
 
-El modelo de dominio es global, pero la implementación usa cuatro microservicios físicos:
-
-1. Identity Service
-2. Team Service
-3. Trivia Game Service
-4. BDT Game Service
-
-No se deben crear estos servicios físicos:
+The following are not physical backend microservices in the current topology:
 
 - Audit Service
 - Scoring Service
@@ -25,122 +19,129 @@ No se deben crear estos servicios físicos:
 - Treasure Hunt Service
 - Notification Service
 
-## Reglas de implementación
+## Resolved domain decisions
 
-- No implementar todas las clases UML en un solo backend.
-- No crear una base de datos global compartida.
-- No crear un DbContext global.
-- No acceder directamente a la base de datos de otro servicio.
-- Usar HTTP para consultas directas entre servicios cuando una acción lo requiera.
-- Usar RabbitMQ para hechos asíncronos entre servicios cuando el SDD lo justifique.
-- Usar SignalR/WebSockets para actualizaciones visibles en tiempo real.
-- Resolver contratos en `contracts/` antes de implementar comunicación entre servicios.
+### Team cardinality
 
-## Impacto por servicio
+Team cardinality is owned by Team Service.
+
+```txt
+1 <= members <= 5
+```
+
+A team can validly exist with one member.
+
+### Trivia scoring
+
+Trivia scoring is owned by Trivia Game Service.
+
+```txt
+scoreEarned = question.assignedScore
+```
+
+Time does not modify score.
+
+## Rules
+
+- Do not implement all UML classes in a single backend.
+- Do not create one global database.
+- Do not create one global DbContext.
+- Do not directly access another service database.
+- Use HTTP only for direct service queries justified by SDD.
+- Use RabbitMQ only for asynchronous facts/events justified by SDD.
+- Use SignalR/WebSockets only for user-visible real-time updates.
+
+## Impact by service
 
 ### Identity Service
 
-Implementa:
+Implements:
 
-- usuarios;
-- roles base;
-- estado de usuario;
-- referencia local a Keycloak;
-- historial propio de cambios de usuario, si una HU lo requiere.
+- user local references;
+- Keycloak mapping;
+- user role reference;
+- user status.
 
-No implementa:
+Does not implement:
 
-- equipos;
-- partidas;
-- puntajes de juego;
-- rankings de juego;
-- QR;
-- pistas.
+- teams;
+- game sessions;
+- Trivia logic;
+- BDT logic;
+- game ranking;
+- game history.
 
 ### Team Service
 
-Implementa:
+Implements:
 
-- equipos;
-- miembros;
-- códigos de acceso;
-- liderazgo;
-- estado del equipo;
-- reglas de pertenencia;
-- historial propio de equipo, si una HU lo requiere.
+- teams;
+- team members;
+- access codes;
+- leadership;
+- team status;
+- team membership rules;
+- 1-to-5 member cardinality.
 
-No implementa:
+Does not implement:
 
-- partidas de Trivia;
-- partidas BDT;
-- respuestas;
-- QR;
-- pistas;
-- ranking de partidas.
+- Trivia forms;
+- Trivia games;
+- BDT games;
+- QR validation;
+- game ranking;
+- game scoring;
+- game history.
 
 ### Trivia Game Service
 
-Implementa:
+Implements:
 
-- formularios de Trivia;
-- preguntas;
-- opciones;
-- partidas de Trivia;
-- lobby de Trivia;
-- inscripciones y convocatorias de Trivia;
-- respuestas de Trivia;
-- puntaje de Trivia;
-- ranking de Trivia;
-- historial de Trivia;
-- actualizaciones en tiempo real de Trivia.
+- Trivia forms;
+- questions;
+- options;
+- Trivia games;
+- Trivia lobby;
+- Trivia participants;
+- Trivia answers;
+- direct score accumulation without time weighting;
+- Trivia ranking;
+- Trivia history;
+- Trivia real-time updates.
 
-No implementa:
+Does not implement:
 
-- equipos como dato maestro;
-- reglas internas de membresía;
-- BDT;
-- QR BDT;
-- pistas BDT;
-- geolocalización BDT.
+- team master data;
+- BDT stages;
+- QR validation;
+- BDT clues;
+- BDT geolocation.
 
 ### BDT Game Service
 
-Implementa:
+Implements:
 
-- partidas BDT;
-- área de búsqueda;
-- etapas;
-- QR esperado;
-- tesoros / evidencias QR;
-- validación de QR;
-- pistas;
-- geolocalización;
-- progreso BDT;
-- puntaje BDT;
-- ranking BDT;
-- historial BDT;
-- actualizaciones en tiempo real BDT.
+- BDT games;
+- search area;
+- stages;
+- expected QR codes;
+- treasure/QR uploads;
+- QR validation;
+- clues;
+- BDT participants;
+- BDT scoring;
+- BDT ranking;
+- BDT history;
+- BDT geolocation;
+- BDT real-time updates.
 
-No implementa:
+Does not implement:
 
-- equipos como dato maestro;
-- formularios de Trivia;
-- preguntas de Trivia;
-- respuestas de Trivia.
+- Trivia forms;
+- Trivia questions;
+- Trivia answers;
+- team master data.
 
-### Gateway
+## Gateway
 
-El gateway no es un microservicio de dominio. Si existe en la implementación, solo enruta, compone o reenvía requests. No posee reglas de negocio ni persistencia de dominio.
-
-## Responsabilidades que antes podían parecer servicios
-
-| Responsabilidad | Ubicación vigente |
-|---|---|
-| Scoring / puntaje Trivia | Trivia Game Service |
-| Ranking Trivia | Trivia Game Service |
-| Historial Trivia | Trivia Game Service |
-| Scoring / puntaje BDT | BDT Game Service |
-| Ranking BDT | BDT Game Service |
-| Historial BDT | BDT Game Service |
-| Historial de equipo | Team Service |
-| Historial de usuario | Identity Service |
+The gateway, if present, does not own domain logic. It may route or compose calls, but it must not implement business rules.

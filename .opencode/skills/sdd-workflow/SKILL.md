@@ -23,17 +23,18 @@ docs/04-sdd/specs/<HU-ID>-<short-name>/
 ## Required process
 
 1. Identify the user story.
-2. Identify the owning microservice.
-3. Read required context.
-4. Read the related service context.
-5. Read or create the related SDD folder.
-6. Complete or refine `spec.md`.
-7. Complete or refine `design.md`.
-8. Complete or refine `tasks.md`.
-9. Implement exactly one task at a time.
-10. Update tests.
-11. Update `acceptance.md`.
-12. Update `docs/04-sdd/traceability-matrix.md`.
+2. Confirm the user story appears in `docs/04-sdd/SPECS-LIST.md`.
+3. Identify the owning microservice.
+4. Read required context.
+5. Read the related service context.
+6. Read or create the related SDD folder.
+7. Complete or refine `spec.md`.
+8. Complete or refine `design.md`.
+9. Complete or refine `tasks.md`.
+10. Implement exactly one task at a time.
+11. Update tests.
+12. Update `acceptance.md`.
+13. Update `docs/04-sdd/traceability-matrix.md`.
 
 ## Required output before coding
 
@@ -44,6 +45,7 @@ State explicitly:
 - Supporting services
 - Files read
 - Current SDD status
+- Resolved business decisions applied
 - Task to implement
 - Tests to update
 - Contracts to update
@@ -62,7 +64,7 @@ Instead:
 
 1. Complete the missing SDD content using project sources.
 2. Report what changed.
-3. Ask for user approval before implementation.
+3. Ask for user review before implementation.
 
 ## Required source files for SDD generation
 
@@ -74,6 +76,7 @@ Use actual filenames present in the project:
 - `docs/01-project-source/diagrama de clases.md`
 - `docs/01-project-source/microservicios.md`
 - `docs/01-project-source/enunciado-proyecto.md`
+- `docs/02-project-context/known-ambiguities-and-decisions.md`
 - `docs/02-project-context/business-rules.md`
 - `docs/02-project-context/first-delivery-scope.md`
 - `docs/02-project-context/design/*.md`
@@ -91,3 +94,40 @@ Valid owning services are only:
 - BDT Game Service
 
 Stop if a feature points to Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service as owning service.
+
+## Resolved business decisions
+
+Before generating or implementing SDD, enforce these resolved decisions:
+
+- Team cardinality is 1 to 5 members.
+- A team with one member is valid.
+- The team creator is the first member and leader.
+- Trivia score does not consider time.
+- A correct Trivia answer adds the assigned question score directly.
+- Timers remain valid for synchronization, closing and late-answer validation, but not for score calculation.
+
+## HU-specific reminders
+
+### Team-related HUs
+
+The following must include team cardinality `1..5`:
+
+- HU-03
+- HU-04
+- HU-05
+- HU-06
+- HU-07
+- HU-13
+- HU-14
+- HU-19
+- HU-40
+
+### Trivia scoring HUs
+
+The following must include direct scoring without time weighting:
+
+- HU-26
+- HU-27
+- HU-28
+- HU-29
+- HU-30

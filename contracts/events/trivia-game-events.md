@@ -6,6 +6,35 @@ Owning publisher: Trivia Game Service
 
 Event details must be completed feature by feature in the related SDD before implementation.
 
+## Trivia scoring event rule
+
+Trivia scoring events must not include time-derived score calculation.
+
+Allowed scoring payload fields:
+
+```json
+{
+  "participantId": "uuid",
+  "questionId": "uuid",
+  "assignedScore": 100,
+  "scoreEarned": 100,
+  "accumulatedScore": 300
+}
+```
+
+Do not publish score fields like:
+
+```json
+{
+  "remainingTime": 12,
+  "totalTime": 30,
+  "timeMultiplier": 0.4,
+  "scoreEarned": 40
+}
+```
+
+unless time fields are explicitly marked as telemetry and not used for scoring.
+
 ## Required event template
 
 ```md
