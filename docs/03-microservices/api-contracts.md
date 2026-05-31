@@ -61,24 +61,24 @@ Estas son capacidades funcionales derivadas de las HUs asignadas por `microservi
 
 ### Trivia Game Service
 
-| HU | Capacidad |
-|---|---|
-| HU-11 | Filtrar partidas de Trivia por modalidad. |
-| HU-13 | Mostrar advertencia al intentar entrar a Trivia por equipo sin ser líder. |
-| HU-15 | Crear formularios de Trivia. |
-| HU-17 | Crear y publicar partida de Trivia. |
-| HU-18 | Unirse a Trivia individual. |
-| HU-19 | Unir equipo a Trivia por equipos. |
-| HU-21 | Ver pantalla de espera de Trivia. |
-| HU-22 | Ver participantes unidos a Trivia publicada. |
-| HU-23 | Ver equipos unidos a Trivia publicada. |
-| HU-24 | Iniciar manualmente Trivia. |
-| HU-26 | Responder Trivia individual. |
-| HU-27 | Responder Trivia por equipo. |
-| HU-28 | Ver resultado al cerrar pregunta de Trivia. |
-| HU-29 | Calcular puntaje de respuesta en Trivia. |
-| HU-30 | Ver ranking durante Trivia. |
-| HU-35 | Ver lista de partidas de Trivia publicadas. |
+| HU | Capacidad | Contrato |
+|---|---|---|
+| HU-11 | Filtrar partidas de Trivia por modalidad. | Pendiente |
+| HU-13 | Mostrar advertencia al intentar entrar a Trivia por equipo sin ser líder. | Pendiente |
+| HU-15 | Crear formularios de Trivia. | [`contracts/http/trivia-game-api.md`](../../contracts/http/trivia-game-api.md) |
+| HU-17 | Crear y publicar partida de Trivia. | Pendiente |
+| HU-18 | Unirse a Trivia individual. | Pendiente |
+| HU-19 | Unir equipo a Trivia por equipos. | Pendiente |
+| HU-21 | Ver pantalla de espera de Trivia. | Pendiente |
+| HU-22 | Ver participantes unidos a Trivia publicada. | Pendiente |
+| HU-23 | Ver equipos unidos a Trivia publicada. | Pendiente |
+| HU-24 | Iniciar manualmente Trivia. | Pendiente |
+| HU-26 | Responder Trivia individual. | Pendiente |
+| HU-27 | Responder Trivia por equipo. | Pendiente |
+| HU-28 | Ver resultado al cerrar pregunta de Trivia. | Pendiente |
+| HU-29 | Calcular puntaje de respuesta en Trivia. | Pendiente |
+| HU-30 | Ver ranking durante Trivia. | Pendiente |
+| HU-35 | Ver lista de partidas de Trivia publicadas. | Pendiente |
 
 ### BDT Game Service
 

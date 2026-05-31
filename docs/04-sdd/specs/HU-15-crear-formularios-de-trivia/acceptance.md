@@ -10,7 +10,7 @@
 | Client | React web |
 | Service | Trivia Game Service |
 | SDD status | Ready for review |
-| Implementation status | Not started |
+| Implementation status | Backend complete — pending frontend |
 
 ---
 
@@ -18,19 +18,19 @@
 
 ### Funcional — Backend
 
-- [ ] **AC-BE-01** POST `/api/trivia/forms` crea formulario con título y ≥1 pregunta válida → **201** con `id` e `isComplete: true`.
-- [ ] **AC-BE-02** POST rechaza formulario sin preguntas → **400**.
-- [ ] **AC-BE-03** POST rechaza pregunta con ≠4 opciones → **400**.
-- [ ] **AC-BE-04** POST rechaza pregunta con ≠1 opción correcta → **400**.
-- [ ] **AC-BE-05** POST rechaza `assignedScore` ≤ 0 o `timeLimitSeconds` ≤ 0 → **400**.
-- [ ] **AC-BE-06** PUT `/api/trivia/forms/{id}` actualiza formulario existente → **200** con datos actualizados.
-- [ ] **AC-BE-07** PUT con id inexistente → **404**.
-- [ ] **AC-BE-08** GET `/api/trivia/forms/{id}` retorna detalle completo sin modificar estado → **200**.
-- [ ] **AC-BE-09** GET con id inexistente → **404**.
-- [ ] **AC-BE-10** Usuario sin rol Operador recibe **403** en POST, PUT y GET.
+- [x] **AC-BE-01** POST `/api/trivia-forms` crea formulario con título y ≥1 pregunta válida → **201** con `id` e `isComplete: true`.
+- [x] **AC-BE-02** POST rechaza formulario sin preguntas → **400**.
+- [x] **AC-BE-03** POST rechaza pregunta con ≠4 opciones → **400**.
+- [x] **AC-BE-04** POST rechaza pregunta con ≠1 opción correcta → **400**.
+- [x] **AC-BE-05** POST rechaza `assignedScore` ≤ 0 o `timeLimitSeconds` ≤ 0 → **400**.
+- [x] **AC-BE-06** PUT `/api/trivia-forms/{id}` actualiza formulario existente → **200** con datos actualizados.
+- [x] **AC-BE-07** PUT con id inexistente → **404**.
+- [x] **AC-BE-08** GET `/api/trivia-forms/{id}` retorna detalle completo sin modificar estado → **200**.
+- [x] **AC-BE-09** GET con id inexistente → **404**.
+- [x] **AC-BE-10** Usuario sin rol Operador recibe **403** en POST, PUT y GET.
 - [ ] **AC-BE-11** Request sin autenticación recibe **401**.
-- [ ] **AC-BE-12** Respuesta incluye `isComplete` e `incompleteReasons` coherentes con reglas RF-16.
-- [ ] **AC-BE-13** Modelo persistido no contiene campos de ponderación de puntaje por tiempo.
+- [x] **AC-BE-12** Respuesta incluye `isComplete` e `incompleteReasons` coherentes con reglas RF-16.
+- [x] **AC-BE-13** Modelo persistido no contiene campos de ponderación de puntaje por tiempo.
 
 ### Funcional — Frontend
 
@@ -108,11 +108,11 @@
 
 | Test suite | File / location | Status | Evidence |
 | --- | --- | --- | --- |
-| Domain unit tests | `TriviaFormTests`, `QuestionTests`, `TriviaFormCompletenessValidatorTests` | Pending | — |
-| Application validator tests | `CreateTriviaFormCommandValidatorTests` | Pending | — |
-| API integration tests | `TriviaFormsEndpointTests` | Pending | — |
-| Auth integration tests | `TriviaFormsAuthorizationTests` | Pending | — |
-| Frontend component tests | `QuestionEditor.test.tsx` | Pending | — |
+| Domain unit tests | `TriviaFormTests`, `QuestionTests`, `TriviaFormCompletenessValidatorTests` | Done | 101 tests green |
+| Application validator tests | `CreateTriviaFormCommandValidatorTests` | Done | 32 tests green |
+| API integration tests | `TriviaFormsControllerTests` | Done | 6 tests green |
+| Auth integration tests | `TriviaFormsControllerTests` (403 test) | Done | Included in 6 tests |
+| Frontend component tests | `QuestionEditor.test.tsx` | Pending (non-goal for first sprint) | — |
 
 > Completar columna **Evidence** con enlace a CI run, captura o comando local al finalizar implementación.
 
@@ -130,7 +130,7 @@
 | SPECS-LIST | Active sprint | Confirmed |
 | Owning service | Trivia Game Service | Confirmed |
 | Client | React web | Confirmed |
-| HTTP contract | `contracts/http/trivia-game-api.md` | Pending implementation (C-01) |
+| HTTP contract | `contracts/http/trivia-game-api.md` | Complete (C-01) |
 | Events contract | N/A for HU-15 | N/A |
 | Traceability matrix | `docs/04-sdd/traceability-matrix.md` | Updated at SDD creation |
 

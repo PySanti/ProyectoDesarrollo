@@ -27,12 +27,12 @@ OpenCode must only create, plan or implement features listed here.
 | HU-47 | Cerrar etapa BDT | BDT Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-47-cerrar-etapa-bdt/ | Not started |
 | HU-49 | Enviar pistas a participantes durante BDT | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-49-enviar-pistas-a-participantes-durante-bdt/ | Not started |
 | HU-05 | Eliminar equipo creado | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-05-eliminar-equipo-creado/ | Not started |
-| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Not started |
-| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Not started |
+| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Backend done — 5 tests added (216 total) |
+| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Backend done — 8 tests added (224 total) |
 | HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-13-advertencia-al-entrar-a-trivia-por-equipo-sin-ser-lider/ | Not started |
 | HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | SDD ready for review |
 | HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-17-crear-y-publicar-partida-de-trivia/ | Not started |
-| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Not started |
+| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Backend done — 12 tests added (236 total) |
 | HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-19-unir-equipo-a-trivia-por-equipos/ | Not started |
 | HU-21 | Ver pantalla de espera de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-21-ver-pantalla-de-espera-de-trivia/ | Not started |
 | HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Not started |

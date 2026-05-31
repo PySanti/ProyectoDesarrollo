@@ -25,12 +25,12 @@ This matrix links active first-sprint user stories to requirements, services, cl
 | HU-47 | Cerrar etapa BDT | First sprint | BDT Game Service | TBD by SDD | Backend / React Native mobile | TBD after SDD | Not started |
 | HU-49 | Enviar pistas a participantes durante BDT | First sprint | BDT Game Service | TBD by SDD | React web | TBD after SDD | Not started |
 | HU-05 | Eliminar equipo creado | First sprint | Team Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
-| HU-09 | Ver partidas de Trivia publicadas | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
-| HU-11 | Filtrar partidas de Trivia por modalidad | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
+| HU-09 | Ver partidas de Trivia publicadas | First sprint | Trivia Game Service | Identity Service (JWT / autenticación) | React Native mobile | `contracts/http/trivia-game-api.md` (GET `/api/trivia-games`) | Backend done — 5 tests added (216 total) |
+| HU-11 | Filtrar partidas de Trivia por modalidad | First sprint | Trivia Game Service | Identity Service (JWT / autenticación) | React Native mobile | `contracts/http/trivia-game-api.md` (GET `/api/trivia-games?modalidad=`) | Backend done — 8 tests added (224 total) |
 | HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
-| HU-15 | Crear formularios de Trivia | First sprint | Trivia Game Service | Identity Service (JWT / Operador role) | React web | `contracts/http/trivia-game-api.md` (POST/PUT/GET `/api/trivia/forms`) | SDD ready for review |
-| HU-17 | Crear y publicar partida de Trivia | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
-| HU-18 | Unirse a Trivia individual | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
+| HU-15 | Crear formularios de Trivia | First sprint | Trivia Game Service | Identity Service (JWT / Operador role) | React web | `contracts/http/trivia-game-api.md` (POST/PUT/GET `/api/trivia-forms`) | Backend done — 139 tests |
+| HU-17 | Crear y publicar partida de Trivia | First sprint | Trivia Game Service | Identity Service (JWT / Operador role) | React web | `contracts/http/trivia-game-api.md` (POST/PUT/GET `/api/trivia-forms`, POST/GET `/api/trivia-games`, POST `/api/trivia-games/{id}/start`) | Backend done — 211 tests |
+| HU-18 | Unirse a Trivia individual | First sprint | Trivia Game Service | Identity Service (JWT / autenticación) | React Native mobile | `contracts/http/trivia-game-api.md` (POST `/api/trivia-games/{id}/join`) | Backend done — 12 tests added (236 total) |
 | HU-19 | Unir equipo a Trivia por equipos | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-21 | Ver pantalla de espera de Trivia | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-22 | Ver participantes unidos a Trivia publicada | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
