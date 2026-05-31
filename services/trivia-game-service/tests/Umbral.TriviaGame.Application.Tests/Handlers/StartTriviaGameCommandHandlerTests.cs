@@ -14,11 +14,15 @@ public class StartTriviaGameCommandHandlerTests
 {
     private readonly Mock<IPartidaTriviaRepository> _repoMock = new();
     private readonly Mock<IDomainEventDispatcher> _eventMock = new();
+    private readonly Mock<ITriviaLobbyNotifier> _notifierMock = new();
     private readonly StartTriviaGameCommandHandler _handler;
 
     public StartTriviaGameCommandHandlerTests()
     {
-        _handler = new StartTriviaGameCommandHandler(_repoMock.Object, _eventMock.Object);
+        _handler = new StartTriviaGameCommandHandler(
+            _repoMock.Object,
+            _eventMock.Object,
+            _notifierMock.Object);
     }
 
     private static PartidaTrivia CreatePartidaEnLobby(CantidadMinima? minimo = null)
@@ -60,6 +64,7 @@ public class StartTriviaGameCommandHandlerTests
 
         _repoMock.Verify(r => r.UpdateAsync(partida, It.IsAny<CancellationToken>()), Times.Once);
         _eventMock.Verify(e => e.DispatchAsync(It.IsAny<IReadOnlyList<DomainEvent>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _notifierMock.Verify(n => n.NotifyGameStarted(partidaId, It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

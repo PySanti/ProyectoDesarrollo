@@ -60,6 +60,10 @@ public sealed class ExceptionHandlingMiddleware
                 HttpStatusCode.Conflict,
                 "Jugador ya inscrito",
                 exception.Message),
+            UsuarioNoInscritoException => (
+                HttpStatusCode.Forbidden,
+                "Usuario no inscrito",
+                exception.Message),
             ArgumentOutOfRangeException => (
                 HttpStatusCode.BadRequest,
                 "Argumento inválido",

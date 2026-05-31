@@ -3,6 +3,7 @@ using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.TriviaGame.Api.Constants;
+using Umbral.TriviaGame.Api.Hubs;
 using Umbral.TriviaGame.Api.Middleware;
 using Umbral.TriviaGame.Api.Services;
 using Umbral.TriviaGame.Application;
@@ -41,6 +42,7 @@ builder.Services.AddAuthorization(options =>
 });
 
 builder.Services.AddControllers();
+builder.Services.AddSignalR();
 
 builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen();
@@ -54,6 +56,8 @@ var connectionString = builder.Configuration.GetConnectionString("TriviaGameDb")
     ?? "Host=localhost;Port=5432;Database=umbral_trivia;Username=postgres;Password=postgres";
 
 builder.Services.AddInfrastructure(connectionString);
+
+builder.Services.AddScoped<ITriviaLobbyNotifier, TriviaLobbyNotifier>();
 
 var app = builder.Build();
 
@@ -69,6 +73,7 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 app.MapControllers();
+app.MapHub<TriviaLobbyHub>("/hubs/trivia-lobby");
 
 app.Run();
 

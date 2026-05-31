@@ -20,4 +20,9 @@ public sealed class StubTriviaInscripcionRepository : ITriviaInscripcionReposito
     {
         return Task.FromResult(false);
     }
+
+    public Task<IReadOnlyList<TriviaInscripcion>> ListByPartidaIdAsync(PartidaId partidaId, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<TriviaInscripcion>>(new List<TriviaInscripcion>());
+    }
 }

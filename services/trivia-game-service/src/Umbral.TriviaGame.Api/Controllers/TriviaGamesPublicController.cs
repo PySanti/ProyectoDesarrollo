@@ -41,4 +41,18 @@ public sealed class TriviaGamesPublicController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("{id:guid}/lobby")]
+    public async Task<IActionResult> GetLobby(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var usuarioId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(usuarioId))
+            return Unauthorized("No se pudo identificar al usuario autenticado.");
+
+        var query = new GetTriviaGameLobbyQuery(id, usuarioId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }

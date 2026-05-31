@@ -232,11 +232,97 @@ Path parameter: `id` (guid) must match `formId` in body.
 
 ### Events published
 
-- `TriviaFormUpdatedDomainEvent` (in-process)
+- None
 
 ### Real-time updates
 
+- See SignalR hub section below for real-time lobby events.
+
+---
+
+## GET /api/trivia-games/{id}/lobby
+
+Get the lobby status (waiting screen data) for an active Trivia game.
+
+| Field | Value |
+|---|---|
+| Related HU | HU-21 |
+| Related requirements | RF-08, RF-13 |
+| Authorization | Participant (must be registered in the game) |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "partidaId": "uuid",
+  "nombre": "string",
+  "estado": "Lobby",
+  "modalidad": "Individual | Equipo",
+  "tiempoInicio": "ISO 8601 DateTimeOffset",
+  "minimoParticipantes": 1,
+  "maximoJugadores": 10,
+  "participantesActual": 3,
+  "participantes": [
+    {
+      "inscripcionId": "uuid",
+      "usuarioId": "string",
+      "fechaInscripcion": "2026-05-31T00:00:00Z"
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user is not registered for this game |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Events published
+
 - None
+
+### Real-time updates
+
+- See SignalR hub section below.
+
+---
+
+## SignalR Hub: /hubs/trivia-lobby
+
+| Field | Value |
+|---|---|
+| Related HU | HU-21 |
+| Related requirements | RF-13 |
+| Owning service | Trivia Game Service |
+| Hub path | `/hubs/trivia-lobby` |
+
+### Client methods (events sent from server)
+
+| Event name | Payload | Trigger |
+|---|---|---|
+| `ParticipantJoined` | `{ partidaId: guid, usuarioId: string }` | When a participant joins the game lobby |
+| `GameStarted` | `{ partidaId: guid }` | When game transitions from Lobby to Iniciada |
+| `GameCancelled` | `{ partidaId: guid }` | When game is cancelled |
+
+### Client-side groups
+
+| Group name | Usage |
+|---|---|
+| `game-{partidaId}` | Clients join this group to receive lobby updates for a specific game |
+
+### Invocable client methods
+
+| Method | Parameters | Description |
+|---|---|---|
+| `JoinGameGroup` | `gameId: string` | Subscribe to lobby events for a specific game |
+| `LeaveGameGroup` | `gameId: string` | Unsubscribe from lobby events |
 
 ---
 

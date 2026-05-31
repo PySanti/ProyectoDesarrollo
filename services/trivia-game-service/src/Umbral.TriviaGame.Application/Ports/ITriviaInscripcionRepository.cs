@@ -10,4 +10,6 @@ public interface ITriviaInscripcionRepository
     Task<int> CountByPartidaIdAsync(PartidaId partidaId, CancellationToken cancellationToken = default);
 
     Task<bool> ExistsByPartidaYUsuarioAsync(PartidaId partidaId, string usuarioId, CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<TriviaInscripcion>> ListByPartidaIdAsync(PartidaId partidaId, CancellationToken cancellationToken = default);
 }

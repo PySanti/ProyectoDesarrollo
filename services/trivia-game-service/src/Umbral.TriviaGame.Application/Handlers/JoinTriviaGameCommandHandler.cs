@@ -13,13 +13,16 @@ public sealed class JoinTriviaGameCommandHandler : IRequestHandler<JoinTriviaGam
 {
     private readonly IPartidaTriviaRepository _partidaRepository;
     private readonly ITriviaInscripcionRepository _inscripcionRepository;
+    private readonly ITriviaLobbyNotifier _lobbyNotifier;
 
     public JoinTriviaGameCommandHandler(
         IPartidaTriviaRepository partidaRepository,
-        ITriviaInscripcionRepository inscripcionRepository)
+        ITriviaInscripcionRepository inscripcionRepository,
+        ITriviaLobbyNotifier lobbyNotifier)
     {
         _partidaRepository = partidaRepository;
         _inscripcionRepository = inscripcionRepository;
+        _lobbyNotifier = lobbyNotifier;
     }
 
     public async Task<TriviaInscripcionDto> Handle(JoinTriviaGameCommand request, CancellationToken cancellationToken)
@@ -47,6 +50,8 @@ public sealed class JoinTriviaGameCommandHandler : IRequestHandler<JoinTriviaGam
 
         var inscripcion = TriviaInscripcion.Create(partidaId, request.UsuarioId);
         await _inscripcionRepository.AddAsync(inscripcion, cancellationToken);
+
+        await _lobbyNotifier.NotifyParticipantJoined(request.PartidaId, request.UsuarioId, cancellationToken);
 
         return new TriviaInscripcionDto(
             inscripcion.Id.Value,

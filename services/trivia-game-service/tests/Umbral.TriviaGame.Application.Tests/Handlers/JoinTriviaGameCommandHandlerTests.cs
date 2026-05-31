@@ -13,11 +13,15 @@ public class JoinTriviaGameCommandHandlerTests
 {
     private readonly Mock<IPartidaTriviaRepository> _partidaRepoMock = new();
     private readonly Mock<ITriviaInscripcionRepository> _inscripcionRepoMock = new();
+    private readonly Mock<ITriviaLobbyNotifier> _notifierMock = new();
     private readonly JoinTriviaGameCommandHandler _handler;
 
     public JoinTriviaGameCommandHandlerTests()
     {
-        _handler = new JoinTriviaGameCommandHandler(_partidaRepoMock.Object, _inscripcionRepoMock.Object);
+        _handler = new JoinTriviaGameCommandHandler(
+            _partidaRepoMock.Object,
+            _inscripcionRepoMock.Object,
+            _notifierMock.Object);
     }
 
     private static PartidaTrivia CreatePartidaIndividualEnLobby(int maxJugadores = 10)
@@ -86,6 +90,7 @@ public class JoinTriviaGameCommandHandlerTests
         Assert.NotEqual(default, result.FechaInscripcion);
 
         _inscripcionRepoMock.Verify(r => r.AddAsync(It.IsAny<TriviaInscripcion>(), It.IsAny<CancellationToken>()), Times.Once);
+        _notifierMock.Verify(n => n.NotifyParticipantJoined(partida.Id.Value, "user-1", It.IsAny<CancellationToken>()), Times.Once);
     }
 
     [Fact]

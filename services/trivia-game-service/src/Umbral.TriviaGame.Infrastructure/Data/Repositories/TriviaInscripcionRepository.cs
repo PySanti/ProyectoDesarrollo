@@ -31,4 +31,12 @@ internal sealed class TriviaInscripcionRepository : ITriviaInscripcionRepository
         return await _dbContext.TriviaInscripciones
             .AnyAsync(i => i.PartidaId == partidaId && i.UsuarioId == usuarioId, cancellationToken);
     }
+
+    public async Task<IReadOnlyList<TriviaInscripcion>> ListByPartidaIdAsync(PartidaId partidaId, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.TriviaInscripciones
+            .Where(i => i.PartidaId == partidaId)
+            .OrderBy(i => i.FechaInscripcion)
+            .ToListAsync(cancellationToken);
+    }
 }

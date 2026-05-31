@@ -12,13 +12,16 @@ public sealed class StartTriviaGameCommandHandler : IRequestHandler<StartTriviaG
 {
     private readonly IPartidaTriviaRepository _partidaRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly ITriviaLobbyNotifier _lobbyNotifier;
 
     public StartTriviaGameCommandHandler(
         IPartidaTriviaRepository partidaRepository,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        ITriviaLobbyNotifier lobbyNotifier)
     {
         _partidaRepository = partidaRepository;
         _eventDispatcher = eventDispatcher;
+        _lobbyNotifier = lobbyNotifier;
     }
 
     public async Task<TriviaGameDetailDto> Handle(StartTriviaGameCommand request, CancellationToken cancellationToken)
@@ -37,6 +40,8 @@ public sealed class StartTriviaGameCommandHandler : IRequestHandler<StartTriviaG
 
         await _partidaRepository.UpdateAsync(partida, cancellationToken);
         await _eventDispatcher.DispatchAsync(partida.FlushDomainEvents(), cancellationToken);
+
+        await _lobbyNotifier.NotifyGameStarted(request.PartidaId, cancellationToken);
 
         return TriviaGameMapper.ToDto(partida);
     }
