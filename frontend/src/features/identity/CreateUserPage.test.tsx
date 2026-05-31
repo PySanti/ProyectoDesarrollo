@@ -1,0 +1,56 @@
+import { describe, expect, it, vi, beforeEach } from "vitest";
+import { render, screen } from "@testing-library/react";
+import userEvent from "@testing-library/user-event";
+import { CreateUserPage } from "./CreateUserPage";
+import * as identityApi from "../../api/identityApi";
+
+describe("CreateUserPage", () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+  });
+
+  it("renders the form", () => {
+    render(<CreateUserPage accessToken="token" />);
+
+    expect(screen.getByRole("heading", { name: /crear usuario/i })).toBeInTheDocument();
+    expect(screen.getByLabelText(/nombre/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/correo/i)).toBeInTheDocument();
+    expect(screen.getByLabelText(/rol inicial/i)).toBeInTheDocument();
+  });
+
+  it("submits and shows success", async () => {
+    const spy = vi
+      .spyOn(identityApi, "createIdentityUser")
+      .mockResolvedValue({
+        userId: "u1",
+        keycloakId: "k1",
+        name: "Ana",
+        email: "ana@test.com",
+        role: "Participante",
+        status: "Activo"
+      });
+
+    render(<CreateUserPage accessToken="token-1" />);
+
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Ana");
+    await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
+    await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
+
+    expect(spy).toHaveBeenCalledTimes(1);
+    expect(await screen.findByTestId("create-success")).toBeInTheDocument();
+  });
+
+  it("shows duplicate email message on 409", async () => {
+    vi.spyOn(identityApi, "createIdentityUser").mockRejectedValue(
+      new identityApi.IdentityApiError("duplicate", 409)
+    );
+
+    render(<CreateUserPage accessToken="token-1" />);
+
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Ana");
+    await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
+    await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe.");
+  });
+});

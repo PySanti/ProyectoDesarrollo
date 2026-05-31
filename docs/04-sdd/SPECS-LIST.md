@@ -6,7 +6,7 @@ OpenCode must only create, plan or implement features listed here.
 
 | HU | Feature | Owning service | Client target | Actor | SDD folder | Status |
 | --- | --- | --- | --- | --- | --- | --- |
-| HU-01 | Crear usuario con rol inicial | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/ | Not started |
+| HU-01 | Crear usuario con rol inicial | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/ | Completed / tested / backend-runtime-verified / frontend-runtime-verified |
 | HU-02 | Consultar y editar datos generales de usuario | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/ | Not started |
 | HU-03 | Crear equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-03-crear-equipo/ | Not started |
 | HU-04 | Unirse a equipo usando código | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-04-unirse-a-equipo-usando-codigo/ | Not started |

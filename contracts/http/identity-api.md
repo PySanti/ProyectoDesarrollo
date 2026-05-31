@@ -15,9 +15,9 @@ Do not implement endpoints until the related SDD confirms request/response detai
 | Auth | Administrador |
 | Owning service | Identity Service |
 | Client | React web |
-| Status | Planned by SDD |
+| Status | Confirmed by HU-01 SDD |
 
-Request body draft:
+Request body:
 
 ```json
 {
@@ -27,7 +27,7 @@ Request body draft:
 }
 ```
 
-Response body draft:
+Response body:
 
 ```json
 {
@@ -40,12 +40,13 @@ Response body draft:
 }
 ```
 
-Error cases draft:
+Error cases:
 
 - `400` invalid data.
 - `409` email already exists.
 - `403` authenticated user is not administrator.
 - `502` Keycloak integration error.
+- `500` local persistence error.
 
 ## HU-02 — Consultar y editar datos generales de usuario
 
