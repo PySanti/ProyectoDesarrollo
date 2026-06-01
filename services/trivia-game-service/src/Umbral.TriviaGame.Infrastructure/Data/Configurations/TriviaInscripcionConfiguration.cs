@@ -23,6 +23,10 @@ internal sealed class TriviaInscripcionConfiguration : IEntityTypeConfiguration<
             .HasMaxLength(256)
             .IsRequired();
 
+        builder.Property(i => i.EquipoId)
+            .HasMaxLength(256)
+            .IsRequired(false);
+
         builder.Property(i => i.FechaInscripcion)
             .IsRequired();
 

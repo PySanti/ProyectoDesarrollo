@@ -4,7 +4,7 @@ Owning service: Trivia Game Service
 
 ## Status
 
-HU-15 and HU-18 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
+HU-15, HU-18, HU-22 and HU-23 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
 
 ## Base path
 
@@ -515,6 +515,49 @@ Get the list of participants registered in a Trivia game lobby (operator view).
     }
   ]
 }
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user is not Operador |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Events published
+
+- None
+
+### Real-time updates
+
+- Operator subscribes to `/hubs/trivia-lobby` (game-{partidaId} group) for real-time join/start/cancel events.
+
+---
+
+## GET /api/trivia-games/{id}/teams
+
+Get the list of teams registered in a Trivia game lobby (operator view for Equipo modality games).
+
+| Field | Value |
+|---|---|
+| Related HU | HU-23 |
+| Related requirements | RF-08, RF-13 |
+| Authorization | Operador |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+[
+  {
+    "equipoId": "string",
+    "fechaInscripcion": "2026-05-31T00:00:00Z"
+  }
+]
 ```
 
 ### Error responses
