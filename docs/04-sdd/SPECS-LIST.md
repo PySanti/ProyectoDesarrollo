@@ -8,7 +8,7 @@ OpenCode must only create, plan or implement features listed here.
 | --- | --- | --- | --- | --- | --- | --- |
 | HU-01 | Crear usuario con rol inicial | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/ | Completed / tested / backend-runtime-verified / frontend-runtime-verified |
 | HU-02 | Consultar y editar datos generales de usuario | Identity Service | React web | Administrador | docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/ | Completed / tested / backend-runtime-verified / acceptance updated |
-| HU-03 | Crear equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-03-crear-equipo/ | Not started |
+| HU-03 | Crear equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-03-crear-equipo/ | Completed / tested / backend-runtime-verified / frontend-runtime-verified / hardening-10-10 / acceptance updated |
 | HU-04 | Unirse a equipo usando código | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-04-unirse-a-equipo-usando-codigo/ | Not started |
 | HU-06 | Transferir liderazgo antes de salir del equipo | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-06-transferir-liderazgo-antes-de-salir-del-equipo/ | Not started |
 | HU-07 | Salir del equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-07-salir-del-equipo/ | Not started |

@@ -56,15 +56,23 @@ services:
   team-service:
     build:
       context: ../services/team-service
+    ports:
+      - "5099:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_team;Username=umbral;Password=umbral
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__TeamDatabase: Host=postgres;Port=5432;Database=umbral_team;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
       IdentityService__BaseUrl: http://identity-service
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_CLIENT_ID: team-service
+      KEYCLOAK_VALID_AUDIENCES: team-service,umbral-mobile
     depends_on:
       - postgres
       - rabbitmq
       - identity-service
+      - keycloak
 
   trivia-game-service:
     build:

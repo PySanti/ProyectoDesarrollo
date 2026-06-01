@@ -6,6 +6,8 @@ Owning publisher: Team Service
 
 Event details must be completed feature by feature in the related SDD before implementation.
 
+For HU-03 specifically, `EquipoCreado` is documented and emitted through the Team Service application port, but no RabbitMQ publisher/outbox is required for HU-03 closure.
+
 ## Required event template
 
 ```md
@@ -53,3 +55,52 @@ History effect:
 
 - <how this is recorded, if applicable>
 ```
+
+## EquipoCreado
+
+Version:
+
+- v1
+
+Publisher:
+
+- Team Service
+
+Consumers:
+
+- none required by HU-03
+
+Trigger:
+
+- Team is created successfully for an authenticated participant.
+
+Related HU:
+
+- HU-03
+
+Related requirement:
+
+- RF-07
+
+Payload:
+
+```json
+{
+  "equipoId": "uuid",
+  "liderUserId": "uuid",
+  "codigoAcceso": "ABCD1234",
+  "occurredOnUtc": "2026-01-01T00:00:00Z"
+}
+```
+
+Idempotency / deduplication:
+
+- Use `equipoId` as idempotency key.
+
+Real-time effect:
+
+- none
+
+History effect:
+
+- Can be recorded by Team Service history/audit mechanism.

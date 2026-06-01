@@ -153,9 +153,19 @@ Solo marcar `Done` si:
 # Git después de implementar la HU
 
 ```bash
-git add .
-git commit -m "feat(HU-X): nombre corto de la historia"
-git push origin feature/HU-X-slug
+git branch backup/HU-X-before-squash
+
+git reset --soft develop
+git commit -m "xxx"
+
+git log --oneline --graph --decorate --all
+
+git checkout develop
+git merge --ff-only feature/HU-X-slug
+git push origin develop
+
+git checkout feature/HU-X-slug
+git push -u origin feature/HU-X-slug --force-with-lease
 ```
 
 # 10. Pull Request

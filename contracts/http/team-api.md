@@ -85,3 +85,74 @@ Real-time updates:
 ## Notes
 
 Do not reuse endpoint details unless the corresponding HU SDD confirms request, response, authorization and business rules.
+
+## POST /api/teams
+
+Related HU:
+
+- HU-03
+
+Related requirement:
+
+- RF-07
+- RNF-01
+- RNF-02
+- RNF-04
+- RNF-06
+- RNF-13
+- RNF-14
+
+Authorization:
+
+- Authenticated participant (`Participante`).
+
+Request:
+
+```json
+{
+  "nombreEquipo": "Exploradores"
+}
+```
+
+Response (`201 Created`):
+
+```json
+{
+  "equipoId": "uuid",
+  "nombreEquipo": "Exploradores",
+  "codigoAcceso": "ABCD1234",
+  "estado": "Activo",
+  "liderUserId": "uuid",
+  "integrantes": [
+    {
+      "userId": "uuid",
+      "esLider": true
+    }
+  ]
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|---|---|
+| 400 | Invalid request payload |
+| 401 | Unauthenticated |
+| 403 | Authenticated user without participant authorization/policy |
+| 409 | User already belongs to active team or unique access-code generation exhausted |
+| 500 | Persistence failure |
+
+Business rules:
+
+- Team creator is first member and leader.
+- Team is created in active state.
+- Team cardinality remains valid (`1..5`).
+- A participant can belong to at most one active team.
+
+Events published:
+
+- `EquipoCreado` (v1).
+
+Real-time updates:
+
+- none.
