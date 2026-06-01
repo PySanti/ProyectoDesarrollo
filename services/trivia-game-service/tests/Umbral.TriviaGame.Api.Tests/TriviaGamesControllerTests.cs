@@ -233,6 +233,52 @@ public sealed class TriviaGamesControllerTests : IClassFixture<IntegrationTestFa
     }
 
     [Fact]
+    public async Task GetParticipants_GameConParticipantes_Returns200WithParticipants()
+    {
+        var client = _factory.CreateClient();
+        var formId = await CreateValidFormAsync(client);
+        var gameId = await CreateIndividualGameAsync(client, formId);
+
+        var joinClient = CreateParticipanteClient();
+        var joinResponse = await joinClient.PostAsync($"/api/trivia-games/{gameId}/join", null);
+        Assert.Equal(HttpStatusCode.OK, joinResponse.StatusCode);
+
+        var response = await client.GetAsync($"/api/trivia-games/{gameId}/participants");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+
+        var body = await response.Content.ReadFromJsonAsync<TriviaGameLobbyDto>();
+        Assert.NotNull(body);
+        Assert.Equal(gameId, body.PartidaId);
+        Assert.Equal(1, body.ParticipantesActual);
+        Assert.Single(body.Participantes);
+    }
+
+    [Fact]
+    public async Task GetParticipants_GameNotExists_Returns404()
+    {
+        var client = _factory.CreateClient();
+        var response = await client.GetAsync($"/api/trivia-games/{Guid.NewGuid()}/participants");
+        Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task GetParticipants_WithoutOperadorRole_Returns403()
+    {
+        var client = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Testing.TestClaimsProvider));
+                if (descriptor is not null) services.Remove(descriptor);
+                services.AddScoped(_ => Testing.TestClaimsProvider.WithoutOperadorRole());
+            });
+        }).CreateClient();
+
+        var response = await client.GetAsync($"/api/trivia-games/{Guid.NewGuid()}/participants");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Create_WithoutOperadorRole_Returns403()
     {
         var client = _factory.WithWebHostBuilder(builder =>
@@ -261,6 +307,41 @@ public sealed class TriviaGamesControllerTests : IClassFixture<IntegrationTestFa
 
         var response = await client.PostAsJsonAsync("/api/trivia-games", command);
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    private HttpClient CreateParticipanteClient()
+    {
+        return _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(d =>
+                    d.ServiceType == typeof(Testing.TestClaimsProvider));
+                if (descriptor is not null) services.Remove(descriptor);
+                services.AddScoped(_ => Testing.TestClaimsProvider.WithoutOperadorRole());
+            });
+        }).CreateClient();
+    }
+
+    private static async Task<Guid> CreateIndividualGameAsync(HttpClient client, Guid formId)
+    {
+        var command = new
+        {
+            nombre = "Participants Test",
+            modalidad = "Individual",
+            modoInicio = "Manual",
+            formularioId = formId,
+            tiempoInicio = DateTimeOffset.UtcNow.AddHours(1),
+            minimoParticipantes = 1,
+            maximoJugadores = 10,
+            maximoEquipos = (int?)null,
+            minimoJugadoresPorEquipo = (int?)null,
+            maximoJugadoresPorEquipo = (int?)null,
+        };
+
+        var response = await client.PostAsJsonAsync("/api/trivia-games", command);
+        var body = await response.Content.ReadFromJsonAsync<TriviaGameDetailDto>();
+        return body!.Id;
     }
 
     private static async Task<Guid> CreateValidFormAsync(HttpClient client)

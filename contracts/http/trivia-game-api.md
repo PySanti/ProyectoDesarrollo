@@ -482,6 +482,60 @@ Create a new Trivia game and publish it in the lobby.
 
 ---
 
+## GET /api/trivia-games/{id}/participants
+
+Get the list of participants registered in a Trivia game lobby (operator view).
+
+| Field | Value |
+|---|---|
+| Related HU | HU-22 |
+| Related requirements | RF-08, RF-13 |
+| Authorization | Operador |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "partidaId": "uuid",
+  "nombre": "string",
+  "estado": "Lobby",
+  "modalidad": "Individual | Equipo",
+  "tiempoInicio": "ISO 8601 DateTimeOffset",
+  "minimoParticipantes": 1,
+  "maximoJugadores": 10,
+  "participantesActual": 2,
+  "participantes": [
+    {
+      "inscripcionId": "uuid",
+      "usuarioId": "string",
+      "fechaInscripcion": "2026-05-31T00:00:00Z"
+    }
+  ]
+}
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user is not Operador |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Events published
+
+- None
+
+### Real-time updates
+
+- Operator subscribes to `/hubs/trivia-lobby` (game-{partidaId} group) for real-time join/start/cancel events.
+
+---
+
 ## POST /api/trivia-games/{id}/start
 
 Start a Trivia game manually. The game must be in `Lobby` state and meet minimum participation requirements.
