@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using Umbral.TriviaGame.Domain.Common;
 using Umbral.TriviaGame.Domain.Common.Exceptions;
 using Umbral.TriviaGame.Domain.Enums;
@@ -26,6 +27,12 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
 
     public DateTimeOffset CreatedAtUtc { get; }
     public DateTimeOffset? StartedAtUtc { get; private set; }
+
+    public QuestionId? PreguntaActualId { get; private set; }
+    public DateTimeOffset? PreguntaAbiertaEnUtc { get; private set; }
+
+    private readonly List<RespuestaTrivia> _respuestas = new();
+    public IReadOnlyCollection<RespuestaTrivia> Respuestas => _respuestas.AsReadOnly();
 
     private PartidaTrivia() : base(PartidaId.New()) { }
 
@@ -135,7 +142,7 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
         AddDomainEvent(new PartidaTriviaPublicadaDomainEvent(Id, Nombre));
     }
 
-    public void Iniciar(int cantidadInscriptos, bool esInicioManual = false)
+    public void Iniciar(int cantidadInscriptos, bool esInicioManual, QuestionId primeraPreguntaId)
     {
         if (Estado != PartidaEstado.Lobby)
             throw new InvalidStateTransitionException(Estado.ToString(), "Iniciada");
@@ -146,10 +153,96 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
         if (esInicioManual && ModoInicio == ModoInicio.Automatico)
             throw new ModoInicioAutomaticoException();
 
+        if (primeraPreguntaId is null)
+            throw new DomainValidationException("El identificador de la primera pregunta es obligatorio para iniciar la partida.");
+
         Estado = PartidaEstado.Iniciada;
         StartedAtUtc = DateTimeOffset.UtcNow;
+        PreguntaActualId = primeraPreguntaId;
+        PreguntaAbiertaEnUtc = StartedAtUtc;
 
         AddDomainEvent(new PartidaTriviaIniciadaDomainEvent(Id, Nombre, StartedAtUtc.Value));
+    }
+
+    public void AbrirPregunta(QuestionId questionId)
+    {
+        if (Estado != PartidaEstado.Iniciada)
+            throw new InvalidStateTransitionException(Estado.ToString(), "Iniciada");
+
+        PreguntaActualId = questionId ?? throw new DomainValidationException("El identificador de la pregunta es obligatorio.");
+        PreguntaAbiertaEnUtc = DateTimeOffset.UtcNow;
+    }
+
+    public RespuestaTrivia RegistrarRespuestaDefinitiva(
+        QuestionId preguntaId,
+        string usuarioId,
+        int opcionIndex,
+        bool esCorrecta,
+        int assignedScore,
+        int timeLimitSeconds)
+    {
+        if (Estado != PartidaEstado.Iniciada)
+            throw new EstadoPartidaInvalidoException(Id.Value, "La partida debe estar en estado Iniciada para registrar respuestas.");
+
+        if (PreguntaActualId is null)
+            throw new PreguntaNoActivaException(Id.Value);
+
+        if (PreguntaActualId.Value != preguntaId.Value)
+            throw new PreguntaNoActivaException(Id.Value);
+
+        if (PreguntaAbiertaEnUtc is null)
+            throw new DomainValidationException("La pregunta activa no tiene registro de apertura.");
+
+        var elapsed = DateTimeOffset.UtcNow - PreguntaAbiertaEnUtc.Value;
+        if (elapsed.TotalSeconds > timeLimitSeconds)
+            throw new RespuestaTardiaException(timeLimitSeconds);
+
+        if (_respuestas.Any(r => r.UsuarioId == usuarioId && r.PreguntaId.Value == preguntaId.Value))
+            throw new RespuestaDuplicadaException(usuarioId, preguntaId.Value);
+
+        var respuesta = RespuestaTrivia.Create(
+            Id,
+            preguntaId,
+            usuarioId,
+            opcionIndex,
+            esCorrecta,
+            assignedScore);
+
+        _respuestas.Add(respuesta);
+
+        AddDomainEvent(new RespuestaTriviaRegistradaDomainEvent(
+            Id,
+            preguntaId.Value,
+            usuarioId,
+            esCorrecta,
+            respuesta.PuntajeObtenido));
+
+        if (esCorrecta)
+        {
+            CerrarPreguntaActual();
+        }
+
+        return respuesta;
+    }
+
+    public void CerrarPreguntaActual()
+    {
+        PreguntaActualId = null;
+        PreguntaAbiertaEnUtc = null;
+    }
+
+    public int ObtenerPuntajeAcumulado(string usuarioId)
+    {
+        return _respuestas
+            .Where(r => r.UsuarioId == usuarioId && r.EsCorrecta)
+            .Sum(r => r.PuntajeObtenido);
+    }
+
+    public int ObtenerTiempoRespuestaAcumulado(string usuarioId)
+    {
+        return _respuestas
+            .Where(r => r.UsuarioId == usuarioId)
+            .Sum(r => 0);
     }
 
     public void Cancelar()

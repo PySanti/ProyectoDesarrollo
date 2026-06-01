@@ -27,6 +27,13 @@ internal sealed class PartidaTriviaRepository : IPartidaTriviaRepository
             .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
     }
 
+    public async Task<PartidaTrivia?> GetByIdWithRespuestasAsync(PartidaId id, CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.PartidasTrivia
+            .Include(p => p.Respuestas)
+            .FirstOrDefaultAsync(p => p.Id == id, cancellationToken);
+    }
+
     public async Task UpdateAsync(PartidaTrivia partida, CancellationToken cancellationToken = default)
     {
         _dbContext.PartidasTrivia.Update(partida);

@@ -55,4 +55,7 @@ internal static class ValueConverters
 
     public static readonly ValueConverter<JugadoresPorEquipoMax, int> JugadoresPorEquipoMaxConverter =
         new(v => v.Value, v => JugadoresPorEquipoMax.Create(v));
+
+    public static readonly ValueConverter<RespuestaTriviaId, Guid> RespuestaTriviaIdConverter =
+        new(v => v.Value, v => RespuestaTriviaId.Create(v));
 }

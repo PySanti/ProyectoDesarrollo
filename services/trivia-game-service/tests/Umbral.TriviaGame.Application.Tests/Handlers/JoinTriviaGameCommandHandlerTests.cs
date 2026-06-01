@@ -110,7 +110,7 @@ public class JoinTriviaGameCommandHandlerTests
     public async Task Handle_PartidaNoEnLobby_ThrowsInvalidStateTransitionException()
     {
         var partida = CreatePartidaIndividualEnLobby();
-        partida.Iniciar(cantidadInscriptos: 1);
+        partida.Iniciar(cantidadInscriptos: 1, esInicioManual: true, primeraPreguntaId: QuestionId.New());
         var cmd = CreateCommand(partida);
 
         _partidaRepoMock

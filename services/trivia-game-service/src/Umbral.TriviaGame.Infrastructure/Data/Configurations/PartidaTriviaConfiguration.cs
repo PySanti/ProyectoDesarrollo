@@ -71,6 +71,18 @@ internal sealed class PartidaTriviaConfiguration : IEntityTypeConfiguration<Part
 
         builder.Property(p => p.StartedAtUtc);
 
+        builder.Property(p => p.PreguntaActualId)
+            .HasConversion(ValueConverters.QuestionIdConverter);
+
+        builder.Property(p => p.PreguntaAbiertaEnUtc);
+
+        builder.HasMany(p => p.Respuestas)
+            .WithOne()
+            .HasForeignKey(r => r.PartidaId)
+            .OnDelete(DeleteBehavior.Cascade);
+
         builder.Ignore(p => p.DomainEvents);
+        builder.Metadata.FindNavigation(nameof(PartidaTrivia.Respuestas))!
+            .SetField("_respuestas");
     }
 }

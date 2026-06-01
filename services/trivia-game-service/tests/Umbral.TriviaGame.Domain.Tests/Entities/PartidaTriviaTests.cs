@@ -25,6 +25,8 @@ public class PartidaTriviaTests
     private static JugadoresPorEquipoMax ValidMaxPorEquipo =>
         JugadoresPorEquipoMax.Create(5, ValidMinPorEquipo);
 
+    private static QuestionId ValidPrimeraPreguntaId => QuestionId.New();
+
     // =====================================================================
     // Creación — Individual
     // =====================================================================
@@ -247,7 +249,7 @@ public class PartidaTriviaTests
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
 
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
 
         Assert.Equal(PartidaEstado.Iniciada, partida.Estado);
     }
@@ -263,7 +265,7 @@ public class PartidaTriviaTests
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
 
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
 
         Assert.Contains(partida.DomainEvents, e => e is PartidaTriviaIniciadaDomainEvent);
     }
@@ -279,7 +281,7 @@ public class PartidaTriviaTests
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
 
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
 
         Assert.NotNull(partida.StartedAtUtc);
     }
@@ -296,7 +298,7 @@ public class PartidaTriviaTests
             maxJugadoresPorEquipo: null);
 
         Assert.Throws<MinimosNoCumplidosException>(() =>
-            partida.Iniciar(cantidadInscriptos: 1));
+            partida.Iniciar(cantidadInscriptos: 1, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId));
     }
 
     [Fact]
@@ -309,10 +311,10 @@ public class PartidaTriviaTests
             maximoEquipos: null,
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
 
         Assert.Throws<InvalidStateTransitionException>(() =>
-            partida.Iniciar(cantidadInscriptos: 5));
+            partida.Iniciar(cantidadInscriptos: 5, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId));
     }
 
     // =====================================================================
@@ -363,7 +365,7 @@ public class PartidaTriviaTests
             maximoEquipos: null,
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
         partida.FlushDomainEvents();
 
         partida.Cancelar();
@@ -434,8 +436,240 @@ public class PartidaTriviaTests
             maximoEquipos: null,
             minJugadoresPorEquipo: null,
             maxJugadoresPorEquipo: null);
-        partida.Iniciar(cantidadInscriptos: 2);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: ValidPrimeraPreguntaId);
 
         Assert.False(partida.PuedeIniciar(cantidadInscriptos: 5));
+    }
+
+    // =====================================================================
+    // RegistrarRespuestaDefinitiva
+    // =====================================================================
+
+    private PartidaTrivia CreatePartidaIniciada(out QuestionId primeraPreguntaId)
+    {
+        primeraPreguntaId = QuestionId.New();
+        var partida = PartidaTrivia.Create(
+            ValidNombre, Modalidad.Individual, ModoInicio.Manual,
+            ValidFormularioId, ValidOperatorId, ValidTiempoInicio, ValidMinimo,
+            maximoJugadores: ValidMaxJugadores,
+            maximoEquipos: null,
+            minJugadoresPorEquipo: null,
+            maxJugadoresPorEquipo: null);
+        partida.Iniciar(cantidadInscriptos: 2, esInicioManual: true, primeraPreguntaId: primeraPreguntaId);
+        return partida;
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_Correcta_RegistraYCierraPregunta()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        var respuesta = partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-1", 0, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        Assert.NotNull(respuesta);
+        Assert.True(respuesta.EsCorrecta);
+        Assert.Equal(100, respuesta.PuntajeObtenido);
+        Assert.Equal("user-1", respuesta.UsuarioId);
+        Assert.Equal(0, respuesta.OpcionSeleccionadaIndex);
+        Assert.Equal(partida.Id.Value, respuesta.PartidaId.Value);
+        Assert.Equal(preguntaId.Value, respuesta.PreguntaId.Value);
+        Assert.Null(partida.PreguntaActualId);
+        Assert.Contains(partida.DomainEvents, e => e is RespuestaTriviaRegistradaDomainEvent);
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_Incorrecta_RegistraSinCerrarPregunta()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        var respuesta = partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-2", 1, esCorrecta: false,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        Assert.NotNull(respuesta);
+        Assert.False(respuesta.EsCorrecta);
+        Assert.Equal(0, respuesta.PuntajeObtenido);
+        Assert.NotNull(partida.PreguntaActualId);
+        Assert.Equal(preguntaId.Value, partida.PreguntaActualId!.Value);
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_PartidaEnLobby_ThrowsEstadoPartidaInvalido()
+    {
+        var partida = PartidaTrivia.Create(
+            ValidNombre, Modalidad.Individual, ModoInicio.Manual,
+            ValidFormularioId, ValidOperatorId, ValidTiempoInicio, ValidMinimo,
+            maximoJugadores: ValidMaxJugadores,
+            maximoEquipos: null,
+            minJugadoresPorEquipo: null,
+            maxJugadoresPorEquipo: null);
+
+        Assert.Throws<EstadoPartidaInvalidoException>(() =>
+            partida.RegistrarRespuestaDefinitiva(
+                QuestionId.New(), "user-1", 0, esCorrecta: true,
+                assignedScore: 100, timeLimitSeconds: 300));
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_SinPreguntaActiva_ThrowsPreguntaNoActiva()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+        partida.CerrarPreguntaActual();
+        partida.FlushDomainEvents();
+
+        Assert.Throws<PreguntaNoActivaException>(() =>
+            partida.RegistrarRespuestaDefinitiva(
+                QuestionId.New(), "user-1", 0, esCorrecta: true,
+                assignedScore: 100, timeLimitSeconds: 300));
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_PreguntaIdDiferente_ThrowsPreguntaNoActiva()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+        var otraPregunta = QuestionId.New();
+
+        Assert.Throws<PreguntaNoActivaException>(() =>
+            partida.RegistrarRespuestaDefinitiva(
+                otraPregunta, "user-1", 0, esCorrecta: true,
+                assignedScore: 100, timeLimitSeconds: 300));
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_MismaPreguntaMismoUsuario_ThrowsRespuestaDuplicada()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-1", 0, esCorrecta: false,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        Assert.Throws<RespuestaDuplicadaException>(() =>
+            partida.RegistrarRespuestaDefinitiva(
+                preguntaId, "user-1", 1, esCorrecta: true,
+                assignedScore: 100, timeLimitSeconds: 300));
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_RespuestaCorrecta_RaisesDomainEvent()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-1", 2, esCorrecta: true,
+            assignedScore: 50, timeLimitSeconds: 300);
+
+        var events = partida.DomainEvents;
+        var domainEvent = Assert.Single(events);
+        var registeredEvent = Assert.IsType<RespuestaTriviaRegistradaDomainEvent>(domainEvent);
+        Assert.True(registeredEvent.EsCorrecta);
+        Assert.Equal(50, registeredEvent.PuntajeObtenido);
+    }
+
+    // =====================================================================
+    // ObtenerPuntajeAcumulado
+    // =====================================================================
+
+    [Fact]
+    public void ObtenerPuntajeAcumulado_SinRespuestas_ReturnsZero()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+
+        var puntaje = partida.ObtenerPuntajeAcumulado("user-1");
+
+        Assert.Equal(0, puntaje);
+    }
+
+    [Fact]
+    public void ObtenerPuntajeAcumulado_VariasRespuestas_SumaCorrectas()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId1);
+        var preguntaId2 = QuestionId.New();
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId1, "user-1", 0, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        partida.AbrirPregunta(preguntaId2);
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId2, "user-1", 1, esCorrecta: false,
+            assignedScore: 50, timeLimitSeconds: 300);
+
+        var puntaje = partida.ObtenerPuntajeAcumulado("user-1");
+
+        Assert.Equal(100, puntaje);
+    }
+
+    [Fact]
+    public void ObtenerPuntajeAcumulado_DistintosUsuarios_NoMezclaPuntajes()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId1);
+        var preguntaId2 = QuestionId.New();
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId1, "user-a", 0, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        partida.AbrirPregunta(preguntaId2);
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId2, "user-b", 2, esCorrecta: true,
+            assignedScore: 200, timeLimitSeconds: 300);
+
+        Assert.Equal(100, partida.ObtenerPuntajeAcumulado("user-a"));
+        Assert.Equal(200, partida.ObtenerPuntajeAcumulado("user-b"));
+    }
+
+    // =====================================================================
+    // AbrirPregunta
+    // =====================================================================
+
+    [Fact]
+    public void AbrirPregunta_EnIniciada_ActualizaPreguntaActual()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+        partida.FlushDomainEvents();
+
+        var nuevaPregunta = QuestionId.New();
+        partida.AbrirPregunta(nuevaPregunta);
+
+        Assert.Equal(nuevaPregunta.Value, partida.PreguntaActualId!.Value);
+        Assert.NotNull(partida.PreguntaAbiertaEnUtc);
+    }
+
+    [Fact]
+    public void AbrirPregunta_EnLobby_ThrowsInvalidStateTransition()
+    {
+        var partida = PartidaTrivia.Create(
+            ValidNombre, Modalidad.Individual, ModoInicio.Manual,
+            ValidFormularioId, ValidOperatorId, ValidTiempoInicio, ValidMinimo,
+            maximoJugadores: ValidMaxJugadores,
+            maximoEquipos: null,
+            minJugadoresPorEquipo: null,
+            maxJugadoresPorEquipo: null);
+
+        Assert.Throws<InvalidStateTransitionException>(() =>
+            partida.AbrirPregunta(QuestionId.New()));
+    }
+
+    // =====================================================================
+    // CerrarPreguntaActual
+    // =====================================================================
+
+    [Fact]
+    public void CerrarPreguntaActual_LimpiaPreguntaActiva()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+
+        partida.CerrarPreguntaActual();
+
+        Assert.Null(partida.PreguntaActualId);
+        Assert.Null(partida.PreguntaAbiertaEnUtc);
     }
 }

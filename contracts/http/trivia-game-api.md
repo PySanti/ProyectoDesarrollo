@@ -4,7 +4,7 @@ Owning service: Trivia Game Service
 
 ## Status
 
-HU-15, HU-18, HU-22 and HU-23 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
+HU-15, HU-17, HU-18, HU-22, HU-23, HU-24 and HU-26 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
 
 ## Base path
 
@@ -363,6 +363,70 @@ Get a Trivia form by its unique identifier.
 ### Real-time updates
 
 - None
+
+---
+
+## POST /api/trivia-games/{id}/questions/{preguntaId}/answer
+
+Submit an answer to an active Trivia question (individual mode only).
+
+| Field | Value |
+|---|---|
+| Related HU | HU-26 |
+| Related requirements | RF-20, RF-21, RF-22, RB-T11, RB-T14, RB-T15, RB-T16, RB-T21, RB-T24, RB-T25, RB-T28 |
+| Authorization | Participante autenticado |
+| Type | Command |
+
+### Request
+
+```json
+{
+  "opcionIndex": "int (0-based index of selected option)"
+}
+```
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "respuestaId": "uuid",
+  "partidaId": "uuid",
+  "preguntaId": "uuid",
+  "esCorrecta": true,
+  "puntajeObtenido": 100,
+  "fechaRespuesta": "2026-05-31T00:00:00Z"
+}
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 400 | Invalid option index / question not in game / duplicate answer / game state invalid / answer too late / time expired |
+| 401 | Unauthenticated |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Business rules enforced
+
+- Answer must be submitted while the game is in `Iniciada` state.
+- The requested `preguntaId` must match the game's active question (`PreguntaActualId`).
+- The answer must be submitted within the question's `timeLimitSeconds` from when the question was opened.
+- Each participant can submit only one answer per question (duplicates are rejected).
+- A correct answer closes the question immediately (`PreguntaActualId` becomes null).
+- An incorrect answer leaves the question open.
+- Score is earned only on correct answers; `puntajeObtenido = pregunta.assignedScore`.
+- `puntajeObtenido` is 0 for incorrect answers.
+
+### Events published
+
+- `RespuestaTriviaRegistradaDomainEvent` (in-process, for potential ranking/history updates)
+
+### Real-time updates
+
+- None (pending SignalR integration)
 
 ---
 

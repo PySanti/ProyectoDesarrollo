@@ -30,4 +30,9 @@ public sealed class StubPartidaTriviaRepository : IPartidaTriviaRepository
     {
         return Task.FromResult(0);
     }
+
+    public Task<PartidaTrivia?> GetByIdWithRespuestasAsync(PartidaId id, CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<PartidaTrivia?>(null);
+    }
 }

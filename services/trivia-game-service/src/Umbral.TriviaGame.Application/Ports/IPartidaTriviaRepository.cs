@@ -9,6 +9,8 @@ public interface IPartidaTriviaRepository
 
     Task<PartidaTrivia?> GetByIdAsync(PartidaId id, CancellationToken cancellationToken = default);
 
+    Task<PartidaTrivia?> GetByIdWithRespuestasAsync(PartidaId id, CancellationToken cancellationToken = default);
+
     Task UpdateAsync(PartidaTrivia partida, CancellationToken cancellationToken = default);
 
     Task<int> CountInscripcionesAsync(PartidaId partidaId, CancellationToken cancellationToken = default);

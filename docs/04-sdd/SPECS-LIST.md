@@ -38,7 +38,7 @@ OpenCode must only create, plan or implement features listed here.
 | HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Not started |
 | HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Not started |
 | HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Not started |
-| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Not started |
+| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Backend done — 8 API tests + 10 app tests + 13 domain tests added (46 API pass, 100 app, 143 domain) |
 | HU-27 | Responder Trivia por equipo | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-27-responder-trivia-por-equipo/ | Not started |
 | HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-28-ver-resultado-al-cerrar-pregunta-de-trivia/ | Not started |
 | HU-29 | Calcular puntaje de respuesta en Trivia | Trivia Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-29-calcular-puntaje-de-respuesta-en-trivia/ | Not started |

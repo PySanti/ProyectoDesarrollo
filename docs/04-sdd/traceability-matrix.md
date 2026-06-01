@@ -36,7 +36,7 @@ This matrix links active first-sprint user stories to requirements, services, cl
 | HU-22 | Ver participantes unidos a Trivia publicada | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
 | HU-23 | Ver equipos unidos a Trivia publicada | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
 | HU-24 | Iniciar manualmente Trivia | First sprint | Trivia Game Service | TBD by SDD | React web | TBD after SDD | Not started |
-| HU-26 | Responder Trivia individual | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
+| HU-26 | Responder Trivia individual | First sprint | Trivia Game Service | Identity Service (JWT / autenticación) | React Native mobile | `contracts/http/trivia-game-api.md` (POST `/api/trivia-games/{id}/questions/{preguntaId}/answer`) | Backend done — 8 API tests + 10 app tests + 13 domain tests added (46 API pass, 100 app, 143 domain) |
 | HU-27 | Responder Trivia por equipo | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-28 | Ver resultado al cerrar pregunta de Trivia | First sprint | Trivia Game Service | TBD by SDD | React Native mobile | TBD after SDD | Not started |
 | HU-29 | Calcular puntaje de respuesta en Trivia | First sprint | Trivia Game Service | TBD by SDD | Backend / React Native mobile | TBD after SDD | Not started |
