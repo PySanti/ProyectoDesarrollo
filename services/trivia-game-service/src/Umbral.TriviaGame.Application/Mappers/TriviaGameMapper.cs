@@ -67,6 +67,7 @@ internal static class TriviaGameMapper
         {
             "Manual" => ModoInicio.Manual,
             "Automatico" => ModoInicio.Automatico,
+            "ManualYAutomatico" => ModoInicio.ManualYAutomatico,
             _ => throw new ArgumentOutOfRangeException(nameof(value), value,
                 $"Modo de inicio inválido: {value}")
         };

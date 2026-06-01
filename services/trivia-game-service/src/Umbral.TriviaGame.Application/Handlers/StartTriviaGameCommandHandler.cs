@@ -36,7 +36,7 @@ public sealed class StartTriviaGameCommandHandler : IRequestHandler<StartTriviaG
 
         var cantidadInscriptos = await _partidaRepository.CountInscripcionesAsync(partidaId, cancellationToken);
 
-        partida.Iniciar(cantidadInscriptos);
+        partida.Iniciar(cantidadInscriptos, esInicioManual: true);
 
         await _partidaRepository.UpdateAsync(partida, cancellationToken);
         await _eventDispatcher.DispatchAsync(partida.FlushDomainEvents(), cancellationToken);

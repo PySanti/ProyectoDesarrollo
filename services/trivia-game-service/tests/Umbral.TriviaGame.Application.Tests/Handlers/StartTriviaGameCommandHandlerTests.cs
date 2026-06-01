@@ -25,13 +25,13 @@ public class StartTriviaGameCommandHandlerTests
             _notifierMock.Object);
     }
 
-    private static PartidaTrivia CreatePartidaEnLobby(CantidadMinima? minimo = null)
+    private static PartidaTrivia CreatePartidaEnLobby(CantidadMinima? minimo = null, ModoInicio modoInicio = ModoInicio.Manual)
     {
         var min = minimo ?? CantidadMinima.Create(2);
         return PartidaTrivia.Create(
             NombrePartida.Create("Test"),
             Modalidad.Individual,
-            ModoInicio.Manual,
+            modoInicio,
             TriviaFormId.New(),
             OperatorId.Create("op-1"),
             TiempoInicio.Create(DateTimeOffset.UtcNow.AddDays(1)),
@@ -117,5 +117,49 @@ public class StartTriviaGameCommandHandlerTests
 
         await Assert.ThrowsAsync<InvalidStateTransitionException>(
             () => _handler.Handle(cmd, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_ModoInicioAutomatico_ThrowsModoInicioAutomaticoException()
+    {
+        var partida = CreatePartidaEnLobby(modoInicio: ModoInicio.Automatico);
+        var partidaId = partida.Id.Value;
+
+        _repoMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<PartidaId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(partida);
+        _repoMock
+            .Setup(r => r.CountInscripcionesAsync(It.IsAny<PartidaId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var cmd = new StartTriviaGameCommand(partidaId);
+
+        await Assert.ThrowsAsync<ModoInicioAutomaticoException>(
+            () => _handler.Handle(cmd, CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Handle_ManualYAutomatico_AllowsStart()
+    {
+        var partida = CreatePartidaEnLobby(minimo: CantidadMinima.Create(2), modoInicio: ModoInicio.ManualYAutomatico);
+        var partidaId = partida.Id.Value;
+
+        _repoMock
+            .Setup(r => r.GetByIdAsync(It.IsAny<PartidaId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(partida);
+        _repoMock
+            .Setup(r => r.CountInscripcionesAsync(It.IsAny<PartidaId>(), It.IsAny<CancellationToken>()))
+            .ReturnsAsync(2);
+
+        var cmd = new StartTriviaGameCommand(partidaId);
+        var result = await _handler.Handle(cmd, CancellationToken.None);
+
+        Assert.NotNull(result);
+        Assert.Equal("Iniciada", result.Estado);
+        Assert.NotNull(result.StartedAtUtc);
+
+        _repoMock.Verify(r => r.UpdateAsync(partida, It.IsAny<CancellationToken>()), Times.Once);
+        _eventMock.Verify(e => e.DispatchAsync(It.IsAny<IReadOnlyList<DomainEvent>>(), It.IsAny<CancellationToken>()), Times.Once);
+        _notifierMock.Verify(n => n.NotifyGameStarted(partidaId, It.IsAny<CancellationToken>()), Times.Once);
     }
 }

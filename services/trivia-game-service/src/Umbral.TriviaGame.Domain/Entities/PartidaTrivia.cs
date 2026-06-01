@@ -135,13 +135,16 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
         AddDomainEvent(new PartidaTriviaPublicadaDomainEvent(Id, Nombre));
     }
 
-    public void Iniciar(int cantidadInscriptos)
+    public void Iniciar(int cantidadInscriptos, bool esInicioManual = false)
     {
         if (Estado != PartidaEstado.Lobby)
             throw new InvalidStateTransitionException(Estado.ToString(), "Iniciada");
 
         if (cantidadInscriptos < MinimoParticipantes.Value)
             throw new MinimosNoCumplidosException(cantidadInscriptos, MinimoParticipantes.Value);
+
+        if (esInicioManual && ModoInicio == ModoInicio.Automatico)
+            throw new ModoInicioAutomaticoException();
 
         Estado = PartidaEstado.Iniciada;
         StartedAtUtc = DateTimeOffset.UtcNow;

@@ -581,12 +581,12 @@ Get the list of teams registered in a Trivia game lobby (operator view for Equip
 
 ## POST /api/trivia-games/{id}/start
 
-Start a Trivia game manually. The game must be in `Lobby` state and meet minimum participation requirements.
+Start a Trivia game manually. The game must be in `Lobby` state and meet minimum participation requirements. If the game is configured with `ModoInicio = Automatico` only, manual start is rejected with 409.
 
 | Field | Value |
 |---|---|
-| Related HU | HU-17 |
-| Related requirements | RF-18, RB-T17, RB-T18, RB-26, RB-27 |
+| Related HU | HU-17, HU-24 |
+| Related requirements | RF-18, RB-T17, RB-T18, RB-26, RB-27, HU-24-R01, HU-24-R02 |
 | Authorization | Operador |
 | Type | Command |
 

@@ -237,6 +237,71 @@ public sealed class TriviaGamesControllerTests : IClassFixture<IntegrationTestFa
     }
 
     [Fact]
+    public async Task Start_ModoInicioAutomatico_Returns409()
+    {
+        var client = _factory.CreateClient();
+        var formId = await CreateValidFormAsync(client);
+
+        var createCmd = new
+        {
+            nombre = "AutomaticOnly",
+            modalidad = "Individual",
+            modoInicio = "Automatico",
+            formularioId = formId,
+            tiempoInicio = DateTimeOffset.UtcNow.AddHours(1),
+            minimoParticipantes = 1,
+            maximoJugadores = 10,
+            maximoEquipos = (int?)null,
+            minimoJugadoresPorEquipo = (int?)null,
+            maximoJugadoresPorEquipo = (int?)null,
+        };
+
+        var createResponse = await client.PostAsJsonAsync("/api/trivia-games", createCmd);
+        var created = await createResponse.Content.ReadFromJsonAsync<TriviaGameDetailDto>();
+        Assert.NotNull(created);
+
+        var startResponse = await client.PostAsync($"/api/trivia-games/{created.Id}/start", null);
+
+        Assert.Equal(HttpStatusCode.Conflict, startResponse.StatusCode);
+    }
+
+    [Fact]
+    public async Task Start_ManualYAutomatico_Returns200()
+    {
+        var client = _factory.CreateClient();
+        var formId = await CreateValidFormAsync(client);
+
+        var createCmd = new
+        {
+            nombre = "ManualYAutomatico",
+            modalidad = "Individual",
+            modoInicio = "ManualYAutomatico",
+            formularioId = formId,
+            tiempoInicio = DateTimeOffset.UtcNow.AddHours(1),
+            minimoParticipantes = 1,
+            maximoJugadores = 10,
+            maximoEquipos = (int?)null,
+            minimoJugadoresPorEquipo = (int?)null,
+            maximoJugadoresPorEquipo = (int?)null,
+        };
+
+        var createResponse = await client.PostAsJsonAsync("/api/trivia-games", createCmd);
+        var created = await createResponse.Content.ReadFromJsonAsync<TriviaGameDetailDto>();
+        Assert.NotNull(created);
+
+        var joinClient = CreateParticipanteClient();
+        var joinResponse = await joinClient.PostAsync($"/api/trivia-games/{created.Id}/join", null);
+        Assert.Equal(HttpStatusCode.OK, joinResponse.StatusCode);
+
+        var startResponse = await client.PostAsync($"/api/trivia-games/{created.Id}/start", null);
+
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+        var body = await startResponse.Content.ReadFromJsonAsync<TriviaGameDetailDto>();
+        Assert.NotNull(body);
+        Assert.Equal("Iniciada", body.Estado);
+    }
+
+    [Fact]
     public async Task GetParticipants_GameConParticipantes_Returns200WithParticipants()
     {
         var client = _factory.CreateClient();
