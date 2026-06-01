@@ -60,13 +60,37 @@ public sealed class AnswerTriviaQuestionCommandHandler : IRequestHandler<AnswerT
         var assignedScore = question.AssignedScore.Value;
         var timeLimitSeconds = question.TimeLimit.Seconds;
 
+        var correctOptionText = question.GetCorrectOption().Text.Value;
+
         var respuesta = partida.RegistrarRespuestaDefinitiva(
             preguntaId,
             request.UsuarioId,
             request.OpcionIndex,
             esCorrecta,
             assignedScore,
-            timeLimitSeconds);
+            timeLimitSeconds,
+            respuestaCorrecta: correctOptionText);
+
+        if (esCorrecta)
+        {
+            var preguntasOrdenadas = form.Questions
+                .OrderBy(q => q.DisplayOrder)
+                .ToList();
+
+            var currentIndex = preguntasOrdenadas.FindIndex(q => q.Id.Value == request.PreguntaId);
+            var nextQuestion = currentIndex >= 0 && currentIndex < preguntasOrdenadas.Count - 1
+                ? preguntasOrdenadas[currentIndex + 1]
+                : null;
+
+            if (nextQuestion is not null)
+            {
+                partida.AvanzarPregunta(nextQuestion.Id);
+            }
+            else
+            {
+                partida.FinalizarPartida();
+            }
+        }
 
         await _partidaRepository.UpdateAsync(partida, cancellationToken);
         await _eventDispatcher.DispatchAsync(partida.FlushDomainEvents(), cancellationToken);
@@ -77,6 +101,7 @@ public sealed class AnswerTriviaQuestionCommandHandler : IRequestHandler<AnswerT
             respuesta.PreguntaId.Value,
             respuesta.EsCorrecta,
             respuesta.PuntajeObtenido,
+            respuesta.TiempoEmpleadoSegundos,
             respuesta.FechaRespuesta);
     }
 }

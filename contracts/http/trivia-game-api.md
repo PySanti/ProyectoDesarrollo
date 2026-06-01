@@ -396,6 +396,7 @@ Submit an answer to an active Trivia question (individual mode only).
   "preguntaId": "uuid",
   "esCorrecta": true,
   "puntajeObtenido": 100,
+  "tiempoEmpleadoSegundos": 12.5,
   "fechaRespuesta": "2026-05-31T00:00:00Z"
 }
 ```
@@ -416,6 +417,7 @@ Submit an answer to an active Trivia question (individual mode only).
 - The answer must be submitted within the question's `timeLimitSeconds` from when the question was opened.
 - Each participant can submit only one answer per question (duplicates are rejected).
 - A correct answer closes the question immediately (`PreguntaActualId` becomes null).
+- A correct answer advances to the next question if one exists, or finalizes the game if it was the last question.
 - An incorrect answer leaves the question open.
 - Score is earned only on correct answers; `puntajeObtenido = pregunta.assignedScore`.
 - `puntajeObtenido` is 0 for incorrect answers.
@@ -423,6 +425,7 @@ Submit an answer to an active Trivia question (individual mode only).
 ### Events published
 
 - `RespuestaTriviaRegistradaDomainEvent` (in-process, for potential ranking/history updates)
+- `PreguntaTriviaCerradaDomainEvent` (in-process, when a correct answer closes the question)
 
 ### Real-time updates
 
@@ -675,6 +678,54 @@ Start a Trivia game manually. The game must be in `Lobby` state and meet minimum
 ### Real-time updates
 
 - Game state change to participants (pending SignalR integration)
+
+---
+
+## GET /api/trivia-games/{id}/questions/{preguntaId}/result
+
+Get the result of a closed question for a participant (individual mode only).
+
+| Field | Value |
+|---|---|
+| Related HU | HU-28 |
+| Related requirements | RF-22, RB-T26, RB-T25 |
+| Authorization | Participante autenticado |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "partidaId": "uuid",
+  "preguntaId": "uuid",
+  "respuestaCorrecta": "string (the correct answer text)",
+  "respuestaSeleccionada": "string (participant's chosen answer text)",
+  "esCorrecta": true,
+  "puntajeObtenido": 100,
+  "tiempoEmpleadoSegundos": 12.5,
+  "motivoCierre": "CorrectAnswer | TimeExpired",
+  "fechaCierre": "2026-05-31T00:00:00Z"
+}
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 400 | Question is still active / not found in game / no answer from participant |
+| 401 | Unauthenticated |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Events published
+
+- None
+
+### Real-time updates
+
+- None
 
 ---
 

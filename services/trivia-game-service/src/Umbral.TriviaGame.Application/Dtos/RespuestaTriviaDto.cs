@@ -6,5 +6,6 @@ public sealed record RespuestaTriviaDto(
     Guid PreguntaId,
     bool EsCorrecta,
     int PuntajeObtenido,
+    double TiempoEmpleadoSegundos,
     DateTimeOffset FechaRespuesta
 );

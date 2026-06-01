@@ -11,6 +11,7 @@ public sealed class RespuestaTrivia : Entity<RespuestaTriviaId>
     public int OpcionSeleccionadaIndex { get; }
     public bool EsCorrecta { get; }
     public int PuntajeObtenido { get; }
+    public double TiempoEmpleadoSegundos { get; }
     public DateTimeOffset FechaRespuesta { get; }
 
     private RespuestaTrivia() : base(RespuestaTriviaId.New()) { }
@@ -23,6 +24,7 @@ public sealed class RespuestaTrivia : Entity<RespuestaTriviaId>
         int opcionSeleccionadaIndex,
         bool esCorrecta,
         int puntajeObtenido,
+        double tiempoEmpleadoSegundos,
         DateTimeOffset fechaRespuesta)
         : base(id)
     {
@@ -32,6 +34,7 @@ public sealed class RespuestaTrivia : Entity<RespuestaTriviaId>
         OpcionSeleccionadaIndex = opcionSeleccionadaIndex;
         EsCorrecta = esCorrecta;
         PuntajeObtenido = puntajeObtenido;
+        TiempoEmpleadoSegundos = tiempoEmpleadoSegundos;
         FechaRespuesta = fechaRespuesta;
     }
 
@@ -41,7 +44,8 @@ public sealed class RespuestaTrivia : Entity<RespuestaTriviaId>
         string usuarioId,
         int opcionSeleccionadaIndex,
         bool esCorrecta,
-        int assignedScore)
+        int assignedScore,
+        double tiempoEmpleadoSegundos = 0)
     {
         if (partidaId is null)
             throw new DomainValidationException("El identificador de la partida es obligatorio.");
@@ -57,7 +61,7 @@ public sealed class RespuestaTrivia : Entity<RespuestaTriviaId>
         var puntaje = esCorrecta ? assignedScore : 0;
 
         return new RespuestaTrivia(id, partidaId, preguntaId, usuarioId,
-            opcionSeleccionadaIndex, esCorrecta, puntaje, now);
+            opcionSeleccionadaIndex, esCorrecta, puntaje, tiempoEmpleadoSegundos, now);
     }
 
     public override string ToString() =>

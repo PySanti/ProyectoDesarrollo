@@ -518,7 +518,7 @@ public class PartidaTriviaTests
     public void RegistrarRespuestaDefinitiva_SinPreguntaActiva_ThrowsPreguntaNoActiva()
     {
         var partida = CreatePartidaIniciada(out var _);
-        partida.CerrarPreguntaActual();
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, string.Empty);
         partida.FlushDomainEvents();
 
         Assert.Throws<PreguntaNoActivaException>(() =>
@@ -565,10 +565,16 @@ public class PartidaTriviaTests
             assignedScore: 50, timeLimitSeconds: 300);
 
         var events = partida.DomainEvents;
-        var domainEvent = Assert.Single(events);
-        var registeredEvent = Assert.IsType<RespuestaTriviaRegistradaDomainEvent>(domainEvent);
+        Assert.Equal(2, events.Count);
+        var registeredEvent = Assert.Single(events.OfType<RespuestaTriviaRegistradaDomainEvent>());
+        Assert.NotNull(registeredEvent);
         Assert.True(registeredEvent.EsCorrecta);
         Assert.Equal(50, registeredEvent.PuntajeObtenido);
+
+        var closedEvent = Assert.Single(events.OfType<PreguntaTriviaCerradaDomainEvent>());
+        Assert.NotNull(closedEvent);
+        Assert.Equal(preguntaId.Value, closedEvent.PreguntaId);
+        Assert.Equal(MotivoCierre.CorrectAnswer, closedEvent.Motivo);
     }
 
     // =====================================================================
@@ -667,9 +673,101 @@ public class PartidaTriviaTests
     {
         var partida = CreatePartidaIniciada(out var _);
 
-        partida.CerrarPreguntaActual();
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, string.Empty);
 
         Assert.Null(partida.PreguntaActualId);
         Assert.Null(partida.PreguntaAbiertaEnUtc);
+    }
+
+    [Fact]
+    public void CerrarPreguntaActual_RaisesPreguntaTriviaCerradaDomainEvent()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, "Respuesta A");
+
+        var events = partida.DomainEvents;
+        var closedEvent = Assert.Single(events.OfType<PreguntaTriviaCerradaDomainEvent>());
+        Assert.NotNull(closedEvent);
+        Assert.Equal(preguntaId.Value, closedEvent.PreguntaId);
+        Assert.Equal(MotivoCierre.TimeExpired, closedEvent.Motivo);
+        Assert.Equal("Respuesta A", closedEvent.RespuestaCorrecta);
+    }
+
+    [Fact]
+    public void CerrarPreguntaActual_SinPreguntaActiva_NoFalla()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, string.Empty);
+        partida.FlushDomainEvents();
+
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, string.Empty);
+
+        Assert.Null(partida.PreguntaActualId);
+    }
+
+    // =====================================================================
+    // AvanzarPregunta
+    // =====================================================================
+
+    [Fact]
+    public void AvanzarPregunta_EnIniciada_ActualizaPreguntaActual()
+    {
+        var partida = CreatePartidaIniciada(out var _);
+        partida.CerrarPreguntaActual(MotivoCierre.TimeExpired, string.Empty);
+        partida.FlushDomainEvents();
+
+        var siguientePregunta = QuestionId.New();
+        partida.AvanzarPregunta(siguientePregunta);
+
+        Assert.Equal(siguientePregunta.Value, partida.PreguntaActualId!.Value);
+        Assert.NotNull(partida.PreguntaAbiertaEnUtc);
+    }
+
+    [Fact]
+    public void AvanzarPregunta_EnLobby_ThrowsInvalidStateTransition()
+    {
+        var partida = PartidaTrivia.Create(
+            ValidNombre, Modalidad.Individual, ModoInicio.Manual,
+            ValidFormularioId, ValidOperatorId, ValidTiempoInicio, ValidMinimo,
+            maximoJugadores: ValidMaxJugadores,
+            maximoEquipos: null,
+            minJugadoresPorEquipo: null,
+            maxJugadoresPorEquipo: null);
+
+        Assert.Throws<InvalidStateTransitionException>(() =>
+            partida.AvanzarPregunta(QuestionId.New()));
+    }
+
+    // =====================================================================
+    // FinalizarPartida
+    // =====================================================================
+
+    [Fact]
+    public void FinalizarPartida_EnIniciada_PasaATerminada()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+
+        partida.FinalizarPartida();
+
+        Assert.Equal(PartidaEstado.Terminada, partida.Estado);
+        Assert.Null(partida.PreguntaActualId);
+        Assert.Null(partida.PreguntaAbiertaEnUtc);
+    }
+
+    [Fact]
+    public void FinalizarPartida_EnLobby_ThrowsInvalidStateTransition()
+    {
+        var partida = PartidaTrivia.Create(
+            ValidNombre, Modalidad.Individual, ModoInicio.Manual,
+            ValidFormularioId, ValidOperatorId, ValidTiempoInicio, ValidMinimo,
+            maximoJugadores: ValidMaxJugadores,
+            maximoEquipos: null,
+            minJugadoresPorEquipo: null,
+            maxJugadoresPorEquipo: null);
+
+        Assert.Throws<InvalidStateTransitionException>(() =>
+            partida.FinalizarPartida());
     }
 }

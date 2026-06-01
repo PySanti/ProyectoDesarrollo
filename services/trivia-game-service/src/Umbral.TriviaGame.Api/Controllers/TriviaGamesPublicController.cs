@@ -76,6 +76,21 @@ public sealed class TriviaGamesPublicController : ControllerBase
         var result = await _mediator.Send(command, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("{id:guid}/questions/{preguntaId:guid}/result")]
+    public async Task<IActionResult> GetQuestionResult(
+        Guid id,
+        Guid preguntaId,
+        CancellationToken cancellationToken)
+    {
+        var usuarioId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(usuarioId))
+            return Unauthorized("No se pudo identificar al usuario autenticado.");
+
+        var query = new GetQuestionResultQuery(id, preguntaId, usuarioId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }
 
 public sealed record AnswerTriviaQuestionRequest(int OpcionIndex);

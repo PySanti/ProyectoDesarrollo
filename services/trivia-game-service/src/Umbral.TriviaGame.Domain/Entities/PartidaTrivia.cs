@@ -179,7 +179,8 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
         int opcionIndex,
         bool esCorrecta,
         int assignedScore,
-        int timeLimitSeconds)
+        int timeLimitSeconds,
+        string respuestaCorrecta = "")
     {
         if (Estado != PartidaEstado.Iniciada)
             throw new EstadoPartidaInvalidoException(Id.Value, "La partida debe estar en estado Iniciada para registrar respuestas.");
@@ -200,13 +201,16 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
         if (_respuestas.Any(r => r.UsuarioId == usuarioId && r.PreguntaId.Value == preguntaId.Value))
             throw new RespuestaDuplicadaException(usuarioId, preguntaId.Value);
 
+        var tiempoEmpleadoSegundos = elapsed.TotalSeconds;
+
         var respuesta = RespuestaTrivia.Create(
             Id,
             preguntaId,
             usuarioId,
             opcionIndex,
             esCorrecta,
-            assignedScore);
+            assignedScore,
+            tiempoEmpleadoSegundos);
 
         _respuestas.Add(respuesta);
 
@@ -219,14 +223,47 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
 
         if (esCorrecta)
         {
-            CerrarPreguntaActual();
+            CerrarPreguntaActual(MotivoCierre.CorrectAnswer, respuestaCorrecta);
         }
 
         return respuesta;
     }
 
-    public void CerrarPreguntaActual()
+    public void CerrarPreguntaActual(MotivoCierre motivo, string respuestaCorrecta)
     {
+        if (PreguntaActualId is null)
+            return;
+
+        var preguntaIdCerrada = PreguntaActualId.Value;
+
+        PreguntaActualId = null;
+        PreguntaAbiertaEnUtc = null;
+
+        AddDomainEvent(new PreguntaTriviaCerradaDomainEvent(
+            Id,
+            preguntaIdCerrada,
+            motivo,
+            respuestaCorrecta));
+    }
+
+    public void AvanzarPregunta(QuestionId nextQuestionId)
+    {
+        if (Estado != PartidaEstado.Iniciada)
+            throw new InvalidStateTransitionException(Estado.ToString(), "Iniciada");
+
+        if (nextQuestionId is null)
+            throw new DomainValidationException("El identificador de la siguiente pregunta es obligatorio.");
+
+        PreguntaActualId = nextQuestionId;
+        PreguntaAbiertaEnUtc = DateTimeOffset.UtcNow;
+    }
+
+    public void FinalizarPartida()
+    {
+        if (Estado != PartidaEstado.Iniciada)
+            throw new InvalidStateTransitionException(Estado.ToString(), "Terminada");
+
+        Estado = PartidaEstado.Terminada;
         PreguntaActualId = null;
         PreguntaAbiertaEnUtc = null;
     }
@@ -240,9 +277,9 @@ public sealed class PartidaTrivia : AggregateRoot<PartidaId>
 
     public int ObtenerTiempoRespuestaAcumulado(string usuarioId)
     {
-        return _respuestas
+        return (int)_respuestas
             .Where(r => r.UsuarioId == usuarioId)
-            .Sum(r => 0);
+            .Sum(r => r.TiempoEmpleadoSegundos);
     }
 
     public void Cancelar()
