@@ -105,6 +105,16 @@ public sealed class TriviaGamesPublicController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("{id:guid}/ranking")]
+    public async Task<IActionResult> GetRanking(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var query = new GetRankingQuery(id);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }
 
 public sealed record AnswerTriviaQuestionRequest(int OpcionIndex);

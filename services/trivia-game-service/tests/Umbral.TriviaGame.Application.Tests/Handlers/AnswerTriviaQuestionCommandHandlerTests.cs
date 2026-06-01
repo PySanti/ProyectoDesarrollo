@@ -16,6 +16,7 @@ public class AnswerTriviaQuestionCommandHandlerTests
     private readonly Mock<IPartidaTriviaRepository> _partidaRepoMock = new();
     private readonly Mock<ITriviaFormRepository> _formRepoMock = new();
     private readonly Mock<IDomainEventDispatcher> _eventMock = new();
+    private readonly Mock<ITriviaRankingNotifier> _rankingNotifierMock = new();
     private readonly AnswerTriviaQuestionCommandHandler _handler;
 
     public AnswerTriviaQuestionCommandHandlerTests()
@@ -23,7 +24,8 @@ public class AnswerTriviaQuestionCommandHandlerTests
         _handler = new AnswerTriviaQuestionCommandHandler(
             _partidaRepoMock.Object,
             _formRepoMock.Object,
-            _eventMock.Object);
+            _eventMock.Object,
+            _rankingNotifierMock.Object);
     }
 
     private static TriviaForm CreateFormWithOneQuestion()

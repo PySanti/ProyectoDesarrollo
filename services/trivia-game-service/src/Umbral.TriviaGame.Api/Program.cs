@@ -58,6 +58,7 @@ var connectionString = builder.Configuration.GetConnectionString("TriviaGameDb")
 builder.Services.AddInfrastructure(connectionString);
 
 builder.Services.AddScoped<ITriviaLobbyNotifier, TriviaLobbyNotifier>();
+builder.Services.AddScoped<ITriviaRankingNotifier, TriviaRankingNotifier>();
 
 var app = builder.Build();
 
@@ -74,6 +75,7 @@ app.UseAuthorization();
 
 app.MapControllers();
 app.MapHub<TriviaLobbyHub>("/hubs/trivia-lobby");
+app.MapHub<TriviaRankingHub>("/hubs/trivia-ranking");
 
 app.Run();
 

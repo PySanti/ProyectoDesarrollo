@@ -13,15 +13,18 @@ public sealed class AnswerTriviaQuestionCommandHandler : IRequestHandler<AnswerT
     private readonly IPartidaTriviaRepository _partidaRepository;
     private readonly ITriviaFormRepository _formRepository;
     private readonly IDomainEventDispatcher _eventDispatcher;
+    private readonly ITriviaRankingNotifier _rankingNotifier;
 
     public AnswerTriviaQuestionCommandHandler(
         IPartidaTriviaRepository partidaRepository,
         ITriviaFormRepository formRepository,
-        IDomainEventDispatcher eventDispatcher)
+        IDomainEventDispatcher eventDispatcher,
+        ITriviaRankingNotifier rankingNotifier)
     {
         _partidaRepository = partidaRepository;
         _formRepository = formRepository;
         _eventDispatcher = eventDispatcher;
+        _rankingNotifier = rankingNotifier;
     }
 
     public async Task<RespuestaTriviaDto> Handle(AnswerTriviaQuestionCommand request, CancellationToken cancellationToken)
@@ -94,6 +97,7 @@ public sealed class AnswerTriviaQuestionCommandHandler : IRequestHandler<AnswerT
 
         await _partidaRepository.UpdateAsync(partida, cancellationToken);
         await _eventDispatcher.DispatchAsync(partida.FlushDomainEvents(), cancellationToken);
+        await _rankingNotifier.NotifyRankingUpdated(request.PartidaId, cancellationToken);
 
         return new RespuestaTriviaDto(
             respuesta.Id.Value,

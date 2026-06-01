@@ -729,6 +729,88 @@ Get the result of a closed question for a participant (individual mode only).
 
 ---
 
+## GET /api/trivia-games/{id}/ranking
+
+Get the current ranking of a Trivia game, ordered by accumulated score descending and tie-broken by accumulated time ascending.
+
+| Field | Value |
+|---|---|
+| Related HU | HU-30 |
+| Related requirements | RF-22, RB-T30, RB-T31, RB-T35 |
+| Authorization | Authenticated (Participante u Operador) |
+| Type | Query |
+
+### Request
+
+```
+GET /api/trivia-games/{id}/ranking
+```
+
+### Response
+
+**200 OK**
+
+```json
+[
+  {
+    "usuarioId": "string",
+    "puntajeAcumulado": 300,
+    "tiempoAcumuladoSegundos": 12,
+    "respuestasCorrectas": 3,
+    "totalRespuestas": 3,
+    "posicion": 1
+  }
+]
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 404 | Game not found |
+| 500 | Unexpected error |
+
+### Events published
+
+- None via HTTP; SignalR hub emits `RankingUpdated` on answer
+
+### Real-time updates
+
+- See `/hubs/trivia-ranking` section
+
+---
+
+## SignalR Hub: /hubs/trivia-ranking
+
+| Field | Value |
+|---|---|
+| Related HU | HU-30 |
+| Related requirements | RF-13, RB-T30 |
+| Owning service | Trivia Game Service |
+| Hub path | `/hubs/trivia-ranking` |
+
+### Client methods (events sent from server)
+
+| Event name | Payload | Trigger |
+|---|---|---|
+| `RankingUpdated` | `{ partidaId: guid }` | After a Trivia answer is processed |
+
+### Client-side groups
+
+| Group name | Usage |
+|---|---|
+| `game-{partidaId}` | Clients join this group to receive ranking updates for a specific game |
+
+### Invocable client methods
+
+| Method | Parameters | Description |
+|---|---|---|
+| `JoinGameGroup` | `gameId: string` | Subscribe to ranking events for a specific game |
+| `LeaveGameGroup` | `gameId: string` | Unsubscribe from ranking events |
+
+---
+
 ## GET /api/trivia-games/{id}
 
 Get a Trivia game by its unique identifier.
