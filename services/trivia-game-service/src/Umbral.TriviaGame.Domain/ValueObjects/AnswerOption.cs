@@ -21,44 +21,45 @@ public sealed class AnswerOption : ValueObject
     public bool IsCorrect { get; }
 
     /// <summary>
+    /// Posición 0-based de esta opción en la lista de opciones de la pregunta.
+    /// Garantiza orden determinístico al persistir y recuperar desde la base de datos.
+    /// </summary>
+    public int Orden { get; }
+
+    /// <summary>
     /// Constructor privado: solo se instancia vía <see cref="Create"/>.
     /// </summary>
-    private AnswerOption(OptionText text, bool isCorrect)
+    private AnswerOption(OptionText text, bool isCorrect, int orden)
     {
-        // Asigna el texto ya validado del value object OptionText.
         Text = text;
-        // Guarda la marca de respuesta correcta (sin validar aquí el conteo de correctas).
         IsCorrect = isCorrect;
+        Orden = orden;
     }
 
     /// <summary>
     /// Crea una opción de respuesta a partir de value objects ya validados.
     /// </summary>
-    public static AnswerOption Create(OptionText text, bool isCorrect)
+    public static AnswerOption Create(OptionText text, bool isCorrect, int orden)
     {
-        // Rechaza referencia nula al texto (defensa adicional ante errores de integración).
         if (text is null)
         {
             throw new DomainValidationException("El texto de la opción es obligatorio.");
         }
 
-        // Construye la instancia inmutable de la opción.
-        return new AnswerOption(text, isCorrect);
+        return new AnswerOption(text, isCorrect, orden);
     }
 
     /// <summary>
     /// Materializa una opción desde un borrador de construcción.
     /// </summary>
-    public static AnswerOption FromDraft(AnswerOptionDraft draft)
+    public static AnswerOption FromDraft(AnswerOptionDraft draft, int orden)
     {
-        // El borrador no puede ser nulo al convertir a entidad de dominio.
         if (draft is null)
         {
             throw new DomainValidationException("El borrador de la opción es obligatorio.");
         }
 
-        // Delega la validación de texto al factory del borrador.
-        return draft.ToAnswerOption();
+        return draft.ToAnswerOption(orden);
     }
 
     /// <summary>
@@ -66,10 +67,9 @@ public sealed class AnswerOption : ValueObject
     /// </summary>
     protected override IEnumerable<object?> GetEqualityComponents()
     {
-        // Compara el valor del texto de la opción.
         yield return Text;
-        // Compara si ambas son marcadas como correctas.
         yield return IsCorrect;
+        yield return Orden;
     }
 
     /// <summary>

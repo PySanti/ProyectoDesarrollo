@@ -18,9 +18,9 @@ internal static class TriviaFormMapper
                 q.AssignedScore.Value,
                 q.TimeLimit.Seconds,
                 q.DisplayOrder,
-                q.Options.Select((opt, idx) =>
+                q.Options.Select(opt =>
                     new AnswerOptionDetailDto(
-                        idx,
+                        opt.Orden,
                         opt.Text.Value,
                         opt.IsCorrect)).ToList()))
             .ToList();

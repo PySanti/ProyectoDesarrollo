@@ -91,6 +91,20 @@ public sealed class TriviaGamesPublicController : ControllerBase
         var result = await _mediator.Send(query, cancellationToken);
         return Ok(result);
     }
+
+    [HttpGet("{id:guid}/score")]
+    public async Task<IActionResult> GetAccumulatedScore(
+        Guid id,
+        CancellationToken cancellationToken)
+    {
+        var usuarioId = User.FindFirst("sub")?.Value;
+        if (string.IsNullOrWhiteSpace(usuarioId))
+            return Unauthorized("No se pudo identificar al usuario autenticado.");
+
+        var query = new GetAccumulatedScoreQuery(id, usuarioId);
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
 }
 
 public sealed record AnswerTriviaQuestionRequest(int OpcionIndex);

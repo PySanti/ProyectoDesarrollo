@@ -51,11 +51,12 @@ public sealed class AnswerOptionDraft
     /// <summary>
     /// Convierte el borrador en un <see cref="AnswerOption"/> aplicando reglas de <see cref="OptionText"/>.
     /// </summary>
-    public AnswerOption ToAnswerOption()
+    /// <param name="orden">Posición 0-based de la opción en la lista.</param>
+    public AnswerOption ToAnswerOption(int orden)
     {
         // Crea el value object OptionText (valida longitud máxima y contenido).
         var optionText = OptionText.Create(Text);
         // Materializa la opción de respuesta de dominio.
-        return AnswerOption.Create(optionText, IsCorrect);
+        return AnswerOption.Create(optionText, IsCorrect, orden);
     }
 }

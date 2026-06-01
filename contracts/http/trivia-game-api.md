@@ -4,7 +4,7 @@ Owning service: Trivia Game Service
 
 ## Status
 
-HU-15, HU-17, HU-18, HU-22, HU-23, HU-24 and HU-26 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
+HU-15, HU-17, HU-18, HU-22, HU-23, HU-24, HU-26, HU-28 and HU-29 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
 
 ## Base path
 
@@ -748,14 +748,42 @@ Get a Trivia game by its unique identifier.
 { "... same shape as POST 201 response ..." }
 ```
 
-**404 Not Found**
+### Real-time updates
+
+- None
+
+---
+
+## GET /api/trivia-games/{id}/score
+
+Get the accumulated score and total response time for a participant in a Trivia game.
+
+| Field | Value |
+|---|---|
+| Related HU | HU-29 |
+| Related requirements | RF-22, RB-T28, RB-T29, RB-T34 |
+| Authorization | Participante autenticado |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+{
+  "partidaId": "uuid",
+  "puntajeAcumulado": 300,
+  "tiempoAcumuladoSegundos": 5,
+  "respuestasCorrectas": 2,
+  "totalRespuestas": 3
+}
+```
 
 ### Error responses
 
 | Status | Reason |
 |---|---|
 | 401 | Unauthenticated |
-| 403 | Authenticated user is not Operador |
 | 404 | Game not found |
 | 500 | Unexpected error |
 

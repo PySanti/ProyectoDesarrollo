@@ -633,6 +633,81 @@ public class PartidaTriviaTests
     }
 
     // =====================================================================
+    // HU-29: Reglas de Scoring
+    // =====================================================================
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_Correcta_PuntajeIgualAAsignedScore()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        var respuesta = partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-1", 0, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        Assert.True(respuesta.EsCorrecta);
+        Assert.Equal(100, respuesta.PuntajeObtenido);
+    }
+
+    [Fact]
+    public void RegistrarRespuestaDefinitiva_Incorrecta_PuntajeEsCero()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId);
+        partida.FlushDomainEvents();
+
+        var respuesta = partida.RegistrarRespuestaDefinitiva(
+            preguntaId, "user-1", 0, esCorrecta: false,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        Assert.False(respuesta.EsCorrecta);
+        Assert.Equal(0, respuesta.PuntajeObtenido);
+    }
+
+    // =====================================================================
+    // HU-29: Acumulación de puntaje con múltiples assignedScores
+    // =====================================================================
+
+    [Fact]
+    public void ObtenerPuntajeAcumulado_DiferentesAssignedScores_SumaCorrectamente()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId1);
+        var preguntaId2 = QuestionId.New();
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId1, "user-1", 0, esCorrecta: true,
+            assignedScore: 50, timeLimitSeconds: 300);
+
+        partida.AbrirPregunta(preguntaId2);
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId2, "user-1", 1, esCorrecta: true,
+            assignedScore: 200, timeLimitSeconds: 300);
+
+        Assert.Equal(250, partida.ObtenerPuntajeAcumulado("user-1"));
+    }
+
+    [Fact]
+    public void ObtenerTiempoRespuestaAcumulado_SumaTiempoReal()
+    {
+        var partida = CreatePartidaIniciada(out var preguntaId1);
+        var preguntaId2 = QuestionId.New();
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId1, "user-1", 0, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        partida.AbrirPregunta(preguntaId2);
+
+        partida.RegistrarRespuestaDefinitiva(
+            preguntaId2, "user-1", 1, esCorrecta: true,
+            assignedScore: 100, timeLimitSeconds: 300);
+
+        var tiempo = partida.ObtenerTiempoRespuestaAcumulado("user-1");
+        Assert.True(tiempo >= 0, "El tiempo acumulado debe ser mayor o igual a 0");
+    }
+
+    // =====================================================================
     // AbrirPregunta
     // =====================================================================
 

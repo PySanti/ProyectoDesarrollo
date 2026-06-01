@@ -123,5 +123,5 @@ public sealed class QuestionDraft
     /// Materializa todas las opciones del borrador como value objects de dominio.
     /// </summary>
     public IReadOnlyList<AnswerOption> ToAnswerOptions() =>
-        Options.Select(option => option.ToAnswerOption()).ToList();
+        Options.Select((option, idx) => option.ToAnswerOption(idx)).ToList();
 }

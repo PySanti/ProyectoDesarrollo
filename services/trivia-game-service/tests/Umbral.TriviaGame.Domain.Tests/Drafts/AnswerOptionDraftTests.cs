@@ -26,7 +26,7 @@ public class AnswerOptionDraftTests
     public void ToAnswerOption_MaterializesValueObject()
     {
         var draft = AnswerOptionDraft.Create("Madrid", isCorrect: false);
-        var option = draft.ToAnswerOption();
+        var option = draft.ToAnswerOption(orden: 0);
         Assert.Equal("Madrid", option.Text.Value);
     }
 }

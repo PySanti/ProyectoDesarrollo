@@ -43,9 +43,9 @@ public sealed class Question : Entity<QuestionId>
     private readonly List<AnswerOption> _options = new();
 
     /// <summary>
-    /// Expone las opciones como colección de solo lectura para evitar mutaciones externas.
+    /// Expone las opciones como colección de solo lectura ordenadas por <see cref="AnswerOption.Orden"/>.
     /// </summary>
-    public IReadOnlyCollection<AnswerOption> Options => _options.AsReadOnly();
+    public IReadOnlyCollection<AnswerOption> Options => _options.OrderBy(o => o.Orden).ToList().AsReadOnly();
 
     /// <summary>
     /// Constructor privado sin parámetros requerido por EF Core para materializar la entidad desde la base de datos.

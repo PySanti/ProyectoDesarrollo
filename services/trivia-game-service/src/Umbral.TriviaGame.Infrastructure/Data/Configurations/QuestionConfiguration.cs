@@ -44,6 +44,9 @@ internal sealed class QuestionConfiguration : IEntityTypeConfiguration<Question>
 
             opt.Property(o => o.IsCorrect)
                 .IsRequired();
+
+            opt.Property(o => o.Orden)
+                .IsRequired();
         });
 
         builder.Navigation(q => q.Options)
