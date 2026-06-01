@@ -59,7 +59,27 @@ Error cases:
 | Auth | Administrador |
 | Owning service | Identity Service |
 | Client | React web |
-| Status | Planned by SDD |
+| Status | Confirmed by HU-02 SDD |
+
+Response body:
+
+```json
+[
+  {
+    "userId": "uuid",
+    "keycloakId": "string",
+    "name": "string",
+    "email": "string",
+    "role": "Administrador | Operador | Participante",
+    "status": "Activo | Desactivado"
+  }
+]
+```
+
+Error cases:
+
+- `401` unauthenticated.
+- `403` authenticated user is not administrator.
 
 ### Get user detail
 
@@ -70,7 +90,26 @@ Error cases:
 | Auth | Administrador |
 | Owning service | Identity Service |
 | Client | React web |
-| Status | Planned by SDD |
+| Status | Confirmed by HU-02 SDD |
+
+Response body:
+
+```json
+{
+  "userId": "uuid",
+  "keycloakId": "string",
+  "name": "string",
+  "email": "string",
+  "role": "Administrador | Operador | Participante",
+  "status": "Activo | Desactivado"
+}
+```
+
+Error cases:
+
+- `401` unauthenticated.
+- `403` authenticated user is not administrator.
+- `404` user not found.
 
 ### Update general user data
 
@@ -81,14 +120,26 @@ Error cases:
 | Auth | Administrador |
 | Owning service | Identity Service |
 | Client | React web |
-| Status | Planned by SDD |
+| Status | Confirmed by HU-02 SDD |
 
-Request body draft:
+Request body:
 
 ```json
 {
   "name": "string",
   "email": "string"
+}
+```
+
+Response body:
+
+```json
+{
+  "userId": "uuid",
+  "name": "string",
+  "email": "string",
+  "role": "Administrador | Operador | Participante",
+  "status": "Activo | Desactivado"
 }
 ```
 
@@ -98,9 +149,42 @@ Important rule:
 Do not allow role modification through this endpoint.
 ```
 
-Error cases draft:
+Error cases:
 
 - `400` invalid data.
+- `401` unauthenticated.
 - `403` authenticated user is not administrator.
 - `404` user not found.
 - `409` email already exists.
+- `500` local persistence error.
+
+### Deactivate user
+
+| Field | Value |
+|---|---|
+| Method | PATCH |
+| Path | `/api/identity/users/{userId}/deactivation` |
+| Auth | Administrador |
+| Owning service | Identity Service |
+| Client | React web |
+| Status | Confirmed by HU-02 SDD |
+
+Request body:
+
+- Empty body (no payload required).
+
+Response body:
+
+```json
+{
+  "userId": "uuid",
+  "status": "Desactivado"
+}
+```
+
+Error cases:
+
+- `401` unauthenticated.
+- `403` authenticated user is not administrator.
+- `404` user not found.
+- `500` local persistence error.

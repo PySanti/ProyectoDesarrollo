@@ -23,7 +23,7 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
     public async Task<CreateUserWithInitialRoleResponse> Handle(CreateUserWithInitialRoleCommand request, CancellationToken cancellationToken)
     {
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        if (await _usuarioRepository.ExistsByEmailAsync(normalizedEmail, cancellationToken))
+        if (await _usuarioRepository.ExistsByEmailAsync(normalizedEmail, null, cancellationToken))
         {
             throw new DuplicateEmailException(normalizedEmail);
         }

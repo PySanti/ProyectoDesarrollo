@@ -11,13 +11,15 @@ namespace Umbral.IdentityService.ContractTests;
 
 public sealed class IdentityApiFactory : WebApplicationFactory<Program>
 {
+    private readonly string _databaseName = $"identity-contract-tests-{Guid.NewGuid():N}";
+
     protected override void ConfigureWebHost(IWebHostBuilder builder)
     {
         builder.ConfigureServices(services =>
         {
             services.RemoveAll<DbContextOptions<IdentityDbContext>>();
             services.AddDbContext<IdentityDbContext>(options =>
-                options.UseInMemoryDatabase($"identity-contract-tests-{Guid.NewGuid():N}"));
+                options.UseInMemoryDatabase(_databaseName));
 
             services.RemoveAll<IKeycloakIdentityPort>();
             services.AddSingleton<IKeycloakIdentityPort, TestKeycloakIdentityPort>();

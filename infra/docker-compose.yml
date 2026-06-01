@@ -15,10 +15,10 @@ services:
     container_name: umbral-postgres
     environment:
       POSTGRES_USER: umbral
-      POSTGRES_PASSWORD: umbral
+      POSTGRES_PASSWORD: 16102005
       POSTGRES_DB: umbral
     ports:
-      - "5432:5432"
+      - "55432:5432"
     volumes:
       - umbral-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
@@ -45,7 +45,7 @@ services:
       context: ../services/identity-service
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=umbral
+      ConnectionStrings__IdentityDatabase: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
       Keycloak__Authority: http://keycloak:8080
     depends_on:

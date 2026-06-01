@@ -29,4 +29,18 @@ public sealed class Usuario
 
         return new Usuario(Guid.NewGuid(), keycloakId.Trim(), nombre.Trim(), correo.Trim().ToLowerInvariant(), rol);
     }
+
+    public void EditarDatosGenerales(string nombre, string correo)
+    {
+        if (string.IsNullOrWhiteSpace(nombre)) throw new ArgumentException("Nombre requerido", nameof(nombre));
+        if (string.IsNullOrWhiteSpace(correo)) throw new ArgumentException("Correo requerido", nameof(correo));
+
+        Nombre = nombre.Trim();
+        Correo = correo.Trim().ToLowerInvariant();
+    }
+
+    public void Desactivar()
+    {
+        Estado = EstadoUsuario.Desactivado;
+    }
 }

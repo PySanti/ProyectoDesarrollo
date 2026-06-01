@@ -4,6 +4,9 @@ namespace Umbral.IdentityService.Application.Abstractions.Persistence;
 
 public interface IUsuarioRepository
 {
-    Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken);
+    Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken);
+    Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken);
+    Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken);
     Task AddAsync(Usuario usuario, CancellationToken cancellationToken);
+    Task UpdateAsync(Usuario usuario, CancellationToken cancellationToken);
 }

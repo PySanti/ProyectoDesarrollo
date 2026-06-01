@@ -5,7 +5,7 @@ This matrix links active first-sprint user stories to requirements, services, cl
 | HU | Feature | Requirement | Owning service | Supporting services | SDD folder | Contract files | Status |
 | --- | --- | --- | --- | --- | --- | --- | --- |
 | HU-01 | Crear usuario con rol inicial | RF-01, RNF-13, RNF-14 | Identity Service | Keycloak (real adapter + backend runtime verification completed + React web login flow), PostgreSQL/EF Core (runtime verified; InMemory only for tests) | docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/ | contracts/http/identity-api.md | Completed / tested / backend-runtime-verified / frontend-runtime-verified |
-| HU-02 | Consultar y editar datos generales de usuario | TBD by SDD | Identity Service | TBD by SDD | docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/ | TBD after SDD | Not started |
+| HU-02 | Consultar y editar datos generales de usuario | RF-01, RNF-01, RNF-13, RNF-14 | Identity Service | Keycloak (auth/token claims), PostgreSQL/EF Core | docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/ | contracts/http/identity-api.md | Completed / tested / backend-runtime-verified / acceptance updated |
 | HU-03 | Crear equipo | TBD by SDD | Team Service | TBD by SDD | docs/04-sdd/specs/HU-03-crear-equipo/ | TBD after SDD | Not started |
 | HU-04 | Unirse a equipo usando código | TBD by SDD | Team Service | TBD by SDD | docs/04-sdd/specs/HU-04-unirse-a-equipo-usando-codigo/ | TBD after SDD | Not started |
 | HU-06 | Transferir liderazgo antes de salir del equipo | TBD by SDD | Team Service | TBD by SDD | docs/04-sdd/specs/HU-06-transferir-liderazgo-antes-de-salir-del-equipo/ | TBD after SDD | Not started |

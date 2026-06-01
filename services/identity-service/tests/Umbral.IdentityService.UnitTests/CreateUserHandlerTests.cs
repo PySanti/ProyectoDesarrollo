@@ -70,7 +70,13 @@ public sealed class CreateUserHandlerTests
             _existsByEmail = existsByEmail;
         }
 
-        public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken)
+        public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Usuario>>(StoredUsers);
+
+        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(u => u.UsuarioId == userId));
+
+        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)
@@ -78,6 +84,9 @@ public sealed class CreateUserHandlerTests
             StoredUsers.Add(usuario);
             return Task.CompletedTask;
         }
+
+        public Task UpdateAsync(Usuario usuario, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeKeycloakIdentityPort : IKeycloakIdentityPort

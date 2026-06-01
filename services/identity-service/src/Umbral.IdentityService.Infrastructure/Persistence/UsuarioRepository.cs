@@ -14,9 +14,29 @@ public sealed class UsuarioRepository : IUsuarioRepository
         _dbContext = dbContext;
     }
 
-    public Task<bool> ExistsByEmailAsync(string email, CancellationToken cancellationToken)
+    public async Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
     {
-        return _dbContext.Usuarios.AnyAsync(u => u.Correo == email, cancellationToken);
+        return await _dbContext.Usuarios
+            .AsNoTracking()
+            .OrderBy(u => u.Nombre)
+            .ToListAsync(cancellationToken);
+    }
+
+    public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == userId, cancellationToken);
+    }
+
+    public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+    {
+        var query = _dbContext.Usuarios.Where(u => u.Correo == email);
+
+        if (excludingUserId.HasValue)
+        {
+            query = query.Where(u => u.UsuarioId != excludingUserId.Value);
+        }
+
+        return query.AnyAsync(cancellationToken);
     }
 
     public async Task AddAsync(Usuario usuario, CancellationToken cancellationToken)
@@ -24,6 +44,19 @@ public sealed class UsuarioRepository : IUsuarioRepository
         try
         {
             await _dbContext.Usuarios.AddAsync(usuario, cancellationToken);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new PersistenceException("Failed to persist usuario", ex);
+        }
+    }
+
+    public async Task UpdateAsync(Usuario usuario, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _dbContext.Usuarios.Update(usuario);
             await _dbContext.SaveChangesAsync(cancellationToken);
         }
         catch (DbUpdateException ex)
