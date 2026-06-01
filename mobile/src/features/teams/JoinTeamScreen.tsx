@@ -1,61 +1,45 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
-import { submitCreateTeam } from "./createTeamFlow.js";
+import { submitJoinTeamFromScreen } from "./joinTeamScreenModel.js";
 
-type CreateTeamScreenProps = {
+type JoinTeamScreenProps = {
   apiBaseUrl: string;
   token: string;
-  onCreated?: (result: unknown) => void;
+  onJoined?: (result: unknown) => void;
 };
 
-export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScreenProps) {
-  const [teamName, setTeamName] = useState("");
+export function JoinTeamScreen({ apiBaseUrl, token, onJoined }: JoinTeamScreenProps) {
+  const [accessCode, setAccessCode] = useState("");
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => teamName.trim().length > 0 && !loading, [teamName, loading]);
+  const canSubmit = useMemo(() => accessCode.trim().length > 0 && !loading, [accessCode, loading]);
 
   async function handleSubmit() {
-    setLoading(true);
-    setErrorMessage(null);
-    setSuccessMessage(null);
-
-    let result;
-    try {
-      result = await submitCreateTeam({
-        apiBaseUrl,
-        token,
-        teamName,
-      });
-    } catch {
-      setLoading(false);
-      setErrorMessage("Ocurrio un error inesperado. Intenta nuevamente.");
-      return;
-    }
-
-    setLoading(false);
-
-    if (!result.ok) {
-      setErrorMessage(result.message ?? "No se pudo crear el equipo.");
-      return;
-    }
-
-    setTeamName("");
-    setSuccessMessage("Equipo creado con exito.");
-    onCreated?.(result.data);
+    await submitJoinTeamFromScreen({
+      apiBaseUrl,
+      token,
+      accessCode,
+      onJoined,
+      setLoading,
+      setErrorMessage,
+      setSuccessMessage,
+      setAccessCode,
+    });
   }
 
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <Text style={styles.title}>Crear equipo</Text>
-        <Text style={styles.label}>Nombre del equipo</Text>
+        <Text style={styles.title}>Unirse a equipo</Text>
+        <Text style={styles.description}>Ingresa el codigo de acceso que te compartio el lider del equipo.</Text>
+        <Text style={styles.label}>Codigo de acceso</Text>
         <TextInput
-          value={teamName}
-          onChangeText={setTeamName}
-          placeholder="Ej. Exploradores"
-          autoCapitalize="words"
+          value={accessCode}
+          onChangeText={setAccessCode}
+          placeholder="Ej. ABCD1234"
+          autoCapitalize="characters"
           style={styles.input}
           editable={!loading}
         />
@@ -69,7 +53,7 @@ export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScr
           disabled={!canSubmit}
           style={[styles.button, !canSubmit && styles.buttonDisabled]}
         >
-          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Crear equipo</Text>}
+          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Unirme al equipo</Text>}
         </Pressable>
       </View>
     </SafeAreaView>
@@ -90,6 +74,11 @@ const styles = StyleSheet.create({
     fontSize: 24,
     fontWeight: "700",
     color: "#0f172a",
+  },
+  description: {
+    color: "#475569",
+    fontSize: 14,
+    lineHeight: 20,
   },
   label: {
     fontSize: 14,

@@ -29,6 +29,11 @@ public sealed class ParticipanteEquipo
         return new ParticipanteEquipo(usuarioId, true);
     }
 
+    public static ParticipanteEquipo CrearIntegrante(Guid usuarioId)
+    {
+        return new ParticipanteEquipo(usuarioId, false);
+    }
+
     public void MarcarComoLider()
     {
         EsLider = true;

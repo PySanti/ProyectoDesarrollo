@@ -4,13 +4,13 @@ namespace Umbral.TeamService.Domain.Entities;
 
 public sealed class Equipo
 {
-    private readonly List<ParticipanteEquipo> _participantes = new();
+    private const int MaximoIntegrantes = 5;
 
     public Guid EquipoId { get; private set; }
     public string NombreEquipo { get; private set; }
     public string CodigoAcceso { get; private set; }
     public EstadoEquipo Estado { get; private set; }
-    public IReadOnlyCollection<ParticipanteEquipo> Participantes => _participantes;
+    public List<ParticipanteEquipo> Participantes { get; private set; } = new();
 
     private Equipo()
     {
@@ -35,7 +35,7 @@ public sealed class Equipo
         CodigoAcceso = codigoAcceso.Trim().ToUpperInvariant();
         Estado = EstadoEquipo.Activo;
 
-        _participantes.Add(ParticipanteEquipo.CrearCreador(creadorUserId));
+        Participantes.Add(ParticipanteEquipo.CrearCreador(creadorUserId));
         EnsureCardinalityInvariant();
     }
 
@@ -44,14 +44,35 @@ public sealed class Equipo
         return new Equipo(nombreEquipo, codigoAcceso, creadorUserId);
     }
 
+    public void AgregarParticipante(Guid usuarioId)
+    {
+        if (usuarioId == Guid.Empty)
+        {
+            throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+        }
+
+        if (Participantes.Any(p => p.UsuarioId == usuarioId))
+        {
+            throw new InvalidOperationException("El participante ya pertenece a este equipo.");
+        }
+
+        if (Participantes.Count >= MaximoIntegrantes)
+        {
+            throw new InvalidOperationException("El equipo ya alcanzo el maximo de 5 integrantes.");
+        }
+
+        Participantes.Add(ParticipanteEquipo.CrearIntegrante(usuarioId));
+        EnsureCardinalityInvariant();
+    }
+
     private void EnsureCardinalityInvariant()
     {
-        if (_participantes.Count < 1 || _participantes.Count > 5)
+        if (Participantes.Count < 1 || Participantes.Count > MaximoIntegrantes)
         {
             throw new InvalidOperationException("La cardinalidad del equipo debe estar entre 1 y 5 integrantes.");
         }
 
-        if (_participantes.Count(p => p.EsLider) != 1)
+        if (Participantes.Count(p => p.EsLider) != 1)
         {
             throw new InvalidOperationException("El equipo debe tener exactamente un lider.");
         }

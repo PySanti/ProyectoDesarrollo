@@ -1,6 +1,6 @@
 import { createTeam } from "./createTeamApi.js";
 
-export async function submitCreateTeam({ apiBaseUrl, token, teamName, fetchImpl }) {
+export async function submitCreateTeam({ apiBaseUrl, token, teamName, fetchImpl = fetch }) {
   if (!teamName || !teamName.trim()) {
     return { ok: false, type: "validation", message: "El nombre del equipo es obligatorio." };
   }

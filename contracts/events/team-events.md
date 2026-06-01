@@ -8,6 +8,8 @@ Event details must be completed feature by feature in the related SDD before imp
 
 For HU-03 specifically, `EquipoCreado` is documented and emitted through the Team Service application port, but no RabbitMQ publisher/outbox is required for HU-03 closure.
 
+For HU-04 specifically, no integration event publication is required for closure. Joining by access code is handled as an internal Team Service state change.
+
 ## Required event template
 
 ```md

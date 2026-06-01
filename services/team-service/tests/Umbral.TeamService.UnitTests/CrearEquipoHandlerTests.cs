@@ -102,6 +102,9 @@ public sealed class CrearEquipoHandlerTests
         public Task<bool> ExistsByAccessCodeAsync(string code, CancellationToken cancellationToken)
             => Task.FromResult(false);
 
+        public Task<Equipo?> GetActiveByAccessCodeAsync(string code, CancellationToken cancellationToken)
+            => Task.FromResult<Equipo?>(null);
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
         {
             AddWasCalled = true;
@@ -119,6 +122,9 @@ public sealed class CrearEquipoHandlerTests
 
             return Task.CompletedTask;
         }
+
+        public Task UpdateAsync(Equipo equipo, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeCodigoAccesoGenerator : ICodigoAccesoGenerator

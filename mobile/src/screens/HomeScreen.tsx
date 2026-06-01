@@ -19,6 +19,10 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.primaryButtonText}>Ir a HU-03 Crear equipo</Text>
         </Pressable>
 
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate("JoinTeam")}>
+          <Text style={styles.primaryButtonText}>Ir a HU-04 Unirse a equipo</Text>
+        </Pressable>
+
         <Pressable style={styles.secondaryButton} onPress={logout}>
           <Text style={styles.secondaryButtonText}>Cerrar sesion</Text>
         </Pressable>

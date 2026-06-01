@@ -5,6 +5,7 @@ import { SplashScreen } from "../screens/SplashScreen";
 import { LoginScreen } from "../screens/LoginScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
+import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -32,6 +33,11 @@ export function RootNavigator() {
         name="CreateTeam"
         component={CreateTeamScreenContainer}
         options={{ title: "Crear equipo" }}
+      />
+      <AppStack.Screen
+        name="JoinTeam"
+        component={JoinTeamScreenContainer}
+        options={{ title: "Unirse a equipo" }}
       />
     </AppStack.Navigator>
   );

@@ -156,3 +156,81 @@ Events published:
 Real-time updates:
 
 - none.
+
+## POST /api/teams/join-by-code
+
+Related HU:
+
+- HU-04
+
+Related requirement:
+
+- RF-07
+- RNF-01
+- RNF-02
+- RNF-04
+- RNF-06
+- RNF-13
+- RNF-14
+
+Authorization:
+
+- Authenticated participant (`Participante`).
+
+Request:
+
+```json
+{
+  "codigoAcceso": "ABCD1234"
+}
+```
+
+Response (`200 OK`):
+
+```json
+{
+  "equipoId": "uuid",
+  "nombreEquipo": "Exploradores",
+  "codigoAcceso": "ABCD1234",
+  "estado": "Activo",
+  "liderUserId": "uuid",
+  "integrantes": [
+    {
+      "userId": "uuid",
+      "esLider": true
+    },
+    {
+      "userId": "uuid",
+      "esLider": false
+    }
+  ]
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|---|---|
+| 400 | Invalid request payload |
+| 401 | Unauthenticated |
+| 403 | Authenticated user without participant authorization/policy |
+| 404 | Team not found by access code |
+| 409 | User already belongs to active team, target team is full, or user is already in target team |
+| 500 | Persistence failure |
+
+Business rules:
+
+- Access code must resolve to an active team.
+- A participant can belong to at most one active team.
+- Team cardinality remains valid (`1..5`).
+- Joining is rejected if the target team already has 5 members.
+- Joined participant is added as non-leader member.
+- Concurrent join attempts must preserve the `1..5` cardinality invariant and map unique-membership persistence conflicts to business `409`.
+
+Events published:
+
+- none required for HU-04 closure.
+
+Real-time updates:
+
+- none.
