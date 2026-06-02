@@ -1,4 +1,5 @@
 using Umbral.TeamService.Domain.Enums;
+using Umbral.TeamService.Domain.Exceptions;
 
 namespace Umbral.TeamService.Domain.Entities;
 
@@ -63,6 +64,41 @@ public sealed class Equipo
 
         Participantes.Add(ParticipanteEquipo.CrearIntegrante(usuarioId));
         EnsureCardinalityInvariant();
+    }
+
+    public ResultadoSalidaEquipo Salir(Guid usuarioId)
+    {
+        if (usuarioId == Guid.Empty)
+        {
+            throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+        }
+
+        if (Estado != EstadoEquipo.Activo)
+        {
+            throw new EquipoNoActivoException(EquipoId);
+        }
+
+        var participante = Participantes.SingleOrDefault(p => p.UsuarioId == usuarioId);
+        if (participante is null)
+        {
+            throw new ParticipanteNoPerteneceAlEquipoException(usuarioId);
+        }
+
+        if (participante.EsLider && Participantes.Count > 1)
+        {
+            throw new LiderDebeTransferirLiderazgoException(usuarioId);
+        }
+
+        Participantes.Remove(participante);
+
+        if (participante.EsLider)
+        {
+            Estado = EstadoEquipo.Eliminado;
+            return ResultadoSalidaEquipo.EquipoEliminado;
+        }
+
+        EnsureCardinalityInvariant();
+        return ResultadoSalidaEquipo.SalioDelEquipo;
     }
 
     private void EnsureCardinalityInvariant()

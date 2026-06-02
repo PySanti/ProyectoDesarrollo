@@ -40,6 +40,15 @@ public sealed class EquipoRepository : IEquipoRepository
                 cancellationToken);
     }
 
+    public Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken cancellationToken)
+    {
+        return _dbContext.Equipos
+            .Include(x => x.Participantes)
+            .FirstOrDefaultAsync(
+                e => e.Estado == EstadoEquipo.Activo && e.Participantes.Any(p => p.UsuarioId == userId),
+                cancellationToken);
+    }
+
     public async Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
     {
         try
@@ -109,6 +118,11 @@ public sealed class EquipoRepository : IEquipoRepository
 
     public async Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
     {
+        if (!_dbContext.Database.IsRelational())
+        {
+            return;
+        }
+
         // Generate a unique key for the advisory lock
         var lockKey = Math.Abs(teamCode.GetHashCode());
         var sql = "SELECT pg_advisory_xact_lock(@lockKey)";

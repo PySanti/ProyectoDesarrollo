@@ -23,6 +23,10 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.primaryButtonText}>Ir a HU-04 Unirse a equipo</Text>
         </Pressable>
 
+        <Pressable style={styles.dangerButton} onPress={() => navigation.navigate("LeaveTeam")}>
+          <Text style={styles.primaryButtonText}>Ir a HU-07 Salir del equipo</Text>
+        </Pressable>
+
         <Pressable style={styles.secondaryButton} onPress={logout}>
           <Text style={styles.secondaryButtonText}>Cerrar sesion</Text>
         </Pressable>
@@ -61,6 +65,13 @@ const styles = StyleSheet.create({
   primaryButtonText: {
     color: "#fff",
     fontWeight: "700",
+  },
+  dangerButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    backgroundColor: "#b91c1c",
+    paddingVertical: 12,
+    alignItems: "center",
   },
   secondaryButton: {
     borderRadius: 10,

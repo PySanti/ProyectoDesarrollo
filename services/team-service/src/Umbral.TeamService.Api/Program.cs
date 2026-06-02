@@ -13,6 +13,7 @@ using Umbral.TeamService.Application;
 using Umbral.TeamService.Application.Exceptions;
 using Umbral.TeamService.Application.Teams.CreateTeam;
 using Umbral.TeamService.Application.Teams.JoinTeamByCode;
+using Umbral.TeamService.Application.Teams.LeaveTeam;
 using Umbral.TeamService.Infrastructure;
 using Umbral.TeamService.Infrastructure.Persistence;
 
@@ -234,6 +235,46 @@ app.MapPost("/api/teams/join-by-code", async (
         }
     })
     .WithName("JoinTeamByCode")
+    .RequireAuthorization("ParticipantOnly");
+
+app.MapDelete("/api/teams/membership", async (
+        IValidator<SalirDeEquipoCommand> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var command = new SalirDeEquipoCommand(actorUserId);
+        ValidationResult validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (NoActiveTeamForParticipantException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (LeaveTeamConflictException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (PersistenceException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("LeaveTeamMembership")
     .RequireAuthorization("ParticipantOnly");
 
 app.Run();

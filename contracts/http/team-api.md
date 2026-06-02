@@ -86,6 +86,70 @@ Real-time updates:
 
 Do not reuse endpoint details unless the corresponding HU SDD confirms request, response, authorization and business rules.
 
+## DELETE /api/teams/membership
+
+Related HU:
+
+- HU-07
+
+Related requirement:
+
+- RF-07
+- RF-08
+- RF-35
+- RF-36
+- RNF-01
+- RNF-02
+- RNF-04
+- RNF-06
+- RNF-13
+- RNF-14
+
+Authorization:
+
+- Authenticated participant (`Participante`).
+
+Request:
+
+- Empty body.
+
+Response (`200 OK`):
+
+```json
+{
+  "userId": "uuid",
+  "equipoId": "uuid",
+  "resultado": "SalioDelEquipo | EquipoEliminado",
+  "equipoEstado": "Activo | Eliminado"
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user without participant authorization/policy |
+| 404 | Participant has no active team |
+| 409 | Leader has other members and must transfer leadership first |
+| 500 | Persistence failure |
+
+Business rules:
+
+- A non-leader participant can leave directly.
+- A leader with other members cannot leave directly and must transfer leadership first through HU-06.
+- A leader who is the only member can leave; the team is marked as `Eliminado`.
+- Successful exit removes the active membership row so the participant can join another team later.
+- Historical game participation records are not deleted or modified by this endpoint.
+
+Events published:
+
+- none required for HU-07 closure.
+
+Real-time updates:
+
+- none.
+
 ## POST /api/teams
 
 Related HU:

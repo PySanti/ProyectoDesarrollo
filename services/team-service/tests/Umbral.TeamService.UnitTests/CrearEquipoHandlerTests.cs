@@ -105,6 +105,9 @@ public sealed class CrearEquipoHandlerTests
         public Task<Equipo?> GetActiveByAccessCodeAsync(string code, CancellationToken cancellationToken)
             => Task.FromResult<Equipo?>(null);
 
+        public Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken cancellationToken)
+            => Task.FromResult<Equipo?>(null);
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
         {
             AddWasCalled = true;
@@ -124,6 +127,9 @@ public sealed class CrearEquipoHandlerTests
         }
 
         public Task UpdateAsync(Equipo equipo, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
             => Task.CompletedTask;
     }
 

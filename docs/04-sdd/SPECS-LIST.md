@@ -11,7 +11,7 @@ OpenCode must only create, plan or implement features listed here.
 | HU-03 | Crear equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-03-crear-equipo/ | Completed / tested / backend-runtime-verified / frontend-runtime-verified / hardening-10-10 / acceptance updated |
 | HU-04 | Unirse a equipo usando código | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-04-unirse-a-equipo-usando-codigo/ | Completed / tested / backend-verified / mobile-flow-tested / hardening-10-10 / postgresql-concurrency-verified / acceptance updated |
 | HU-06 | Transferir liderazgo antes de salir del equipo | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-06-transferir-liderazgo-antes-de-salir-del-equipo/ | Not started |
-| HU-07 | Salir del equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-07-salir-del-equipo/ | Not started |
+| HU-07 | Salir del equipo | Team Service | React Native mobile | Participante | docs/04-sdd/specs/HU-07-salir-del-equipo/ | Completed / tested / backend-HU07-verified / mobile-render-tested / hardening-10-10 / acceptance updated |
 | HU-10 | Ver partidas de BDT publicadas | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-10-ver-partidas-de-bdt-publicadas/ | Not started |
 | HU-12 | Filtrar partidas de BDT por modalidad | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-12-filtrar-partidas-de-bdt-por-modalidad/ | Not started |
 | HU-14 | Advertencia al entrar a BDT por equipo sin ser líder | BDT Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-14-advertencia-al-entrar-a-bdt-por-equipo-sin-ser-lider/ | Not started |

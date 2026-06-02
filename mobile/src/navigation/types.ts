@@ -6,4 +6,5 @@ export type AppStackParamList = {
   Home: undefined;
   CreateTeam: undefined;
   JoinTeam: undefined;
+  LeaveTeam: undefined;
 };

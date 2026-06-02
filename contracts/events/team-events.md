@@ -10,6 +10,8 @@ For HU-03 specifically, `EquipoCreado` is documented and emitted through the Tea
 
 For HU-04 specifically, no integration event publication is required for closure. Joining by access code is handled as an internal Team Service state change.
 
+For HU-07 specifically, no cross-service integration event publication is required for closure. Leaving a team is handled as an internal Team Service state change; non-leader exit and leader-only team elimination may be recorded by Team Service history mechanisms when implemented.
+
 ## Required event template
 
 ```md

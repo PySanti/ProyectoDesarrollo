@@ -28,7 +28,11 @@ public sealed class UnirseAEquipoHandlerTests
     [Fact]
     public async Task Should_Throw_When_User_Already_Belongs_To_An_ActiveTeam()
     {
-        var repo = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = true };
+        var repo = new FakeEquipoRepository
+        {
+            ExistsActiveTeamByUserIdValue = true,
+            TeamToReturn = Equipo.CrearPorParticipante("Equipo A", "ABCD1234", Guid.NewGuid())
+        };
         var handler = new UnirseAEquipoPorCodigoCommandHandler(repo);
 
         await Assert.ThrowsAsync<AlreadyBelongsToActiveTeamException>(() =>
@@ -101,6 +105,9 @@ public sealed class UnirseAEquipoHandlerTests
         public Task<Equipo?> GetActiveByAccessCodeAsync(string code, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn);
 
+        public Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken cancellationToken)
+            => Task.FromResult<Equipo?>(null);
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
@@ -115,5 +122,8 @@ public sealed class UnirseAEquipoHandlerTests
 
             return Task.CompletedTask;
         }
+
+        public Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }
