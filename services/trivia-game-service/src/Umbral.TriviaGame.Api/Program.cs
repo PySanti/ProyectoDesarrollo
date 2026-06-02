@@ -27,6 +27,11 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
             RoleClaimType = ClaimTypes.Role,
         };
 
+        if (builder.Environment.IsDevelopment())
+        {
+            options.RequireHttpsMetadata = false;
+        }
+
         if (builder.Environment.IsDevelopment() && string.IsNullOrEmpty(options.Authority))
         {
             options.TokenValidationParameters.ValidateIssuer = false;
