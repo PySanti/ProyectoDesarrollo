@@ -27,6 +27,14 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.primaryButtonText}>Ir a HU-07 Salir del equipo</Text>
         </Pressable>
 
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate("TransferLeadership")}>
+          <Text style={styles.primaryButtonText}>Ir a HU-06 Transferir liderazgo</Text>
+        </Pressable>
+
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate("BdtPublishedGames")}>
+          <Text style={styles.primaryButtonText}>Ir a HU-10/HU-12 Partidas BDT</Text>
+        </Pressable>
+
         <Pressable style={styles.secondaryButton} onPress={logout}>
           <Text style={styles.secondaryButtonText}>Cerrar sesion</Text>
         </Pressable>

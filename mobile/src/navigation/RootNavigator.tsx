@@ -6,7 +6,9 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
 import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContainer";
+import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
+import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -41,9 +43,19 @@ export function RootNavigator() {
         options={{ title: "Unirse a equipo" }}
       />
       <AppStack.Screen
+        name="TransferLeadership"
+        component={TransferLeadershipScreenContainer}
+        options={{ title: "Transferir liderazgo" }}
+      />
+      <AppStack.Screen
         name="LeaveTeam"
         component={LeaveTeamScreenContainer}
         options={{ title: "Salir del equipo" }}
+      />
+      <AppStack.Screen
+        name="BdtPublishedGames"
+        component={BdtPublishedGamesScreenContainer}
+        options={{ title: "Partidas BDT" }}
       />
     </AppStack.Navigator>
   );

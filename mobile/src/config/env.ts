@@ -11,5 +11,6 @@ export const mobileEnv = {
   keycloakRealm: required(process.env.EXPO_PUBLIC_KEYCLOAK_REALM, "EXPO_PUBLIC_KEYCLOAK_REALM"),
   keycloakClientId: required(process.env.EXPO_PUBLIC_KEYCLOAK_CLIENT_ID, "EXPO_PUBLIC_KEYCLOAK_CLIENT_ID"),
   teamApiBaseUrl: required(process.env.EXPO_PUBLIC_TEAM_API_BASE_URL, "EXPO_PUBLIC_TEAM_API_BASE_URL"),
+  bdtApiBaseUrl: required(process.env.EXPO_PUBLIC_BDT_API_BASE_URL, "EXPO_PUBLIC_BDT_API_BASE_URL"),
   redirectScheme: process.env.EXPO_PUBLIC_APP_SCHEME?.trim() || "umbral",
 };

@@ -86,6 +86,77 @@ Real-time updates:
 
 Do not reuse endpoint details unless the corresponding HU SDD confirms request, response, authorization and business rules.
 
+## PATCH /api/teams/leadership
+
+Related HU:
+
+- HU-06
+
+Related requirement:
+
+- RF-08
+- RF-35
+- RF-36
+- RNF-01
+- RNF-02
+- RNF-04
+- RNF-06
+- RNF-13
+- RNF-14
+
+Authorization:
+
+- Authenticated participant (`Participante`) who is the current leader of their active team.
+
+Request:
+
+```json
+{
+  "nuevoLiderUserId": "uuid"
+}
+```
+
+Response (`200 OK`):
+
+```json
+{
+  "equipoId": "uuid",
+  "liderAnteriorUserId": "uuid",
+  "nuevoLiderUserId": "uuid",
+  "equipoEstado": "Activo"
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|---|---|
+| 400 | Invalid request payload |
+| 401 | Unauthenticated |
+| 403 | Authenticated user without participant authorization/policy |
+| 404 | Participant has no active team |
+| 409 | Actor is not current leader, target is not a member, target is current leader, team is not active, or no eligible target member exists |
+| 500 | Persistence failure |
+
+Business rules:
+
+- Leadership is a Team Service domain condition, not a Keycloak role.
+- The backend identifies the active team from the authenticated participant, not from a client-provided team id.
+- Only the current leader can transfer leadership.
+- The target new leader must be another current member of the same active team.
+- A team with one member is valid, but cannot transfer leadership because no other member is eligible.
+- Successful transfer keeps the team active and preserves membership cardinality (`1..5`).
+- Successful transfer leaves exactly one leader: the selected new leader.
+- HU-06 does not remove the former leader from the team; leaving remains HU-07.
+
+Events published:
+
+- none required for HU-06 closure.
+
+Real-time updates:
+
+- none.
+
 ## DELETE /api/teams/membership
 
 Related HU:

@@ -14,6 +14,7 @@ using Umbral.TeamService.Application.Exceptions;
 using Umbral.TeamService.Application.Teams.CreateTeam;
 using Umbral.TeamService.Application.Teams.JoinTeamByCode;
 using Umbral.TeamService.Application.Teams.LeaveTeam;
+using Umbral.TeamService.Application.Teams.TransferLeadership;
 using Umbral.TeamService.Infrastructure;
 using Umbral.TeamService.Infrastructure.Persistence;
 
@@ -277,10 +278,52 @@ app.MapDelete("/api/teams/membership", async (
     .WithName("LeaveTeamMembership")
     .RequireAuthorization("ParticipantOnly");
 
+app.MapPatch("/api/teams/leadership", async (
+        TransferLeadershipRequest request,
+        IValidator<TransferirLiderazgoCommand> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var command = new TransferirLiderazgoCommand(actorUserId, request.NuevoLiderUserId);
+        ValidationResult validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (NoActiveTeamForParticipantException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (TransferirLiderazgoConflictException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (PersistenceException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("TransferTeamLeadership")
+    .RequireAuthorization("ParticipantOnly");
+
 app.Run();
 
 public sealed record CreateTeamRequest(string NombreEquipo);
 public sealed record JoinTeamByCodeRequest(string CodigoAcceso);
+public sealed record TransferLeadershipRequest(Guid NuevoLiderUserId);
 
 internal sealed class UnavailableAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {

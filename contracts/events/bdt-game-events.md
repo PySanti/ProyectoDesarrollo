@@ -6,6 +6,10 @@ Owning publisher: BDT Game Service
 
 Event details must be completed feature by feature in the related SDD before implementation.
 
+For HU-10 specifically, no integration event publication is required for closure. Viewing published BDT games is a read-only query.
+
+For HU-12 specifically, no integration event publication is required for closure. Filtering published BDT games by modality is a read-only query.
+
 ## Required event template
 
 ```md

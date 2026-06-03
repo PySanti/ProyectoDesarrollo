@@ -101,6 +101,58 @@ public sealed class Equipo
         return ResultadoSalidaEquipo.SalioDelEquipo;
     }
 
+    public (Guid LiderAnteriorUserId, Guid NuevoLiderUserId) TransferirLiderazgo(Guid actorUserId, Guid nuevoLiderUserId)
+    {
+        if (actorUserId == Guid.Empty)
+        {
+            throw new ArgumentException("ActorUserId requerido", nameof(actorUserId));
+        }
+
+        if (nuevoLiderUserId == Guid.Empty)
+        {
+            throw new ArgumentException("NuevoLiderUserId requerido", nameof(nuevoLiderUserId));
+        }
+
+        if (Estado != EstadoEquipo.Activo)
+        {
+            throw new EquipoNoActivoException(EquipoId);
+        }
+
+        var liderActual = Participantes.SingleOrDefault(p => p.EsLider);
+        if (liderActual is null)
+        {
+            throw new InvalidOperationException("El equipo debe tener exactamente un lider.");
+        }
+
+        var actor = Participantes.SingleOrDefault(p => p.UsuarioId == actorUserId);
+        if (actor is null)
+        {
+            throw new ParticipanteNoPerteneceAlEquipoException(actorUserId);
+        }
+
+        if (!actor.EsLider || liderActual.UsuarioId != actorUserId)
+        {
+            throw new ActorNoEsLiderEquipoException(actorUserId);
+        }
+
+        if (nuevoLiderUserId == actorUserId)
+        {
+            throw new NuevoLiderDebeSerDiferenteException(nuevoLiderUserId);
+        }
+
+        var nuevoLider = Participantes.SingleOrDefault(p => p.UsuarioId == nuevoLiderUserId);
+        if (nuevoLider is null)
+        {
+            throw new NuevoLiderNoPerteneceAlEquipoException(nuevoLiderUserId);
+        }
+
+        liderActual.QuitarLiderazgo();
+        nuevoLider.MarcarComoLider();
+        EnsureCardinalityInvariant();
+
+        return (actorUserId, nuevoLiderUserId);
+    }
+
     private void EnsureCardinalityInvariant()
     {
         if (Participantes.Count < 1 || Participantes.Count > MaximoIntegrantes)

@@ -92,7 +92,7 @@ public sealed class EquipoRepository : IEquipoRepository
                     .AnyAsync(x => x.ParticipanteEquipoId == participante.ParticipanteEquipoId, cancellationToken);
 
                 var participanteEntry = _dbContext.Entry(participante);
-                participanteEntry.State = exists ? EntityState.Unchanged : EntityState.Added;
+                participanteEntry.State = exists ? EntityState.Modified : EntityState.Added;
             }
 
             await _dbContext.SaveChangesAsync(cancellationToken);
@@ -126,6 +126,9 @@ public sealed class EquipoRepository : IEquipoRepository
         // Generate a unique key for the advisory lock
         var lockKey = Math.Abs(teamCode.GetHashCode());
         var sql = "SELECT pg_advisory_xact_lock(@lockKey)";
-        await _dbContext.Database.ExecuteSqlRawAsync(sql, new NpgsqlParameter("@lockKey", lockKey), cancellationToken);
+        await _dbContext.Database.ExecuteSqlRawAsync(
+            sql,
+            new[] { new NpgsqlParameter("@lockKey", lockKey) },
+            cancellationToken);
     }
 }
