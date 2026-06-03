@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from "vitest";
 import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import * as bdtApi from "../api/bdtApi";
 import * as identityApi from "../api/identityApi";
 
 const { initMock } = vi.hoisted(() => ({
@@ -19,7 +20,21 @@ vi.mock("../auth/keycloak", () => {
 import { App } from "./App";
 
 describe("App auth guard", () => {
-  it("blocks non-admin users", async () => {
+  it("blocks users without admin or operator role", async () => {
+    initMock.mockResolvedValueOnce({
+      username: "participante",
+      roles: ["Participante"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByText(/acceso restringido/i)).toBeInTheDocument();
+    });
+  });
+
+  it("shows HU-34 flow for operator users", async () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
@@ -29,8 +44,31 @@ describe("App auth guard", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByText(/acceso restringido/i)).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /hu-34 crear bdt/i })).toBeInTheDocument();
     });
+
+    await userEvent.click(screen.getByRole("button", { name: /hu-34 crear bdt/i }));
+
+    expect(screen.getByRole("heading", { name: /crear partida bdt/i })).toBeInTheDocument();
+  });
+
+  it("shows HU-37 flow for operator users", async () => {
+    vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([]);
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    await waitFor(() => {
+      expect(screen.getByRole("button", { name: /hu-37 listar bdt/i })).toBeInTheDocument();
+    });
+
+    await userEvent.click(screen.getByRole("button", { name: /hu-37 listar bdt/i }));
+
+    expect(await screen.findByRole("heading", { name: /partidas bdt publicadas/i })).toBeInTheDocument();
   });
 
   it("shows form for admin users", async () => {

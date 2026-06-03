@@ -25,16 +25,17 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             return Task.FromResult(AuthenticateResult.Fail("Missing X-Test-Role header"));
         }
 
-        var userId = Request.Headers.TryGetValue("X-Test-UserId", out var userIdValue)
-            ? userIdValue.ToString()
-            : Guid.NewGuid().ToString();
-
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, userId),
-            new Claim("sub", userId),
             new Claim(ClaimTypes.Role, roleValue.ToString())
         };
+
+        if (Request.Headers.TryGetValue("X-Test-UserId", out var userIdValue))
+        {
+            var userId = userIdValue.ToString();
+            claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));
+            claims.Add(new Claim("sub", userId));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);

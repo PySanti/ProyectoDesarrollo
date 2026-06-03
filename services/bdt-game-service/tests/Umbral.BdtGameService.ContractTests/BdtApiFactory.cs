@@ -8,7 +8,7 @@ using Umbral.BdtGameService.Infrastructure.Persistence;
 
 namespace Umbral.BdtGameService.ContractTests;
 
-public sealed class BdtApiFactory : WebApplicationFactory<Program>
+public class BdtApiFactory : WebApplicationFactory<Program>
 {
     private readonly string _databaseName = $"bdt-contract-tests-{Guid.NewGuid():N}";
 

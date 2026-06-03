@@ -86,4 +86,19 @@ const styles = StyleSheet.create({
     color: "#334155",
     fontSize: 13,
   },
+  joinButton: {
+    marginTop: 8,
+    borderRadius: 10,
+    backgroundColor: "#0b5fff",
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    alignItems: "center",
+  },
+  joinButtonDisabled: {
+    backgroundColor: "#94a3b8",
+  },
+  joinButtonText: {
+    color: "#ffffff",
+    fontWeight: "700",
+  },
 });

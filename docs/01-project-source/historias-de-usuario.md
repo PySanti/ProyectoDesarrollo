@@ -13,18 +13,12 @@
 | HU-10 | Ver partidas de BDT publicadas | Santiago |
 | HU-12 | Filtrar partidas de BDT por modalidad | Santiago |
 
-| HU-14 | Advertencia al entrar a BDT por equipo sin ser líder | Santiago |x
 | HU-34 | Crear partida de Búsqueda del Tesoro | Santiago |
 | HU-37 | Ver lista de partidas de BDT publicadas | Santiago |
 | HU-39 | Unirse a BDT individual | Santiago |
-| HU-40 | Unir equipo a BDT por equipos | Santiago |x
-| HU-42 | Ver participantes unidos a BDT publicada | Santiago |x
 | HU-43 | Iniciar partida BDT | Santiago |
 | HU-44 | Ver etapa activa y opción de subir tesoro | Santiago |
 | HU-45 | Subir foto del tesoro QR | Santiago |
-| HU-46 | Validar automáticamente QR enviado | Santiago |x
-| HU-47 | Cerrar etapa BDT | Santiago |x
-| HU-49 | Enviar pistas a participantes durante BDT | Santiago |x
 
 ## Historias de Mariangel
 

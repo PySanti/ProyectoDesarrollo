@@ -1,4 +1,4 @@
-import { listPublishedBdtGames } from "./bdtPublishedGamesApi.js";
+import { joinIndividualBdtGame, listPublishedBdtGames } from "./bdtPublishedGamesApi.js";
 
 const validFilters = new Set(["Todas", "Individual", "Equipo"]);
 
@@ -28,4 +28,24 @@ export async function loadPublishedBdtGames({ apiBaseUrl, token, filter = "Todas
   }
 
   return result;
+}
+
+export async function joinPublishedIndividualBdtGame({ apiBaseUrl, token, game, fetchImpl }) {
+  if (!game || !game.partidaId) {
+    return { ok: false, type: "validation", message: "Selecciona una BDT valida." };
+  }
+
+  if (game.modalidad !== "Individual") {
+    return { ok: false, type: "validation", message: "Solo puedes unirte individualmente a partidas BDT individuales." };
+  }
+
+  try {
+    return await joinIndividualBdtGame(apiBaseUrl, token, game.partidaId, fetchImpl);
+  } catch {
+    return {
+      ok: false,
+      type: "error",
+      message: "Ocurrio un error inesperado al unirte a la BDT.",
+    };
+  }
 }

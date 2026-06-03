@@ -9,6 +9,8 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.BdtGameService.Application;
+using Umbral.BdtGameService.Application.Games.Create;
+using Umbral.BdtGameService.Application.Games.JoinIndividual;
 using Umbral.BdtGameService.Application.Games.ListPublished;
 using Umbral.BdtGameService.Infrastructure;
 using Umbral.BdtGameService.Infrastructure.Persistence;
@@ -118,6 +120,7 @@ else
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("ParticipantOnly", policy => policy.RequireRole("Participante"));
+    options.AddPolicy("OperatorOnly", policy => policy.RequireRole("Operador"));
 });
 
 var app = builder.Build();
@@ -130,6 +133,39 @@ using (var scope = app.Services.CreateScope())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapPost("/api/bdt/games", async (
+        CrearPartidaBdtCommand command,
+        IValidator<CrearPartidaBdtCommand> validator,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+    {
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Created($"/api/bdt/games/{response.PartidaId}", response);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo crear la partida BDT." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("CreateBdtGame")
+    .RequireAuthorization("OperatorOnly");
 
 app.MapGet("/api/bdt/games/published", async (
         string? modalidad,
@@ -166,6 +202,92 @@ app.MapGet("/api/bdt/games/published", async (
         }
     })
     .WithName("ListPublishedBdtGames")
+    .RequireAuthorization("ParticipantOnly");
+
+app.MapGet("/api/bdt/operator/games/published", async (
+        IValidator<ListarPartidasBdtPublicadasOperadorQuery> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var query = new ListarPartidasBdtPublicadasOperadorQuery(actorUserId);
+        var validation = await validator.ValidateAsync(query, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(query, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo consultar las partidas BDT publicadas." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("ListOperatorPublishedBdtGames")
+    .RequireAuthorization("OperatorOnly");
+
+app.MapPost("/api/bdt/games/{partidaId}/individual-inscriptions", async (
+        string partidaId,
+        IValidator<UnirseABdtIndividualCommand> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        if (!Guid.TryParse(partidaId, out var parsedPartidaId))
+        {
+            return Results.BadRequest(new { message = "PartidaId invalido." });
+        }
+
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var command = new UnirseABdtIndividualCommand(parsedPartidaId, participanteUserId);
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo registrar la inscripcion individual BDT." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("JoinIndividualBdtGame")
     .RequireAuthorization("ParticipantOnly");
 
 app.Run();

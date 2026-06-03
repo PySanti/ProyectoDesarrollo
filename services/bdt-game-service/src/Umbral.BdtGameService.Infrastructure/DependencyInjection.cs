@@ -22,6 +22,7 @@ public static class DependencyInjection
             services.AddDbContext<BdtDbContext>(opt => opt.UseInMemoryDatabase("bdt-game-service"));
         }
 
+        services.AddScoped<IPartidaBdtRepository, PartidaBdtRepository>();
         services.AddScoped<IPartidaBdtReadRepository, PartidaBdtReadRepository>();
 
         return services;

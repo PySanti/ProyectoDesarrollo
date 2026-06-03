@@ -1,9 +1,11 @@
 import { useEffect, useMemo, useState } from "react";
 import { authProvider, AuthUser } from "../auth/keycloak";
+import { CreateBdtGamePage } from "../features/bdt/CreateBdtGamePage";
+import { PublishedBdtGamesPage } from "../features/bdt/PublishedBdtGamesPage";
 import { CreateUserPage } from "../features/identity/CreateUserPage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
 
-type AdminView = "hu01" | "hu02";
+type WebView = "hu01" | "hu02" | "hu34" | "hu37";
 
 type AuthState =
   | { status: "loading" }
@@ -12,7 +14,7 @@ type AuthState =
 
 export function App() {
   const [authState, setAuthState] = useState<AuthState>({ status: "loading" });
-  const [view, setView] = useState<AdminView>("hu01");
+  const [view, setView] = useState<WebView>("hu01");
 
   useEffect(() => {
     let active = true;
@@ -49,6 +51,14 @@ export function App() {
     return authState.user.roles.includes("Administrador");
   }, [authState]);
 
+  const isOperator = useMemo(() => {
+    if (authState.status !== "ready") {
+      return false;
+    }
+
+    return authState.user.roles.includes("Operador");
+  }, [authState]);
+
   if (authState.status === "loading") {
     return (
       <div className="page">
@@ -69,14 +79,14 @@ export function App() {
     );
   }
 
-  if (!isAdmin) {
+  if (!isAdmin && !isOperator) {
     return (
       <div className="page">
         <div className="card">
           <h1>Acceso restringido</h1>
           <p>
             El usuario autenticado ({authState.user.username}) no tiene rol
-            Administrador.
+            Administrador u Operador.
           </p>
         </div>
       </div>
@@ -86,21 +96,37 @@ export function App() {
   return (
     <div className="page">
       <div className="card">
-        <h1>Identity Service - Administracion</h1>
+        <h1>UMBRAL Web - Administracion y Operacion</h1>
         <p>Selecciona un flujo activo del primer sprint.</p>
         <div className="row">
-          <button type="button" onClick={() => setView("hu01")}>HU-01 Crear usuario</button>
-          <button type="button" onClick={() => setView("hu02")}>
-            HU-02 Gestionar usuarios
-          </button>
+          {isAdmin ? (
+            <>
+              <button type="button" onClick={() => setView("hu01")}>HU-01 Crear usuario</button>
+              <button type="button" onClick={() => setView("hu02")}>
+                HU-02 Gestionar usuarios
+              </button>
+            </>
+          ) : null}
+          {isOperator ? (
+            <>
+              <button type="button" onClick={() => setView("hu34")}>HU-34 Crear BDT</button>
+              <button type="button" onClick={() => setView("hu37")}>HU-37 Listar BDT</button>
+            </>
+          ) : null}
         </div>
       </div>
 
       <div style={{ marginTop: 16 }}>
-        {view === "hu01" ? (
+        {view === "hu34" && isOperator ? (
+          <CreateBdtGamePage accessToken={authState.user.token} />
+        ) : view === "hu37" && isOperator ? (
+          <PublishedBdtGamesPage accessToken={authState.user.token} />
+        ) : view === "hu01" && isAdmin ? (
           <CreateUserPage accessToken={authState.user.token} />
-        ) : (
+        ) : view === "hu02" && isAdmin ? (
           <UserManagementPage accessToken={authState.user.token} />
+        ) : (
+          <CreateBdtGamePage accessToken={authState.user.token} />
         )}
       </div>
     </div>
