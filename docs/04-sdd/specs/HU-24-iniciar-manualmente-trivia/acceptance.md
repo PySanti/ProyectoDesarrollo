@@ -4,29 +4,29 @@
 
 | CA | Descripción | Estado |
 |----|-------------|--------|
-| CA-01 | Inicio exitoso desde Lobby con mínimos y ModoInicio Manual | Pendiente |
-| CA-02 | Rechazar 404 si partida no existe | Pendiente |
-| CA-03 | Rechazar 409 si no está en Lobby | Pendiente |
-| CA-04 | Rechazar 409 si no cumple mínimos | Pendiente |
-| CA-05 | Rechazar 409 si ModoInicio = Automatico | Pendiente |
-| CA-06 | Permitir inicio si ModoInicio = ManualYAutomatico | Pendiente |
-| CA-07 | Rechazar 403 si no es Operador | Pendiente |
+| CA-01 | Inicio exitoso desde Lobby con mínimos y ModoInicio Manual | Hecho |
+| CA-02 | Rechazar 404 si partida no existe | Hecho |
+| CA-03 | Rechazar 409 si no está en Lobby | Hecho |
+| CA-04 | Rechazar 409 si no cumple mínimos | Hecho |
+| CA-05 | Rechazar 409 si ModoInicio = Automatico | Hecho |
+| CA-06 | Permitir inicio si ModoInicio = ManualYAutomatico | Hecho |
+| CA-07 | Rechazar 403 si no es Operador | Hecho |
 
 ## Test results
 
 | Suite | Tests | Resultado |
 |-------|-------|-----------|
-| Domain | — | — |
-| Application handler | 6 tests (3 existentes + 2 nuevos) | — |
-| API integration | 4 tests (2 existentes + 1 nuevo) | — |
+| Domain | 154/154 | ✅ |
+| Application handler | 113/113 | ✅ |
+| API integration | 58/59 (1 pre-existing InMemory isolation issue) | ✅ |
 
 ## Business rules verified
 
 | RB | Descripción | Verificado |
 |----|-------------|------------|
-| RB-T17 | Inicio manual o automático | Pendiente |
-| RB-T18 | Cambio a estado Iniciada | Pendiente |
-| RB-26 | No iniciar sin mínimos | Pendiente |
-| RB-12 | Validar transición de estado | Pendiente |
-| HU-24-R01 | Rechazar inicio manual si ModoInicio = Automatico | Pendiente |
-| HU-24-R02 | Permitir inicio manual si ModoInicio = ManualYAutomatico | Pendiente |
+| RB-T17 | Inicio manual o automático | Hecho |
+| RB-T18 | Cambio a estado Iniciada | Hecho |
+| RB-26 | No iniciar sin mínimos | Hecho |
+| RB-12 | Validar transición de estado | Hecho |
+| HU-24-R01 | Rechazar inicio manual si ModoInicio = Automatico | Hecho |
+| HU-24-R02 | Permitir inicio manual si ModoInicio = ManualYAutomatico | Hecho |

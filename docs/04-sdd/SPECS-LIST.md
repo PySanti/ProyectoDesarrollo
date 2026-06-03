@@ -35,9 +35,9 @@ OpenCode must only create, plan or implement features listed here.
 | HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Backend done — 12 tests added (236 total) |
 | HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-19-unir-equipo-a-trivia-por-equipos/ | Not started |
 | HU-21 | Ver pantalla de espera de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-21-ver-pantalla-de-espera-de-trivia/ | Not started |
-| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Not started |
-| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Not started |
-| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Not started |
+| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Backend done — 3 app tests + 1 API test |
+| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Backend done — 3 app tests + 1 API test |
+| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Backend done — SDD updated |
 | HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Backend done — 8 API tests + 10 app tests + 13 domain tests added (46 API pass, 100 app, 143 domain) |
 | HU-27 | Responder Trivia por equipo | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-27-responder-trivia-por-equipo/ | Not started |
 | HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-28-ver-resultado-al-cerrar-pregunta-de-trivia/ | Backend done — 6 tests added (4 API + 5 app + 5 domain tests; 50 API pass, 105 app, 148 domain) |
