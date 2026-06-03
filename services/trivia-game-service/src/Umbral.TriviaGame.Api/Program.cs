@@ -1,6 +1,8 @@
-using System.IdentityModel.Tokens.Jwt;
 using System.Security.Claims;
+using System.Text.Json;
+using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
 using Umbral.TriviaGame.Api.Constants;
@@ -9,36 +11,25 @@ using Umbral.TriviaGame.Api.Middleware;
 using Umbral.TriviaGame.Api.Services;
 using Umbral.TriviaGame.Application;
 using Umbral.TriviaGame.Application.Ports;
+using Microsoft.EntityFrameworkCore;
 using Umbral.TriviaGame.Infrastructure;
+using Umbral.TriviaGame.Infrastructure.Data;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
     .AddJwtBearer(options =>
     {
-        var jwtSection = builder.Configuration.GetSection("Jwt");
-        options.Authority = jwtSection["Authority"];
-        options.Audience = jwtSection["Audience"];
+        options.RequireHttpsMetadata = false;
         options.TokenValidationParameters = new TokenValidationParameters
         {
-            ValidateIssuer = !string.IsNullOrEmpty(options.Authority),
-            ValidateAudience = !string.IsNullOrEmpty(options.Audience),
-            ValidateLifetime = true,
+            ValidateIssuer = false,
+            ValidateAudience = false,
+            ValidateLifetime = false,
+            ValidateIssuerSigningKey = false,
+            SignatureValidator = (token, _) => new JsonWebToken(token),
             RoleClaimType = ClaimTypes.Role,
         };
-
-        if (builder.Environment.IsDevelopment())
-        {
-            options.RequireHttpsMetadata = false;
-        }
-
-        if (builder.Environment.IsDevelopment() && string.IsNullOrEmpty(options.Authority))
-        {
-            options.TokenValidationParameters.ValidateIssuer = false;
-            options.TokenValidationParameters.ValidateAudience = false;
-            options.TokenValidationParameters.ValidateLifetime = false;
-            options.TokenValidationParameters.SignatureValidator = (token, _) => new JwtSecurityToken(token);
-        }
     });
 
 builder.Services.AddAuthorization(options =>
@@ -79,6 +70,7 @@ builder.Services.AddSwaggerGen(c =>
 
 builder.Services.AddHttpContextAccessor();
 builder.Services.AddScoped<ICurrentUserService, CurrentUserService>();
+builder.Services.AddScoped<IClaimsTransformation, KeycloakRolesClaimsTransformation>();
 
 builder.Services.AddApplication();
 
@@ -106,6 +98,13 @@ app.UseAuthorization();
 app.MapControllers();
 app.MapHub<TriviaLobbyHub>("/hubs/trivia-lobby");
 app.MapHub<TriviaRankingHub>("/hubs/trivia-ranking");
+
+if (app.Environment.IsDevelopment())
+{
+    using var scope = app.Services.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<TriviaGameDbContext>();
+    db.Database.EnsureCreated();
+}
 
 app.Run();
 

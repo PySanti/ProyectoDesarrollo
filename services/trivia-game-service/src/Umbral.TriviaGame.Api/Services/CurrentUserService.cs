@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Umbral.TriviaGame.Application.Ports;
 
 namespace Umbral.TriviaGame.Api.Services;
@@ -23,7 +24,8 @@ public sealed class CurrentUserService : ICurrentUserService
             var user = _httpContextAccessor.HttpContext?.User;
             if (user?.Identity?.IsAuthenticated == true)
             {
-                var subClaim = user.FindFirst("sub")?.Value;
+                var subClaim = user.FindFirst("sub")?.Value
+                    ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value;
                 if (!string.IsNullOrWhiteSpace(subClaim))
                     return subClaim;
             }

@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
@@ -18,6 +19,13 @@ public sealed class TriviaGamesPublicController : ControllerBase
         _mediator = mediator;
     }
 
+    private static string GetUsuarioId(ClaimsPrincipal user)
+    {
+        return user.FindFirst("sub")?.Value
+            ?? user.FindFirst(ClaimTypes.NameIdentifier)?.Value
+            ?? string.Empty;
+    }
+
     [HttpGet]
     public async Task<IActionResult> GetAll(
         [FromQuery] string? modalidad,
@@ -33,7 +41,7 @@ public sealed class TriviaGamesPublicController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var usuarioId = User.FindFirst("sub")?.Value;
+        var usuarioId = GetUsuarioId(User);
         if (string.IsNullOrWhiteSpace(usuarioId))
             return Unauthorized("No se pudo identificar al usuario autenticado.");
 
@@ -47,7 +55,7 @@ public sealed class TriviaGamesPublicController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var usuarioId = User.FindFirst("sub")?.Value;
+        var usuarioId = GetUsuarioId(User);
         if (string.IsNullOrWhiteSpace(usuarioId))
             return Unauthorized("No se pudo identificar al usuario autenticado.");
 
@@ -63,7 +71,7 @@ public sealed class TriviaGamesPublicController : ControllerBase
         [FromBody] AnswerTriviaQuestionRequest request,
         CancellationToken cancellationToken)
     {
-        var usuarioId = User.FindFirst("sub")?.Value;
+        var usuarioId = GetUsuarioId(User);
         if (string.IsNullOrWhiteSpace(usuarioId))
             return Unauthorized("No se pudo identificar al usuario autenticado.");
 
@@ -83,7 +91,7 @@ public sealed class TriviaGamesPublicController : ControllerBase
         Guid preguntaId,
         CancellationToken cancellationToken)
     {
-        var usuarioId = User.FindFirst("sub")?.Value;
+        var usuarioId = GetUsuarioId(User);
         if (string.IsNullOrWhiteSpace(usuarioId))
             return Unauthorized("No se pudo identificar al usuario autenticado.");
 
@@ -97,7 +105,7 @@ public sealed class TriviaGamesPublicController : ControllerBase
         Guid id,
         CancellationToken cancellationToken)
     {
-        var usuarioId = User.FindFirst("sub")?.Value;
+        var usuarioId = GetUsuarioId(User);
         if (string.IsNullOrWhiteSpace(usuarioId))
             return Unauthorized("No se pudo identificar al usuario autenticado.");
 

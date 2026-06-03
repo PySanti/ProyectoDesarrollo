@@ -18,7 +18,7 @@ services:
       POSTGRES_PASSWORD: umbral
       POSTGRES_DB: umbral
     ports:
-      - "5432:5432"
+      - "5433:5432"
     volumes:
       - umbral-postgres-data:/var/lib/postgresql/data
       - ./postgres/init:/docker-entrypoint-initdb.d
