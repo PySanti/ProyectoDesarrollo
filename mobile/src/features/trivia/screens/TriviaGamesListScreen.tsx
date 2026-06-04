@@ -26,19 +26,23 @@ function formatDate(iso: string): string {
   });
 }
 
+type Filtro = 'Todas' | 'Individual' | 'Equipo';
+
 export default function TriviaGamesListScreen() {
   const navigation = useNavigation<NavigationProp>();
   const [games, setGames] = useState<TriviaGameListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [filtro, setFiltro] = useState<Filtro>('Todas');
 
   const fetchGames = useCallback(async (isRefresh = false) => {
     try {
       if (isRefresh) setRefreshing(true);
       else setLoading(true);
       setError(null);
-      const data = await getPublishedTriviaGames();
+      const modalidadParam = filtro === 'Todas' ? undefined : filtro;
+      const data = await getPublishedTriviaGames(modalidadParam);
       setGames(data);
     } catch (err: any) {
       if (err?.response?.status === 401) {
@@ -50,7 +54,7 @@ export default function TriviaGamesListScreen() {
       setLoading(false);
       setRefreshing(false);
     }
-  }, []);
+  }, [filtro]);
 
   useEffect(() => {
     fetchGames();
@@ -107,6 +111,19 @@ export default function TriviaGamesListScreen() {
 
   return (
     <ScreenWrapper>
+      <View style={styles.filterBar}>
+        {(['Todas', 'Individual', 'Equipo'] as Filtro[]).map((opcion) => (
+          <TouchableOpacity
+            key={opcion}
+            style={[styles.filterChip, filtro === opcion && styles.filterChipActive]}
+            onPress={() => setFiltro(opcion)}
+          >
+            <Text style={[styles.filterChipText, filtro === opcion && styles.filterChipTextActive]}>
+              {opcion === 'Todas' ? 'Todas' : opcion === 'Individual' ? '👤 Individual' : '👥 Equipo'}
+            </Text>
+          </TouchableOpacity>
+        ))}
+      </View>
       <FlatList
         data={games}
         keyExtractor={(item) => item.id}
@@ -121,6 +138,30 @@ export default function TriviaGamesListScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: 16,
+    paddingTop: 12,
+    paddingBottom: 4,
+    gap: 8,
+  },
+  filterChip: {
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 20,
+    backgroundColor: '#F3F4F6',
+  },
+  filterChipActive: {
+    backgroundColor: '#2563EB',
+  },
+  filterChipText: {
+    fontSize: 13,
+    color: '#6B7280',
+    fontWeight: '500',
+  },
+  filterChipTextActive: {
+    color: '#FFFFFF',
+  },
   centered: {
     justifyContent: 'center',
     alignItems: 'center',
