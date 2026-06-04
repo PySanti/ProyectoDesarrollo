@@ -7,7 +7,7 @@ Implementar **una tarea a la vez**. No iniciar implementación hasta aprobación
 - Servicio: `services/trivia-game-service/`
 - Solución .NET 8 con capas: `Domain`, `Application`, `Infrastructure`, `Api`
 - Código de producción y pruebas en **inglés**
-- Cliente: React Native mobile (congelado; no implementar en este sprint)
+- Cliente: React Native mobile
 - Sin cambios en Domain Layer (solo lectura)
 
 ---
@@ -44,7 +44,19 @@ Implementar **una tarea a la vez**. No iniciar implementación hasta aprobación
 | T-03 | Test integración API: `GET /api/trivia-games` retorna 200 con lista (autenticado Participante) | ✅ |
 | T-04 | Test integración API: `GET /api/trivia-games` retorna 200 con lista (autenticado Operador) y lista vacía sin partidas | ✅ |
 
-## 5. Acceptance
+## 5. Mobile Frontend
+
+| ID | Task | Definition of done |
+| --- | --- | --- |
+| M-01 | Inicializar proyecto React Native con Expo + TypeScript | ✅ |
+| M-02 | Crear API client con Axios e interceptor JWT | ✅ |
+| M-03 | Crear DTO `TriviaGameListItem` en mobile | ✅ |
+| M-04 | Crear API service `getPublishedTriviaGames()` | ✅ |
+| M-05 | Crear `TriviaGamesListScreen` con loading/empty/error y pull-to-refresh | ✅ |
+| M-06 | Crear `AppNavigator` con stack y ruta `TriviaGamesList` | ✅ |
+| M-07 | Verificar compilación TypeScript sin errores | ✅ |
+
+## 6. Acceptance
 
 | ID | Task | Definition of done |
 | --- | --- | --- |

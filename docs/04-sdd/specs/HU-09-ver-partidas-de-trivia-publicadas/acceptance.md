@@ -31,6 +31,19 @@
 | RF-05: mostrar partidas publicadas a participantes | El endpoint GET devuelve lista de partidas en Lobby para cualquier autenticado |
 | RB-G02: estados válidos | Solo se listan partidas con Estado == Lobby |
 
+## Mobile frontend items checklist
+
+| Item | Estado |
+| --- | --- |
+| Proyecto React Native (Expo + TypeScript) inicializado | ✅ |
+| API client con Axios e interceptor JWT | ✅ |
+| DTO `TriviaGameListItem` en mobile | ✅ |
+| API service `getPublishedTriviaGames()` | ✅ |
+| Pantalla `TriviaGamesListScreen` con loading/empty/error | ✅ |
+| Componente `ScreenWrapper` compartido | ✅ |
+| Navegador `AppNavigator` con stack principal | ✅ |
+| Compilación TypeScript sin errores | ✅ |
+
 ## Total de pruebas
 
 | Proyecto | Tests pasados | Tests agregados por HU-09 |
