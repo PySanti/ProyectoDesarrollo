@@ -27,22 +27,22 @@ OpenCode must only create, plan or implement features listed here.
 | HU-47 | Cerrar etapa BDT | BDT Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-47-cerrar-etapa-bdt/ | Not started |
 | HU-49 | Enviar pistas a participantes durante BDT | BDT Game Service | React web | Operador | docs/04-sdd/specs/HU-49-enviar-pistas-a-participantes-durante-bdt/ | Not started |
 | HU-05 | Eliminar equipo creado | Team Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-05-eliminar-equipo-creado/ | Not started |
-| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Not started |
-| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Not started |
+| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-09-ver-partidas-de-trivia-publicadas/ | Backend done — 5 tests added (216 total) |
+| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-11-filtrar-partidas-de-trivia-por-modalidad/ | Backend done — 8 tests added (224 total) |
 | HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-13-advertencia-al-entrar-a-trivia-por-equipo-sin-ser-lider/ | Not started |
-| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | Not started |
-| HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-17-crear-y-publicar-partida-de-trivia/ | Not started |
-| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Not started |
+| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-15-crear-formularios-de-trivia/ | SDD ready for review |
+| HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-17-crear-y-publicar-partida-de-trivia/ | SDD created — backend done |
+| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-18-unirse-a-trivia-individual/ | Backend done — 12 tests added (236 total) |
 | HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile | Participante líder | docs/04-sdd/specs/HU-19-unir-equipo-a-trivia-por-equipos/ | Not started |
 | HU-21 | Ver pantalla de espera de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-21-ver-pantalla-de-espera-de-trivia/ | Not started |
-| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Not started |
-| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Not started |
-| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Not started |
-| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Not started |
+| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-22-ver-participantes-unidos-a-trivia-publicada/ | Backend done — 3 app tests + 1 API test |
+| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-23-ver-equipos-unidos-a-trivia-publicada/ | Backend done — 3 app tests + 1 API test |
+| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-24-iniciar-manualmente-trivia/ | Backend done — SDD updated |
+| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-26-responder-trivia-individual/ | Backend done — 8 API tests + 10 app tests + 13 domain tests added (46 API pass, 100 app, 143 domain) |
 | HU-27 | Responder Trivia por equipo | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-27-responder-trivia-por-equipo/ | Not started |
-| HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-28-ver-resultado-al-cerrar-pregunta-de-trivia/ | Not started |
-| HU-29 | Calcular puntaje de respuesta en Trivia | Trivia Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-29-calcular-puntaje-de-respuesta-en-trivia/ | Not started |
-| HU-30 | Ver ranking durante Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-30-ver-ranking-durante-trivia/ | Not started |
+| HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile | Participante | docs/04-sdd/specs/HU-28-ver-resultado-al-cerrar-pregunta-de-trivia/ | Backend done — 6 tests added (4 API + 5 app + 5 domain tests; 50 API pass, 105 app, 148 domain) |
+| HU-29 | Calcular puntaje de respuesta en Trivia | Trivia Game Service | Backend / React Native mobile | Sistema / Participante | docs/04-sdd/specs/HU-29-calcular-puntaje-de-respuesta-en-trivia/ | Backend done — 5 API score tests added (55 API pass total, 109 app, 154 domain) |
+| HU-30 | Ver ranking durante Trivia | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-30-ver-ranking-durante-trivia/ | Backend done — 4 app tests + 3 API tests added (154 domain, 113 app, 58 API pass) |
 | HU-35 | Ver lista de partidas de Trivia publicadas | Trivia Game Service | React web | Operador | docs/04-sdd/specs/HU-35-ver-lista-de-partidas-de-trivia-publicadas/ | Not started |
 
 ## Rules

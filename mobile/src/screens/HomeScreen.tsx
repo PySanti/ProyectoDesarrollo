@@ -35,6 +35,10 @@ export function HomeScreen({ navigation }: Props) {
           <Text style={styles.primaryButtonText}>Ir a HU-10/HU-12 Partidas BDT</Text>
         </Pressable>
 
+        <Pressable style={styles.primaryButton} onPress={() => navigation.navigate("TriviaGamesList")}>
+          <Text style={styles.primaryButtonText}>Ir a HU-09/HU-11 Partidas Trivia</Text>
+        </Pressable>
+
         <Pressable style={styles.secondaryButton} onPress={logout}>
           <Text style={styles.secondaryButtonText}>Cerrar sesion</Text>
         </Pressable>

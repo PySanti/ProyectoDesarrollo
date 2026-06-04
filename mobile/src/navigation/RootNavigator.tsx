@@ -8,6 +8,7 @@ import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenCon
 import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
+import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
 import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
 import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
 import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
@@ -53,6 +54,11 @@ export function RootNavigator() {
         name="LeaveTeam"
         component={LeaveTeamScreenContainer}
         options={{ title: "Salir del equipo" }}
+      />
+      <AppStack.Screen
+        name="TriviaGamesList"
+        component={TriviaGamesListScreenContainer}
+        options={{ title: "Partidas Trivia" }}
       />
       <AppStack.Screen
         name="BdtPublishedGames"

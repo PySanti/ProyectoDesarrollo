@@ -45,9 +45,9 @@
 
 Latest execution summary:
 
-- Team Service unit tests: `20` passed.
-- Team Service integration tests: `12` passed (includes concurrent join invariant test).
-- Team Service contract tests: `5` passed.
+- Team Service unit tests: `41` passed.
+- Team Service integration tests: `30` passed, including the HU-04 concurrent join invariant test and PostgreSQL/Npgsql evidence.
+- Team Service contract tests: `11` passed.
 - Mobile typecheck: passed.
 - Mobile tests: `14` passed (includes `joinTeamScreenModel.test.js` client-side behavior tests).
 
@@ -65,6 +65,7 @@ Latest execution summary:
 
 - Advisory locking implemented at the database level to ensure the team cardinality invariant `1..5` is preserved even under high concurrent load across multiple service instances.
 - New integration test `Hu04PostgresConcurrencyTests.cs` added to verify this behavior with a real PostgreSQL backend.
+- Merge verification on 2026-06-04: `dotnet test services/team-service/tests/Umbral.TeamService.IntegrationTests/Umbral.TeamService.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Postgres"` passed 2/2 with the compose PostgreSQL container and isolated test schema.
 
 ## Runtime Evidence
 

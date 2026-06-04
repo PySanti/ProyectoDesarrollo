@@ -123,7 +123,7 @@ public sealed class UnirseAEquipoHandlerTests
             return Task.CompletedTask;
         }
 
-        public Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
-            => Task.CompletedTask;
+        public Task<T> ExecuteWithAccessCodeLockAsync<T>(string teamCode, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken)
+            => operation(cancellationToken);
     }
 }

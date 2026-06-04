@@ -44,7 +44,7 @@ Latest execution summary:
 - `dotnet test services/team-service/tests/Umbral.TeamService.ContractTests/Umbral.TeamService.ContractTests.csproj` passed: 8/8.
 - `npm test` from `mobile/` passed: 23/23, including render-level `LeaveTeamScreenController` coverage used by `LeaveTeamScreen` for the successful leave path.
 - `npm run typecheck` from `mobile/` passed.
-- Full Team Service integration suite passed 18/20 and still has unrelated HU-04 failures: PostgreSQL authentication failed for `umbral_user` in PostgreSQL-backed concurrency tests, and HU-04 InMemory concurrency expects PostgreSQL advisory-lock behavior.
+- Merge verification on 2026-06-04: full Team Service integration suite passed 30/30, including HU-04 concurrency and PostgreSQL/Npgsql tests; the previous unrelated HU-04 environment/concurrency failures were resolved.
 - HU-07 hardening completed: mobile success now explicitly shows `Sin equipo activo`, the post-success button label is short, the leave action is disabled after success, HU-07 API maps application-level conflicts instead of domain exceptions, and `Equipo.Salir(...)` rejects non-active teams.
 
 ## Readiness evidence

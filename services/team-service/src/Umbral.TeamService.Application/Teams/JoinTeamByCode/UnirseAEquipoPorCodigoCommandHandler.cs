@@ -19,62 +19,57 @@ public sealed class UnirseAEquipoPorCodigoCommandHandler : IRequestHandler<Unirs
     {
         var normalizedCode = request.CodigoAcceso.Trim().ToUpperInvariant();
 
-        var equipo = await _equipoRepository.GetActiveByAccessCodeAsync(normalizedCode, cancellationToken);
-        if (equipo is null)
-        {
-            // Check if team exists before acquiring lock to avoid unnecessary locking
-            throw new TeamNotFoundByAccessCodeException(request.CodigoAcceso);
-        }
+        return await _equipoRepository.ExecuteWithAccessCodeLockAsync(
+            normalizedCode,
+            async ct =>
+            {
+                var equipo = await _equipoRepository.GetActiveByAccessCodeAsync(normalizedCode, ct);
+                if (equipo is null)
+                {
+                    throw new TeamNotFoundByAccessCodeException(request.CodigoAcceso);
+                }
 
-        // Acquire advisory lock on the team code to prevent concurrent joins
-        await _equipoRepository.AcquireAdvisoryLockAsync(normalizedCode, cancellationToken);
+                var alreadyInActiveTeam = await _equipoRepository.ExistsActiveTeamByUserIdAsync(request.ActorUserId, ct);
+                if (alreadyInActiveTeam)
+                {
+                    throw new AlreadyBelongsToActiveTeamException(request.ActorUserId);
+                }
 
-        // Re-check conditions after acquiring the lock
-        var alreadyInActiveTeam = await _equipoRepository.ExistsActiveTeamByUserIdAsync(request.ActorUserId, cancellationToken);
-        if (alreadyInActiveTeam)
-        {
-            throw new AlreadyBelongsToActiveTeamException(request.ActorUserId);
-        }
+                if (equipo.Participantes.Count >= MaximoIntegrantes)
+                {
+                    throw new TeamFullException(equipo.EquipoId);
+                }
 
-        equipo = await _equipoRepository.GetActiveByAccessCodeAsync(normalizedCode, cancellationToken);
-        if (equipo is null)
-        {
-            throw new TeamNotFoundByAccessCodeException(request.CodigoAcceso);
-        }
+                if (equipo.Participantes.Any(x => x.UsuarioId == request.ActorUserId))
+                {
+                    throw new ParticipantAlreadyInTargetTeamException(equipo.EquipoId, request.ActorUserId);
+                }
 
-        if (equipo.Participantes.Count >= MaximoIntegrantes)
-        {
-            throw new TeamFullException(equipo.EquipoId);
-        }
+                equipo.AgregarParticipante(request.ActorUserId);
 
-        if (equipo.Participantes.Any(x => x.UsuarioId == request.ActorUserId))
-        {
-            throw new ParticipantAlreadyInTargetTeamException(equipo.EquipoId, request.ActorUserId);
-        }
+                try
+                {
+                    await _equipoRepository.UpdateAsync(equipo, ct);
+                }
+                catch (UniqueMembershipConflictException)
+                {
+                    throw new AlreadyBelongsToActiveTeamException(request.ActorUserId);
+                }
 
-        equipo.AgregarParticipante(request.ActorUserId);
+                var integrantes = equipo.Participantes
+                    .Select(x => new UnirseAEquipoIntegranteResponse(x.UsuarioId, x.EsLider))
+                    .ToArray();
 
-        try
-        {
-            await _equipoRepository.UpdateAsync(equipo, cancellationToken);
-        }
-        catch (UniqueMembershipConflictException)
-        {
-            throw new AlreadyBelongsToActiveTeamException(request.ActorUserId);
-        }
+                var liderUserId = equipo.Participantes.Single(x => x.EsLider).UsuarioId;
 
-        var integrantes = equipo.Participantes
-            .Select(x => new UnirseAEquipoIntegranteResponse(x.UsuarioId, x.EsLider))
-            .ToArray();
-
-        var liderUserId = equipo.Participantes.Single(x => x.EsLider).UsuarioId;
-
-        return new UnirseAEquipoPorCodigoResponse(
-            equipo.EquipoId,
-            equipo.NombreEquipo,
-            equipo.CodigoAcceso,
-            equipo.Estado.ToString(),
-            liderUserId,
-            integrantes);
+                return new UnirseAEquipoPorCodigoResponse(
+                    equipo.EquipoId,
+                    equipo.NombreEquipo,
+                    equipo.CodigoAcceso,
+                    equipo.Estado.ToString(),
+                    liderUserId,
+                    integrantes);
+            },
+            cancellationToken);
     }
 }

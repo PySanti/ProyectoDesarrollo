@@ -46,6 +46,7 @@ Latest execution summary:
 - `dotnet test services/team-service/tests/Umbral.TeamService.IntegrationTests/Umbral.TeamService.IntegrationTests.csproj --filter "FullyQualifiedName~Hu06EndpointsIntegrationTests"` — Passed: 9/9.
 - `dotnet test services/team-service/tests/Umbral.TeamService.ContractTests/Umbral.TeamService.ContractTests.csproj --filter "FullyQualifiedName~Hu06ContractTests"` — Passed: 3/3.
 - `TEAM_POSTGRES_TEST_CONNECTION='Host=localhost;Port=5432;Database=umbral_team;Username=postgres;Password=postgres;' dotnet test services/team-service/tests/Umbral.TeamService.IntegrationTests/Umbral.TeamService.IntegrationTests.csproj --filter "FullyQualifiedName~Hu06PostgresLeadershipTransferTests" --no-restore` — Passed: 1/1; verified leadership transfer persists with Npgsql/PostgreSQL and exactly one `EsLider` remains.
+- Merge verification on 2026-06-04: `dotnet test services/team-service/tests/Umbral.TeamService.IntegrationTests/Umbral.TeamService.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Postgres"` passed 2/2 using compose PostgreSQL on port `55432` and an isolated schema; the default factory no longer drops `public`.
 - `npm run typecheck` from `mobile/` — Passed.
 - `node --test tests/transferLeadershipFlow.test.js tests/TransferLeadershipScreenController.test.js` from `mobile/` — Passed: 6/6.
 - `global.json` uses SDK `8.0.407` with `rollForward: latestMajor`, allowing reproducible verification on the installed SDK while preserving the project target framework.

@@ -10,5 +10,5 @@ public interface IEquipoRepository
     Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task AddAsync(Equipo equipo, CancellationToken cancellationToken);
     Task UpdateAsync(Equipo equipo, CancellationToken cancellationToken);
-    Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken);
+    Task<T> ExecuteWithAccessCodeLockAsync<T>(string teamCode, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken);
 }

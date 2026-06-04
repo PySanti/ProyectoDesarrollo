@@ -1,5 +1,9 @@
+using System.Collections.Concurrent;
 using Microsoft.EntityFrameworkCore;
 using Npgsql;
+using System.Data;
+using System.Security.Cryptography;
+using System.Text;
 using Umbral.TeamService.Application.Abstractions.Persistence;
 using Umbral.TeamService.Application.Exceptions;
 using Umbral.TeamService.Domain.Entities;
@@ -9,6 +13,8 @@ namespace Umbral.TeamService.Infrastructure.Persistence;
 
 public sealed class EquipoRepository : IEquipoRepository
 {
+    private static readonly ConcurrentDictionary<string, SemaphoreSlim> InMemoryLocks = new(StringComparer.OrdinalIgnoreCase);
+
     private readonly TeamDbContext _dbContext;
 
     public EquipoRepository(TeamDbContext dbContext)
@@ -116,19 +122,53 @@ public sealed class EquipoRepository : IEquipoRepository
         }
     }
 
-    public async Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
+    public async Task<T> ExecuteWithAccessCodeLockAsync<T>(string teamCode, Func<CancellationToken, Task<T>> operation, CancellationToken cancellationToken)
     {
         if (!_dbContext.Database.IsRelational())
         {
-            return;
+            var normalizedCode = teamCode.Trim().ToUpperInvariant();
+            var semaphore = InMemoryLocks.GetOrAdd(normalizedCode, _ => new SemaphoreSlim(1, 1));
+            await semaphore.WaitAsync(cancellationToken);
+
+            try
+            {
+                return await operation(cancellationToken);
+            }
+            finally
+            {
+                semaphore.Release();
+            }
         }
 
-        // Generate a unique key for the advisory lock
-        var lockKey = Math.Abs(teamCode.GetHashCode());
-        var sql = "SELECT pg_advisory_xact_lock(@lockKey)";
+        await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.ReadCommitted, cancellationToken);
+
+        try
+        {
+            await AcquireAdvisoryLockAsync(teamCode, cancellationToken);
+            var result = await operation(cancellationToken);
+            await transaction.CommitAsync(cancellationToken);
+            return result;
+        }
+        catch
+        {
+            await transaction.RollbackAsync(CancellationToken.None);
+            throw;
+        }
+    }
+
+    private async Task AcquireAdvisoryLockAsync(string teamCode, CancellationToken cancellationToken)
+    {
+        var lockKey = CreateStableLockKey(teamCode);
         await _dbContext.Database.ExecuteSqlRawAsync(
-            sql,
+            "SELECT pg_advisory_xact_lock(@lockKey)",
             new[] { new NpgsqlParameter("@lockKey", lockKey) },
             cancellationToken);
+    }
+
+    private static long CreateStableLockKey(string teamCode)
+    {
+        var normalizedCode = teamCode.Trim().ToUpperInvariant();
+        var bytes = SHA256.HashData(Encoding.UTF8.GetBytes(normalizedCode));
+        return BitConverter.ToInt64(bytes, 0);
     }
 }
