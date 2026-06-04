@@ -31,4 +31,10 @@ public interface ITriviaFormRepository
     /// <param name="form">Aggregate root TriviaForm con los cambios aplicados.</param>
     /// <param name="cancellationToken">Token de cancelación.</param>
     Task UpdateAsync(TriviaForm form, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Obtiene todos los formularios de Trivia (sin preguntas, solo metadatos).
+    /// </summary>
+    /// <param name="cancellationToken">Token de cancelación.</param>
+    Task<IReadOnlyList<TriviaForm>> GetAllAsync(CancellationToken cancellationToken = default);
 }

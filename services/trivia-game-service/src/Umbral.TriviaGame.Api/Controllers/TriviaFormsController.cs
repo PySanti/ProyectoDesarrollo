@@ -41,6 +41,14 @@ public sealed class TriviaFormsController : ControllerBase
         return Ok(result);
     }
 
+    [HttpGet]
+    public async Task<IActionResult> GetAll(CancellationToken cancellationToken)
+    {
+        var query = new GetTriviaFormsQuery();
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpGet("{id:guid}")]
     public async Task<IActionResult> GetById(
         Guid id,

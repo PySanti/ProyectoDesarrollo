@@ -33,4 +33,11 @@ internal sealed class TriviaFormRepository : ITriviaFormRepository
         _dbContext.TriviaForms.Update(form);
         await _dbContext.SaveChangesAsync(cancellationToken);
     }
+
+    public async Task<IReadOnlyList<TriviaForm>> GetAllAsync(CancellationToken cancellationToken = default)
+    {
+        return await _dbContext.TriviaForms
+            .AsNoTracking()
+            .ToListAsync(cancellationToken);
+    }
 }
