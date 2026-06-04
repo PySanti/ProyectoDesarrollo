@@ -44,6 +44,11 @@ public sealed class BdtDbContext : DbContext
                 .WithOne()
                 .HasForeignKey(explorador => explorador.PartidaId)
                 .OnDelete(DeleteBehavior.Cascade);
+
+            entity.HasMany(partida => partida.Tesoros)
+                .WithOne()
+                .HasForeignKey(tesoro => tesoro.PartidaId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
 
         modelBuilder.Entity<EtapaBDT>(entity =>
@@ -54,6 +59,9 @@ public sealed class BdtDbContext : DbContext
             entity.Property(etapa => etapa.Orden).HasColumnName("orden").IsRequired();
             entity.Property(etapa => etapa.CodigoQREsperado).HasColumnName("codigo_qr_esperado").HasMaxLength(250).IsRequired();
             entity.Property(etapa => etapa.TiempoLimiteSegundos).HasColumnName("tiempo_limite_segundos").IsRequired();
+            entity.Property(etapa => etapa.Estado).HasColumnName("estado").HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(etapa => etapa.IniciadaEnUtc).HasColumnName("iniciada_en_utc");
+            entity.Property(etapa => etapa.CierraEnUtc).HasColumnName("cierra_en_utc");
         });
 
         modelBuilder.Entity<ExploradorBDT>(entity =>
@@ -70,6 +78,22 @@ public sealed class BdtDbContext : DbContext
             entity.HasIndex(explorador => new { explorador.PartidaId, explorador.CompetidorId, explorador.TipoCompetidor })
                 .IsUnique()
                 .HasDatabaseName("ux_exploradores_bdt_partida_competidor_tipo");
+        });
+
+        modelBuilder.Entity<TesoroQR>(entity =>
+        {
+            entity.ToTable("tesoros_qr_bdt");
+            entity.HasKey(tesoro => tesoro.TesoroId);
+            entity.Property(tesoro => tesoro.TesoroId).HasColumnName("tesoro_id");
+            entity.Property(tesoro => tesoro.PartidaId).HasColumnName("partida_id").IsRequired();
+            entity.Property(tesoro => tesoro.EtapaId).HasColumnName("etapa_id").IsRequired();
+            entity.Property(tesoro => tesoro.ExploradorId).HasColumnName("explorador_id").IsRequired();
+            entity.Property(tesoro => tesoro.ImagenReferencia).HasColumnName("imagen_referencia").HasMaxLength(500).IsRequired();
+            entity.Property(tesoro => tesoro.QrDecodificado).HasColumnName("qr_decodificado").HasMaxLength(500);
+            entity.Property(tesoro => tesoro.EstadoProcesamiento).HasColumnName("estado_procesamiento").HasConversion<string>().HasMaxLength(30).IsRequired();
+            entity.Property(tesoro => tesoro.FechaEnvioUtc).HasColumnName("fecha_envio_utc").IsRequired();
+            entity.HasIndex(tesoro => new { tesoro.PartidaId, tesoro.EtapaId, tesoro.ExploradorId })
+                .HasDatabaseName("ix_tesoros_qr_bdt_partida_etapa_explorador");
         });
     }
 }

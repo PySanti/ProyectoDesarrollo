@@ -9,6 +9,8 @@ import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContain
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
 import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
+import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
+import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
@@ -56,6 +58,16 @@ export function RootNavigator() {
         name="BdtPublishedGames"
         component={BdtPublishedGamesScreenContainer}
         options={{ title: "Partidas BDT" }}
+      />
+      <AppStack.Screen
+        name="BdtActiveStage"
+        component={BdtActiveStageScreenContainer}
+        options={{ title: "Etapa activa BDT" }}
+      />
+      <AppStack.Screen
+        name="BdtTreasureUpload"
+        component={BdtTreasureUploadScreenContainer}
+        options={{ title: "Subir tesoro QR" }}
       />
     </AppStack.Navigator>
   );

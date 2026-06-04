@@ -9,9 +9,14 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.BdtGameService.Application;
+using Umbral.BdtGameService.Application.Abstractions.Realtime;
 using Umbral.BdtGameService.Application.Games.Create;
+using Umbral.BdtGameService.Application.Games.ActiveStage;
 using Umbral.BdtGameService.Application.Games.JoinIndividual;
 using Umbral.BdtGameService.Application.Games.ListPublished;
+using Umbral.BdtGameService.Application.Games.Start;
+using Umbral.BdtGameService.Application.Games.UploadTreasure;
+using Umbral.BdtGameService.Api.Realtime;
 using Umbral.BdtGameService.Infrastructure;
 using Umbral.BdtGameService.Infrastructure.Persistence;
 
@@ -19,6 +24,8 @@ var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddBdtApplication();
 builder.Services.AddBdtInfrastructure(builder.Configuration);
+builder.Services.AddSignalR();
+builder.Services.AddScoped<IPartidaBdtRealtimeNotifier, SignalRPartidaBdtRealtimeNotifier>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
@@ -121,6 +128,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("ParticipantOnly", policy => policy.RequireRole("Participante"));
     options.AddPolicy("OperatorOnly", policy => policy.RequireRole("Operador"));
+    options.AddPolicy("BdtHubAuthenticated", policy => policy.RequireRole("Operador", "Participante"));
 });
 
 var app = builder.Build();
@@ -133,6 +141,8 @@ using (var scope = app.Services.CreateScope())
 
 app.UseAuthentication();
 app.UseAuthorization();
+
+app.MapHub<BdtPartidaHub>("/hubs/bdt").RequireAuthorization("BdtHubAuthenticated");
 
 app.MapPost("/api/bdt/games", async (
         CrearPartidaBdtCommand command,
@@ -288,6 +298,206 @@ app.MapPost("/api/bdt/games/{partidaId}/individual-inscriptions", async (
         }
     })
     .WithName("JoinIndividualBdtGame")
+    .RequireAuthorization("ParticipantOnly");
+
+app.MapPost("/api/bdt/games/{partidaId}/start", async (
+        string partidaId,
+        IValidator<IniciarPartidaBdtCommand> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        if (!Guid.TryParse(partidaId, out var parsedPartidaId))
+        {
+            return Results.BadRequest(new { message = "PartidaId invalido." });
+        }
+
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var operadorUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var command = new IniciarPartidaBdtCommand(parsedPartidaId, operadorUserId);
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo iniciar la partida BDT." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("StartBdtGame")
+    .RequireAuthorization("OperatorOnly");
+
+app.MapGet("/api/bdt/games/{partidaId}/active-stage", async (
+        string partidaId,
+        IValidator<ObtenerEtapaActivaBdtQuery> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        if (!Guid.TryParse(partidaId, out var parsedPartidaId))
+        {
+            return Results.BadRequest(new { message = "PartidaId invalido." });
+        }
+
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        {
+            return Results.Forbid();
+        }
+
+        var query = new ObtenerEtapaActivaBdtQuery(parsedPartidaId, participanteUserId);
+        var validation = await validator.ValidateAsync(query, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(query, cancellationToken);
+            return Results.Ok(response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo consultar la etapa activa BDT." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("GetBdtActiveStage")
+    .RequireAuthorization("ParticipantOnly");
+
+app.MapPost("/api/bdt/games/{partidaId}/stages/{etapaId}/treasures", async (
+        string partidaId,
+        string etapaId,
+        IFormFile? image,
+        IValidator<SubirTesoroQrCommand> validator,
+        ISender sender,
+        HttpContext httpContext,
+        CancellationToken cancellationToken) =>
+    {
+        if (!Guid.TryParse(partidaId, out var parsedPartidaId))
+        {
+            return Results.BadRequest(new { message = "PartidaId invalido." });
+        }
+
+        if (!Guid.TryParse(etapaId, out var parsedEtapaId))
+        {
+            return Results.BadRequest(new { message = "EtapaId invalido." });
+        }
+
+        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
+        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        {
+            return Results.Forbid();
+        }
+
+        if (image is null || image.Length == 0)
+        {
+            return Results.BadRequest(new { message = "La imagen es requerida." });
+        }
+
+        if (!image.ContentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) &&
+            !image.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Json(new { message = "Solo se aceptan imagenes JPEG o PNG." }, statusCode: StatusCodes.Status415UnsupportedMediaType);
+        }
+
+        if (image.Length > SubirTesoroQrCommandValidator.MaxImageSizeBytes)
+        {
+            return Results.Json(new { message = "La imagen no puede superar 5 MB." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+        }
+
+        byte[] imageContent;
+        await using (var stream = image.OpenReadStream())
+        using (var memoryStream = new MemoryStream())
+        {
+            await stream.CopyToAsync(memoryStream, cancellationToken);
+            imageContent = memoryStream.ToArray();
+        }
+
+        var command = new SubirTesoroQrCommand(
+            parsedPartidaId,
+            parsedEtapaId,
+            participanteUserId,
+            image.FileName,
+            image.ContentType,
+            image.Length,
+            imageContent);
+
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        try
+        {
+            var response = await sender.Send(command, cancellationToken);
+            return Results.Created(
+                $"/api/bdt/games/{response.PartidaId}/stages/{response.EtapaId}/treasures/{response.TesoroId}",
+                response);
+        }
+        catch (KeyNotFoundException ex)
+        {
+            return Results.NotFound(new { message = ex.Message });
+        }
+        catch (UnauthorizedAccessException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status403Forbidden);
+        }
+        catch (InvalidOperationException ex)
+        {
+            return Results.Conflict(new { message = ex.Message });
+        }
+        catch (ArgumentException ex)
+        {
+            return Results.BadRequest(new { message = ex.Message });
+        }
+        catch (DbUpdateException)
+        {
+            return Results.Json(new { message = "No se pudo registrar el tesoro QR." }, statusCode: StatusCodes.Status500InternalServerError);
+        }
+    })
+    .WithName("UploadBdtTreasureQr")
+    .DisableAntiforgery()
     .RequireAuthorization("ParticipantOnly");
 
 app.Run();

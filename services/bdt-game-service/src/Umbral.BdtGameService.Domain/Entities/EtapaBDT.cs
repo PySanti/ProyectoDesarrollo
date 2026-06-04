@@ -1,3 +1,5 @@
+using Umbral.BdtGameService.Domain.Enums;
+
 namespace Umbral.BdtGameService.Domain.Entities;
 
 public sealed class EtapaBDT
@@ -6,6 +8,9 @@ public sealed class EtapaBDT
     public int Orden { get; private set; }
     public string CodigoQREsperado { get; private set; }
     public int TiempoLimiteSegundos { get; private set; }
+    public EstadoEtapa Estado { get; private set; }
+    public DateTime? IniciadaEnUtc { get; private set; }
+    public DateTime? CierraEnUtc { get; private set; }
 
     private EtapaBDT()
     {
@@ -33,10 +38,28 @@ public sealed class EtapaBDT
         Orden = orden;
         CodigoQREsperado = codigoQREsperado.Trim();
         TiempoLimiteSegundos = tiempoLimiteSegundos;
+        Estado = EstadoEtapa.Pendiente;
     }
 
     public static EtapaBDT Crear(int orden, string codigoQREsperado, int tiempoLimiteSegundos)
     {
         return new EtapaBDT(orden, codigoQREsperado, tiempoLimiteSegundos);
+    }
+
+    public void Activar(DateTime iniciadaEnUtc)
+    {
+        if (iniciadaEnUtc == default)
+        {
+            throw new ArgumentException("Fecha de inicio de etapa requerida.", nameof(iniciadaEnUtc));
+        }
+
+        if (Estado != EstadoEtapa.Pendiente)
+        {
+            throw new InvalidOperationException("Solo una etapa pendiente puede activarse.");
+        }
+
+        Estado = EstadoEtapa.Activa;
+        IniciadaEnUtc = iniciadaEnUtc;
+        CierraEnUtc = iniciadaEnUtc.AddSeconds(TiempoLimiteSegundos);
     }
 }

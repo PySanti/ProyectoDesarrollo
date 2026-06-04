@@ -52,6 +52,7 @@ public sealed class PartidaBdtRepository : IPartidaBdtRepository
         return await _dbContext.Partidas
             .Include(partida => partida.Exploradores)
             .Include(partida => partida.Etapas)
+            .Include(partida => partida.Tesoros)
             .SingleOrDefaultAsync(partida => partida.PartidaId == partidaId, cancellationToken);
     }
 
@@ -65,9 +66,23 @@ public sealed class PartidaBdtRepository : IPartidaBdtRepository
                 .Select(explorador => explorador.ExploradorId)
                 .ToListAsync(cancellationToken);
 
+            var existingTreasureIds = await _dbContext.Set<TesoroQR>()
+                .AsNoTracking()
+                .Where(tesoro => tesoro.PartidaId == partida.PartidaId)
+                .Select(tesoro => tesoro.TesoroId)
+                .ToListAsync(cancellationToken);
+
             foreach (var entry in _dbContext.ChangeTracker.Entries<ExploradorBDT>())
             {
                 if (entry.State == EntityState.Modified && !existingExplorerIds.Contains(entry.Entity.ExploradorId))
+                {
+                    entry.State = EntityState.Added;
+                }
+            }
+
+            foreach (var entry in _dbContext.ChangeTracker.Entries<TesoroQR>())
+            {
+                if ((entry.State == EntityState.Modified || entry.State == EntityState.Unchanged) && !existingTreasureIds.Contains(entry.Entity.TesoroId))
                 {
                     entry.State = EntityState.Added;
                 }

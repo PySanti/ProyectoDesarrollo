@@ -17,6 +17,7 @@ public sealed class PartidaBDT
     public ModoInicioPartida ModoInicio { get; private set; }
     public List<EtapaBDT> Etapas { get; private set; } = new();
     public List<ExploradorBDT> Exploradores { get; private set; } = new();
+    public List<TesoroQR> Tesoros { get; private set; } = new();
 
     private PartidaBDT()
     {
@@ -191,11 +192,144 @@ public sealed class PartidaBDT
         return index + 1;
     }
 
+    public EtapaBDT IniciarManualmente(Guid operadorUserId, DateTime iniciadaEnUtc)
+    {
+        if (operadorUserId == Guid.Empty)
+        {
+            throw new ArgumentException("OperadorUserId requerido", nameof(operadorUserId));
+        }
+
+        if (iniciadaEnUtc == default)
+        {
+            throw new ArgumentException("Fecha de inicio requerida", nameof(iniciadaEnUtc));
+        }
+
+        if (Estado != EstadoPartida.Lobby)
+        {
+            throw new InvalidOperationException("La BDT no esta en lobby.");
+        }
+
+        if (ModoInicio == ModoInicioPartida.Automatico)
+        {
+            throw new InvalidOperationException("La BDT configurada como automatica no puede iniciarse manualmente.");
+        }
+
+        if (!CumpleMinimoParticipacion())
+        {
+            throw new InvalidOperationException("La BDT no cumple el minimo de participacion configurado.");
+        }
+
+        if (Etapas.Count == 0)
+        {
+            throw new InvalidOperationException("La BDT no tiene etapas configuradas.");
+        }
+
+        if (Etapas.Any(etapa => etapa.Estado == EstadoEtapa.Activa))
+        {
+            throw new InvalidOperationException("La BDT ya tiene una etapa activa.");
+        }
+
+        var primeraEtapa = Etapas.OrderBy(etapa => etapa.Orden).First();
+        primeraEtapa.Activar(iniciadaEnUtc);
+        Estado = EstadoPartida.Iniciada;
+
+        return primeraEtapa;
+    }
+
+    public (ExploradorBDT Explorador, EtapaBDT EtapaActiva) ObtenerEtapaActivaParaParticipante(Guid participanteUserId)
+    {
+        if (participanteUserId == Guid.Empty)
+        {
+            throw new ArgumentException("ParticipanteUserId requerido", nameof(participanteUserId));
+        }
+
+        if (Estado != EstadoPartida.Iniciada)
+        {
+            throw new InvalidOperationException("La BDT no esta iniciada.");
+        }
+
+        var etapasActivas = Etapas.Where(etapa => etapa.Estado == EstadoEtapa.Activa).ToList();
+        if (etapasActivas.Count == 0)
+        {
+            throw new InvalidOperationException("La BDT no tiene etapa activa.");
+        }
+
+        if (etapasActivas.Count > 1)
+        {
+            throw new InvalidOperationException("La BDT tiene mas de una etapa activa.");
+        }
+
+        var explorador = Exploradores.SingleOrDefault(candidate =>
+            candidate.TipoCompetidor == TipoCompetidor.Usuario &&
+            candidate.CompetidorId == participanteUserId);
+
+        if (explorador is null)
+        {
+            throw new UnauthorizedAccessException("El participante no esta registrado en esta BDT.");
+        }
+
+        return (explorador, etapasActivas[0]);
+    }
+
+    public TesoroQR RegistrarTesoroQr(
+        Guid etapaId,
+        Guid participanteUserId,
+        string imagenReferencia,
+        string? qrDecodificado,
+        DateTime fechaEnvioUtc)
+    {
+        if (etapaId == Guid.Empty)
+        {
+            throw new ArgumentException("EtapaId requerido", nameof(etapaId));
+        }
+
+        if (string.IsNullOrWhiteSpace(imagenReferencia))
+        {
+            throw new ArgumentException("ImagenReferencia requerida", nameof(imagenReferencia));
+        }
+
+        if (fechaEnvioUtc == default)
+        {
+            throw new ArgumentException("FechaEnvioUtc requerida", nameof(fechaEnvioUtc));
+        }
+
+        var (explorador, etapaActiva) = ObtenerEtapaActivaParaParticipante(participanteUserId);
+        if (etapaActiva.EtapaId != etapaId)
+        {
+            throw new InvalidOperationException("La etapa indicada no corresponde a la etapa activa.");
+        }
+
+        if (etapaActiva.Estado != EstadoEtapa.Activa)
+        {
+            throw new InvalidOperationException("La etapa no acepta intentos de tesoro.");
+        }
+
+        var tesoro = TesoroQR.Crear(
+            PartidaId,
+            etapaActiva.EtapaId,
+            explorador.ExploradorId,
+            imagenReferencia,
+            qrDecodificado,
+            fechaEnvioUtc);
+
+        Tesoros.Add(tesoro);
+        return tesoro;
+    }
+
     private static (int? MaximoParticipantes, int? MaximoEquipos, int? MinimoJugadoresPorEquipo) ObtenerLimitesPorDefecto(Modalidad modalidad)
     {
         return modalidad == Modalidad.Individual
             ? (10, null, null)
             : (null, 10, 1);
+    }
+
+    private bool CumpleMinimoParticipacion()
+    {
+        var inscritos = Modalidad == Modalidad.Individual
+            ? Exploradores.Count(explorador => explorador.TipoCompetidor == TipoCompetidor.Usuario)
+            : Exploradores.Count(explorador => explorador.TipoCompetidor == TipoCompetidor.Equipo);
+
+        return inscritos >= MinimoParticipantes;
     }
 
     private static void ValidarLimitesPorModalidad(

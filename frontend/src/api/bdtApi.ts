@@ -38,6 +38,23 @@ export interface PublishedBdtGameItem {
   cantidadEtapas: number;
 }
 
+export interface ActiveBdtStageResponse {
+  etapaId: string;
+  orden: number;
+  tiempoLimiteSegundos: number;
+  iniciadaEnUtc: string;
+  cierraEnUtc: string;
+}
+
+export interface StartBdtGameResponse {
+  partidaId: string;
+  nombre: string;
+  estado: "Iniciada";
+  modalidad: BdtModalidad;
+  etapaActiva: ActiveBdtStageResponse;
+  mensaje: string;
+}
+
 export class BdtApiError extends Error {
   constructor(
     message: string,
@@ -109,4 +126,30 @@ export async function getOperatorPublishedBdtGames(
   }
 
   return body as PublishedBdtGameItem[];
+}
+
+export async function startBdtGame(
+  partidaId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<StartBdtGameResponse> {
+  const response = await fetchImpl(`${resolveBaseUrl()}/api/bdt/games/${partidaId}/start`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    }
+  });
+
+  const body = (await response.json().catch(() => ({}))) as
+    | { message?: string }
+    | StartBdtGameResponse;
+
+  if (!response.ok) {
+    const message =
+      (body as { message?: string }).message ??
+      `BDT API error. Status=${response.status}`;
+    throw new BdtApiError(message, response.status);
+  }
+
+  return body as StartBdtGameResponse;
 }

@@ -53,4 +53,60 @@ describe("bdtApi", () => {
       .rejects
       .toBeInstanceOf(BdtApiError);
   });
+
+  it("calls HU-43 start endpoint with bearer token", async () => {
+    vi.stubEnv("VITE_BDT_API_BASE_URL", "https://bdt.example.test/");
+    const { startBdtGame } = await import("./bdtApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        partidaId: "partida-1",
+        nombre: "Busqueda QR Campus",
+        estado: "Iniciada",
+        modalidad: "Individual",
+        etapaActiva: {
+          etapaId: "etapa-1",
+          orden: 1,
+          tiempoLimiteSegundos: 300,
+          iniciadaEnUtc: "2026-01-01T00:00:00Z",
+          cierraEnUtc: "2026-01-01T00:05:00Z"
+        },
+        mensaje: "Partida BDT iniciada."
+      })
+    });
+
+    const result = await startBdtGame("partida-1", "operator-token", fetchMock as unknown as typeof fetch);
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bdt.example.test/api/bdt/games/partida-1/start", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer operator-token"
+      }
+    });
+    expect(result.estado).toBe("Iniciada");
+    expect(result.etapaActiva.orden).toBe(1);
+  });
+
+  it("maps HU-43 start non-OK responses to BdtApiError", async () => {
+    vi.stubEnv("VITE_BDT_API_BASE_URL", "https://bdt.example.test");
+    const { BdtApiError, startBdtGame } = await import("./bdtApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 409,
+      json: async () => ({ message: "La BDT no cumple el minimo de participacion configurado." })
+    });
+
+    await expect(startBdtGame("partida-1", "operator-token", fetchMock as unknown as typeof fetch))
+      .rejects
+      .toMatchObject({
+        name: "BdtApiError",
+        message: "La BDT no cumple el minimo de participacion configurado.",
+        statusCode: 409
+      });
+
+    await expect(startBdtGame("partida-1", "operator-token", fetchMock as unknown as typeof fetch))
+      .rejects
+      .toBeInstanceOf(BdtApiError);
+  });
 });
