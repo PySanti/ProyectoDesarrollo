@@ -13,144 +13,136 @@
 
 ## Referencias fuente
 
-- `docs/01-project-source/srs.md` — HU-17, RF-17, RF-18, RB-T04..T09, RB-T17, RB-T18, RB-08..RB-11, RB-26, RB-27, RB-28
+- `docs/01-project-source/srs.md` — HU-17, RF-17, RF-18, RB-T04, RB-T05, RB-T06, RB-T07, RB-T08, RB-T09
 - `docs/01-project-source/historias-de-usuario.md` — HU-17
-- `docs/01-project-source/modelo-de-dominio.md` — agregado `PartidaTrivia`, `FormularioTrivia`
-- `docs/01-project-source/diagrama-de-clases.md` — `PartidaTrivia`, `EstadoPartida`, `Modalidad`, `CompetidorTrivia`
-- `docs/02-project-context/business-rules.md` — BR-T04..T09, BR-T17, BR-T18, BR-G02, BR-G08..BR-G11
-- `docs/02-project-context/design/domain-business-rules.md` — TRIVIA-FORM-001, TRIVIA-SCORE-001..004
-- `docs/02-project-context/known-ambiguities-and-decisions.md` — team cardinality 1..5, scoring sin ponderación
+- `docs/01-project-source/modelo-de-dominio.md` — agregado `PartidaTrivia`
+- `docs/01-project-source/diagrama-de-clases.md` — `PartidaTrivia`, `FormularioTrivia`
+- `docs/02-project-context/business-rules.md` — BR-T04, BR-T05, BR-T06, BR-T07, BR-T08, BR-T09
+- `docs/02-project-context/design/domain-business-rules.md` — TRIVIA-FORM-001
+- `docs/02-project-context/known-ambiguities-and-decisions.md`
 - `docs/03-microservices/service-ownership.md`
 - `docs/03-microservices/services/trivia-game-service.md`
 - `services/trivia-game-service/service-context.md`
 
 ## Historia de usuario
 
-Como **Operador**, quiero **crear una partida de Trivia asociada a un formulario existente y publicarla**, para **iniciar la dinámica de juego con los participantes**.
+Como **Operador**, quiero **crear una partida de Trivia asociada a un formulario existente y publicarla**, para **que los participantes puedan inscribirse desde sus dispositivos móviles**.
 
 ## Objetivo de negocio
 
-Permitir al operador configurar y publicar una partida de Trivia basada en un formulario previamente creado y completo. La partida define nombre, modalidad (individual o equipo), límites de participación y tiempo de inicio. Una vez creada, el operador puede publicar el lobby para habilitar inscripciones. El inicio puede ser manual o automático al cumplirse el tiempo configurado, validando siempre los mínimos de participación.
+Permitir al operador crear una partida de Trivia configurando nombre, modalidad (individual/equipo), formulario asociado, límites de participación y tiempo de inicio. Al crearse, la partida queda publicada en estado `Lobby`, visible para los participantes en sus paneles móviles.
 
 ## Alcance
 
 ### Incluido
 
-1. **Crear partida de Trivia** asociada a un formulario válido y completo.
-2. **Publicar lobby** para hacer visible la partida a los participantes.
-3. **Iniciar partida manualmente** desde el panel del operador.
-4. **Validar mínimos de participación** antes de iniciar.
-5. **Cancelación automática** al cumplirse el tiempo de inicio si no se alcanzan los mínimos.
-6. **Consulta de detalle de partida** por identificador.
-7. **Autorización**: solo Operador puede crear, publicar, iniciar o cancelar partidas.
-8. **Persistencia** en PostgreSQL vía Trivia Game Service.
+1. **Crear partida** desde el endpoint `POST /api/trivia-games`.
+2. Validar que el formulario referenciado exista y esté completo.
+3. Validar modalidad: valores permitidos `Individual` y `Equipo`.
+4. Validar `ModoInicio`: valores permitidos `Manual`, `Automatico`, `ManualYAutomatico`.
+5. Validar campos según modalidad:
+   - Si `Individual`: `MaximoJugadores` es requerido (1-1000).
+   - Si `Equipo`: `MaximoEquipos` es requerido (1-1000), y opcionalmente `MinimoJugadoresPorEquipo` y `MaximoJugadoresPorEquipo`.
+6. Publicar la partida automáticamente en estado `Lobby`.
+7. Registrar `CreatedAtUtc` y `OperadorId`.
+8. Publicar evento de dominio `TriviaGameCreatedDomainEvent`.
+9. Autorización: solo Operador.
 
 ### Fuera de alcance
 
 | Elemento | Motivo |
 | --- | --- |
-| Inscripción de participantes o equipos | HU-18, HU-19 |
-| Pantalla de espera / lobby de participantes | HU-21 |
-| Panel de monitoreo de lobby para operador | HU-22, HU-23 |
-| Ejecución de preguntas, respuestas, ranking | HUs de gameplay (HU-24..HU-30) |
-| Frontend web (React) | Congelado para este sprint |
-| Eventos RabbitMQ cross-service | No se requieren en esta HU |
-| Notificaciones SignalR en tiempo real | Estado de lobby/pub en HUs posteriores |
+| Frontend React web | Se implementa en rama separada |
+| Editar partida después de creada | No especificado en SRS para esta HU |
+| Inicio automático por tiempo | Es responsabilidad de HU-24 |
+| Unión de participantes | Es responsabilidad de HU-18 y HU-19 |
+| SignalR lobby updates | El endpoint crea la partida; los updates en tiempo real se manejan en HU-21 |
 
 ## Precondiciones
 
-1. El operador está autenticado vía Keycloak con rol **Operador**.
-2. Existe al menos un formulario de Trivia con `isComplete = true`.
-3. Trivia Game Service está disponible con PostgreSQL.
+1. Operador autenticado con rol **Operador**.
+2. Existe un formulario de Trivia completo (`IsComplete = true`).
+3. Trivia Game Service disponible con PostgreSQL.
 
 ## Postcondiciones
 
-### Creación exitosa
-
-1. Partida persistida en estado **Lobby** con configuración completa.
-2. Partida visible en listado de partidas Trivia publicadas.
-3. Operador puede iniciar manualmente o esperar inicio automático.
-
-### Inicio exitoso
-
-1. Partida cambia a estado **Iniciada**.
-2. Se activa la primera pregunta del formulario asociado.
-3. Participantes/equipos inscritos pueden comenzar a responder.
-
-### Cancelación por mínimos
-
-1. Partida cambia a estado **Cancelada** (automática o manual).
-2. Historial conserva evento de cancelación.
+1. Partida creada en estado `Lobby`.
+2. `CreatedAtUtc` registrado.
+3. Evento `TriviaGameCreatedDomainEvent` despachado.
+4. Partida visible para participantes en `GET /api/trivia-games`.
 
 ## Reglas de negocio aplicables
 
 | ID | Regla |
 | --- | --- |
-| RB-T04 | Solo el operador puede crear partidas de Trivia. |
-| RB-T05 | Toda partida debe estar asociada a un formulario válido y completo. |
-| RB-T06 | El operador define nombre, modalidad, formulario, mínimos, máximos y tiempo de inicio. |
-| RB-T07 | Modalidad individual → máximo = cantidad máxima de jugadores. |
-| RB-T08 | Modalidad equipo → máximo = cantidad máxima de equipos. |
-| RB-T09 | Modalidad equipo → operador define mínimo y máximo de jugadores por equipo. |
-| RB-T10 | Al iniciar el lobby, la partida queda publicada para todos los jugadores. |
-| RB-T17 | La Trivia inicia cuando se cumple el tiempo o el operador la inicia manualmente. |
-| RB-T18 | Al iniciar, la partida cambia a estado iniciada. |
-| RB-08 | Estado lobby permite inscripciones. |
-| RB-09 | Estado iniciada permite acciones de juego. |
-| RB-26 | Operador no puede iniciar manualmente si no se cumplen mínimos. |
-| RB-27 | Si el inicio automático llega y no cumple mínimos, se cancela automáticamente. |
+| RB-T04 | Solo el operador puede crear partidas de Trivia |
+| RB-T05 | Toda partida de Trivia debe estar asociada a un formulario válido |
+| RB-T06 | Operador debe definir nombre, modalidad, formulario, mínimos, máximos y tiempo de inicio |
+| RB-T07 | Si es individual, el máximo corresponde a jugadores |
+| RB-T08 | Si es por equipo, el máximo corresponde a equipos |
+| RB-T09 | Si es por equipo, operador define mínimo y máximo de jugadores por equipo |
+| RF-17 | Crear partida asociada a formulario válido |
 
 ## Criterios de aceptación
 
-### CA-01 — Crear partida válida
+### CA-01 — Crear partida individual exitosamente
 
-**Dado** un operador autenticado y un formulario de Trivia completo existente  
-**Cuando** envía nombre, formularioId, modalidad, límites de participación y tiempo de inicio  
-**Entonces** el sistema crea la partida en estado **Lobby**, responde 201 con el detalle.
+**Dado** un operador autenticado y un formulario completo  
+**Cuando** envía `POST /api/trivia-games` con modalidad `Individual`, nombre válido, formularioId válido, minimoParticipantes, maximoJugadores y tiempoInicio futuro  
+**Entonces** el sistema responde `201 Created` con la partida en estado `Lobby`.
 
-### CA-02 — Rechazar formulario incompleto
+### CA-02 — Crear partida por equipos exitosamente
+
+**Dado** un operador autenticado y un formulario completo  
+**Cuando** envía `POST /api/trivia-games` con modalidad `Equipo`, nombre válido, formularioId válido, minimoParticipantes, maximoEquipos, minimoJugadoresPorEquipo, maximoJugadoresPorEquipo y tiempoInicio futuro  
+**Entonces** el sistema responde `201 Created` con la partida en estado `Lobby`.
+
+### CA-03 — Rechazar si formulario no existe
 
 **Dado** un operador autenticado  
-**Cuando** intenta crear una partida con un formulario que tiene `isComplete = false`  
-**Entonces** el sistema responde 400 indicando que el formulario debe estar completo.
+**Cuando** envía `POST /api/trivia-games` con un `formularioId` inexistente  
+**Entonces** el sistema responde `404 Not Found`.
 
-### CA-03 — Rechazar formulario inexistente
+### CA-04 — Rechazar si formulario está incompleto
+
+**Dado** un operador autenticado y un formulario incompleto  
+**Cuando** envía `POST /api/trivia-games` con ese `formularioId`  
+**Entonces** el sistema responde `400 Bad Request` con error de formulario incompleto.
+
+### CA-05 — Rechazar si modalidad inválida
 
 **Dado** un operador autenticado  
-**Cuando** intenta crear una partida con un formularioId que no existe  
-**Entonces** el sistema responde 404.
+**Cuando** envía `POST /api/trivia-games` con `modalidad` distinta de `Individual` o `Equipo`  
+**Entonces** el sistema responde `400 Bad Request`.
 
-### CA-04 — Iniciar partida manualmente cumpliendo mínimos
+### CA-06 — Rechazar si campos requeridos faltan según modalidad
 
-**Dado** un operador autenticado y una partida en estado Lobby con suficientes inscripciones  
-**Cuando** solicita iniciar la partida manualmente  
-**Entonces** el sistema cambia el estado a **Iniciada** y responde 200.
+**Dado** un operador autenticado  
+**Cuando** envía `POST /api/trivia-games` con modalidad `Individual` sin `maximoJugadores`  
+**Entonces** el sistema responde `400 Bad Request`.
 
-### CA-05 — Rechazar inicio manual sin mínimos
-
-**Dado** un operador autenticado y una partida en Lobby sin suficientes inscripciones  
-**Cuando** solicita iniciar manualmente  
-**Entonces** el sistema responde 409 indicando que no se cumplen los mínimos.
-
-### CA-06 — Acceso no autorizado
+### CA-07 — Acceso no autorizado
 
 **Dado** un usuario autenticado sin rol Operador  
-**Cuando** intenta crear, iniciar o consultar partidas  
-**Entonces** el sistema responde 403.
+**Cuando** intenta crear una partida  
+**Entonces** el sistema responde `403 Forbidden`.
 
-### CA-07 — Partida no encontrada
+## Requisitos relacionados
 
-**Dado** un operador autenticado  
-**Cuando** consulta un id inexistente  
-**Entonces** el sistema responde 404.
+| ID | Descripción |
+| --- | --- |
+| RF-17 | Crear partidas de Trivia asociadas a formulario válido |
+| RF-18 | Publicar lobby, habilitar inscripciones |
+| RB-T04 | Solo operador puede crear partidas |
+| RB-T05 | Partida debe tener formulario válido |
+| RB-T06 | Definir nombre, modalidad, formulario, mínimos, máximos y tiempo de inicio |
+| RB-T07 | Máximo individual = jugadores |
+| RB-T08 | Máximo por equipo = equipos |
+| RB-T09 | Mínimo y máximo de jugadores por equipo |
 
 ## Supuestos explícitos
 
-1. Los límites mínimos/máximos se almacenan en la partida para validación futura.
-2. La lógica de inscripción (HU-18/19) modificará el estado de participantes; HU-17 solo valida existencia de mínimos al iniciar.
-3. El tiempo de inicio se almacena como `DateTimeOffset` en UTC.
-4. El inicio automático se implementará como un background job o timer programado dentro del servicio.
-
-## Preguntas abiertas
-
-Ninguna para el alcance actual.
+1. La partida se crea directamente en estado `Lobby` — no hay estado intermedio de borrador.
+2. El evento `TriviaGameCreatedDomainEvent` es in-process; no se publica por RabbitMQ en esta HU.
+3. `MinimoParticipantes` no puede ser 0 ni negativo.
+4. `TiempoInicio` debe ser una fecha futura.

@@ -5,140 +5,76 @@
 | Aspecto | Decisión |
 | --- | --- |
 | Owning service | Trivia Game Service |
-| Supporting services | Identity Service (auth JWT / rol Operador) |
-| Client | React web (panel operador) |
+| Supporting services | Identity Service (autenticación JWT / rol Operador) |
+| Client | React web |
 | Architecture | Clean Architecture / Hexagonal |
 | Application style | CQRS + MediatR |
 | Persistence | PostgreSQL + EF Core |
-| Real-time | No aplica en esta HU |
+| Real-time | No aplica directamente (el lobby se actualiza vía HU-21) |
 | Async messaging | No aplica en esta HU |
 
 ## Bounded context
 
-**Trivia Context** — subdominio de ejecución de partidas (`PartidaTrivia` aggregate) dentro del mismo microservicio que `FormularioTrivia`.
+**Trivia Context** — subdominio de creación de partidas dentro de `Umbral.TriviaGame`.
 
-## Domain model (DDD — C# .NET 8)
+## Domain model
 
-Nombres de clases, propiedades y métodos en **inglés**. Entidades con **setters privados**; mutaciones vía métodos de dominio.
+### PartidaTrivia (agregado raíz)
 
-### Enums
+El método `PartidaTrivia.Create()` valida todas las invariantes y devuelve una nueva instancia en estado `Lobby`.
 
 ```csharp
-public enum PartidaEstado
-{
-    Lobby,
-    Iniciada,
-    Cancelada,
-    Terminada
-}
+public static PartidaTrivia Create(
+    NombrePartida nombre,
+    Modalidad modalidad,
+    ModoInicio modoInicio,
+    TriviaFormId formularioId,
+    OperatorId operatorId,
+    TiempoInicio tiempoInicio,
+    CantidadMinima minimo,
+    CantidadMaximaJugadores? maxJugadores,
+    CantidadMaximaEquipos? maxEquipos,
+    JugadoresPorEquipoMin? minPorEquipo,
+    JugadoresPorEquipoMax? maxPorEquipo)
+```
 
+### Value objects usados
+
+| VO | Propósito |
+| --- | --- |
+| `NombrePartida` | Valida nombre (1-100 caracteres) |
+| `CantidadMinima` | Valida mínimo ≥ 1 |
+| `CantidadMaximaJugadores` | Valida máximo ≥ mínimo |
+| `CantidadMaximaEquipos` | Valida máximo ≥ 1 |
+| `JugadoresPorEquipoMin` | Valida mínimo ≥ 1 |
+| `JugadoresPorEquipoMax` | Valida máximo ≥ mínimo |
+| `TiempoInicio` | Valida fecha futura |
+| `OperatorId` | Identificador del operador |
+
+### Modalidad enum
+
+```csharp
 public enum Modalidad
 {
-    Individual,
-    Equipo
-}
-
-public enum ModoInicio
-{
-    Manual,
-    Automatico
+    Individual = 0,
+    Equipo = 1
 }
 ```
 
-### Value Objects
-
-| Type | Properties | Validation |
-| --- | --- | --- |
-| `PartidaId` | `Guid Value` | Non-empty GUID |
-| `NombrePartida` | `string Value` | Not null/whitespace; 3..100 chars |
-| `TiempoInicio` | `DateTimeOffset Value` | Must be in the future at creation |
-| `CantidadMinima` | `int Value` | >= 1 |
-| `CantidadMaximaJugadores` | `int Value` | >= CantidadMinima |
-| `CantidadMaximaEquipos` | `int Value` | >= 1 |
-| `JugadoresPorEquipoMin` | `int Value` | >= 1 |
-| `JugadoresPorEquipoMax` | `int Value` | >= JugadoresPorEquipoMin |
-
-### Aggregate root: `PartidaTrivia`
+### ModoInicio enum
 
 ```csharp
-public sealed class PartidaTrivia : AggregateRoot<PartidaId>
+public enum ModoInicio
 {
-    public NombrePartida Nombre { get; private set; }
-    public PartidaEstado Estado { get; private set; }
-    public Modalidad Modalidad { get; private set; }
-    public ModoInicio ModoInicio { get; private set; }
-    public FormularioId FormularioAsociadoId { get; private set; }
-    public OperatorId CreatedByOperatorId { get; private set; }
-    public TiempoInicio TiempoInicio { get; private set; }
-    public CantidadMinima MinimoParticipantes { get; private set; }
-
-    // Modalidad Individual
-    public CantidadMaximaJugadores? MaximoJugadores { get; private set; }
-
-    // Modalidad Equipo
-    public CantidadMaximaEquipos? MaximoEquipos { get; private set; }
-    public JugadoresPorEquipoMin? MinimoJugadoresPorEquipo { get; private set; }
-    public JugadoresPorEquipoMax? MaximoJugadoresPorEquipo { get; private set; }
-
-    public DateTimeOffset CreatedAtUtc { get; private set; }
-    public DateTimeOffset? StartedAtUtc { get; private set; }
-
-    private PartidaTrivia() { } // EF Core materialization
-
-    public static PartidaTrivia Create(
-        NombrePartida nombre,
-        Modalidad modalidad,
-        ModoInicio modoInicio,
-        FormularioId formularioId,
-        OperatorId operatorId,
-        TiempoInicio tiempoInicio,
-        CantidadMinima minimoParticipantes,
-        CantidadMaximaJugadores? maximoJugadores,
-        CantidadMaximaEquipos? maximoEquipos,
-        JugadoresPorEquipoMin? minJugadoresPorEquipo,
-        JugadoresPorEquipoMax? maxJugadoresPorEquipo);
-
-    public void PublicarLobby();
-    public void Iniciar();
-    public void Cancelar();
-    public bool PuedeIniciar(int cantidadInscriptos);
+    Manual = 0,
+    Automatico = 1,
+    ManualYAutomatico = 2
 }
 ```
 
-**Invariants (aggregate level):**
+## Application layer
 
-- `Nombre` must be non-empty (enforced by VO).
-- `FormularioAsociadoId` must reference a form with `IsComplete = true`.
-- If `Modalidad == Individual`, `MaximoJugadores` must be set, `MaximoEquipos` must be null.
-- If `Modalidad == Equipo`, `MaximoEquipos`, `MinimoJugadoresPorEquipo`, `MaximoJugadoresPorEquipo` must be set, `MaximoJugadores` must be null.
-- State transitions: Lobby -> Iniciada, Lobby -> Cancelada, Iniciada -> Cancelada, Iniciada -> Terminada.
-- `Iniciar()` requires `PuedeIniciar(cantidadInscriptos)` to be true.
-- `Cancelar()` allowed only in Lobby or Iniciada.
-
-### Domain exceptions
-
-| Exception | When |
-| --- | --- |
-| `PartidaTriviaNotFoundException` | Lookup miss (mapped to 404) |
-| `InvalidStateTransitionException` | Illegal state change |
-| `MinimosNoCumplidosException` | Start rejected due to unmet minimums |
-| `FormularioIncompletoException` | Associated form is not complete |
-| `ModalidadInvalidaException` | Modalidad/limites mismatch |
-
-### Domain events (in-process)
-
-| Event | Trigger |
-| --- | --- |
-| `PartidaTriviaCreadaDomainEvent` | After successful create |
-| `PartidaTriviaPublicadaDomainEvent` | After lobby publication |
-| `PartidaTriviaIniciadaDomainEvent` | After state changes to Iniciada |
-| `PartidaTriviaCanceladaDomainEvent` | After state changes to Cancelada |
-
-## Application layer (CQRS + MediatR)
-
-### Commands
-
-#### `CreateTriviaGameCommand`
+### CreateTriviaGameCommand
 
 ```csharp
 public sealed record CreateTriviaGameCommand(
@@ -155,232 +91,80 @@ public sealed record CreateTriviaGameCommand(
 ) : IRequest<TriviaGameDetailDto>;
 ```
 
-**Handler flow:**
-1. Validate command (FluentValidation).
-2. Load `TriviaForm` by id; 404 if not found; 400 if not complete.
-3. Map to value objects.
-4. `PartidaTrivia.Create(...)`.
-5. Persist via `IPartidaTriviaRepository`.
-6. Return `TriviaGameDetailDto`.
+### CreateTriviaGameCommandHandler
 
-#### `StartTriviaGameCommand`
+Flujo:
 
-```csharp
-public sealed record StartTriviaGameCommand(Guid PartidaId) : IRequest<TriviaGameDetailDto>;
-```
+1. Obtener `FormularioTrivia` por Id.
+2. Validar que exista — si no, lanzar `TriviaFormNotFoundException`.
+3. Validar que `IsComplete` — si no, lanzar `FormularioIncompletoException`.
+4. Crear value objects desde raw values.
+5. Llamar `PartidaTrivia.Create(...)` con todos los VOs.
+6. Persistir partida vía `IPartidaTriviaRepository.AddAsync`.
+7. Despachar eventos de dominio.
+8. Retornar `TriviaGameDetailDto`.
 
-**Handler flow:**
-1. Load `PartidaTrivia` by id; 404 if not found.
-2. Count current inscriptions (consult via repository or query service).
-3. `partida.Iniciar()` — throws `MinimosNoCumplidosException` if not met, or `InvalidStateTransitionException` if not in Lobby.
-4. Persist changes.
-5. Return updated `TriviaGameDetailDto`.
+### Validators
 
-### Queries
-
-#### `GetTriviaGameByIdQuery`
-
-```csharp
-public sealed record GetTriviaGameByIdQuery(Guid PartidaId) : IRequest<TriviaGameDetailDto?>;
-```
-
-### Response DTO: `TriviaGameDetailDto`
-
-```csharp
-public sealed record TriviaGameDetailDto(
-    Guid Id,
-    string Nombre,
-    string Estado,
-    string Modalidad,
-    string ModoInicio,
-    Guid FormularioId,
-    DateTimeOffset TiempoInicio,
-    int MinimoParticipantes,
-    int? MaximoJugadores,
-    int? MaximoEquipos,
-    int? MinimoJugadoresPorEquipo,
-    int? MaximoJugadoresPorEquipo,
-    DateTimeOffset CreatedAtUtc,
-    DateTimeOffset? StartedAtUtc
-);
-```
-
-### Validators (FluentValidation)
-
-- `CreateTriviaGameCommandValidator` — mirrors domain rules about modality/limits consistency.
-- `StartTriviaGameCommandValidator` — validates PartidaId is not empty.
-
-### Repository port
-
-```csharp
-public interface IPartidaTriviaRepository
-{
-    Task AddAsync(PartidaTrivia partida, CancellationToken ct);
-    Task<PartidaTrivia?> GetByIdAsync(PartidaId id, CancellationToken ct);
-    Task UpdateAsync(PartidaTrivia partida, CancellationToken ct);
-}
-```
-
-## Infrastructure layer
-
-### EF Core mapping
-
-| Table | Key columns |
-| --- | --- |
-| `partidas_trivia` | `id`, `nombre`, `estado`, `modalidad`, `modo_inicio`, `formulario_id`, `operador_id`, `tiempo_inicio`, `minimo_participantes`, `maximo_jugadores`, `maximo_equipos`, `min_jugadores_equipo`, `max_jugadores_equipo`, `created_at_utc`, `started_at_utc` |
-
-- `PartidaTriviaConfiguration` maps all VOs via `HasConversion`.
-- `FormularioId` stored as simple Guid column (referential integrity optional).
-- New migration adds table to existing TriviaGameDbContext.
-
-### Reuse from HU-15
-
-- Same `TriviaGameDbContext`.
-- Same `ValueConverters` static class (add new converters for new VOs).
-- Same `DomainEventDispatcher` no-op implementation.
-- Same DI registration pattern.
+`CreateTriviaGameCommandValidator` (FluentValidation):
+- `Nombre`: not empty, 1-100 chars.
+- `Modalidad`: must be "Individual" or "Equipo".
+- `ModoInicio`: must be "Manual", "Automatico" or "ManualYAutomatico".
+- `FormularioId`: not empty.
+- `TiempoInicio`: must be future.
+- `MinimoParticipantes`: ≥ 1.
+- `MaximoJugadores`: required when Modalidad = Individual, ≥ MinimoParticipantes.
+- `MaximoEquipos`: required when Modalidad = Equipo, ≥ 1.
+- `MinimoJugadoresPorEquipo`: ≥ 1 when present.
+- `MaximoJugadoresPorEquipo`: ≥ MinimoJugadoresPorEquipo when present.
 
 ## API layer
 
-Base path: `/api/trivia-games`  
-Authorization policy: `RequireRole("Operador")` — reuse `PolicyNames.Operador`.
+### POST /api/trivia-games
 
-| Method | Path | MediatR | Success | Errors |
-| --- | --- | --- | --- | --- |
-| POST | `/api/trivia-games` | `CreateTriviaGameCommand` | 201 + body | 400, 401, 403, 404 |
-| POST | `/api/trivia-games/{id}/start` | `StartTriviaGameCommand` | 200 + body | 400, 401, 403, 404, 409 |
-| GET | `/api/trivia-games/{id}` | `GetTriviaGameByIdQuery` | 200 + body | 401, 403, 404 |
+Ver contrato completo en `contracts/http/trivia-game-api.md`.
 
-`TriviaGamesController` delegates to `IMediator`; no business logic in controller.
+### TriviaGameMapper
 
-## HTTP contracts (to document in `contracts/http/trivia-game-api.md`)
+Métodos estáticos para convertir entre dominio, comandos y DTOs:
 
-### POST `/api/trivia-games`
+- `ToModalidad(string value)`
+- `ToModoInicio(string value)`
+- `ToDto(PartidaTrivia partida)`
 
-**Related HU:** HU-17  
-**Related requirement:** RF-17, RF-18  
-**Authorization:** Operador
+## Excepciones de dominio
 
-**Request:**
-```json
-{
-  "nombre": "Trivia Demo Sprint 1",
-  "modalidad": "Individual",
-  "modoInicio": "Manual",
-  "formularioId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "tiempoInicio": "2026-06-01T15:00:00Z",
-  "minimoParticipantes": 2,
-  "maximoJugadores": 10,
-  "maximoEquipos": null,
-  "minimoJugadoresPorEquipo": null,
-  "maximoJugadoresPorEquipo": null
-}
-```
-
-**Response 201:**
-```json
-{
-  "id": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "nombre": "Trivia Demo Sprint 1",
-  "estado": "Lobby",
-  "modalidad": "Individual",
-  "modoInicio": "Manual",
-  "formularioId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
-  "tiempoInicio": "2026-06-01T15:00:00Z",
-  "minimoParticipantes": 2,
-  "maximoJugadores": 10,
-  "maximoEquipos": null,
-  "minimoJugadoresPorEquipo": null,
-  "maximoJugadoresPorEquipo": null,
-  "createdAtUtc": "2026-05-31T12:00:00Z",
-  "startedAtUtc": null
-}
-```
-
-**Error responses:**
-
-| Status | Reason |
+| Excepción | HTTP Status |
 | --- | --- |
-| 400 | Validation error / formulario incompleto / modalidad-limites mismatch |
-| 401 | Unauthenticated |
-| 403 | Not Operador |
-| 404 | FormularioId not found |
+| `TriviaFormNotFoundException` | 404 |
+| `FormularioIncompletoException` | 400 |
+| `DomainValidationException` (base) | 400 |
 
-### POST `/api/trivia-games/{id}/start`
+## Tests
 
-**Related HU:** HU-17  
-**Related requirement:** RF-18, RB-26, RB-27  
-**Authorization:** Operador
+### Handler tests
 
-**Request:** empty body
+- `Handle_ValidIndividual_CreatesAndReturnsDto`
+- `Handle_ValidEquipo_CreatesAndReturnsDto`
+- `Handle_FormNotFound_ThrowsTriviaFormNotFoundException`
+- `Handle_IncompleteForm_ThrowsFormularioIncompletoException`
+- `Handle_InvalidModalidad_ThrowsMappingException`
 
-**Response 200:** same as `TriviaGameDetailDto` with `estado: "Iniciada"` and `startedAtUtc` set.
+### API tests
 
-**Error responses:**
-
-| Status | Reason |
-| --- | --- |
-| 400 | Invalid state transition |
-| 401 | Unauthenticated |
-| 403 | Not Operador |
-| 404 | Partida not found |
-| 409 | Minimos de participación no cumplidos |
-
-### GET `/api/trivia-games/{id}`
-
-**Related requirement:** RF-35  
-**Authorization:** Operador
-
-**Response 200:** `TriviaGameDetailDto`.  
-**Response 404:** Not found.
+- `Create_ValidIndividual_Returns201`
+- `Create_ValidEquipo_Returns201`
+- `Create_FormNotFound_Returns404`
+- `Create_NotOperador_Returns403`
 
 ## Design patterns
 
-| Pattern | Application |
+| Pattern | Aplicación |
 | --- | --- |
-| Aggregate Root | `PartidaTrivia` protects state transitions and invariants |
-| Value Object | `NombrePartida`, `TiempoInicio`, límites de participación |
-| Factory method | `PartidaTrivia.Create(...)` |
-| State | `PartidaEstado` enum — explicit transitions validated in domain |
-| CQRS | Separate commands and queries |
-| Repository | `IPartidaTriviaRepository` |
-
-## Tests required
-
-### Domain unit tests
-
-- Create partida with valid data → estado Lobby.
-- Reject creation with incomplete formulario.
-- Reject creation with modalidad/limites mismatch.
-- Start with sufficient inscriptions → estado Iniciada.
-- Reject start without sufficient inscriptions.
-- Reject state transitions that violate rules (e.g., Terminada -> Iniciada).
-- Cancel in Lobby or Iniciada allowed.
-- Cancel in Terminada rejected.
-
-### Application unit tests
-
-- Validators reject malformed commands.
-- Create handler returns DTO with correct state.
-- Start handler rejects minimums not met.
-
-### Integration tests
-
-- POST create persists round-trip GET.
-- POST start changes state to Iniciada.
-- POST start without inscriptions returns 409.
-- GET returns 404 for unknown id.
-- Authorization 403 for non-operator token.
-
-## Security
-
-- JWT bearer authentication.
-- Role policy `Operador` on all endpoints.
-- No participant or administrator access in this HU.
-
-## Dependencies
-
-| Dependency | Purpose |
-| --- | --- |
-| `FormularioTrivia` (HU-15) | Validate form existence and `IsComplete` at game creation |
-| `ITriviaFormRepository` | Load form by id during create |
+| Aggregate Root | `PartidaTrivia.Create()` protege invariantes |
+| Factory Method | `PartidaTrivia.Create()` encapsula construcción |
+| Value Object | Validación encapsulada en `NombrePartida`, `CantidadMinima`, etc. |
+| CQRS | `CreateTriviaGameCommand` / handler |
+| Repository | `IPartidaTriviaRepository`, `ITriviaFormRepository` |
+| Domain Event | `TriviaGameCreatedDomainEvent` |
+| FluentValidation | Validación de entrada en capa Application |
