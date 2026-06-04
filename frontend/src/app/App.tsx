@@ -2,10 +2,11 @@ import { useEffect, useMemo, useState } from "react";
 import { authProvider, AuthUser } from "../auth/keycloak";
 import { CreateBdtGamePage } from "../features/bdt/CreateBdtGamePage";
 import { PublishedBdtGamesPage } from "../features/bdt/PublishedBdtGamesPage";
+import { CreateTriviaFormPage } from "../features/trivia/CreateTriviaFormPage";
 import { CreateUserPage } from "../features/identity/CreateUserPage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
 
-type WebView = "hu01" | "hu02" | "hu34" | "hu37";
+type WebView = "hu01" | "hu02" | "hu15" | "hu34" | "hu37";
 
 type AuthState =
   | { status: "loading" }
@@ -109,6 +110,7 @@ export function App() {
           ) : null}
           {isOperator ? (
             <>
+              <button type="button" onClick={() => setView("hu15")}>HU-15 Crear formulario Trivia</button>
               <button type="button" onClick={() => setView("hu34")}>HU-34 Crear BDT</button>
               <button type="button" onClick={() => setView("hu37")}>HU-37 Listar BDT</button>
             </>
@@ -117,7 +119,9 @@ export function App() {
       </div>
 
       <div style={{ marginTop: 16 }}>
-        {view === "hu34" && isOperator ? (
+        {view === "hu15" && isOperator ? (
+          <CreateTriviaFormPage accessToken={authState.user.token} />
+        ) : view === "hu34" && isOperator ? (
           <CreateBdtGamePage accessToken={authState.user.token} />
         ) : view === "hu37" && isOperator ? (
           <PublishedBdtGamesPage accessToken={authState.user.token} />
@@ -126,7 +130,7 @@ export function App() {
         ) : view === "hu02" && isAdmin ? (
           <UserManagementPage accessToken={authState.user.token} />
         ) : (
-          <CreateBdtGamePage accessToken={authState.user.token} />
+          <CreateTriviaFormPage accessToken={authState.user.token} />
         )}
       </div>
     </div>
