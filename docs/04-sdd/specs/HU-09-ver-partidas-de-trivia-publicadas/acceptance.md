@@ -43,6 +43,7 @@
 | Componente `ScreenWrapper` compartido | ✅ |
 | Navegador `AppNavigator` con stack principal | ✅ |
 | Compilación TypeScript sin errores | ✅ |
+| Pruebas mobile para URL/listado y etiquetas de capacidad | ✅ |
 
 ## Total de pruebas
 
@@ -51,4 +52,13 @@
 | Domain.Tests | 130 | 0 |
 | Application.Tests | 67 | 2 |
 | Api.Tests | 19 | 3 |
-| **Total** | **216** | **5** |
+| Mobile tests | 81 | 4 compartidos HU-09/HU-11 |
+| **Total** | **216 backend + 81 mobile** | **5 backend + 4 mobile compartidos** |
+
+## Integration pass evidence
+
+- `mobile/src/features/trivia/triviaPublishedGamesModel.js` centralizes published Trivia list URL/filter presentation helpers.
+- `mobile/tests/triviaPublishedGamesFlow.test.js` verifies HU-09 no-filter URL and individual/team capacity labels.
+- `mobile/src/api/triviaApi.ts` uses the shared URL helper for `GET /api/trivia-games`.
+- Validation run: `npm test --prefix mobile` → 81 passed.
+- Validation run: `npm run typecheck --prefix mobile` → passed.

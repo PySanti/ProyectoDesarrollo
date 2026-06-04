@@ -2,7 +2,7 @@
 
 ## Backend
 
-- [x] T-01: Crear enum `MotivoCierre` (`CorrectAnswer`, `TimeExpired`)
+- [x] T-01: Crear enum `MotivoCierre` y exponer el motivo público como `RespuestaCorrecta | TiempoAgotado`
 - [x] T-02: Crear domain event `PreguntaTriviaCerradaDomainEvent`
 - [x] T-03: Agregar `TiempoEmpleadoSegundos` a `RespuestaTrivia` entity y factory
 - [x] T-04: Refactorizar `PartidaTrivia.CerrarPreguntaActual(motivo, respuestaCorrecta)` para emitir domain event

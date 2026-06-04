@@ -162,7 +162,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
       </button>
 
       <h2>Usuarios</h2>
-      <ul>
+      <ul className="clean-list">
         {users.map((user) => (
           <li key={user.userId}>
             <button type="button" onClick={() => onSelectUser(user.userId)}>

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { useAuth } from "../auth/AuthProvider";
+import { screenStyles } from "../shared/styles";
 
 export function LoginScreen() {
   const { login } = useAuth();
@@ -30,38 +31,18 @@ export function LoginScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f4f7fb",
-  },
+  safeArea: screenStyles.safeArea,
   container: {
-    flex: 1,
+    ...screenStyles.container,
     justifyContent: "center",
-    padding: 24,
     gap: 14,
   },
   title: {
+    ...screenStyles.title,
     fontSize: 32,
-    fontWeight: "700",
-    color: "#0f172a",
   },
-  subtitle: {
-    color: "#334155",
-    fontSize: 15,
-  },
-  error: {
-    color: "#b91c1c",
-  },
-  button: {
-    marginTop: 12,
-    borderRadius: 10,
-    backgroundColor: "#0b5fff",
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  subtitle: screenStyles.subtitle,
+  error: screenStyles.error,
+  button: screenStyles.primaryButton,
+  buttonText: screenStyles.primaryButtonText,
 });

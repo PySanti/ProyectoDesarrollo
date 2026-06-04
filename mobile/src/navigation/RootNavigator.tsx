@@ -9,6 +9,10 @@ import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContain
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
 import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
+import { TriviaLobbyScreenContainer } from "../features/trivia/screens/TriviaLobbyScreenContainer";
+import { TriviaAnswerScreenContainer } from "../features/trivia/screens/TriviaAnswerScreenContainer";
+import { TriviaResultScreenContainer } from "../features/trivia/screens/TriviaResultScreenContainer";
+import { TriviaScoreScreenContainer } from "../features/trivia/screens/TriviaScoreScreenContainer";
 import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
 import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
 import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
@@ -59,6 +63,26 @@ export function RootNavigator() {
         name="TriviaGamesList"
         component={TriviaGamesListScreenContainer}
         options={{ title: "Partidas Trivia" }}
+      />
+      <AppStack.Screen
+        name="TriviaLobby"
+        component={TriviaLobbyScreenContainer}
+        options={{ title: "Espera Trivia" }}
+      />
+      <AppStack.Screen
+        name="TriviaAnswer"
+        component={TriviaAnswerScreenContainer}
+        options={{ title: "Responder Trivia" }}
+      />
+      <AppStack.Screen
+        name="TriviaResult"
+        component={TriviaResultScreenContainer}
+        options={{ title: "Resultado Trivia" }}
+      />
+      <AppStack.Screen
+        name="TriviaScore"
+        component={TriviaScoreScreenContainer}
+        options={{ title: "Puntaje Trivia" }}
       />
       <AppStack.Screen
         name="BdtPublishedGames"

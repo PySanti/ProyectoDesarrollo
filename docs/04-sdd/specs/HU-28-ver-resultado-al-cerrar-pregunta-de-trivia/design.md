@@ -57,15 +57,16 @@ Trivia Context
 
 | Campo | Tipo |
 |---|---|
-| `PartidaId` | Guid |
 | `PreguntaId` | Guid |
-| `RespuestaCorrecta` | string |
-| `RespuestaSeleccionada` | string |
-| `EsCorrecta` | bool |
+| `TextoPregunta` | string |
+| `OpcionCorrectaIndex` | int |
+| `OpcionCorrectaText` | string |
+| `MiOpcionIndex` | int? |
+| `MiOpcionText` | string? |
+| `EsCorrecta` | bool? |
 | `PuntajeObtenido` | int |
 | `TiempoEmpleadoSegundos` | double |
 | `MotivoCierre` | string |
-| `FechaCierre` | DateTime |
 
 ## Query
 
@@ -84,7 +85,7 @@ Trivia Context
 3. Verificar que la pregunta exista en el formulario asociado.
 4. Obtener la `RespuestaTrivia` del participante para esa pregunta.
 5. Si la pregunta `PreguntaActualId` es null (cerrada) o distinta, la pregunta está cerrada.
-6. Inferir `MotivoCierre`: si hay respuesta correcta registrada para esa pregunta por algún participante → `CorrectAnswer`, si no → `TimeExpired`.
+6. Inferir `MotivoCierre`: si hay respuesta correcta registrada para esa pregunta por algún participante → `RespuestaCorrecta`, si no → `TiempoAgotado`.
 7. Si la pregunta está activa → throw 400.
 
 ## Command changes

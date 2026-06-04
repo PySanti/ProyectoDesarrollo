@@ -11,6 +11,7 @@
 | CA-05 | Rechazar 409 si ModoInicio = Automatico | Hecho |
 | CA-06 | Permitir inicio si ModoInicio = ManualYAutomatico | Hecho |
 | CA-07 | Rechazar 403 si no es Operador | Hecho |
+| CA-08 | Operador puede iniciar desde React web usando endpoint documentado | Hecho |
 
 ## Test results
 
@@ -30,3 +31,10 @@
 | RB-12 | Validar transición de estado | Hecho |
 | HU-24-R01 | Rechazar inicio manual si ModoInicio = Automatico | Hecho |
 | HU-24-R02 | Permitir inicio manual si ModoInicio = ManualYAutomatico | Hecho |
+
+## Integration pass evidence
+
+- `frontend/src/features/trivia/TriviaOperationsPage.tsx` includes the HU-24 start action using `POST /api/trivia-games/{id}/start`.
+- `frontend/src/features/trivia/TriviaOperationsPage.test.tsx` verifies operator start success message.
+- Validation run: `npm test --prefix frontend` → 43 passed.
+- Validation run: `npm run build --prefix frontend` → passed.

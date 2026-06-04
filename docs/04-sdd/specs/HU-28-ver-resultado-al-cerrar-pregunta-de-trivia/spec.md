@@ -53,15 +53,16 @@ Como **Participante**, quiero ver el resultado de la pregunta cuando se cierre, 
 
 ```json
 {
-  "partidaId": "uuid",
   "preguntaId": "uuid",
-  "respuestaCorrecta": "string",
-  "respuestaSeleccionada": "string",
+  "textoPregunta": "string",
+  "opcionCorrectaIndex": 0,
+  "opcionCorrectaText": "string",
+  "miOpcionIndex": 0,
+  "miOpcionText": "string",
   "esCorrecta": true,
   "puntajeObtenido": 100,
   "tiempoEmpleadoSegundos": 12.5,
-  "motivoCierre": "CorrectAnswer | TimeExpired",
-  "fechaCierre": "2026-05-31T00:00:00Z"
+  "motivoCierre": "RespuestaCorrecta | TiempoAgotado"
 }
 ```
 
@@ -72,7 +73,7 @@ Como **Participante**, quiero ver el resultado de la pregunta cuando se cierre, 
 ## Criterios de aceptación
 
 - [ ] CA-01: Un participante puede consultar el resultado de una pregunta cerrada y ver la respuesta correcta, su respuesta, puntaje, tiempo empleado y motivo de cierre.
-- [ ] CA-02: Si el participante no respondió, `respuestaSeleccionada` retorna información indicando que no hubo respuesta.
+- [ ] CA-02: Si el participante no respondió, `miOpcionText` retorna `null` y la app muestra “Sin respuesta”.
 - [ ] CA-03: Si la pregunta sigue activa, el endpoint retorna 400.
 - [ ] CA-04: Al responder correctamente, se avanza a la siguiente pregunta automáticamente.
 - [ ] CA-05: Al responder correctamente la última pregunta, la partida finaliza (estado Terminada).

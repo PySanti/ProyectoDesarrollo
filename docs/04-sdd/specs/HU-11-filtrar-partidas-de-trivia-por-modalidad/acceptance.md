@@ -45,5 +45,14 @@
 | Backward compatible con HU-09 | ✅ |
 | Sin cambios en Domain | ✅ |
 | Sin cambios en Infrastructure | ✅ |
+| Mobile aplica filtro `Individual`/`Equipo` usando contrato documentado | ✅ |
+| Mobile rechaza valores no documentados en helper de presentación | ✅ |
 
 \* `GetAll_AsParticipante_Returns200WithList`, `GetAll_AsOperador_Returns200WithList` y `GetAll_NoGames_ReturnsEmptyList` fueron creados en HU-09 y continúan pasando sin modificación.
+
+## Integration pass evidence
+
+- `mobile/src/features/trivia/triviaPublishedGamesModel.js` maps `Todas` to no query parameter and `Individual`/`Equipo` to `?modalidad=`.
+- `mobile/tests/triviaPublishedGamesFlow.test.js` covers no-filter URL, `Equipo` filter URL and invalid modality rejection.
+- Validation run: `npm test --prefix mobile` → 81 passed.
+- Validation run: `npm run typecheck --prefix mobile` → passed.

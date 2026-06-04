@@ -4,11 +4,11 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../../auth/AuthProvider";
 import { mobileEnv } from "../../../config/env";
 import { AppStackParamList } from "../../../navigation/types";
-import TriviaGamesListScreen from "./TriviaGamesListScreen";
+import { TriviaAnswerScreen } from "./TriviaAnswerScreen";
 
-type Props = NativeStackScreenProps<AppStackParamList, "TriviaGamesList">;
+type Props = NativeStackScreenProps<AppStackParamList, "TriviaAnswer">;
 
-export function TriviaGamesListScreenContainer({ navigation }: Props) {
+export function TriviaAnswerScreenContainer({ route, navigation }: Props) {
   const { session } = useAuth();
 
   if (!session) {
@@ -16,17 +16,15 @@ export function TriviaGamesListScreenContainer({ navigation }: Props) {
   }
 
   return (
-    <TriviaGamesListScreen
+    <TriviaAnswerScreen
       apiBaseUrl={mobileEnv.triviaApiBaseUrl}
       token={session.token}
-      onOpenLobby={(partidaId) => navigation.navigate("TriviaLobby", { partidaId })}
+      partidaId={route.params.partidaId}
+      onResult={(partidaId, preguntaId) => navigation.navigate("TriviaResult", { partidaId, preguntaId })}
     />
   );
 }
 
 const styles = StyleSheet.create({
-  message: {
-    margin: 20,
-    color: "#b91c1c",
-  },
+  message: { margin: 20, color: "#b91c1c" },
 });

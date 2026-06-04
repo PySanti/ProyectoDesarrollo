@@ -10,6 +10,7 @@
 | CA-04 | Responder correctamente avanza a la siguiente pregunta automáticamente | ✅ | Handler busca siguiente pregunta por DisplayOrder y llama `AvanzarPregunta` |
 | CA-05 | Responder correctamente la última pregunta finaliza la partida | ✅ | Handler llama `FinalizarPartida` cuando no hay siguiente pregunta |
 | CA-06 | Responder incorrectamente no cierra la pregunta ni avanza | ✅ | `RegistrarRespuestaDefinitiva` con respuesta incorrecta no llama `CerrarPreguntaActual` |
+| CA-07 | Mobile muestra resultado de pregunta desde endpoint documentado | ✅ | `TriviaResultScreen` + `triviaParticipantFlow.test.js` |
 
 ## Test results
 
@@ -30,3 +31,9 @@
 | API contract | `contracts/http/trivia-game-api.md` |
 | Traceability | `docs/04-sdd/traceability-matrix.md` |
 | SPECS-LIST | `docs/04-sdd/SPECS-LIST.md` |
+
+## Integration pass evidence
+
+- `mobile/src/features/trivia/screens/TriviaResultScreen.tsx` displays correct answer, selected answer, score and closure reason returned by backend.
+- Validation run: `npm test --prefix mobile` → 77 passed.
+- Validation run: `npm run typecheck --prefix mobile` → passed.

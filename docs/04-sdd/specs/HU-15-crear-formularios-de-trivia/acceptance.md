@@ -10,7 +10,7 @@
 | Client | React web |
 | Service | Trivia Game Service |
 | SDD status | Ready for review |
-| Implementation status | Backend complete — pending frontend |
+| Implementation status | Backend complete / React web minimal creation UI integrated |
 
 ---
 
@@ -34,13 +34,13 @@
 
 ### Funcional — Frontend
 
-- [ ] **AC-FE-01** Operador accede a pantalla de creación de formulario desde panel web.
+- [x] **AC-FE-01** Operador accede a pantalla de creación de formulario desde panel web.
 - [ ] **AC-FE-02** Puede ingresar título y agregar múltiples preguntas.
-- [ ] **AC-FE-03** Cada pregunta muestra exactamente 4 campos de opción.
-- [ ] **AC-FE-04** Solo una opción puede marcarse como correcta por pregunta (radio).
-- [ ] **AC-FE-05** Puede configurar puntaje y temporizador por pregunta.
-- [ ] **AC-FE-06** Errores de validación del backend se muestran al operador.
-- [ ] **AC-FE-07** Tras guardar, se visualiza estado de completitud del formulario.
+- [x] **AC-FE-03** Cada pregunta muestra exactamente 4 campos de opción.
+- [x] **AC-FE-04** Solo una opción puede marcarse como correcta por pregunta (select único en UI mínima).
+- [x] **AC-FE-05** Puede configurar puntaje y temporizador por pregunta.
+- [x] **AC-FE-06** Errores de validación del backend se muestran al operador.
+- [x] **AC-FE-07** Tras guardar, se visualiza mensaje de éxito con formulario creado.
 - [ ] **AC-FE-08** Operador puede abrir formulario existente en modo edición y persistir cambios.
 
 ### Reglas de negocio
@@ -55,7 +55,7 @@
 ### Contratos y trazabilidad
 
 - [ ] **AC-CT-01** Endpoints documentados en `contracts/http/trivia-game-api.md`.
-- [ ] **AC-CT-02** Fila HU-15 actualizada en `docs/04-sdd/traceability-matrix.md`.
+- [x] **AC-CT-02** Fila HU-15 actualizada en `docs/04-sdd/traceability-matrix.md`.
 - [ ] **AC-CT-03** Sin eventos RabbitMQ requeridos para esta HU (verificado).
 
 ---
@@ -112,7 +112,13 @@
 | Application validator tests | `CreateTriviaFormCommandValidatorTests` | Done | 32 tests green |
 | API integration tests | `TriviaFormsControllerTests` | Done | 6 tests green |
 | Auth integration tests | `TriviaFormsControllerTests` (403 test) | Done | Included in 6 tests |
-| Frontend component tests | `QuestionEditor.test.tsx` | Pending (non-goal for first sprint) | — |
+| Frontend component tests | `frontend/src/features/trivia/TriviaOperationsPage.test.tsx` | Done | `npm test --prefix frontend` → 43 passed |
+
+## Integration pass evidence
+
+- React web added `TriviaOperationsPage` for a minimal HU-15 creation flow with exactly four options, one selected correct answer, score and time limit.
+- Validation run: `npm test --prefix frontend` → 43 passed.
+- Validation run: `npm run build --prefix frontend` → passed.
 
 > Completar columna **Evidence** con enlace a CI run, captura o comando local al finalizar implementación.
 

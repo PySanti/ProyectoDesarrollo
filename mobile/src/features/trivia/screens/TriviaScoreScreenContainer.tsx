@@ -4,29 +4,20 @@ import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../../../auth/AuthProvider";
 import { mobileEnv } from "../../../config/env";
 import { AppStackParamList } from "../../../navigation/types";
-import TriviaGamesListScreen from "./TriviaGamesListScreen";
+import { TriviaScoreScreen } from "./TriviaScoreScreen";
 
-type Props = NativeStackScreenProps<AppStackParamList, "TriviaGamesList">;
+type Props = NativeStackScreenProps<AppStackParamList, "TriviaScore">;
 
-export function TriviaGamesListScreenContainer({ navigation }: Props) {
+export function TriviaScoreScreenContainer({ route }: Props) {
   const { session } = useAuth();
 
   if (!session) {
     return <Text style={styles.message}>Sesion no disponible.</Text>;
   }
 
-  return (
-    <TriviaGamesListScreen
-      apiBaseUrl={mobileEnv.triviaApiBaseUrl}
-      token={session.token}
-      onOpenLobby={(partidaId) => navigation.navigate("TriviaLobby", { partidaId })}
-    />
-  );
+  return <TriviaScoreScreen apiBaseUrl={mobileEnv.triviaApiBaseUrl} token={session.token} partidaId={route.params.partidaId} />;
 }
 
 const styles = StyleSheet.create({
-  message: {
-    margin: 20,
-    color: "#b91c1c",
-  },
+  message: { margin: 20, color: "#b91c1c" },
 });

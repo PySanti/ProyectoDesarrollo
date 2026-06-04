@@ -13,6 +13,9 @@
   --ok-bg: #eaf8ee;
   --ok-border: #b8e2c2;
   --ok-text: #1a6030;
+  --muted: #526173;
+  --line: #d7e1ef;
+  --soft-blue: #edf4ff;
 }
 
 * {
@@ -31,11 +34,62 @@ body {
   padding: 24px;
 }
 
+.page.wide {
+  max-width: 1040px;
+}
+
+.stack {
+  display: grid;
+  gap: 16px;
+}
+
 .card {
   background: var(--card-bg);
   border-radius: 14px;
   padding: 22px;
   box-shadow: 0 12px 30px rgba(20, 37, 63, 0.12);
+}
+
+.app-shell {
+  display: grid;
+  gap: 16px;
+}
+
+.app-header {
+  border: 1px solid var(--line);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.eyebrow {
+  margin: 0 0 6px;
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.nav-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 10px;
+  margin-top: 16px;
+}
+
+.nav-button {
+  background: var(--soft-blue);
+  color: var(--primary);
+  border: 1px solid #c9dcf8;
+}
+
+.nav-button.active,
+.nav-button:hover:not(:disabled) {
+  background: var(--primary);
+  color: #ffffff;
 }
 
 h1 {
@@ -55,15 +109,35 @@ label {
 
 input,
 select,
+textarea,
 button {
   font: inherit;
 }
 
 input,
-select {
+select,
+textarea {
   border: 1px solid #c6d2e3;
   border-radius: 8px;
   padding: 10px 12px;
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  margin: 0;
+  padding: 14px;
+}
+
+legend {
+  color: var(--primary);
+  font-weight: 800;
+  padding: 0 6px;
 }
 
 button {
@@ -101,6 +175,57 @@ button:hover:not(:disabled) {
   background: var(--ok-bg);
   border: 1px solid var(--ok-border);
   color: var(--ok-text);
+}
+
+.notice.info {
+  background: var(--soft-blue);
+  border: 1px solid #c9dcf8;
+  color: var(--primary);
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  border-radius: 999px;
+  padding: 4px 9px;
+  background: var(--soft-blue);
+  color: var(--primary);
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  margin-top: 12px;
+}
+
+th,
+td {
+  border-bottom: 1px solid var(--line);
+  padding: 10px;
+  text-align: left;
+  vertical-align: top;
+}
+
+th {
+  color: var(--primary);
+  font-size: 0.82rem;
+  text-transform: uppercase;
+}
+
+ul.clean-list {
+  display: grid;
+  gap: 8px;
+  margin: 12px 0;
+  padding: 0;
+  list-style: none;
 }
 
 .row {

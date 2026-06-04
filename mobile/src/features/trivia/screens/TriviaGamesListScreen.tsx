@@ -9,12 +9,16 @@ import {
   View,
 } from 'react-native';
 import ScreenWrapper from '../../../shared/components/ScreenWrapper';
+import { colors } from '../../../shared/theme';
+import { screenStyles } from '../../../shared/styles';
 import { getPublishedTriviaGames, TriviaMobileApiError } from '../../../api/triviaApi';
 import { TriviaGameListItem } from '../types';
+import { TEAM_TRIVIA_LEADER_WARNING } from '../triviaParticipantScreenModel.js';
 
 type Props = {
   apiBaseUrl: string;
   token: string;
+  onOpenLobby?: (partidaId: string) => void;
 };
 
 function formatDate(iso: string): string {
@@ -29,7 +33,7 @@ function formatDate(iso: string): string {
 
 type Filtro = 'Todas' | 'Individual' | 'Equipo';
 
-export default function TriviaGamesListScreen({ apiBaseUrl, token }: Props) {
+export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby }: Props) {
   const [games, setGames] = useState<TriviaGameListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -61,18 +65,21 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token }: Props) {
   }, [fetchGames]);
 
   const renderGame = ({ item }: { item: TriviaGameListItem }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7}>
+    <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => onOpenLobby?.(item.id)}>
       <Text style={styles.gameName}>{item.nombre}</Text>
       <View style={styles.cardRow}>
         <Text style={styles.modalidad}>
-          {item.modalidad === 'Individual' ? '👤 Individual' : '👥 Equipo'}
+          {item.modalidad === 'Individual' ? 'Individual' : 'Equipo'}
         </Text>
         <Text style={styles.date}>{formatDate(item.tiempoInicio)}</Text>
       </View>
       <Text style={styles.participants}>
         {item.modalidad === 'Individual'
-          ? `Jugadores: ${item.minimoParticipantes} – ${item.maximoJugadores ?? '—'}`
-          : `Equipos: ${item.minimoParticipantes} – ${item.maximoEquipos ?? '—'}`}
+          ? `Jugadores: ${item.minimoParticipantes} - ${item.maximoJugadores ?? '-'}`
+          : `Equipos: ${item.minimoParticipantes} - ${item.maximoEquipos ?? '-'}`}
+      </Text>
+      <Text style={styles.actionText}>
+        {item.modalidad === 'Individual' ? 'Toca para unirte o ver espera' : TEAM_TRIVIA_LEADER_WARNING}
       </Text>
     </TouchableOpacity>
   );
@@ -80,7 +87,7 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token }: Props) {
   if (loading) {
     return (
       <ScreenWrapper style={styles.centered}>
-        <ActivityIndicator size="large" color="#2563EB" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.loadingText}>Cargando partidas...</Text>
       </ScreenWrapper>
     );
@@ -100,7 +107,6 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token }: Props) {
   if (games.length === 0) {
     return (
       <ScreenWrapper style={styles.centered}>
-        <Text style={styles.emptyIcon}>📋</Text>
         <Text style={styles.emptyText}>No hay partidas de Trivia publicadas</Text>
         <TouchableOpacity style={styles.retryButton} onPress={() => fetchGames()}>
           <Text style={styles.retryText}>Actualizar</Text>
@@ -119,7 +125,7 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token }: Props) {
             onPress={() => setFiltro(opcion)}
           >
             <Text style={[styles.filterChipText, filtro === opcion && styles.filterChipTextActive]}>
-              {opcion === 'Todas' ? 'Todas' : opcion === 'Individual' ? '👤 Individual' : '👥 Equipo'}
+              {opcion === 'Todas' ? 'Todas' : opcion}
             </Text>
           </TouchableOpacity>
         ))}
@@ -146,96 +152,49 @@ const styles = StyleSheet.create({
     gap: 8,
   },
   filterChip: {
+    ...screenStyles.filterButton,
     paddingHorizontal: 16,
     paddingVertical: 6,
-    borderRadius: 20,
-    backgroundColor: '#F3F4F6',
   },
-  filterChipActive: {
-    backgroundColor: '#2563EB',
-  },
-  filterChipText: {
-    fontSize: 13,
-    color: '#6B7280',
-    fontWeight: '500',
-  },
-  filterChipTextActive: {
-    color: '#FFFFFF',
-  },
+  filterChipActive: screenStyles.filterButtonActive,
+  filterChipText: screenStyles.filterText,
+  filterChipTextActive: screenStyles.filterTextActive,
   centered: {
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: 24,
+    ...screenStyles.centered,
   },
   list: {
     padding: 16,
   },
   card: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: 12,
+    ...screenStyles.card,
     padding: 16,
     marginBottom: 12,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 1 },
-    shadowOpacity: 0.08,
-    shadowRadius: 4,
-    elevation: 2,
   },
-  gameName: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#1F2937',
-    marginBottom: 8,
-  },
+  gameName: screenStyles.cardTitle,
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     marginBottom: 4,
   },
-  modalidad: {
-    fontSize: 13,
-    color: '#6B7280',
-  },
+  modalidad: screenStyles.cardLine,
   date: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textSoft,
   },
   participants: {
     fontSize: 12,
-    color: '#9CA3AF',
+    color: colors.textSoft,
     marginTop: 4,
   },
-  loadingText: {
-    marginTop: 12,
-    fontSize: 14,
-    color: '#6B7280',
+  actionText: {
+    color: colors.primary,
+    fontWeight: '700',
+    marginTop: 10,
   },
-  errorText: {
-    fontSize: 14,
-    color: '#DC2626',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
-  retryButton: {
-    backgroundColor: '#2563EB',
-    paddingHorizontal: 24,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  retryText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  emptyIcon: {
-    fontSize: 48,
-    marginBottom: 12,
-  },
-  emptyText: {
-    fontSize: 15,
-    color: '#6B7280',
-    textAlign: 'center',
-    marginBottom: 16,
-  },
+  loadingText: screenStyles.loadingText,
+  errorText: screenStyles.errorText,
+  retryButton: screenStyles.joinButton,
+  retryText: screenStyles.joinButtonText,
+  emptyText: screenStyles.emptyText,
 });

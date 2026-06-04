@@ -5,8 +5,9 @@ import { PublishedBdtGamesPage } from "../features/bdt/PublishedBdtGamesPage";
 import { CreateUserPage } from "../features/identity/CreateUserPage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
 import { CreateTriviaGamePage } from "../features/trivia/CreateTriviaGamePage";
+import { TriviaOperationsPage } from "../features/trivia/TriviaOperationsPage";
 
-type WebView = "hu01" | "hu02" | "hu17" | "hu34" | "hu37";
+type WebView = "hu01" | "hu02" | "hu15" | "hu17" | "hu34" | "hu37";
 
 type AuthState =
   | { status: "loading" }
@@ -60,6 +61,19 @@ export function App() {
     return authState.user.roles.includes("Operador");
   }, [authState]);
 
+  useEffect(() => {
+    if (authState.status !== "ready") {
+      return;
+    }
+
+    const canSeeAdminView = isAdmin && (view === "hu01" || view === "hu02");
+    const canSeeOperatorView = isOperator && ["hu15", "hu17", "hu34", "hu37"].includes(view);
+
+    if (!canSeeAdminView && !canSeeOperatorView) {
+      setView(isOperator ? "hu17" : "hu01");
+    }
+  }, [authState.status, isAdmin, isOperator, view]);
+
   if (authState.status === "loading") {
     return (
       <div className="page">
@@ -95,32 +109,36 @@ export function App() {
   }
 
   return (
-    <div className="page">
-      <div className="card">
+    <div className="page wide app-shell">
+      <div className="card app-header">
+        <p className="eyebrow">Primer sprint</p>
         <h1>UMBRAL Web - Administracion y Operacion</h1>
-        <p>Selecciona un flujo activo del primer sprint.</p>
-        <div className="row">
+        <p className="muted">Selecciona un flujo activo del primer sprint.</p>
+        <div className="nav-grid" aria-label="Flujos web disponibles">
           {isAdmin ? (
             <>
-              <button type="button" onClick={() => setView("hu01")}>HU-01 Crear usuario</button>
-              <button type="button" onClick={() => setView("hu02")}>
+              <button className={`nav-button ${view === "hu01" ? "active" : ""}`} type="button" onClick={() => setView("hu01")}>HU-01 Crear usuario</button>
+              <button className={`nav-button ${view === "hu02" ? "active" : ""}`} type="button" onClick={() => setView("hu02")}>
                 HU-02 Gestionar usuarios
               </button>
             </>
           ) : null}
           {isOperator ? (
             <>
-              <button type="button" onClick={() => setView("hu17")}>HU-17 Crear Trivia</button>
-              <button type="button" onClick={() => setView("hu34")}>HU-34 Crear BDT</button>
-              <button type="button" onClick={() => setView("hu37")}>HU-37 Listar BDT</button>
+              <button className={`nav-button ${view === "hu17" ? "active" : ""}`} type="button" onClick={() => setView("hu17")}>HU-17 Crear Trivia</button>
+              <button className={`nav-button ${view === "hu15" ? "active" : ""}`} type="button" onClick={() => setView("hu15")}>HU-15/22/23/24/30 Operar Trivia</button>
+              <button className={`nav-button ${view === "hu34" ? "active" : ""}`} type="button" onClick={() => setView("hu34")}>HU-34 Crear BDT</button>
+              <button className={`nav-button ${view === "hu37" ? "active" : ""}`} type="button" onClick={() => setView("hu37")}>HU-37 Listar BDT</button>
             </>
           ) : null}
         </div>
       </div>
 
-      <div style={{ marginTop: 16 }}>
+      <div className="stack">
         {view === "hu17" && isOperator ? (
           <CreateTriviaGamePage accessToken={authState.user.token} />
+        ) : view === "hu15" && isOperator ? (
+          <TriviaOperationsPage accessToken={authState.user.token} />
         ) : view === "hu34" && isOperator ? (
           <CreateBdtGamePage accessToken={authState.user.token} />
         ) : view === "hu37" && isOperator ? (
@@ -129,8 +147,10 @@ export function App() {
           <CreateUserPage accessToken={authState.user.token} />
         ) : view === "hu02" && isAdmin ? (
           <UserManagementPage accessToken={authState.user.token} />
+        ) : isOperator ? (
+          <CreateTriviaGamePage accessToken={authState.user.token} />
         ) : (
-          <CreateBdtGamePage accessToken={authState.user.token} />
+          <CreateUserPage accessToken={authState.user.token} />
         )}
       </div>
     </div>

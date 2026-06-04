@@ -1,5 +1,7 @@
 import React from "react";
 import * as ReactNative from "react-native";
+import { colors } from "../../shared/theme";
+import { screenStyles } from "../../shared/styles";
 import { LeaveTeamScreenController } from "./LeaveTeamScreenController.js";
 
 const { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, View } = ReactNative;
@@ -15,35 +17,14 @@ export function LeaveTeamScreen({ apiBaseUrl, token, onLeft }: LeaveTeamScreenPr
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f4f7fb",
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-  },
-  description: {
-    color: "#475569",
-    fontSize: 14,
-    lineHeight: 20,
-  },
-  error: {
-    color: "#b91c1c",
-    fontSize: 13,
-  },
-  success: {
-    color: "#166534",
-    fontSize: 13,
-  },
+  safeArea: screenStyles.safeArea,
+  container: screenStyles.container,
+  title: screenStyles.title,
+  description: screenStyles.description,
+  error: screenStyles.error,
+  success: screenStyles.success,
   noTeamCard: {
-    borderRadius: 12,
+    ...screenStyles.card,
     backgroundColor: "#dcfce7",
     padding: 14,
     gap: 4,
@@ -54,24 +35,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
   },
   noTeamDescription: {
-    color: "#166534",
+    color: colors.success,
     fontSize: 13,
     lineHeight: 18,
   },
-  button: {
-    marginTop: 8,
-    borderRadius: 10,
-    backgroundColor: "#b91c1c",
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
+  button: screenStyles.dangerButton,
   buttonDisabled: {
     backgroundColor: "#fca5a5",
   },
-  buttonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  buttonText: screenStyles.primaryButtonText,
 });

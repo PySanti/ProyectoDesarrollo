@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
+import { screenStyles } from "../../shared/styles";
 import { submitCreateTeam } from "./createTeamFlow.js";
 
 type CreateTeamScreenProps = {
@@ -77,56 +78,14 @@ export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScr
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f4f7fb",
-  },
-  container: {
-    flex: 1,
-    padding: 20,
-    gap: 12,
-  },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-  },
-  label: {
-    fontSize: 14,
-    color: "#334155",
-  },
-  input: {
-    borderWidth: 1,
-    borderColor: "#cbd5e1",
-    borderRadius: 10,
-    backgroundColor: "#ffffff",
-    fontSize: 16,
-    color: "#0f172a",
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-  },
-  error: {
-    color: "#b91c1c",
-    fontSize: 13,
-  },
-  success: {
-    color: "#166534",
-    fontSize: 13,
-  },
-  button: {
-    marginTop: 8,
-    borderRadius: 10,
-    backgroundColor: "#0b5fff",
-    paddingVertical: 12,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-  buttonDisabled: {
-    backgroundColor: "#93c5fd",
-  },
-  buttonText: {
-    color: "#ffffff",
-    fontWeight: "700",
-    fontSize: 15,
-  },
+  safeArea: screenStyles.safeArea,
+  container: screenStyles.container,
+  title: screenStyles.title,
+  label: screenStyles.label,
+  input: screenStyles.input,
+  error: screenStyles.error,
+  success: screenStyles.success,
+  button: screenStyles.primaryButton,
+  buttonDisabled: screenStyles.primaryButtonDisabled,
+  buttonText: screenStyles.primaryButtonText,
 });

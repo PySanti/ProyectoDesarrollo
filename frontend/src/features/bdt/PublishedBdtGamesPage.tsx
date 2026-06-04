@@ -100,40 +100,42 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
         ) : null}
 
         {state.status === "ready" && state.games.length > 0 ? (
-          <table aria-label="Partidas BDT publicadas para operador">
-            <thead>
-              <tr>
-                <th>Nombre</th>
-                <th>Estado</th>
-                <th>Modalidad</th>
-                <th>Area</th>
-                <th>Etapas</th>
-                <th>Accion</th>
-              </tr>
-            </thead>
-            <tbody>
-              {state.games.map((game) => (
-                <tr key={game.partidaId}>
-                  <td>{game.nombre}</td>
-                  <td>{game.estado}</td>
-                  <td>{game.modalidad}</td>
-                  <td>{game.areaBusqueda}</td>
-                  <td>{game.cantidadEtapas}</td>
-                  <td>
-                    <button
-                      type="button"
-                      onClick={() => void handleStart(game.partidaId)}
-                      disabled={startState.status === "starting"}
-                    >
-                      {startState.status === "starting" && startState.partidaId === game.partidaId
-                        ? "Iniciando..."
-                        : "Iniciar BDT"}
-                    </button>
-                  </td>
+          <div className="table-wrap">
+            <table aria-label="Partidas BDT publicadas para operador">
+              <thead>
+                <tr>
+                  <th>Nombre</th>
+                  <th>Estado</th>
+                  <th>Modalidad</th>
+                  <th>Area</th>
+                  <th>Etapas</th>
+                  <th>Accion</th>
                 </tr>
-              ))}
-            </tbody>
-          </table>
+              </thead>
+              <tbody>
+                {state.games.map((game) => (
+                  <tr key={game.partidaId}>
+                    <td>{game.nombre}</td>
+                    <td><span className="badge">{game.estado}</span></td>
+                    <td>{game.modalidad}</td>
+                    <td>{game.areaBusqueda}</td>
+                    <td>{game.cantidadEtapas}</td>
+                    <td>
+                      <button
+                        type="button"
+                        onClick={() => void handleStart(game.partidaId)}
+                        disabled={startState.status === "starting"}
+                      >
+                        {startState.status === "starting" && startState.partidaId === game.partidaId
+                          ? "Iniciando..."
+                          : "Iniciar BDT"}
+                      </button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
         ) : null}
       </div>
     </div>

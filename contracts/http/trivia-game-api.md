@@ -698,15 +698,16 @@ Get the result of a closed question for a participant (individual mode only).
 
 ```json
 {
-  "partidaId": "uuid",
   "preguntaId": "uuid",
-  "respuestaCorrecta": "string (the correct answer text)",
-  "respuestaSeleccionada": "string (participant's chosen answer text)",
+  "textoPregunta": "string",
+  "opcionCorrectaIndex": 0,
+  "opcionCorrectaText": "string (the correct answer text)",
+  "miOpcionIndex": 0,
+  "miOpcionText": "string (participant's chosen answer text)",
   "esCorrecta": true,
   "puntajeObtenido": 100,
   "tiempoEmpleadoSegundos": 12.5,
-  "motivoCierre": "CorrectAnswer | TimeExpired",
-  "fechaCierre": "2026-05-31T00:00:00Z"
+  "motivoCierre": "RespuestaCorrecta | TiempoAgotado"
 }
 ```
 

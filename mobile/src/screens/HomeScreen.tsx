@@ -3,6 +3,7 @@ import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
 import { NativeStackScreenProps } from "@react-navigation/native-stack";
 import { useAuth } from "../auth/AuthProvider";
 import { AppStackParamList } from "../navigation/types";
+import { screenStyles } from "../shared/styles";
 
 type Props = NativeStackScreenProps<AppStackParamList, "Home">;
 
@@ -48,52 +49,21 @@ export function HomeScreen({ navigation }: Props) {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f4f7fb",
-  },
+  safeArea: screenStyles.safeArea,
   container: {
-    flex: 1,
-    padding: 24,
-    gap: 12,
+    ...screenStyles.container,
     justifyContent: "center",
   },
-  title: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#0f172a",
-  },
-  subtitle: {
-    color: "#334155",
-    fontSize: 14,
-  },
-  primaryButton: {
-    marginTop: 8,
-    borderRadius: 10,
-    backgroundColor: "#0b5fff",
-    paddingVertical: 12,
-    alignItems: "center",
-  },
-  primaryButtonText: {
-    color: "#fff",
-    fontWeight: "700",
-  },
-  dangerButton: {
-    marginTop: 8,
-    borderRadius: 10,
-    backgroundColor: "#b91c1c",
-    paddingVertical: 12,
-    alignItems: "center",
-  },
+  title: screenStyles.title,
+  subtitle: screenStyles.subtitle,
+  primaryButton: screenStyles.primaryButton,
+  primaryButtonText: screenStyles.primaryButtonText,
+  dangerButton: screenStyles.dangerButton,
   secondaryButton: {
-    borderRadius: 10,
+    ...screenStyles.secondaryButton,
+    backgroundColor: "transparent",
     borderWidth: 1,
     borderColor: "#94a3b8",
-    paddingVertical: 12,
-    alignItems: "center",
   },
-  secondaryButtonText: {
-    color: "#334155",
-    fontWeight: "600",
-  },
+  secondaryButtonText: screenStyles.subtitle,
 });

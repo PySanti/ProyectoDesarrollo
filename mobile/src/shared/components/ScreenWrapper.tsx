@@ -1,5 +1,6 @@
 import React from 'react';
 import { SafeAreaView, StyleSheet, ViewStyle } from 'react-native';
+import { screenStyles } from '../styles';
 
 interface Props {
   children: React.ReactNode;
@@ -15,8 +16,5 @@ export default function ScreenWrapper({ children, style }: Props) {
 }
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#F5F5F5',
-  },
+  container: screenStyles.safeArea as ViewStyle,
 });

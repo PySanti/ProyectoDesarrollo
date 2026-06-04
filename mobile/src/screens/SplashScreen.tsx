@@ -1,11 +1,13 @@
 import React from "react";
 import { ActivityIndicator, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { colors } from "../shared/theme";
+import { screenStyles } from "../shared/styles";
 
 export function SplashScreen() {
   return (
     <SafeAreaView style={styles.safeArea}>
       <View style={styles.container}>
-        <ActivityIndicator size="large" color="#0b5fff" />
+        <ActivityIndicator size="large" color={colors.primary} />
         <Text style={styles.text}>Cargando sesion...</Text>
       </View>
     </SafeAreaView>
@@ -13,18 +15,14 @@ export function SplashScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#f4f7fb",
-  },
+  safeArea: screenStyles.safeArea,
   container: {
-    flex: 1,
+    ...screenStyles.container,
     justifyContent: "center",
     alignItems: "center",
-    gap: 12,
   },
   text: {
-    color: "#0f172a",
+    color: colors.text,
     fontSize: 16,
   },
 });

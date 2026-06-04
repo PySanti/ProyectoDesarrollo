@@ -63,7 +63,7 @@ describe("CreateTriviaGamePage", () => {
       maximoEquipos: null,
       minimoJugadoresPorEquipo: null,
       maximoJugadoresPorEquipo: null,
-      createdUtc: "2026-06-01T00:00:00Z",
+      createdAtUtc: "2026-06-01T00:00:00Z",
       startedAtUtc: null
     });
 
