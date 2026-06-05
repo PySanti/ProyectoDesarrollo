@@ -28,6 +28,14 @@ public sealed class TriviaGamesController : ControllerBase
         return CreatedAtAction(nameof(GetById), new { id = result.Id }, result);
     }
 
+    [HttpGet("operator/supervision")]
+    public async Task<IActionResult> GetOperatorSupervision(CancellationToken cancellationToken)
+    {
+        var query = new GetOperatorSupervisableTriviaGamesQuery();
+        var result = await _mediator.Send(query, cancellationToken);
+        return Ok(result);
+    }
+
     [HttpPost("{id:guid}/start")]
     public async Task<IActionResult> Start(
         Guid id,

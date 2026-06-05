@@ -29,6 +29,10 @@ export interface CreateBdtGameResponse {
   cantidadEtapas: number;
 }
 
+export interface DecodeBdtQrResponse {
+  qrDecodificado: string;
+}
+
 export interface PublishedBdtGameItem {
   partidaId: string;
   nombre: string;
@@ -101,6 +105,36 @@ export async function createBdtGame(
   }
 
   return body as CreateBdtGameResponse;
+}
+
+export async function decodeExpectedBdtQrImage(
+  image: File,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<DecodeBdtQrResponse> {
+  const formData = new FormData();
+  formData.append("image", image);
+
+  const response = await fetchImpl(`${resolveBaseUrl()}/api/bdt/qr/decode`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: formData
+  });
+
+  const body = (await response.json().catch(() => ({}))) as
+    | { message?: string }
+    | DecodeBdtQrResponse;
+
+  if (!response.ok) {
+    const message =
+      (body as { message?: string }).message ??
+      `BDT API error. Status=${response.status}`;
+    throw new BdtApiError(message, response.status);
+  }
+
+  return body as DecodeBdtQrResponse;
 }
 
 export async function getOperatorPublishedBdtGames(

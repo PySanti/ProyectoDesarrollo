@@ -10,6 +10,7 @@ using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.BdtGameService.Api.Authentication;
 using Umbral.BdtGameService.Application;
+using Umbral.BdtGameService.Application.Abstractions.Qr;
 using Umbral.BdtGameService.Application.Abstractions.Realtime;
 using Umbral.BdtGameService.Application.Games.Create;
 using Umbral.BdtGameService.Application.Games.ActiveStage;
@@ -161,6 +162,47 @@ app.MapPost("/api/bdt/games", async (
         }
     })
     .WithName("CreateBdtGame")
+    .RequireAuthorization("OperatorOnly");
+
+app.MapPost("/api/bdt/qr/decode", async (
+        IFormFile? image,
+        IQrImageDecoder qrImageDecoder,
+        CancellationToken cancellationToken) =>
+    {
+        if (image is null || image.Length == 0)
+        {
+            return Results.BadRequest(new { message = "La imagen es requerida." });
+        }
+
+        if (!image.ContentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) &&
+            !image.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Json(new { message = "Solo se aceptan imagenes JPEG o PNG." }, statusCode: StatusCodes.Status415UnsupportedMediaType);
+        }
+
+        if (image.Length > SubirTesoroQrCommandValidator.MaxImageSizeBytes)
+        {
+            return Results.Json(new { message = "La imagen no puede superar 5 MB." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+        }
+
+        byte[] imageContent;
+        await using (var stream = image.OpenReadStream())
+        using (var memoryStream = new MemoryStream())
+        {
+            await stream.CopyToAsync(memoryStream, cancellationToken);
+            imageContent = memoryStream.ToArray();
+        }
+
+        var qrDecodificado = await qrImageDecoder.DecodeAsync(imageContent, image.ContentType, cancellationToken);
+        if (string.IsNullOrWhiteSpace(qrDecodificado))
+        {
+            return Results.Json(new { message = "No se pudo leer un QR en la imagen." }, statusCode: StatusCodes.Status422UnprocessableEntity);
+        }
+
+        return Results.Ok(new { qrDecodificado });
+    })
+    .WithName("DecodeBdtExpectedQr")
+    .DisableAntiforgery()
     .RequireAuthorization("OperatorOnly");
 
 app.MapGet("/api/bdt/games/published", async (

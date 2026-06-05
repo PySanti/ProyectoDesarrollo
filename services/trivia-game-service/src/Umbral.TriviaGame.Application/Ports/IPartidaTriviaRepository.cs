@@ -16,4 +16,6 @@ public interface IPartidaTriviaRepository
     Task<int> CountInscripcionesAsync(PartidaId partidaId, CancellationToken cancellationToken = default);
 
     Task<IReadOnlyList<PartidaTrivia>> GetPublishedAsync(CancellationToken cancellationToken = default);
+
+    Task<IReadOnlyList<PartidaTrivia>> GetSupervisableForOperatorAsync(CancellationToken cancellationToken = default);
 }

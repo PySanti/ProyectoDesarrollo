@@ -31,6 +31,17 @@ export interface TriviaGameDetail {
   startedAtUtc: string | null;
 }
 
+export interface TriviaGameListItem {
+  id: string;
+  nombre: string;
+  modalidad: TriviaModalidad;
+  estado: string;
+  tiempoInicio: string;
+  minimoParticipantes: number;
+  maximoJugadores: number | null;
+  maximoEquipos: number | null;
+}
+
 export interface TriviaFormListItem {
   id: string;
   title: string;
@@ -216,6 +227,18 @@ export async function getTriviaParticipants(
   });
 
   return parseJsonResponse<TriviaGameLobby>(response);
+}
+
+export async function getOperatorTriviaGamesForSupervision(
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<TriviaGameListItem[]> {
+  const response = await fetchImpl(`${resolveBaseUrl()}/api/trivia-games/operator/supervision`, {
+    method: "GET",
+    headers: { Authorization: `Bearer ${accessToken}` }
+  });
+
+  return parseJsonResponse<TriviaGameListItem[]>(response);
 }
 
 export async function getTriviaTeams(

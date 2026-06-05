@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Microsoft.AspNetCore.Hosting;
@@ -6,6 +7,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Umbral.BdtGameService.Application.Abstractions.Persistence;
+using Umbral.BdtGameService.Application.Abstractions.Qr;
 using Umbral.BdtGameService.Domain.Entities;
 
 namespace Umbral.BdtGameService.ContractTests;
@@ -93,11 +95,60 @@ public sealed class Hu34ContractTests : IClassFixture<BdtApiFactory>
         Assert.Equal("No se pudo crear la partida BDT.", document.RootElement.GetProperty("message").GetString());
     }
 
+    [Fact]
+    public async Task PostBdtQrDecode_Should_Match_Success_Response_Shape()
+    {
+        await using var factory = new QrDecoderBdtApiFactory("QR-ETAPA-1");
+        var client = factory.CreateClient();
+
+        var response = await client.SendAsync(CreateDecodeRequest("image/png", new byte[] { 1, 2, 3 }));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal("QR-ETAPA-1", document.RootElement.GetProperty("qrDecodificado").GetString());
+    }
+
+    [Fact]
+    public async Task PostBdtQrDecode_Should_Return_UnprocessableEntity_When_Qr_Is_Not_Readable()
+    {
+        await using var factory = new QrDecoderBdtApiFactory(null);
+        var client = factory.CreateClient();
+
+        var response = await client.SendAsync(CreateDecodeRequest("image/png", new byte[] { 1, 2, 3 }));
+
+        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task PostBdtQrDecode_Should_Reject_Unsupported_Content_Type()
+    {
+        var response = await _client.SendAsync(CreateDecodeRequest("text/plain", new byte[] { 1, 2, 3 }));
+
+        Assert.Equal(HttpStatusCode.UnsupportedMediaType, response.StatusCode);
+    }
+
     private static HttpRequestMessage CreatePostRequest(CreateBdtPayload payload, string role = "Operador")
     {
         var request = new HttpRequestMessage(HttpMethod.Post, "/api/bdt/games")
         {
             Content = JsonContent.Create(payload)
+        };
+        request.Headers.Add("X-Test-Role", role);
+        request.Headers.Add("X-Test-UserId", Guid.NewGuid().ToString());
+        return request;
+    }
+
+    private static HttpRequestMessage CreateDecodeRequest(string contentType, byte[] bytes, string role = "Operador")
+    {
+        var content = new MultipartFormDataContent();
+        var imageContent = new ByteArrayContent(bytes);
+        imageContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
+        content.Add(imageContent, "image", contentType == "image/png" ? "qr.png" : "qr.txt");
+
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/bdt/qr/decode")
+        {
+            Content = content
         };
         request.Headers.Add("X-Test-Role", role);
         request.Headers.Add("X-Test-UserId", Guid.NewGuid().ToString());
@@ -141,6 +192,41 @@ public sealed class Hu34ContractTests : IClassFixture<BdtApiFactory>
                 services.RemoveAll<IPartidaBdtRepository>();
                 services.AddScoped<IPartidaBdtRepository, FailingPartidaBdtRepository>();
             });
+        }
+    }
+
+    private sealed class QrDecoderBdtApiFactory : BdtApiFactory
+    {
+        private readonly string? _decoded;
+
+        public QrDecoderBdtApiFactory(string? decoded)
+        {
+            _decoded = decoded;
+        }
+
+        protected override void ConfigureWebHost(IWebHostBuilder builder)
+        {
+            base.ConfigureWebHost(builder);
+            builder.ConfigureServices(services =>
+            {
+                services.RemoveAll<IQrImageDecoder>();
+                services.AddScoped<IQrImageDecoder>(_ => new FakeQrImageDecoder(_decoded));
+            });
+        }
+    }
+
+    private sealed class FakeQrImageDecoder : IQrImageDecoder
+    {
+        private readonly string? _decoded;
+
+        public FakeQrImageDecoder(string? decoded)
+        {
+            _decoded = decoded;
+        }
+
+        public Task<string?> DecodeAsync(byte[] imageContent, string contentType, CancellationToken cancellationToken)
+        {
+            return Task.FromResult(_decoded);
         }
     }
 

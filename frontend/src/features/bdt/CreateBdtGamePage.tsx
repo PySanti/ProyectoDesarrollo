@@ -1,10 +1,11 @@
-import { FormEvent, useState } from "react";
+import { ChangeEvent, FormEvent, useState } from "react";
 import {
   BdtApiError,
   BdtModalidad,
   BdtModoInicio,
   createBdtGame,
-  CreateBdtGameResponse
+  CreateBdtGameResponse,
+  decodeExpectedBdtQrImage
 } from "../../api/bdtApi";
 
 interface CreateBdtGamePageProps {
@@ -25,13 +26,21 @@ interface FormState {
 
 interface StageFormState {
   codigoQrEsperado: string;
+  qrImageName: string;
+  qrDecodeStatus: "idle" | "decoding" | "decoded" | "error";
+  qrDecodeError: string | null;
   tiempoLimiteSegundos: string;
 }
 
-const emptyStage: StageFormState = {
+function createEmptyStage(): StageFormState {
+  return {
   codigoQrEsperado: "",
+  qrImageName: "",
+  qrDecodeStatus: "idle",
+  qrDecodeError: null,
   tiempoLimiteSegundos: "300"
 };
+}
 
 const initialForm: FormState = {
   nombre: "",
@@ -42,7 +51,7 @@ const initialForm: FormState = {
   maximoEquipos: "",
   minimoJugadoresPorEquipo: "",
   modoInicio: "Manual",
-  etapas: [emptyStage]
+  etapas: [createEmptyStage()]
 };
 
 export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
@@ -97,11 +106,46 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
     }
   }
 
+  async function onQrImageSelected(index: number, event: ChangeEvent<HTMLInputElement>) {
+    const file = event.target.files?.[0];
+    event.target.value = "";
+    if (!file) {
+      return;
+    }
+
+    updateStage(setForm, index, {
+      codigoQrEsperado: "",
+      qrImageName: file.name,
+      qrDecodeStatus: "decoding",
+      qrDecodeError: null
+    });
+    setError(null);
+    setResult(null);
+
+    try {
+      const response = await decodeExpectedBdtQrImage(file, accessToken);
+      updateStage(setForm, index, {
+        codigoQrEsperado: response.qrDecodificado,
+        qrDecodeStatus: "decoded",
+        qrDecodeError: null
+      });
+    } catch (caught) {
+      const message = caught instanceof BdtApiError
+        ? mapQrDecodeErrorMessage(caught.statusCode, caught.message)
+        : "No se pudo decodificar el QR de la imagen.";
+      updateStage(setForm, index, {
+        codigoQrEsperado: "",
+        qrDecodeStatus: "error",
+        qrDecodeError: message
+      });
+    }
+  }
+
   return (
     <div className="page">
       <div className="card">
         <h1>Crear partida BDT</h1>
-        <p>Configura una busqueda del tesoro con area textual, modalidad y etapas con QR esperado.</p>
+        <p>Configura una busqueda del tesoro con area textual, modalidad y etapas con una imagen QR esperada por etapa.</p>
 
         {error ? (
           <div role="alert" className="notice error">
@@ -220,7 +264,7 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
 
           <div className="row">
             <h2>Etapas</h2>
-            <button type="button" onClick={() => setForm((current) => ({ ...current, etapas: [...current.etapas, emptyStage] }))}>
+            <button type="button" onClick={() => setForm((current) => ({ ...current, etapas: [...current.etapas, createEmptyStage()] }))}>
               Agregar etapa
             </button>
           </div>
@@ -229,17 +273,19 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
             const stageNumber = index + 1;
             const qrId = `bdt-qr-${stageNumber}`;
             const timeId = `bdt-tiempo-${stageNumber}`;
+            const qrStatusId = `bdt-qr-status-${stageNumber}`;
 
             return (
               <fieldset key={stageNumber}>
                 <legend>Etapa {stageNumber}</legend>
                 <div className="row">
                   <label htmlFor={qrId}>
-                    QR esperado etapa {stageNumber}
+                    Imagen QR esperada etapa {stageNumber}
                     <input
                       id={qrId}
-                      value={etapa.codigoQrEsperado}
-                      onChange={(event) => updateStage(form, setForm, index, { codigoQrEsperado: event.target.value })}
+                      type="file"
+                      accept="image/png,image/jpeg"
+                      onChange={(event) => void onQrImageSelected(index, event)}
                     />
                   </label>
 
@@ -250,10 +296,14 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
                       type="number"
                       min="1"
                       value={etapa.tiempoLimiteSegundos}
-                      onChange={(event) => updateStage(form, setForm, index, { tiempoLimiteSegundos: event.target.value })}
+                      onChange={(event) => updateStage(setForm, index, { tiempoLimiteSegundos: event.target.value })}
                     />
                   </label>
                 </div>
+
+                <p id={qrStatusId} className={etapa.qrDecodeStatus === "error" ? "notice error" : "notice"}>
+                  {formatQrDecodeStatus(etapa)}
+                </p>
 
                 {form.etapas.length > 1 ? (
                   <button type="button" onClick={() => removeStage(setForm, index)}>
@@ -307,8 +357,12 @@ function validateForm(form: FormState): string | null {
   for (const [index, etapa] of form.etapas.entries()) {
     const stageNumber = index + 1;
 
+    if (etapa.qrDecodeStatus === "decoding") {
+      return `Espera a que termine la decodificacion del QR de la etapa ${stageNumber}.`;
+    }
+
     if (!etapa.codigoQrEsperado.trim()) {
-      return `El QR esperado de la etapa ${stageNumber} es obligatorio.`;
+      return `Debes subir una imagen QR valida para la etapa ${stageNumber}.`;
     }
 
     if (Number(etapa.tiempoLimiteSegundos) <= 0) {
@@ -320,17 +374,32 @@ function validateForm(form: FormState): string | null {
 }
 
 function updateStage(
-  form: FormState,
   setForm: (updater: (current: FormState) => FormState) => void,
   index: number,
   changes: Partial<StageFormState>
 ) {
-  setForm(() => ({
-    ...form,
-    etapas: form.etapas.map((etapa, currentIndex) =>
+  setForm((current) => ({
+    ...current,
+    etapas: current.etapas.map((etapa, currentIndex) =>
       currentIndex === index ? { ...etapa, ...changes } : etapa
     )
   }));
+}
+
+function formatQrDecodeStatus(etapa: StageFormState): string {
+  if (etapa.qrDecodeStatus === "decoding") {
+    return `Decodificando ${etapa.qrImageName}...`;
+  }
+
+  if (etapa.qrDecodeStatus === "decoded") {
+    return `QR detectado correctamente desde ${etapa.qrImageName}.`;
+  }
+
+  if (etapa.qrDecodeStatus === "error") {
+    return etapa.qrDecodeError ?? "No se pudo leer un QR en la imagen.";
+  }
+
+  return "Sube una imagen PNG o JPEG que contenga el QR esperado de esta etapa.";
 }
 
 function removeStage(setForm: (updater: (current: FormState) => FormState) => void, index: number) {
@@ -350,6 +419,21 @@ function mapErrorMessage(statusCode: number, fallbackMessage: string): string {
       return "La configuracion de modalidad y limites no es valida.";
     case 500:
       return "Error de persistencia en BDT Game Service.";
+    default:
+      return fallbackMessage;
+  }
+}
+
+function mapQrDecodeErrorMessage(statusCode: number, fallbackMessage: string): string {
+  switch (statusCode) {
+    case 413:
+      return "La imagen QR no puede superar 5 MB.";
+    case 415:
+      return "Solo se aceptan imagenes QR JPEG o PNG.";
+    case 422:
+      return "No se pudo leer un QR en la imagen seleccionada.";
+    case 403:
+      return "No autorizado. Debes tener rol Operador para decodificar QR.";
     default:
       return fallbackMessage;
   }

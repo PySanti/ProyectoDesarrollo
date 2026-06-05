@@ -47,6 +47,24 @@ internal sealed class PartidaTriviaRepository : IPartidaTriviaRepository
             .ToListAsync(cancellationToken);
     }
 
+    public async Task<IReadOnlyList<PartidaTrivia>> GetSupervisableForOperatorAsync(CancellationToken cancellationToken = default)
+    {
+        var partidas = await _dbContext.PartidasTrivia
+            .AsNoTracking()
+            .Where(p => p.Estado == PartidaEstado.Lobby || p.Estado == PartidaEstado.Iniciada)
+            .ToListAsync(cancellationToken);
+
+        partidas.Sort((left, right) =>
+        {
+            var byStartTime = left.TiempoInicio.Value.CompareTo(right.TiempoInicio.Value);
+            return byStartTime != 0
+                ? byStartTime
+                : string.Compare(left.Nombre.Value, right.Nombre.Value, StringComparison.Ordinal);
+        });
+
+        return partidas;
+    }
+
     public async Task<int> CountInscripcionesAsync(PartidaId partidaId, CancellationToken cancellationToken = default)
     {
         return await _dbContext.TriviaInscripciones

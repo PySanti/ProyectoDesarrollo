@@ -109,4 +109,49 @@ describe("bdtApi", () => {
       .rejects
       .toBeInstanceOf(BdtApiError);
   });
+
+  it("calls HU-34 QR decode endpoint with multipart image and bearer token", async () => {
+    vi.stubEnv("VITE_BDT_API_BASE_URL", "https://bdt.example.test/");
+    const { decodeExpectedBdtQrImage } = await import("./bdtApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({ qrDecodificado: "QR-ETAPA-1" })
+    });
+    const image = new File(["fake png content"], "qr.png", { type: "image/png" });
+
+    const result = await decodeExpectedBdtQrImage(image, "operator-token", fetchMock as unknown as typeof fetch);
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bdt.example.test/api/bdt/qr/decode", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer operator-token"
+      },
+      body: expect.any(FormData)
+    });
+    expect(result.qrDecodificado).toBe("QR-ETAPA-1");
+  });
+
+  it("maps HU-34 QR decode non-OK responses to BdtApiError", async () => {
+    vi.stubEnv("VITE_BDT_API_BASE_URL", "https://bdt.example.test");
+    const { BdtApiError, decodeExpectedBdtQrImage } = await import("./bdtApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 422,
+      json: async () => ({ message: "No se pudo leer un QR en la imagen." })
+    });
+    const image = new File(["fake png content"], "qr.png", { type: "image/png" });
+
+    await expect(decodeExpectedBdtQrImage(image, "operator-token", fetchMock as unknown as typeof fetch))
+      .rejects
+      .toMatchObject({
+        name: "BdtApiError",
+        message: "No se pudo leer un QR en la imagen.",
+        statusCode: 422
+      });
+
+    await expect(decodeExpectedBdtQrImage(image, "operator-token", fetchMock as unknown as typeof fetch))
+      .rejects
+      .toBeInstanceOf(BdtApiError);
+  });
 });

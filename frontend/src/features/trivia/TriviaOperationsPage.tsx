@@ -1,10 +1,12 @@
-import { FormEvent, useState } from "react";
+import { FormEvent, useEffect, useState } from "react";
 import {
   TriviaApiError,
+  TriviaGameListItem,
   TriviaGameLobby,
   TriviaRankingEntry,
   TriviaTeamLobbyItem,
   createTriviaForm,
+  getOperatorTriviaGamesForSupervision,
   getTriviaParticipants,
   getTriviaRanking,
   getTriviaTeams,
@@ -62,13 +64,19 @@ function createInitialFormState(): FormState {
 
 export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps) {
   const [form, setForm] = useState<FormState>(createInitialFormState);
-  const [partidaId, setPartidaId] = useState("");
+  const [supervisableGames, setSupervisableGames] = useState<TriviaGameListItem[]>([]);
+  const [selectedGameId, setSelectedGameId] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [participants, setParticipants] = useState<TriviaGameLobby | null>(null);
   const [teams, setTeams] = useState<TriviaTeamLobbyItem[] | null>(null);
   const [ranking, setRanking] = useState<TriviaRankingEntry[] | null>(null);
+  const selectedGame = supervisableGames.find((game) => game.id === selectedGameId) ?? null;
+
+  useEffect(() => {
+    void handleLoadSupervisableGames();
+  }, []);
 
   async function handleCreateForm(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -140,51 +148,72 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
     }));
   }
 
-  async function handleLoadParticipants() {
-    if (!partidaId.trim()) {
-      setError("Indica el ID de la partida Trivia.");
-      return;
-    }
-
-    setLoading("participants");
+  async function handleLoadSupervisableGames(preferredSelectedGameId = selectedGameId) {
+    setLoading("supervision-list");
     setError(null);
-    setMessage(null);
     try {
-      const data = await getTriviaParticipants(partidaId.trim(), accessToken);
-      setParticipants(data);
-      setTeams(null);
-      setRanking(null);
+      const games = await getOperatorTriviaGamesForSupervision(accessToken);
+      setSupervisableGames(games);
+
+      if (preferredSelectedGameId && games.some((game) => game.id === preferredSelectedGameId)) {
+        setSelectedGameId(preferredSelectedGameId);
+      } else if (preferredSelectedGameId) {
+        setSelectedGameId("");
+        clearSupervisionDetail();
+      }
     } catch (caught) {
-      setError(mapTriviaError(caught, "No se pudo consultar el lobby de Trivia."));
+      setError(mapTriviaError(caught, "No se pudieron cargar las partidas de Trivia."));
     } finally {
       setLoading(null);
     }
   }
 
-  async function handleLoadTeams() {
-    if (!partidaId.trim()) {
-      setError("Indica el ID de la partida Trivia.");
+  async function handleSelectGame(gameId: string) {
+    setSelectedGameId(gameId);
+    clearSupervisionDetail();
+
+    if (!gameId) {
       return;
     }
 
-    setLoading("teams");
+    await handleLoadSelectedGameDetail(gameId);
+  }
+
+  async function handleLoadSelectedGameDetail(gameId = selectedGameId) {
+    if (!gameId.trim()) {
+      setError("Selecciona una partida Trivia para supervisar.");
+      return;
+    }
+
+    setLoading("detail");
     setError(null);
     setMessage(null);
     try {
-      const data = await getTriviaTeams(partidaId.trim(), accessToken);
-      setTeams(data);
-      setParticipants(null);
-      setRanking(null);
+      const [participantsData, teamsData, rankingData] = await Promise.all([
+        getTriviaParticipants(gameId.trim(), accessToken),
+        getTriviaTeams(gameId.trim(), accessToken),
+        getTriviaRanking(gameId.trim(), accessToken)
+      ]);
+
+      setParticipants(participantsData);
+      setTeams(teamsData);
+      setRanking(rankingData);
     } catch (caught) {
-      setError(mapTriviaError(caught, "No se pudieron consultar equipos en lobby."));
+      setError(mapTriviaError(caught, "No se pudo consultar el detalle de la partida Trivia."));
     } finally {
       setLoading(null);
     }
+  }
+
+  function clearSupervisionDetail() {
+    setParticipants(null);
+    setTeams(null);
+    setRanking(null);
   }
 
   async function handleStart() {
-    if (!partidaId.trim()) {
-      setError("Indica el ID de la partida Trivia.");
+    if (!selectedGameId.trim()) {
+      setError("Selecciona una partida Trivia para iniciar.");
       return;
     }
 
@@ -192,31 +221,15 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
     setError(null);
     setMessage(null);
     try {
-      const started = await startTriviaGame(partidaId.trim(), accessToken);
+      const started = await startTriviaGame(selectedGameId.trim(), accessToken);
+      setSupervisableGames((current) => current.map((game) =>
+        game.id === started.id ? { ...game, estado: started.estado } : game
+      ));
+      await handleLoadSelectedGameDetail(started.id);
+      await handleLoadSupervisableGames(started.id);
       setMessage(`Partida iniciada: ${started.nombre}. Estado ${started.estado}.`);
     } catch (caught) {
       setError(mapTriviaError(caught, "No se pudo iniciar la partida Trivia."));
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  async function handleLoadRanking() {
-    if (!partidaId.trim()) {
-      setError("Indica el ID de la partida Trivia.");
-      return;
-    }
-
-    setLoading("ranking");
-    setError(null);
-    setMessage(null);
-    try {
-      const data = await getTriviaRanking(partidaId.trim(), accessToken);
-      setRanking(data);
-      setParticipants(null);
-      setTeams(null);
-    } catch (caught) {
-      setError(mapTriviaError(caught, "No se pudo consultar el ranking de Trivia."));
     } finally {
       setLoading(null);
     }
@@ -260,14 +273,38 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
 
         <fieldset>
           <legend>Supervisar partida</legend>
-          <label htmlFor="partida-id">ID de partida Trivia
-            <input id="partida-id" value={partidaId} onChange={(event) => setPartidaId(event.target.value)} placeholder="uuid" />
-          </label>
+          <button type="button" className="secondary-button" onClick={() => void handleLoadSupervisableGames()} disabled={loading === "supervision-list"}>
+            {loading === "supervision-list" ? "Cargando partidas..." : "Actualizar partidas"}
+          </button>
+
+          {supervisableGames.length === 0 && loading !== "supervision-list" ? (
+            <p className="muted">No hay partidas Trivia en lobby o iniciadas para supervisar.</p>
+          ) : null}
+
+          {supervisableGames.length > 0 ? (
+            <label htmlFor="trivia-game-selector">Partida Trivia
+              <select
+                id="trivia-game-selector"
+                value={selectedGameId}
+                onChange={(event) => void handleSelectGame(event.target.value)}
+              >
+                <option value="">Selecciona una partida</option>
+                {supervisableGames.map((game) => (
+                  <option key={game.id} value={game.id}>
+                    {game.nombre} - {game.estado} - {game.modalidad}
+                  </option>
+                ))}
+              </select>
+            </label>
+          ) : null}
+
+          {selectedGame ? <SelectedGameSummary game={selectedGame} /> : null}
+
           <div className="actions">
-            <button type="button" onClick={() => void handleLoadParticipants()} disabled={loading === "participants"}>Ver participantes</button>
-            <button type="button" onClick={() => void handleLoadTeams()} disabled={loading === "teams"}>Ver equipos</button>
-            <button type="button" onClick={() => void handleStart()} disabled={loading === "start"}>Iniciar Trivia</button>
-            <button type="button" onClick={() => void handleLoadRanking()} disabled={loading === "ranking"}>Ver ranking</button>
+            <button type="button" onClick={() => void handleLoadSelectedGameDetail()} disabled={!selectedGameId || loading === "detail"}>
+              {loading === "detail" ? "Cargando detalle..." : "Actualizar detalle"}
+            </button>
+            <button type="button" onClick={() => void handleStart()} disabled={!selectedGameId || selectedGame?.estado === "Iniciada" || loading === "start"}>Iniciar Trivia</button>
           </div>
         </fieldset>
 
@@ -326,6 +363,27 @@ function QuestionEditor({
         <label htmlFor={`time-limit-${number}`}>Tiempo limite pregunta {number}<input id={`time-limit-${number}`} type="number" min="5" value={question.timeLimitSeconds} onChange={(event) => onChange({ timeLimitSeconds: event.target.value })} /></label>
       </div>
     </section>
+  );
+}
+
+function SelectedGameSummary({ game }: { game: TriviaGameListItem }) {
+  return (
+    <div className="table-wrap" aria-label="Detalle de partida Trivia seleccionada">
+      <h2>{game.nombre}</h2>
+      <p className="muted">
+        Estado {game.estado} - Modalidad {game.modalidad} - Inicio {game.tiempoInicio}
+      </p>
+      <table aria-label="Resumen de partida Trivia seleccionada">
+        <thead><tr><th>Minimo</th><th>Maximo jugadores</th><th>Maximo equipos</th></tr></thead>
+        <tbody>
+          <tr>
+            <td>{game.minimoParticipantes}</td>
+            <td>{game.maximoJugadores ?? "No aplica"}</td>
+            <td>{game.maximoEquipos ?? "No aplica"}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
   );
 }
 

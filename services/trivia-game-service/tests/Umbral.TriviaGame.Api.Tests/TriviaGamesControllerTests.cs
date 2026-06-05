@@ -165,6 +165,49 @@ public sealed class TriviaGamesControllerTests : IClassFixture<IntegrationTestFa
     }
 
     [Fact]
+    public async Task GetOperatorSupervision_ReturnsLobbyAndStartedGames()
+    {
+        var client = _factory.CreateClient();
+        var formId = await CreateValidFormAsync(client);
+
+        var lobbyId = await CreateIndividualGameAsync(client, formId, "Supervision Lobby");
+        var startedId = await CreateIndividualGameAsync(client, formId, "Supervision Started");
+
+        var joinClient = CreateParticipanteClient();
+        var joinResponse = await joinClient.PostAsync($"/api/trivia-games/{startedId}/join", null);
+        Assert.Equal(HttpStatusCode.OK, joinResponse.StatusCode);
+        var startResponse = await client.PostAsync($"/api/trivia-games/{startedId}/start", null);
+        Assert.Equal(HttpStatusCode.OK, startResponse.StatusCode);
+
+        var response = await client.GetAsync("/api/trivia-games/operator/supervision");
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        var body = await response.Content.ReadFromJsonAsync<List<TriviaGameListItemDto>>();
+        Assert.NotNull(body);
+
+        var relevant = body.Where(game => game.Id == lobbyId || game.Id == startedId).ToList();
+        Assert.Equal(2, relevant.Count);
+        Assert.Contains(relevant, game => game.Id == lobbyId && game.Estado == "Lobby");
+        Assert.Contains(relevant, game => game.Id == startedId && game.Estado == "Iniciada");
+    }
+
+    [Fact]
+    public async Task GetOperatorSupervision_WithoutOperadorRole_Returns403()
+    {
+        var client = _factory.WithWebHostBuilder(builder =>
+        {
+            builder.ConfigureTestServices(services =>
+            {
+                var descriptor = services.SingleOrDefault(d => d.ServiceType == typeof(Testing.TestClaimsProvider));
+                if (descriptor is not null) services.Remove(descriptor);
+                services.AddScoped(_ => Testing.TestClaimsProvider.WithoutOperadorRole());
+            });
+        }).CreateClient();
+
+        var response = await client.GetAsync("/api/trivia-games/operator/supervision");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Get_NonExistentGame_Returns404()
     {
         var client = _factory.CreateClient();
@@ -487,11 +530,11 @@ public sealed class TriviaGamesControllerTests : IClassFixture<IntegrationTestFa
         await ctx.SaveChangesAsync();
     }
 
-    private static async Task<Guid> CreateIndividualGameAsync(HttpClient client, Guid formId)
+    private static async Task<Guid> CreateIndividualGameAsync(HttpClient client, Guid formId, string nombre = "Participants Test")
     {
         var command = new
         {
-            nombre = "Participants Test",
+            nombre,
             modalidad = "Individual",
             modoInicio = "Manual",
             formularioId = formId,

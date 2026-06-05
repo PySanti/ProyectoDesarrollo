@@ -6,7 +6,7 @@ Esta guia describe una ruta local para levantar UMBRAL con infraestructura en Do
 
 - Docker Desktop.
 - .NET SDK 8.
-- Node.js 20 o superior.
+- Node.js 20.19.4 o superior para Expo SDK 54 / React Native 0.81.
 - npm.
 - Expo CLI mediante `npx expo`.
 - Un telefono con Expo Go o un emulador Android/iOS para la app movil.
@@ -193,7 +193,37 @@ Ejecutar cada microservicio en una terminal separada.
 
 Para que Expo Go en un telefono fisico pueda consumir las APIs, los servicios usados por mobile deben escuchar en todas las interfaces (`0.0.0.0`), no solo en `localhost`. Las URLs del `.env` mobile deben seguir usando la IP LAN de la computadora.
 
+Cada microservicio tiene un `.env.example`, un `.env` local y scripts para cargar variables antes de ejecutar `dotnet run`:
+
+```txt
+services/<microservicio>/.env
+services/<microservicio>/run-local.sh
+services/<microservicio>/run-local.ps1
+```
+
+El `.env` local esta ignorado por Git. Antes de levantar `identity-service`, reemplazar `KEYCLOAK_CLIENT_SECRET='<client-secret-de-identity-service>'` por el secreto real del cliente `identity-service` en Keycloak.
+
+En Linux / bash, desde la raiz del repositorio:
+
+```bash
+./services/identity-service/run-local.sh
+./services/team-service/run-local.sh
+./services/trivia-game-service/run-local.sh
+./services/bdt-game-service/run-local.sh
+```
+
+En PowerShell, desde la raiz del repositorio:
+
+```powershell
+.\services\identity-service\run-local.ps1
+.\services\team-service\run-local.ps1
+.\services\trivia-game-service\run-local.ps1
+.\services\bdt-game-service\run-local.ps1
+```
+
 ### Identity Service
+
+PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT='Development'
@@ -208,9 +238,26 @@ $env:KEYCLOAK_CLIENT_SECRET='<client-secret-de-identity-service>'
 dotnet run --project "services/identity-service/src/Umbral.IdentityService.Api/Umbral.IdentityService.Api.csproj"
 ```
 
+Linux / bash:
+
+```bash
+export ASPNETCORE_ENVIRONMENT='Development'
+export ASPNETCORE_URLS='http://localhost:5000'
+export ConnectionStrings__IdentityDatabase='Host=localhost;Port=55432;Database=umbral_identity;Username=umbral;Password=16102005'
+export KEYCLOAK_BASE_URL='http://localhost:8080'
+export KEYCLOAK_REALM='UMBRAL-UCAB'
+export KEYCLOAK_CLIENT_ID='identity-service'
+export KEYCLOAK_VALID_AUDIENCES='identity-service,umbral-web,account'
+export KEYCLOAK_VALID_ISSUERS='http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB'
+export KEYCLOAK_CLIENT_SECRET='<client-secret-de-identity-service>'
+dotnet run --project "services/identity-service/src/Umbral.IdentityService.Api/Umbral.IdentityService.Api.csproj"
+```
+
 Si solo se van a probar endpoints protegidos con tokens ya emitidos y no la creacion real de usuarios en Keycloak, el secreto puede no ser necesario para todos los flujos. Para HU-01, la integracion Keycloak real si requiere configuracion completa.
 
 ### Team Service
+
+PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT='Development'
@@ -224,7 +271,23 @@ $env:KEYCLOAK_VALID_ISSUERS='http://localhost:8080/realms/UMBRAL-UCAB,http://192
 dotnet run --project "services/team-service/src/Umbral.TeamService.Api/Umbral.TeamService.Api.csproj"
 ```
 
+Linux / bash:
+
+```bash
+export ASPNETCORE_ENVIRONMENT='Development'
+export ASPNETCORE_URLS='http://0.0.0.0:5099'
+export ConnectionStrings__TeamDatabase='Host=localhost;Port=55432;Database=umbral_team;Username=umbral;Password=16102005'
+export KEYCLOAK_BASE_URL='http://localhost:8080'
+export KEYCLOAK_REALM='UMBRAL-UCAB'
+export KEYCLOAK_CLIENT_ID='team-service'
+export KEYCLOAK_VALID_AUDIENCES='team-service,umbral-mobile,account'
+export KEYCLOAK_VALID_ISSUERS='http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB'
+dotnet run --project "services/team-service/src/Umbral.TeamService.Api/Umbral.TeamService.Api.csproj"
+```
+
 ### Trivia Game Service
+
+PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT='Development'
@@ -233,9 +296,20 @@ $env:ConnectionStrings__TriviaGameDb='Host=localhost;Port=55432;Database=umbral_
 dotnet run --project "services/trivia-game-service/src/Umbral.TriviaGame.Api/Umbral.TriviaGame.Api.csproj"
 ```
 
+Linux / bash:
+
+```bash
+export ASPNETCORE_ENVIRONMENT='Development'
+export ASPNETCORE_URLS='http://0.0.0.0:5015'
+export ConnectionStrings__TriviaGameDb='Host=localhost;Port=55432;Database=umbral_trivia_game;Username=umbral;Password=16102005'
+dotnet run --project "services/trivia-game-service/src/Umbral.TriviaGame.Api/Umbral.TriviaGame.Api.csproj"
+```
+
 Nota: este servicio usa validacion JWT relajada en desarrollo segun su `Program.cs`. Para pruebas manuales con Keycloak, revisar tambien claims/roles usados por los endpoints de Trivia.
 
 ### BDT Game Service
+
+PowerShell:
 
 ```powershell
 $env:ASPNETCORE_ENVIRONMENT='Development'
@@ -246,6 +320,20 @@ $env:KEYCLOAK_REALM='UMBRAL-UCAB'
 $env:KEYCLOAK_CLIENT_ID='bdt-game-service'
 $env:KEYCLOAK_VALID_AUDIENCES='bdt-game-service,umbral-web,umbral-mobile,account'
 $env:KEYCLOAK_VALID_ISSUERS='http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB'
+dotnet run --project "services/bdt-game-service/src/Umbral.BdtGameService.Api/Umbral.BdtGameService.Api.csproj"
+```
+
+Linux / bash:
+
+```bash
+export ASPNETCORE_ENVIRONMENT='Development'
+export ASPNETCORE_URLS='http://0.0.0.0:5016'
+export ConnectionStrings__BdtDatabase='Host=localhost;Port=55432;Database=umbral_bdt_game;Username=umbral;Password=16102005'
+export KEYCLOAK_BASE_URL='http://localhost:8080'
+export KEYCLOAK_REALM='UMBRAL-UCAB'
+export KEYCLOAK_CLIENT_ID='bdt-game-service'
+export KEYCLOAK_VALID_AUDIENCES='bdt-game-service,umbral-web,umbral-mobile,account'
+export KEYCLOAK_VALID_ISSUERS='http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB'
 dotnet run --project "services/bdt-game-service/src/Umbral.BdtGameService.Api/Umbral.BdtGameService.Api.csproj"
 ```
 
@@ -305,6 +393,8 @@ Flujos web disponibles segun rol:
 
 Para telefono fisico, no usar `localhost` en `.env`; usar la IP LAN de la computadora.
 
+La app mobile usa Expo SDK 54 / React Native 0.81. Debe ejecutarse con Node `20.19.4` o superior. Si aparece un error como `configs.toReversed is not a function`, significa que la terminal sigue usando Node 18 u otra version incompatible.
+
 Obtener IP LAN en Windows:
 
 ```powershell
@@ -323,13 +413,47 @@ Entrar al directorio mobile:
 cd mobile
 ```
 
+Si usas `nvm`, activar la version esperada por el proyecto:
+
+```bash
+nvm install
+nvm use
+```
+
+Si usas `fnm`, activar la version esperada por el proyecto:
+
+```bash
+fnm install 20.19.4
+fnm use 20.19.4
+```
+
+Verificar que Node sea `20.19.4` o superior:
+
+```bash
+node --version
+```
+
 Instalar dependencias:
 
 ```powershell
 npm install
 ```
 
-Crear `.env` a partir de `.env.example` y completar todas las URLs necesarias:
+Crear `.env` a partir de `.env.example` y completar todas las URLs necesarias.
+
+PowerShell:
+
+```powershell
+Copy-Item .env.example .env
+```
+
+Linux / bash:
+
+```bash
+cp .env.example .env
+```
+
+Contenido esperado:
 
 ```env
 EXPO_PUBLIC_KEYCLOAK_URL=http://<IP-LAN>:8080
@@ -355,13 +479,126 @@ EXPO_PUBLIC_APP_SCHEME=umbral
 EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://192.168.1.20:8081/--/auth
 ```
 
-Levantar Expo:
+Antes de levantar Expo, verificar que los puertos sean accesibles desde la computadora usando la misma IP LAN configurada en `.env`:
+
+PowerShell:
 
 ```powershell
-npm run start
+Test-NetConnection <IP-LAN> -Port 5099
+Test-NetConnection <IP-LAN> -Port 5015
+Test-NetConnection <IP-LAN> -Port 5016
+Invoke-WebRequest http://<IP-LAN>:8080/realms/UMBRAL-UCAB/.well-known/openid-configuration
 ```
 
-Abrir el QR con Expo Go.
+Linux / bash:
+
+```bash
+curl -i --max-time 5 http://<IP-LAN>:5099
+curl -i --max-time 5 http://<IP-LAN>:5015
+curl -i --max-time 5 http://<IP-LAN>:5016
+curl http://<IP-LAN>:8080/realms/UMBRAL-UCAB/.well-known/openid-configuration
+```
+
+Si algun puerto no responde desde la computadora, tambien fallara desde Expo Go. Un `404` o `401` en `curl` confirma que el puerto responde; un timeout o connection refused indica problema de red, firewall o servicio apagado. Revisa que el servicio escuche en `0.0.0.0`, que la IP LAN sea correcta y que el firewall permita el puerto.
+
+Levantar Expo en modo LAN sin logging persistente:
+
+```powershell
+npm run start:lan
+```
+
+Abrir el QR con Expo Go. La URL que imprime Expo debe apuntar a la IP LAN de la computadora, por ejemplo `exp://192.168.1.20:8081`.
+
+Si Expo Go muestra `failed to download remote update`, normalmente el telefono no puede descargar el bundle desde Metro. En ese caso usar el modo tunnel:
+
+```powershell
+npm run start:tunnel
+```
+
+El modo tunnel es mas lento, pero evita problemas de firewall, redes Wi-Fi aisladas, VPN o IP LAN incorrecta.
+
+### Levantar mobile con logs de errores
+
+Para depurar errores de Metro, Expo, dependencias, variables `.env` o red, levantar Expo guardando stdout/stderr en archivo.
+
+PowerShell:
+
+```powershell
+npm run start:logged
+```
+
+Linux / bash:
+
+```bash
+npm run start:logged
+```
+
+Para levantar con tunnel y logs:
+
+```powershell
+npm run start:tunnel:logged
+```
+
+Los scripts `start:logged` y `start:tunnel:logged` crean automaticamente un archivo con timestamp en `mobile/logs/`.
+
+Si prefieres usar comandos directos en vez del script, puedes guardar logs manualmente.
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force logs | Out-Null
+npm run start:lan 2>&1 | Tee-Object -FilePath logs/mobile-expo.log
+```
+
+Linux / bash:
+
+```bash
+mkdir -p logs
+npm run start:lan 2>&1 | tee logs/mobile-expo.log
+```
+
+Si necesitas conservar logs manuales por ejecucion, usar timestamp.
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force logs | Out-Null
+$timestamp = Get-Date -Format 'yyyyMMdd-HHmmss'
+npm run start:lan 2>&1 | Tee-Object -FilePath "logs/mobile-expo-$timestamp.log"
+```
+
+Linux / bash:
+
+```bash
+mkdir -p logs
+npm run start:lan 2>&1 | tee "logs/mobile-expo-$(date +%Y%m%d-%H%M%S).log"
+```
+
+Ejecutar verificaciones mobile con logs:
+
+PowerShell:
+
+```powershell
+New-Item -ItemType Directory -Force logs | Out-Null
+npm run typecheck 2>&1 | Tee-Object -FilePath logs/mobile-typecheck.log
+npm test 2>&1 | Tee-Object -FilePath logs/mobile-tests.log
+```
+
+Linux / bash:
+
+```bash
+mkdir -p logs
+npm run typecheck 2>&1 | tee logs/mobile-typecheck.log
+npm test 2>&1 | tee logs/mobile-tests.log
+```
+
+Los logs quedan en:
+
+```txt
+mobile/logs/
+```
+
+No subir logs al repositorio. Si necesitas compartir un error, copiar solo el bloque relevante sin tokens ni secretos.
 
 Si usas emulador Android puedes probar:
 
@@ -407,7 +644,14 @@ npm run dev
 
 ```powershell
 cd mobile
-npm run start
+npm run start:logged
+```
+
+Linux / bash:
+
+```bash
+cd mobile
+npm run start:logged
 ```
 
 ## Verificacion rapida
@@ -430,8 +674,18 @@ npm run build
 
 ```powershell
 cd mobile
-npm test
-npm run typecheck
+New-Item -ItemType Directory -Force logs | Out-Null
+npm test 2>&1 | Tee-Object -FilePath logs/mobile-tests.log
+npm run typecheck 2>&1 | Tee-Object -FilePath logs/mobile-typecheck.log
+```
+
+Linux / bash:
+
+```bash
+cd mobile
+mkdir -p logs
+npm test 2>&1 | tee logs/mobile-tests.log
+npm run typecheck 2>&1 | tee logs/mobile-typecheck.log
 ```
 
 ### Backend
@@ -472,6 +726,48 @@ dotnet test "services/bdt-game-service/tests/Umbral.BdtGameService.ContractTests
 - Usa la IP LAN de la computadora.
 - Verifica que telefono y computadora esten en la misma red.
 - Permite el puerto en firewall de Windows si aplica.
+- Levanta Expo con logging y revisa `mobile/logs/mobile-expo.log`.
+
+### Expo mobile no levanta
+
+- Ejecuta `node --version` dentro de `mobile`; debe ser `20.19.4` o superior.
+- Ejecuta `npm install` si faltan dependencias.
+- Ejecuta `npm run typecheck` para separar errores TypeScript de errores de runtime.
+- Levanta con `npm run start:lan` para limpiar cache de Metro y usar LAN.
+- Si Expo Go muestra `failed to download remote update`, levanta con `npm run start:tunnel:logged`.
+- Revisa `mobile/logs/mobile-expo.log` si levantaste con `Tee-Object` o `tee`.
+
+### Expo Go muestra `failed to download remote update`
+
+Este error ocurre antes de que la app UMBRAL ejecute su logica: Expo Go no pudo descargar el bundle/update desde el servidor Metro.
+
+Checklist rapido:
+
+- Actualiza Expo Go desde Play Store / App Store. El proyecto usa Expo SDK 54.
+- En la terminal mobile ejecuta `node --version`; debe ser `20.19.4` o superior.
+- Cierra Expo Go completamente y vuelve a escanear el QR.
+- Ejecuta `npm run start:lan` y confirma que el QR/URL use la IP LAN correcta de la computadora.
+- Desde el navegador del telefono prueba `http://<IP-LAN>:8081`; debe responder algo de Expo/Metro o al menos no quedarse en timeout.
+- Si `http://<IP-LAN>:8081` no responde, revisa firewall/VPN/red o usa `npm run start:tunnel:logged`.
+- Si el telefono y la computadora estan en redes distintas, usa tunnel.
+- Si usas Wi-Fi corporativa/universitaria, puede bloquear trafico entre dispositivos; usa hotspot del telefono o tunnel.
+- Si cambiaste el puerto de Expo, actualiza `EXPO_PUBLIC_AUTH_REDIRECT_URI` y el redirect URI del cliente `umbral-mobile` en Keycloak.
+
+Comando recomendado para capturar el error:
+
+```powershell
+cd mobile
+npm run start:tunnel:logged
+```
+
+El log queda en `mobile/logs/mobile-expo-<timestamp>.log`.
+
+### Login mobile no redirige correctamente
+
+- Verifica que `EXPO_PUBLIC_AUTH_REDIRECT_URI` en `mobile/.env` coincida exactamente con Keycloak.
+- Para Expo Go normalmente debe tener forma `exp://<IP-LAN>:8081/--/auth`.
+- Si cambias el puerto de Expo, actualiza tambien `EXPO_PUBLIC_AUTH_REDIRECT_URI` y `Valid redirect URIs` del cliente `umbral-mobile`.
+- Verifica que `EXPO_PUBLIC_KEYCLOAK_URL` use la IP LAN y no `localhost` cuando pruebas en telefono fisico.
 
 ### Keycloak redirige pero vuelve sin rol
 

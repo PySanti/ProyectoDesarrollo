@@ -4,7 +4,7 @@ Owning service: Trivia Game Service
 
 ## Status
 
-HU-15, HU-17, HU-18, HU-22, HU-23, HU-24, HU-26, HU-28 and HU-29 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
+HU-15, HU-17, HU-18, HU-22, HU-23, HU-24, HU-26, HU-28, HU-29 and HU-35 endpoints are implemented. Endpoint details for future HUs must be completed feature by feature in the related SDD before implementation.
 
 ## Base path
 
@@ -125,6 +125,57 @@ Constraints:
 
 ---
 
+## GET /api/trivia-forms
+
+List Trivia forms available to the operator. HU-17 uses this query to populate the form selector when creating and publishing a Trivia game.
+
+| Field | Value |
+|---|---|
+| Related HU | HU-15, HU-17 |
+| Related requirements | RF-15, RF-16, RF-17, RF-35 |
+| Authorization | Operador |
+| Type | Query |
+
+### Response
+
+**200 OK**
+
+```json
+[
+  {
+    "id": "uuid",
+    "title": "string",
+    "isComplete": true,
+    "questionsCount": 3,
+    "createdAtUtc": "2026-05-31T00:00:00Z"
+  }
+]
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user is not Operador |
+| 500 | Unexpected error |
+
+### Business rules enforced
+
+- The endpoint is read-only and must not mutate forms or games.
+- `isComplete` and `questionsCount` must be calculated from the persisted questions/options so complete forms can be selected by HU-17.
+- The frontend may filter incomplete forms for game creation, but backend remains authoritative when creating the game.
+
+### Events published
+
+- None
+
+### Real-time updates
+
+- None
+
+---
+
 ## GET /api/trivia-games
 
 List all published Trivia games (state = Lobby). Optionally filter by modalidad.
@@ -184,6 +235,67 @@ GET /api/trivia-games?modalidad=Equipo
 ### Real-time updates
 
 - None
+
+---
+
+## GET /api/trivia-games/operator/supervision
+
+List Trivia games available for operator supervision. Unlike the participant published-game list, this endpoint returns games in `Lobby` and `Iniciada` so the operator can select a game and view participants, teams, ranking and start state without manually typing an id.
+
+| Field | Value |
+|---|---|
+| Related HU | HU-35 |
+| Related requirements | RF-17, RF-18, RF-23, RF-35, RF-36 |
+| Authorization | Operador |
+| Type | Query |
+
+### Request
+
+```
+GET /api/trivia-games/operator/supervision
+```
+
+### Response
+
+**200 OK**
+
+```json
+[
+  {
+    "id": "uuid",
+    "nombre": "Trivia demo",
+    "modalidad": "Individual | Equipo",
+    "estado": "Lobby | Iniciada",
+    "tiempoInicio": "ISO 8601 DateTimeOffset",
+    "minimoParticipantes": 1,
+    "maximoJugadores": 10,
+    "maximoEquipos": null
+  }
+]
+```
+
+### Error responses
+
+| Status | Reason |
+|---|---|
+| 401 | Unauthenticated |
+| 403 | Authenticated user is not Operador |
+| 500 | Unexpected error |
+
+### Business rules enforced
+
+- The endpoint is read-only and must not mutate Trivia games, participants, teams or ranking state.
+- Return only Trivia games with state `Lobby` or `Iniciada`.
+- Do not return `Cancelada` or `Terminada` games.
+- The participant endpoint `GET /api/trivia-games` remains unchanged and continues to return only published `Lobby` games.
+
+### Events published
+
+- None
+
+### Real-time updates
+
+- None required for HU-35 closure. Existing detail sections may use documented HU-22/HU-23/HU-30 contracts.
 
 ---
 

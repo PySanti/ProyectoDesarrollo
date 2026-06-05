@@ -24,6 +24,7 @@
 ## API
 
 - [x] Add `POST /api/bdt/games` endpoint.
+- [x] Add `POST /api/bdt/qr/decode` operator endpoint for expected-stage QR image decoding.
 - [x] Enforce authenticated `Operador` authorization.
 - [x] Map business validation failures to `400` or `409`.
 - [x] Keep controller free of business rules.
@@ -31,6 +32,7 @@
 ## Contracts
 
 - [x] Update `contracts/http/bdt-game-api.md` with `POST /api/bdt/games` after SDD review.
+- [x] Update `contracts/http/bdt-game-api.md` with HU-34 QR decode helper endpoint.
 - [x] Update `contracts/events/bdt-game-events.md` to state no integration event is required for HU-34 closure.
 - [x] Document that SignalR publication/lobby updates are deferred to HU-42 or HU-55 for HU-34 readiness.
 
@@ -41,12 +43,16 @@
 - [x] Add API integration tests for success and authorization/error cases.
 - [x] Add HTTP contract tests.
 - [x] Add React web form tests for required fields and submit states.
+- [x] Add backend contract tests for operator QR image decode endpoint.
+- [x] Add frontend tests proving the operator uploads QR images instead of typing QR strings.
 
 ## Frontend Web
 
 - [x] Add operator BDT creation screen or route.
 - [x] Add stages editor for one or more stages.
+- [x] Replace manual expected-QR string input with operator QR image upload and backend decode feedback.
 - [x] Add API client method for `POST /api/bdt/games`.
+- [x] Add API client method for `POST /api/bdt/qr/decode`.
 - [x] Render loading, success and error states.
 
 ## Acceptance and Traceability

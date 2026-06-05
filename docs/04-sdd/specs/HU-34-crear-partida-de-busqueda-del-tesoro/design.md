@@ -9,6 +9,7 @@
 - Identity Service / Keycloak token claims for authenticated role `Operador`.
 - PostgreSQL through EF Core inside BDT Game Service.
 - React web as operator client.
+- BDT-owned QR decoder adapter (`IQrImageDecoder`) to decode expected QR content from operator-uploaded stage QR images.
 
 No other microservice is allowed to own BDT creation. Team Service is not required for HU-34 because no team is registered during creation.
 
@@ -29,6 +30,7 @@ Domain invariants:
 
 - A BDT game must have at least one stage.
 - Every stage must have expected textual QR content.
+- The React web operator form must obtain expected textual QR content through backend QR-image decoding, not through manual string entry.
 - Every stage must have a positive time limit.
 - Search area is text only.
 - BDT creation must not introduce numeric BDT scoring as ranking rule.
@@ -71,6 +73,14 @@ Documented endpoint in `contracts/http/bdt-game-api.md`:
 ```txt
 POST /api/bdt/games
 ```
+
+React web must first decode each stage QR image through:
+
+```txt
+POST /api/bdt/qr/decode
+```
+
+The decode endpoint accepts `multipart/form-data` field `image`, is authorized for `Operador`, returns `{ "qrDecodificado": "..." }`, and does not persist state.
 
 Authorization:
 
@@ -178,6 +188,7 @@ Contract tests:
 Frontend tests:
 
 - Web form validates required fields for usability.
+- Web form uploads a QR image per stage for backend decoding and does not expose manual QR string input.
 - Web form submits to documented API and renders success/error states.
 
 PostgreSQL tests:

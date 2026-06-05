@@ -26,6 +26,11 @@ public sealed class StubPartidaTriviaRepository : IPartidaTriviaRepository
         return Task.FromResult<IReadOnlyList<PartidaTrivia>>(new List<PartidaTrivia>());
     }
 
+    public Task<IReadOnlyList<PartidaTrivia>> GetSupervisableForOperatorAsync(CancellationToken cancellationToken = default)
+    {
+        return Task.FromResult<IReadOnlyList<PartidaTrivia>>(new List<PartidaTrivia>());
+    }
+
     public Task<int> CountInscripcionesAsync(PartidaId partidaId, CancellationToken cancellationToken = default)
     {
         return Task.FromResult(0);

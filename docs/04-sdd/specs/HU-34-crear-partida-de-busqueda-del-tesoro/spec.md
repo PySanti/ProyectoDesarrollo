@@ -30,7 +30,7 @@ Included:
 - React web operator form for BDT creation.
 - Backend command in BDT Game Service to create `PartidaBDT`.
 - Required fields: name, textual search area, modality, minimum participants, maximum participants or teams according to modality, minimum players per team when modality is `Equipo`, start mode and stages.
-- Stage fields: order, expected textual QR content and time limit in seconds.
+- Stage fields: order, QR image uploaded by the operator and decoded by BDT Game Service into expected textual QR content, plus time limit in seconds.
 - Validation that at least one valid stage exists.
 - Persist the game and stages in BDT Game Service PostgreSQL storage.
 - Create the game in state `Lobby` for first-delivery publication semantics.
@@ -43,7 +43,7 @@ Out of scope:
 - Joining individual BDT games; covered by HU-39.
 - Team BDT joining and leadership validation; covered by HU-40 and HU-14.
 - Starting the BDT game; covered by HU-43.
-- QR image upload and QR decoding; covered by HU-45 and HU-46.
+- Participant QR image upload and participant QR validation; covered by HU-45 and HU-46.
 - Geolocation, clues, ranking, active-stage gameplay and SignalR lobby/publication updates.
 
 ## Preconditions
@@ -57,7 +57,7 @@ Out of scope:
 
 - A new `PartidaBDT` exists in BDT Game Service persistence.
 - The game has state `Lobby` and can be listed as published by HU-37 and participant listing flows.
-- Each persisted stage has expected textual QR content and a positive time limit.
+- Each persisted stage has expected textual QR content decoded from the operator-uploaded QR image and a positive time limit.
 - No participant is registered by this command.
 - No BDT ranking, geolocation, clue or QR validation state is created.
 
@@ -93,7 +93,7 @@ Out of scope:
 1. An authenticated operator can create a BDT game from React web.
 2. The request requires name, textual search area, modality, participation limits, start mode and at least one stage.
 3. The backend rejects creation without stages.
-4. The backend rejects any stage without expected textual QR content.
+4. The web form rejects any stage without a QR image decoded by BDT Game Service into expected textual QR content.
 5. The backend rejects any stage without a positive time limit.
 6. In individual modality, the maximum participant limit is interpreted as maximum players.
 7. In team modality, the maximum participant limit is interpreted as maximum teams and minimum players per team is required.
@@ -107,7 +107,7 @@ Out of scope:
 
 - For first delivery, successful HU-34 creation publishes the game as `Lobby` because no separate BDT draft/publish HU is active.
 - `Publicada` is represented by BDT state `Lobby`, consistent with HU-10 and HU-12.
-- Expected QR is stored as textual content, not as the QR image.
+- Expected QR is stored as textual content, but the operator obtains it by uploading a QR image for backend decoding instead of typing the string manually.
 - RF-13 publication/lobby real-time updates are deferred to HU-42 or HU-55 and do not block HU-34 implementation readiness.
 
 ## Open Questions

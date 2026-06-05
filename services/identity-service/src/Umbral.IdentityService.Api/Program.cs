@@ -1,6 +1,7 @@
 using FluentValidation;
 using FluentValidation.Results;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using MediatR;
 using System.Security.Claims;
@@ -14,6 +15,7 @@ using Umbral.IdentityService.Application.Users.GetUserById;
 using Umbral.IdentityService.Application.Users.GetUsers;
 using Umbral.IdentityService.Application.Users.UpdateUserGeneralData;
 using Umbral.IdentityService.Infrastructure;
+using Umbral.IdentityService.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -115,6 +117,28 @@ builder.Services.AddAuthorization(options =>
 });
 
 var app = builder.Build();
+
+using (var scope = app.Services.CreateScope())
+{
+    var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
+    await dbContext.Database.EnsureCreatedAsync();
+
+    if (dbContext.Database.IsRelational())
+    {
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS usuarios (
+                usuarioid uuid PRIMARY KEY,
+                keycloakid varchar(128) NOT NULL,
+                nombre varchar(120) NOT NULL,
+                correo varchar(320) NOT NULL,
+                rol integer NOT NULL,
+                estado integer NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS ix_usuarios_correo ON usuarios (correo);
+            """);
+    }
+}
 
 app.UseCors("FrontendDev");
 app.UseAuthentication();
