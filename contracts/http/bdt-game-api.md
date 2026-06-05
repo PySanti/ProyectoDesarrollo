@@ -165,6 +165,81 @@ Real-time updates:
 
 - none required for HU-34 closure. Real-time publication/lobby updates are deferred to the BDT real-time/lobby stories such as HU-42 or HU-55 unless a later SDD introduces a SignalR contract.
 
+## POST /api/bdt/stages/expected-qr/decode
+
+Related HU:
+
+- HU-34
+
+Related requirement:
+
+- RF-26
+- RF-35
+- RF-36
+- RNF-01
+- RNF-04
+- RNF-06
+- RNF-13
+- RNF-16
+
+Authorization:
+
+- Authenticated operator (`Operador`).
+
+Request:
+
+- `multipart/form-data`.
+- Required field `image`: QR image selected by the operator while configuring a BDT stage.
+- Accepted media types: `image/jpeg` and `image/png`.
+- Maximum image size: `5 MB`.
+
+Response (`200 OK`) for readable QR:
+
+```json
+{
+  "estadoProcesamiento": "Decodificado",
+  "qrDecodificado": "QR-ETAPA-1",
+  "mensaje": "QR decodificado correctamente."
+}
+```
+
+Response (`200 OK`) for unreadable QR:
+
+```json
+{
+  "estadoProcesamiento": "NoLegible",
+  "qrDecodificado": null,
+  "mensaje": "No se pudo leer un QR en la imagen."
+}
+```
+
+Error responses:
+
+| Status | Reason |
+|---|---|
+| 400 | Missing `image` field or invalid multipart metadata |
+| 401 | Unauthenticated |
+| 403 | Authenticated user without operator authorization/policy |
+| 413 | Image exceeds `5 MB` |
+| 415 | Image media type is not `image/jpeg` or `image/png` |
+| 500 | Decoder infrastructure failure |
+
+Business rules:
+
+- This endpoint is an operator configuration helper for HU-34.
+- The BDT Game Service decodes the uploaded QR image and returns its textual content.
+- The endpoint does not create or mutate a BDT game, stage, treasure upload, ranking or history record.
+- The decoded text can be used as `etapas[].codigoQrEsperado` in `POST /api/bdt/games`.
+- React web must not be treated as authoritative for QR decoding or BDT rules.
+
+Events published:
+
+- none required for HU-34 closure.
+
+Real-time updates:
+
+- none.
+
 ## GET /api/bdt/operator/games/published
 
 Related HU:

@@ -38,6 +38,8 @@ internal sealed class TriviaFormRepository : ITriviaFormRepository
     {
         return await _dbContext.TriviaForms
             .AsNoTracking()
+            .Include(f => f.Questions)
+            .ThenInclude(q => q.Options)
             .ToListAsync(cancellationToken);
     }
 }

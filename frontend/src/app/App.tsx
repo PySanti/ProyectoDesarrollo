@@ -126,9 +126,6 @@ export function App() {
           <div>
             <p className="eyebrow">Panel web</p>
             <h1>UMBRAL Web - Administracion y Operacion</h1>
-            <p className="muted">
-              {authState.user.username} · {authState.user.roles.join(", ")}
-            </p>
           </div>
           <button className="secondary-button" type="button" onClick={onLogout}>
             Cerrar sesion

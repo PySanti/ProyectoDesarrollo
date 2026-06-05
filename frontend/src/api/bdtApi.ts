@@ -55,6 +55,12 @@ export interface StartBdtGameResponse {
   mensaje: string;
 }
 
+export interface DecodeExpectedQrResponse {
+  estadoProcesamiento: "Decodificado" | "NoLegible";
+  qrDecodificado: string | null;
+  mensaje: string;
+}
+
 export class BdtApiError extends Error {
   constructor(
     message: string,
@@ -101,6 +107,36 @@ export async function createBdtGame(
   }
 
   return body as CreateBdtGameResponse;
+}
+
+export async function decodeBdtExpectedQrImage(
+  image: File,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<DecodeExpectedQrResponse> {
+  const formData = new FormData();
+  formData.append("image", image);
+
+  const response = await fetchImpl(`${resolveBaseUrl()}/api/bdt/stages/expected-qr/decode`, {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${accessToken}`
+    },
+    body: formData
+  });
+
+  const body = (await response.json().catch(() => ({}))) as
+    | { message?: string }
+    | DecodeExpectedQrResponse;
+
+  if (!response.ok) {
+    const message =
+      (body as { message?: string }).message ??
+      `BDT API error. Status=${response.status}`;
+    throw new BdtApiError(message, response.status);
+  }
+
+  return body as DecodeExpectedQrResponse;
 }
 
 export async function getOperatorPublishedBdtGames(

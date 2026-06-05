@@ -109,4 +109,33 @@ describe("bdtApi", () => {
       .rejects
       .toBeInstanceOf(BdtApiError);
   });
+
+  it("calls HU-34 expected QR decode endpoint with multipart image and bearer token", async () => {
+    vi.stubEnv("VITE_BDT_API_BASE_URL", "https://bdt.example.test/");
+    const { decodeBdtExpectedQrImage } = await import("./bdtApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => ({
+        estadoProcesamiento: "Decodificado",
+        qrDecodificado: "QR-ETAPA-1",
+        mensaje: "QR decodificado correctamente."
+      })
+    });
+
+    const result = await decodeBdtExpectedQrImage(
+      new File(["QR:QR-ETAPA-1"], "qr.png", { type: "image/png" }),
+      "operator-token",
+      fetchMock as unknown as typeof fetch
+    );
+
+    expect(fetchMock).toHaveBeenCalledWith("https://bdt.example.test/api/bdt/stages/expected-qr/decode", {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer operator-token"
+      },
+      body: expect.any(FormData)
+    });
+    expect(result.qrDecodificado).toBe("QR-ETAPA-1");
+  });
 });

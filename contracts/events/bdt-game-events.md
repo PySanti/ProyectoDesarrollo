@@ -12,6 +12,8 @@ For HU-12 specifically, no integration event publication is required for closure
 
 For HU-34 specifically, no RabbitMQ integration event publication is required for closure. Creating a BDT game is persisted by BDT Game Service and returned synchronously through `POST /api/bdt/games`. User-visible publication updates are deferred to HU-42 or HU-55 unless a later SDD introduces a SignalR/event contract.
 
+For the HU-34 expected QR image decode helper, no RabbitMQ integration event and no SignalR/WebSocket message are required. Decoding a QR image for operator configuration is a synchronous helper through `POST /api/bdt/stages/expected-qr/decode` and does not mutate BDT state.
+
 For HU-37 specifically, no integration event publication is required for closure. Viewing operator published BDT games is a read-only query.
 
 For HU-39 specifically, no RabbitMQ integration event publication is required for closure. Joining an individual BDT is handled as a BDT Game Service state change persisted synchronously through `POST /api/bdt/games/{partidaId}/individual-inscriptions`. Operator lobby real-time updates are deferred to HU-42 or HU-55 unless a later SDD introduces a SignalR/event contract.

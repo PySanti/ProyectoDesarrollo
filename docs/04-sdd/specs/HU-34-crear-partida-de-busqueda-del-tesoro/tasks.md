@@ -48,6 +48,16 @@
 - [x] Add stages editor for one or more stages.
 - [x] Add API client method for `POST /api/bdt/games`.
 - [x] Render loading, success and error states.
+- [x] Add QR image upload control per stage that decodes expected QR text through BDT Game Service.
+- [x] Add API client method for `POST /api/bdt/stages/expected-qr/decode`.
+
+## Expected QR Image Decode Refinement
+
+- [x] Add `DecodificarQrEsperadoBdtCommand`, handler and validator.
+- [x] Add `POST /api/bdt/stages/expected-qr/decode` endpoint for authenticated `Operador`.
+- [x] Reuse BDT-owned `IQrImageDecoder`; do not decode QR authoritatively in React web.
+- [x] Add unit, contract and frontend tests for readable and unreadable QR image outcomes.
+- [x] Update HTTP/event contracts and acceptance evidence after implementation.
 
 ## Acceptance and Traceability
 

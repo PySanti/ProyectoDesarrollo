@@ -49,6 +49,38 @@ describe("CreateBdtGamePage", () => {
     expect(await screen.findByTestId("bdt-create-success")).toBeInTheDocument();
   });
 
+  it("decodes a QR image and fills expected QR text", async () => {
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue({
+      estadoProcesamiento: "Decodificado",
+      qrDecodificado: "QR-IMAGEN-1",
+      mensaje: "QR decodificado correctamente."
+    });
+
+    render(<CreateBdtGamePage accessToken="token-1" />);
+
+    const file = new File(["QR:QR-IMAGEN-1"], "qr.png", { type: "image/png" });
+    await userEvent.upload(screen.getByLabelText(/imagen qr etapa 1/i), file);
+
+    expect(await screen.findByDisplayValue("QR-IMAGEN-1")).toBeInTheDocument();
+    expect(screen.getByText("QR decodificado correctamente.")).toBeInTheDocument();
+  });
+
+  it("shows unreadable QR message without filling expected text", async () => {
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue({
+      estadoProcesamiento: "NoLegible",
+      qrDecodificado: null,
+      mensaje: "No se pudo leer un QR en la imagen."
+    });
+
+    render(<CreateBdtGamePage accessToken="token-1" />);
+
+    const file = new File(["not-a-qr"], "qr.png", { type: "image/png" });
+    await userEvent.upload(screen.getByLabelText(/imagen qr etapa 1/i), file);
+
+    expect(await screen.findByText("No se pudo leer un QR en la imagen.")).toBeInTheDocument();
+    expect(screen.getByLabelText(/qr esperado etapa 1/i)).toHaveValue("");
+  });
+
   it("shows validation error when stage QR is missing", async () => {
     render(<CreateBdtGamePage accessToken="token" />);
 

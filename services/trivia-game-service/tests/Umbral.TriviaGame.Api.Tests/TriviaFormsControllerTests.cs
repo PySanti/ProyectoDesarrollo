@@ -86,6 +86,48 @@ public sealed class TriviaFormsControllerTests : IClassFixture<IntegrationTestFa
     }
 
     [Fact]
+    public async Task Create_ThenGetAll_ReturnsCompleteFormWithQuestionCount()
+    {
+        var client = _factory.CreateClient();
+
+        var command = new
+        {
+            title = $"Form List {Guid.NewGuid():N}",
+            questions = new[]
+            {
+                new
+                {
+                    text = "Q1?",
+                    assignedScore = 100,
+                    timeLimitSeconds = 30,
+                    displayOrder = 1,
+                    options = new[]
+                    {
+                        new { text = "A", isCorrect = true },
+                        new { text = "B", isCorrect = false },
+                        new { text = "C", isCorrect = false },
+                        new { text = "D", isCorrect = false },
+                    },
+                },
+            },
+        };
+
+        var createResponse = await client.PostAsJsonAsync("/api/trivia-forms", command);
+        Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
+        var created = await createResponse.Content.ReadFromJsonAsync<TriviaFormDetailDto>();
+        Assert.NotNull(created);
+
+        var listResponse = await client.GetAsync("/api/trivia-forms");
+        Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
+        var forms = await listResponse.Content.ReadFromJsonAsync<IReadOnlyList<TriviaFormListItemDto>>();
+
+        var listed = Assert.Single(forms!.Where(form => form.Id == created.Id));
+        Assert.True(listed.IsComplete);
+        Assert.Equal(1, listed.QuestionsCount);
+    }
+
+    [Fact]
     public async Task CreateThenUpdateThenGet_ReturnsUpdatedForm()
     {
         var client = _factory.CreateClient();

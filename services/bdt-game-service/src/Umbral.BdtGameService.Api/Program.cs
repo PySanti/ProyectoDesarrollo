@@ -12,6 +12,7 @@ using Umbral.BdtGameService.Api.Authentication;
 using Umbral.BdtGameService.Application;
 using Umbral.BdtGameService.Application.Abstractions.Realtime;
 using Umbral.BdtGameService.Application.Games.Create;
+using Umbral.BdtGameService.Application.Games.DecodeExpectedQr;
 using Umbral.BdtGameService.Application.Games.ActiveStage;
 using Umbral.BdtGameService.Application.Games.JoinIndividual;
 using Umbral.BdtGameService.Application.Games.ListPublished;
@@ -161,6 +162,55 @@ app.MapPost("/api/bdt/games", async (
         }
     })
     .WithName("CreateBdtGame")
+    .RequireAuthorization("OperatorOnly");
+
+app.MapPost("/api/bdt/stages/expected-qr/decode", async (
+        IFormFile? image,
+        IValidator<DecodificarQrEsperadoBdtCommand> validator,
+        ISender sender,
+        CancellationToken cancellationToken) =>
+    {
+        if (image is null || image.Length == 0)
+        {
+            return Results.BadRequest(new { message = "La imagen es requerida." });
+        }
+
+        if (!image.ContentType.Equals("image/jpeg", StringComparison.OrdinalIgnoreCase) &&
+            !image.ContentType.Equals("image/png", StringComparison.OrdinalIgnoreCase))
+        {
+            return Results.Json(new { message = "Solo se aceptan imagenes JPEG o PNG." }, statusCode: StatusCodes.Status415UnsupportedMediaType);
+        }
+
+        if (image.Length > DecodificarQrEsperadoBdtCommandValidator.MaxImageSizeBytes)
+        {
+            return Results.Json(new { message = "La imagen no puede superar 5 MB." }, statusCode: StatusCodes.Status413PayloadTooLarge);
+        }
+
+        byte[] imageContent;
+        await using (var stream = image.OpenReadStream())
+        using (var memoryStream = new MemoryStream())
+        {
+            await stream.CopyToAsync(memoryStream, cancellationToken);
+            imageContent = memoryStream.ToArray();
+        }
+
+        var command = new DecodificarQrEsperadoBdtCommand(
+            image.FileName,
+            image.ContentType,
+            image.Length,
+            imageContent);
+
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
+        {
+            return Results.ValidationProblem(validation.ToDictionary());
+        }
+
+        var response = await sender.Send(command, cancellationToken);
+        return Results.Ok(response);
+    })
+    .WithName("DecodeExpectedBdtQr")
+    .DisableAntiforgery()
     .RequireAuthorization("OperatorOnly");
 
 app.MapGet("/api/bdt/games/published", async (
