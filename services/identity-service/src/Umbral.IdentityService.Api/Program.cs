@@ -5,6 +5,7 @@ using Microsoft.IdentityModel.Tokens;
 using MediatR;
 using System.Security.Claims;
 using System.Text.Json;
+using Umbral.IdentityService.Api.Authentication;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Application.Users.CreateUser;
@@ -43,12 +44,33 @@ static string? ResolveSetting(IConfiguration configuration, string key, string e
 var keycloakBaseUrl = ResolveSetting(builder.Configuration, "Keycloak:BaseUrl", "KEYCLOAK_BASE_URL");
 var keycloakRealm = ResolveSetting(builder.Configuration, "Keycloak:Realm", "KEYCLOAK_REALM");
 var keycloakClientId = ResolveSetting(builder.Configuration, "Keycloak:ClientId", "KEYCLOAK_CLIENT_ID");
+var keycloakValidAudiencesRaw = ResolveSetting(builder.Configuration, "Keycloak:ValidAudiences", "KEYCLOAK_VALID_AUDIENCES");
+var keycloakValidIssuersRaw = ResolveSetting(builder.Configuration, "Keycloak:ValidIssuers", "KEYCLOAK_VALID_ISSUERS");
 
 if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
     !string.IsNullOrWhiteSpace(keycloakRealm) &&
-    !string.IsNullOrWhiteSpace(keycloakClientId))
+    (!string.IsNullOrWhiteSpace(keycloakClientId) || !string.IsNullOrWhiteSpace(keycloakValidAudiencesRaw)))
 {
     var authority = $"{keycloakBaseUrl.TrimEnd('/')}/realms/{keycloakRealm}";
+
+    var validIssuers = (keycloakValidIssuersRaw ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    if (!validIssuers.Contains(authority))
+    {
+        validIssuers.Add(authority);
+    }
+
+    var validAudiences = (keycloakValidAudiencesRaw ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    if (!string.IsNullOrWhiteSpace(keycloakClientId) && !validAudiences.Contains(keycloakClientId))
+    {
+        validAudiences.Add(keycloakClientId);
+    }
+
     builder.Services
         .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         .AddJwtBearer(options =>
@@ -65,32 +87,7 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
                         return Task.CompletedTask;
                     }
 
-                    var realmAccessClaim = identity.FindFirst("realm_access")?.Value;
-                    if (string.IsNullOrWhiteSpace(realmAccessClaim))
-                    {
-                        return Task.CompletedTask;
-                    }
-
-                    try
-                    {
-                        using var document = JsonDocument.Parse(realmAccessClaim);
-                        if (document.RootElement.TryGetProperty("roles", out var rolesElement) &&
-                            rolesElement.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var role in rolesElement.EnumerateArray())
-                            {
-                                var roleName = role.GetString();
-                                if (!string.IsNullOrWhiteSpace(roleName) && !identity.HasClaim(identity.RoleClaimType, roleName))
-                                {
-                                    identity.AddClaim(new Claim(identity.RoleClaimType, roleName));
-                                }
-                            }
-                        }
-                    }
-                    catch (JsonException)
-                    {
-                        // Ignore malformed realm_access claim and continue with default claims.
-                    }
+                    KeycloakRoleClaims.AddRolesFromKeycloakClaims(identity);
 
                     return Task.CompletedTask;
                 }
@@ -98,9 +95,9 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = authority,
+                ValidIssuers = validIssuers,
                 ValidateAudience = true,
-                ValidAudience = keycloakClientId,
+                ValidAudiences = validAudiences,
                 ValidateLifetime = true,
                 ValidateIssuerSigningKey = true,
                 RoleClaimType = "roles"

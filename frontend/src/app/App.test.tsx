@@ -34,7 +34,7 @@ describe("App auth guard", () => {
     });
   });
 
-  it("shows HU-34 flow for operator users", async () => {
+  it("shows BDT creation flow for operator users", async () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
@@ -44,15 +44,15 @@ describe("App auth guard", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /hu-34 crear bdt/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /crear bdt/i })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /hu-34 crear bdt/i }));
+    await userEvent.click(screen.getByRole("button", { name: /crear bdt/i }));
 
     expect(screen.getByRole("heading", { name: /crear partida bdt/i })).toBeInTheDocument();
   });
 
-  it("shows HU-37 flow for operator users", async () => {
+  it("shows published BDT flow for operator users", async () => {
     vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
       username: "operador",
@@ -63,10 +63,10 @@ describe("App auth guard", () => {
     render(<App />);
 
     await waitFor(() => {
-      expect(screen.getByRole("button", { name: /hu-37 listar bdt/i })).toBeInTheDocument();
+      expect(screen.getByRole("button", { name: /partidas bdt/i })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /hu-37 listar bdt/i }));
+    await userEvent.click(screen.getByRole("button", { name: /partidas bdt/i }));
 
     expect(await screen.findByRole("heading", { name: /partidas bdt publicadas/i })).toBeInTheDocument();
   });
@@ -86,7 +86,7 @@ describe("App auth guard", () => {
       expect(screen.getByRole("heading", { name: /crear usuario/i })).toBeInTheDocument();
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /hu-02 gestionar usuarios/i }));
+    await userEvent.click(screen.getByRole("button", { name: /gestion de usuarios/i }));
 
     await waitFor(() => {
       expect(screen.getByRole("heading", { name: /gestion de usuarios/i })).toBeInTheDocument();

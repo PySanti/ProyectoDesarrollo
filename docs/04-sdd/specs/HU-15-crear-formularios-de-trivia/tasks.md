@@ -79,7 +79,7 @@ Implementar **una tarea a la vez** en el orden sugerido. No iniciar implementaci
 | T-02 | Tests unitarios de validators Application | ✅ Done — 32 tests |
 | T-03 | Tests de integración API: create → get → update → get | ✅ Done — InMemory DB |
 | T-04 | Tests de integración autorización 403 | ✅ Done — 6 API tests total |
-| T-05 | Tests frontend: editor de preguntas (opcional mínimo con Testing Library) | ⏳ Pending (non-goal) |
+| T-05 | Tests frontend: editor de preguntas (opcional mínimo con Testing Library) | ✅ Done — 5 tests en `TriviaOperationsPage.test.tsx`, incluye formulario con múltiples preguntas |
 
 ---
 
@@ -88,11 +88,11 @@ Implementar **una tarea a la vez** en el orden sugerido. No iniciar implementaci
 | ID | Task | Definition of done |
 | --- | --- | --- |
 | F-01 | Crear cliente API `triviaFormsApi` | Tipado TypeScript alineado con DTO |
-| F-02 | Implementar `TriviaFormEditorPage` (create) | POST exitoso navega a detalle o muestra éxito |
+| F-02 | Implementar `TriviaFormEditorPage` (create) | ✅ Done — creación muestra éxito y soporta una o varias preguntas |
 | F-03 | Implementar ruta edit `:formId` | PUT con carga inicial GET |
-| F-04 | Implementar `QuestionEditor` con 4 opciones y selector de correcta | Validación UX antes de submit |
-| F-05 | Mostrar badge `isComplete` / errores `incompleteReasons` | Operador entiende si el formulario es usable en partida |
-| F-06 | Integrar rutas en navegación del panel operador | Enlace accesible para rol Operador |
+| F-04 | Implementar `QuestionEditor` con 4 opciones y selector de correcta | ✅ Done — cada pregunta renderiza 4 opciones, selector único, puntaje y tiempo |
+| F-05 | Mostrar badge `isComplete` / errores `incompleteReasons` | ⏳ Pending — respuesta exitosa visible; detalle `isComplete` no se muestra en UI mínima |
+| F-06 | Integrar rutas en navegación del panel operador | ✅ Done — pantalla accesible desde `Operar Trivia` |
 
 ---
 
@@ -115,7 +115,7 @@ D-01 → D-02 → D-03 → D-04 → D-05 → D-06 ✅
   → I-01 → I-02 → I-03 → I-04 → I-05 ✅
   → P-01 → P-02 → P-03 → P-04 → T-03 → T-04 ✅
   → C-01 → C-02 ✅
-  → F-01 → F-04 → F-02 → F-03 → F-05 → F-06 → T-05  (⏳ frontend pending)
+  → F-01 → F-04 ✅ → F-02 ✅ → F-03 ⏳ → F-05 ⏳ → F-06 ✅ → T-05 ✅
   → AT-01 → AT-02 → AT-03 ✅
 ```
 
@@ -132,4 +132,4 @@ D-01 → D-02 → D-03 → D-04 → D-05 → D-06 ✅
 
 ## Bloqueos conocidos
 
-Ninguno. El microservicio Trivia Game Service ya tiene solución completa con Domain, Application, Infrastructure, API y 139 tests. El frontend web (React) es la única tarea pendiente para cerrar la HU.
+Ninguno. El microservicio Trivia Game Service ya tiene solución completa con Domain, Application, Infrastructure, API y pruebas. El frontend web ya soporta creación con múltiples preguntas; edición de formularios existentes y visualización detallada de `isComplete` permanecen pendientes si se exige cierre completo de HU-15.

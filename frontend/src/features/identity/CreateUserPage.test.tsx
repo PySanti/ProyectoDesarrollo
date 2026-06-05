@@ -51,6 +51,6 @@ describe("CreateUserPage", () => {
     await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
     await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe en UMBRAL o Keycloak.");
   });
 });

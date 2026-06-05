@@ -14,4 +14,5 @@ export const mobileEnv = {
   bdtApiBaseUrl: required(process.env.EXPO_PUBLIC_BDT_API_BASE_URL, "EXPO_PUBLIC_BDT_API_BASE_URL"),
   triviaApiBaseUrl: required(process.env.EXPO_PUBLIC_TRIVIA_API_BASE_URL, "EXPO_PUBLIC_TRIVIA_API_BASE_URL"),
   redirectScheme: process.env.EXPO_PUBLIC_APP_SCHEME?.trim() || "umbral",
+  authRedirectUri: process.env.EXPO_PUBLIC_AUTH_REDIRECT_URI?.trim(),
 };

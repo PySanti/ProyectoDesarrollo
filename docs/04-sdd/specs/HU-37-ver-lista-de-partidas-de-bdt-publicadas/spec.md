@@ -30,13 +30,14 @@ Included:
 - React web operator list for BDT games published in first delivery.
 - Backend query in BDT Game Service for operator-visible published BDT games.
 - Minimum fields: `partidaId`, `nombre`, `modalidad`, `estado`, `areaBusqueda`, `cantidadEtapas`.
+- Operator summary modal using only the same list response fields, without calling a full-detail endpoint.
 - Loading, empty and error states in React web.
 - Authentication and role authorization for operator access.
 
 Out of scope:
 
 - Creating BDT games; covered by HU-34.
-- Viewing full BDT detail; HU-38 is not active in first delivery.
+- Viewing full BDT detail beyond the fields returned by the list query; HU-38 is not active in first delivery.
 - Participant mobile listing; covered by HU-10 and HU-12.
 - Joining BDT games; covered by HU-39 and HU-40.
 - Operator lobby monitoring of joined participants; covered by HU-42.
@@ -81,6 +82,7 @@ Out of scope:
 3. The response includes only BDT games published for operator supervision.
 4. Each row shows at least name and state.
 5. Each row also exposes modality, textual search area and stage count when returned by the contract.
+5a. The operator can open a read-only summary modal for a listed game using the same row data.
 6. If no BDT games are published, the web client shows a clear empty state.
 7. If the query fails, the web client shows a clear error state.
 8. The query does not change game state and does not create inscriptions.

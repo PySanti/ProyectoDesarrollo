@@ -3,7 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { mobileEnv } from "../config/env";
 import { AuthSessionState } from "./authTypes";
-import { buildAuthUser } from "./tokenClaims.js";
+import { buildAuthUser, isJwtExpired } from "./tokenClaims.js";
 
 WebBrowser.maybeCompleteAuthSession();
 
@@ -17,10 +17,12 @@ const discovery = {
 };
 
 export async function loginWithKeycloakAsync(): Promise<AuthSessionState> {
-  const redirectUri = AuthSession.makeRedirectUri({
-    scheme: mobileEnv.redirectScheme,
-    path: "auth",
-  });
+  const redirectUri =
+    mobileEnv.authRedirectUri ||
+    AuthSession.makeRedirectUri({
+      scheme: mobileEnv.redirectScheme,
+      path: "auth",
+    });
 
   const request = new AuthSession.AuthRequest({
     clientId: mobileEnv.keycloakClientId,
@@ -71,6 +73,11 @@ export async function restoreSessionAsync(): Promise<AuthSessionState | null> {
   try {
     const parsed = JSON.parse(raw) as AuthSessionState;
     if (!parsed?.token || !parsed?.user?.sub) {
+      return null;
+    }
+
+    if (isJwtExpired(parsed.token)) {
+      await SecureStore.deleteItemAsync(storageKey);
       return null;
     }
 

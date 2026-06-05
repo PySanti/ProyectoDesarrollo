@@ -149,7 +149,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   return (
     <div className="card">
       <h1>Gestion de usuarios</h1>
-      <p>HU-02: consultar detalle, editar datos generales y desactivar usuarios.</p>
+      <p>Consulta, actualiza datos generales y desactiva usuarios sin modificar su rol inicial.</p>
 
       {listError ? (
         <div className="notice error" role="alert">
@@ -261,7 +261,7 @@ function mapHu02ErrorMessage(statusCode: number, fallbackMessage: string): strin
     case 404:
       return "Usuario no encontrado.";
     case 409:
-      return "El correo ya existe.";
+      return "El correo ya existe en UMBRAL o Keycloak.";
     case 400:
       return "Solicitud invalida. Verifica los datos enviados.";
     default:

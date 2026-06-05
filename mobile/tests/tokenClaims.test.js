@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { buildAuthUser } from "../src/auth/tokenClaims.js";
+import { buildAuthUser, isJwtExpired } from "../src/auth/tokenClaims.js";
 
 if (typeof global.atob !== "function") {
   global.atob = (value) => Buffer.from(value, "base64").toString("binary");
@@ -32,4 +32,16 @@ test("buildAuthUser should throw when sub claim is missing", () => {
   });
 
   assert.throws(() => buildAuthUser(token), /sub claim/);
+});
+
+test("isJwtExpired should detect expired tokens", () => {
+  const expiredToken = buildToken({ exp: Math.floor(Date.now() / 1000) - 60 });
+
+  assert.equal(isJwtExpired(expiredToken), true);
+});
+
+test("isJwtExpired should accept valid tokens", () => {
+  const validToken = buildToken({ exp: Math.floor(Date.now() / 1000) + 3600 });
+
+  assert.equal(isJwtExpired(validToken), false);
 });

@@ -60,6 +60,23 @@ body {
   background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
 }
 
+.header-topline {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.secondary-button {
+  background: #ffffff;
+  color: var(--primary);
+  border: 1px solid #c9dcf8;
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--soft-blue);
+}
+
 .eyebrow {
   margin: 0 0 6px;
   color: var(--primary);
@@ -195,6 +212,94 @@ button:hover:not(:disabled) {
   font-weight: 800;
 }
 
+.question-list {
+  display: grid;
+  gap: 14px;
+}
+
+.question-card {
+  display: grid;
+  gap: 12px;
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 14px;
+  background: #fbfdff;
+}
+
+.question-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.question-card h3 {
+  margin: 0;
+}
+
+.compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  place-items: center;
+  padding: 18px;
+  background: rgba(15, 23, 42, 0.48);
+}
+
+.modal-card {
+  width: min(620px, 100%);
+  border-radius: 16px;
+  padding: 22px;
+  background: #ffffff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.32);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 12px;
+  margin: 0;
+}
+
+.detail-grid div {
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 12px;
+  background: #fbfdff;
+}
+
+.detail-grid dt {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.detail-grid dd {
+  margin: 6px 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 700;
+}
+
+.detail-grid .detail-wide {
+  grid-column: 1 / -1;
+}
+
 .table-wrap {
   width: 100%;
   overflow-x: auto;
@@ -240,6 +345,23 @@ ul.clean-list {
   }
 
   .row {
+    grid-template-columns: 1fr;
+  }
+
+  .header-topline {
+    display: grid;
+  }
+
+  .question-card-header {
+    display: grid;
+  }
+
+  .modal-header,
+  .compact-actions {
+    display: grid;
+  }
+
+  .detail-grid {
     grid-template-columns: 1fr;
   }
 }

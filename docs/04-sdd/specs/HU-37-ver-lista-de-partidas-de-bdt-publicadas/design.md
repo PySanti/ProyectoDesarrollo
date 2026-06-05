@@ -131,6 +131,7 @@ Contract tests:
 Frontend tests:
 
 - Web list renders rows.
+- Web list opens and closes a read-only summary modal based only on list item data.
 - Web list renders loading, empty and error states.
 - Web list renders a clear `401` unauthenticated/session-expired message distinct from `403` operator-role failures.
 - Web list exposes an accessible table label for the published BDT games table.

@@ -73,7 +73,7 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
       <div className="card">
         <h1>Crear usuario con rol inicial</h1>
         <p>
-          Flujo HU-01 para administradores usando Keycloak + Identity Service.
+          Alta administrativa de usuarios con rol inicial gestionado por Keycloak e Identity Service.
         </p>
 
         {error ? (
@@ -156,7 +156,7 @@ function mapErrorMessage(statusCode: number, fallbackMessage: string): string {
     case 403:
       return "No autorizado. Debes tener rol Administrador.";
     case 409:
-      return "El correo ya existe.";
+      return "El correo ya existe en UMBRAL o Keycloak.";
     case 500:
       return "Error de persistencia local en Identity Service.";
     case 502:

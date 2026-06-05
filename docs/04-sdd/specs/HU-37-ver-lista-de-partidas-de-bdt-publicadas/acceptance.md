@@ -5,6 +5,7 @@
 - [x] Operator can view published BDT games from React web.
 - [x] Each listed game shows name and state.
 - [x] Response includes modality, textual search area and stage count when available.
+- [x] Operator can open a read-only summary modal from a listed row without requiring a HU-38 full-detail endpoint.
 - [x] Query returns an empty list without error when no BDT games are published.
 - [x] Endpoint requires authenticated `Operador`.
 - [x] Query does not mutate state.
@@ -34,12 +35,16 @@ Evidence will be recorded after implementation:
 | Full BDT unit suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.UnitTests/Umbral.BdtGameService.UnitTests.csproj --no-restore` | Passed: 31/31 |
 | Full BDT integration suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore` | Passed: 37/37 |
 | Full BDT contract suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj --no-restore` | Passed: 13/13 |
-| React web | `npm test -- --run` in `frontend/` | Passed: 27/27 |
+| React web focused | `npm test --prefix frontend -- PublishedBdtGamesPage` | Passed: 9/9 including row summary modal |
+| Full React web | `npm test --prefix frontend` | Passed: 45/45 |
+| React web typecheck | `tsc -p tsconfig.json --noEmit` in `frontend/` | Passed |
+| React web build | `npm run build --prefix frontend` | Passed |
 | React web build | `npm run build` in `frontend/` | Passed |
 
 ## Runtime Smoke Evidence
 
 - Automated React web tests cover the HU-37 operator route, API client token forwarding, loading, empty, error, `401`, `403` and accessible table states.
+- Automated React web tests cover the row summary modal using existing list data only; no HU-38 endpoint is introduced.
 - Manual smoke with real Keycloak `Operador` token against a running BDT Game Service remains environment-dependent because this workspace does not provide a running Keycloak realm/client and BDT service deployment configured with real tokens.
 - Backend authorization is verified through integration/contract tests using the test authentication scheme, including unauthenticated, non-operator and malformed/missing `sub` claim cases.
 

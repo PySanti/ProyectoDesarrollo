@@ -17,6 +17,7 @@ type AuthState =
 export function App() {
   const [authState, setAuthState] = useState<AuthState>({ status: "loading" });
   const [view, setView] = useState<WebView>("hu01");
+  const [logoutError, setLogoutError] = useState<string | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -108,27 +109,51 @@ export function App() {
     );
   }
 
+  async function onLogout() {
+    setLogoutError(null);
+
+    try {
+      await authProvider.logout();
+    } catch {
+      setLogoutError("No fue posible cerrar sesion. Intentalo nuevamente.");
+    }
+  }
+
   return (
     <div className="page wide app-shell">
       <div className="card app-header">
-        <p className="eyebrow">Primer sprint</p>
-        <h1>UMBRAL Web - Administracion y Operacion</h1>
-        <p className="muted">Selecciona un flujo activo del primer sprint.</p>
+        <div className="header-topline">
+          <div>
+            <p className="eyebrow">Panel web</p>
+            <h1>UMBRAL Web - Administracion y Operacion</h1>
+            <p className="muted">
+              {authState.user.username} · {authState.user.roles.join(", ")}
+            </p>
+          </div>
+          <button className="secondary-button" type="button" onClick={onLogout}>
+            Cerrar sesion
+          </button>
+        </div>
+        {logoutError ? (
+          <div className="notice error" role="alert">
+            {logoutError}
+          </div>
+        ) : null}
         <div className="nav-grid" aria-label="Flujos web disponibles">
           {isAdmin ? (
             <>
-              <button className={`nav-button ${view === "hu01" ? "active" : ""}`} type="button" onClick={() => setView("hu01")}>HU-01 Crear usuario</button>
+              <button className={`nav-button ${view === "hu01" ? "active" : ""}`} type="button" onClick={() => setView("hu01")}>Crear usuario</button>
               <button className={`nav-button ${view === "hu02" ? "active" : ""}`} type="button" onClick={() => setView("hu02")}>
-                HU-02 Gestionar usuarios
+                Gestion de usuarios
               </button>
             </>
           ) : null}
           {isOperator ? (
             <>
-              <button className={`nav-button ${view === "hu17" ? "active" : ""}`} type="button" onClick={() => setView("hu17")}>HU-17 Crear Trivia</button>
-              <button className={`nav-button ${view === "hu15" ? "active" : ""}`} type="button" onClick={() => setView("hu15")}>HU-15/22/23/24/30 Operar Trivia</button>
-              <button className={`nav-button ${view === "hu34" ? "active" : ""}`} type="button" onClick={() => setView("hu34")}>HU-34 Crear BDT</button>
-              <button className={`nav-button ${view === "hu37" ? "active" : ""}`} type="button" onClick={() => setView("hu37")}>HU-37 Listar BDT</button>
+              <button className={`nav-button ${view === "hu17" ? "active" : ""}`} type="button" onClick={() => setView("hu17")}>Crear Trivia</button>
+              <button className={`nav-button ${view === "hu15" ? "active" : ""}`} type="button" onClick={() => setView("hu15")}>Operar Trivia</button>
+              <button className={`nav-button ${view === "hu34" ? "active" : ""}`} type="button" onClick={() => setView("hu34")}>Crear BDT</button>
+              <button className={`nav-button ${view === "hu37" ? "active" : ""}`} type="button" onClick={() => setView("hu37")}>Partidas BDT</button>
             </>
           ) : null}
         </div>

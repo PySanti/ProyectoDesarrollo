@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Options;
 using Microsoft.IdentityModel.Tokens;
+using Umbral.BdtGameService.Api.Authentication;
 using Umbral.BdtGameService.Application;
 using Umbral.BdtGameService.Application.Abstractions.Realtime;
 using Umbral.BdtGameService.Application.Games.Create;
@@ -42,12 +43,22 @@ var keycloakBaseUrl = ResolveSetting(builder.Configuration, "Keycloak:BaseUrl", 
 var keycloakRealm = ResolveSetting(builder.Configuration, "Keycloak:Realm", "KEYCLOAK_REALM");
 var keycloakClientId = ResolveSetting(builder.Configuration, "Keycloak:ClientId", "KEYCLOAK_CLIENT_ID");
 var keycloakValidAudiencesRaw = ResolveSetting(builder.Configuration, "Keycloak:ValidAudiences", "KEYCLOAK_VALID_AUDIENCES");
+var keycloakValidIssuersRaw = ResolveSetting(builder.Configuration, "Keycloak:ValidIssuers", "KEYCLOAK_VALID_ISSUERS");
 
 if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
     !string.IsNullOrWhiteSpace(keycloakRealm) &&
     (!string.IsNullOrWhiteSpace(keycloakClientId) || !string.IsNullOrWhiteSpace(keycloakValidAudiencesRaw)))
 {
     var authority = $"{keycloakBaseUrl.TrimEnd('/')}/realms/{keycloakRealm}";
+
+    var validIssuers = (keycloakValidIssuersRaw ?? string.Empty)
+        .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
+        .ToList();
+
+    if (!validIssuers.Contains(authority))
+    {
+        validIssuers.Add(authority);
+    }
 
     var validAudiences = (keycloakValidAudiencesRaw ?? string.Empty)
         .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries)
@@ -74,32 +85,7 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
                         return Task.CompletedTask;
                     }
 
-                    var realmAccessClaim = identity.FindFirst("realm_access")?.Value;
-                    if (string.IsNullOrWhiteSpace(realmAccessClaim))
-                    {
-                        return Task.CompletedTask;
-                    }
-
-                    try
-                    {
-                        using var document = JsonDocument.Parse(realmAccessClaim);
-                        if (document.RootElement.TryGetProperty("roles", out var rolesElement) &&
-                            rolesElement.ValueKind == JsonValueKind.Array)
-                        {
-                            foreach (var role in rolesElement.EnumerateArray())
-                            {
-                                var roleName = role.GetString();
-                                if (!string.IsNullOrWhiteSpace(roleName) && !identity.HasClaim(identity.RoleClaimType, roleName))
-                                {
-                                    identity.AddClaim(new Claim(identity.RoleClaimType, roleName));
-                                }
-                            }
-                        }
-                    }
-                    catch (JsonException)
-                    {
-                        // Ignore malformed claim and continue.
-                    }
+                    KeycloakRoleClaims.AddRolesFromKeycloakClaims(identity);
 
                     return Task.CompletedTask;
                 }
@@ -108,7 +94,7 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
             options.TokenValidationParameters = new TokenValidationParameters
             {
                 ValidateIssuer = true,
-                ValidIssuer = authority,
+                ValidIssuers = validIssuers,
                 ValidateAudience = true,
                 ValidAudiences = validAudiences,
                 ValidateLifetime = true,

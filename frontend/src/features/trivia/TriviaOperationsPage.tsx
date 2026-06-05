@@ -17,6 +17,11 @@ interface TriviaOperationsPageProps {
 
 type FormState = {
   title: string;
+  questions: QuestionFormState[];
+};
+
+type QuestionFormState = {
+  id: string;
   question: string;
   optionA: string;
   optionB: string;
@@ -27,20 +32,36 @@ type FormState = {
   timeLimitSeconds: string;
 };
 
-const initialFormState: FormState = {
-  title: "",
-  question: "",
-  optionA: "",
-  optionB: "",
-  optionC: "",
-  optionD: "",
-  correctIndex: "0",
-  assignedScore: "100",
-  timeLimitSeconds: "30"
-};
+let questionIdCounter = 0;
+
+function createQuestionId(): string {
+  questionIdCounter += 1;
+  return `question-${questionIdCounter}`;
+}
+
+function createEmptyQuestion(): QuestionFormState {
+  return {
+    id: createQuestionId(),
+    question: "",
+    optionA: "",
+    optionB: "",
+    optionC: "",
+    optionD: "",
+    correctIndex: "0",
+    assignedScore: "100",
+    timeLimitSeconds: "30"
+  };
+}
+
+function createInitialFormState(): FormState {
+  return {
+    title: "",
+    questions: [createEmptyQuestion()]
+  };
+}
 
 export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps) {
-  const [form, setForm] = useState<FormState>(initialFormState);
+  const [form, setForm] = useState<FormState>(createInitialFormState);
   const [partidaId, setPartidaId] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
   const [message, setMessage] = useState<string | null>(null);
@@ -62,32 +83,61 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
 
     setLoading("form");
     try {
-      const options = [form.optionA, form.optionB, form.optionC, form.optionD].map((text, index) => ({
-        text: text.trim(),
-        isCorrect: index === Number(form.correctIndex)
-      }));
+      const questions = form.questions.map((question, questionIndex) => {
+        const options = [question.optionA, question.optionB, question.optionC, question.optionD].map((text, index) => ({
+          text: text.trim(),
+          isCorrect: index === Number(question.correctIndex)
+        }));
+
+        return {
+          text: question.question.trim(),
+          assignedScore: Number(question.assignedScore),
+          timeLimitSeconds: Number(question.timeLimitSeconds),
+          displayOrder: questionIndex + 1,
+          options
+        };
+      });
+
       const created = await createTriviaForm(
         {
           title: form.title.trim(),
-          questions: [
-            {
-              text: form.question.trim(),
-              assignedScore: Number(form.assignedScore),
-              timeLimitSeconds: Number(form.timeLimitSeconds),
-              displayOrder: 1,
-              options
-            }
-          ]
+          questions
         },
         accessToken
       );
-      setMessage(`Formulario creado: ${created.title} (${created.questions.length} pregunta).`);
-      setForm(initialFormState);
+      const questionLabel = created.questions.length === 1 ? "pregunta" : "preguntas";
+      setMessage(`Formulario creado: ${created.title} (${created.questions.length} ${questionLabel}).`);
+      setForm(createInitialFormState());
     } catch (caught) {
       setError(mapTriviaError(caught, "No se pudo crear el formulario de Trivia."));
     } finally {
       setLoading(null);
     }
+  }
+
+  function updateQuestion(questionId: string, patch: Partial<QuestionFormState>) {
+    setForm((current) => ({
+      ...current,
+      questions: current.questions.map((question) =>
+        question.id === questionId ? { ...question, ...patch } : question
+      )
+    }));
+  }
+
+  function addQuestion() {
+    setForm((current) => ({
+      ...current,
+      questions: [...current.questions, createEmptyQuestion()]
+    }));
+  }
+
+  function removeQuestion(questionId: string) {
+    setForm((current) => ({
+      ...current,
+      questions: current.questions.length === 1
+        ? current.questions
+        : current.questions.filter((question) => question.id !== questionId)
+    }));
   }
 
   async function handleLoadParticipants() {
@@ -177,7 +227,7 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
       <div className="card stack">
         <div>
           <h1>Operacion Trivia</h1>
-          <p>Flujos HU-15, HU-22, HU-23, HU-24 y HU-30 para operadores.</p>
+          <p>Crea formularios, supervisa lobbies, inicia partidas y consulta rankings de Trivia.</p>
         </div>
 
         {message ? <div className="notice success" role="status">{message}</div> : null}
@@ -185,39 +235,31 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
 
         <form onSubmit={handleCreateForm} noValidate>
           <fieldset>
-            <legend>HU-15 Crear formulario</legend>
+            <legend>Crear formulario</legend>
             <label htmlFor="form-title">Titulo del formulario
               <input id="form-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
             </label>
-            <label htmlFor="form-question">Pregunta
-              <input id="form-question" value={form.question} onChange={(event) => setForm((current) => ({ ...current, question: event.target.value }))} />
-            </label>
-            <div className="row">
-              <label htmlFor="option-a">Opcion A<input id="option-a" value={form.optionA} onChange={(event) => setForm((current) => ({ ...current, optionA: event.target.value }))} /></label>
-              <label htmlFor="option-b">Opcion B<input id="option-b" value={form.optionB} onChange={(event) => setForm((current) => ({ ...current, optionB: event.target.value }))} /></label>
+            <div className="question-list">
+              {form.questions.map((question, index) => (
+                <QuestionEditor
+                  key={question.id}
+                  index={index}
+                  question={question}
+                  canRemove={form.questions.length > 1}
+                  onChange={(patch) => updateQuestion(question.id, patch)}
+                  onRemove={() => removeQuestion(question.id)}
+                />
+              ))}
             </div>
-            <div className="row">
-              <label htmlFor="option-c">Opcion C<input id="option-c" value={form.optionC} onChange={(event) => setForm((current) => ({ ...current, optionC: event.target.value }))} /></label>
-              <label htmlFor="option-d">Opcion D<input id="option-d" value={form.optionD} onChange={(event) => setForm((current) => ({ ...current, optionD: event.target.value }))} /></label>
-            </div>
-            <div className="row">
-              <label htmlFor="correct-index">Respuesta correcta
-                <select id="correct-index" value={form.correctIndex} onChange={(event) => setForm((current) => ({ ...current, correctIndex: event.target.value }))}>
-                  <option value="0">A</option>
-                  <option value="1">B</option>
-                  <option value="2">C</option>
-                  <option value="3">D</option>
-                </select>
-              </label>
-              <label htmlFor="assigned-score">Puntaje<input id="assigned-score" type="number" min="1" value={form.assignedScore} onChange={(event) => setForm((current) => ({ ...current, assignedScore: event.target.value }))} /></label>
-              <label htmlFor="time-limit">Tiempo limite<input id="time-limit" type="number" min="5" value={form.timeLimitSeconds} onChange={(event) => setForm((current) => ({ ...current, timeLimitSeconds: event.target.value }))} /></label>
-            </div>
+            <button type="button" className="secondary-button" onClick={addQuestion}>
+              Agregar pregunta
+            </button>
             <button type="submit" disabled={loading === "form"}>{loading === "form" ? "Creando..." : "Crear formulario"}</button>
           </fieldset>
         </form>
 
         <fieldset>
-          <legend>HU-22/HU-23/HU-24/HU-30 Supervisar partida</legend>
+          <legend>Supervisar partida</legend>
           <label htmlFor="partida-id">ID de partida Trivia
             <input id="partida-id" value={partidaId} onChange={(event) => setPartidaId(event.target.value)} placeholder="uuid" />
           </label>
@@ -234,6 +276,56 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
         {ranking ? <RankingTable ranking={ranking} /> : null}
       </div>
     </div>
+  );
+}
+
+function QuestionEditor({
+  index,
+  question,
+  canRemove,
+  onChange,
+  onRemove
+}: {
+  index: number;
+  question: QuestionFormState;
+  canRemove: boolean;
+  onChange: (patch: Partial<QuestionFormState>) => void;
+  onRemove: () => void;
+}) {
+  const number = index + 1;
+
+  return (
+    <section className="question-card" aria-label={`Pregunta ${number}`}>
+      <div className="question-card-header">
+        <h3>Pregunta {number}</h3>
+        <button type="button" className="secondary-button" onClick={onRemove} disabled={!canRemove}>
+          Eliminar pregunta
+        </button>
+      </div>
+      <label htmlFor={`form-question-${number}`}>Texto de pregunta {number}
+        <input id={`form-question-${number}`} value={question.question} onChange={(event) => onChange({ question: event.target.value })} />
+      </label>
+      <div className="row">
+        <label htmlFor={`option-a-${number}`}>Opcion A pregunta {number}<input id={`option-a-${number}`} value={question.optionA} onChange={(event) => onChange({ optionA: event.target.value })} /></label>
+        <label htmlFor={`option-b-${number}`}>Opcion B pregunta {number}<input id={`option-b-${number}`} value={question.optionB} onChange={(event) => onChange({ optionB: event.target.value })} /></label>
+      </div>
+      <div className="row">
+        <label htmlFor={`option-c-${number}`}>Opcion C pregunta {number}<input id={`option-c-${number}`} value={question.optionC} onChange={(event) => onChange({ optionC: event.target.value })} /></label>
+        <label htmlFor={`option-d-${number}`}>Opcion D pregunta {number}<input id={`option-d-${number}`} value={question.optionD} onChange={(event) => onChange({ optionD: event.target.value })} /></label>
+      </div>
+      <div className="row">
+        <label htmlFor={`correct-index-${number}`}>Respuesta correcta pregunta {number}
+          <select id={`correct-index-${number}`} value={question.correctIndex} onChange={(event) => onChange({ correctIndex: event.target.value })}>
+            <option value="0">A</option>
+            <option value="1">B</option>
+            <option value="2">C</option>
+            <option value="3">D</option>
+          </select>
+        </label>
+        <label htmlFor={`assigned-score-${number}`}>Puntaje pregunta {number}<input id={`assigned-score-${number}`} type="number" min="1" value={question.assignedScore} onChange={(event) => onChange({ assignedScore: event.target.value })} /></label>
+        <label htmlFor={`time-limit-${number}`}>Tiempo limite pregunta {number}<input id={`time-limit-${number}`} type="number" min="5" value={question.timeLimitSeconds} onChange={(event) => onChange({ timeLimitSeconds: event.target.value })} /></label>
+      </div>
+    </section>
   );
 }
 
@@ -302,10 +394,17 @@ function RankingTable({ ranking }: { ranking: TriviaRankingEntry[] }) {
 }
 
 function validateForm(form: FormState): string | null {
-  if (!form.title.trim() || !form.question.trim()) return "Titulo y pregunta son obligatorios.";
-  if ([form.optionA, form.optionB, form.optionC, form.optionD].some((option) => !option.trim())) return "Las cuatro opciones son obligatorias.";
-  if (Number(form.assignedScore) <= 0) return "El puntaje debe ser mayor que cero.";
-  if (Number(form.timeLimitSeconds) < 5) return "El tiempo limite debe ser de al menos 5 segundos.";
+  if (!form.title.trim()) return "El titulo es obligatorio.";
+  if (form.questions.length === 0) return "Agrega al menos una pregunta.";
+
+  for (const [index, question] of form.questions.entries()) {
+    const questionNumber = index + 1;
+    if (!question.question.trim()) return `La pregunta ${questionNumber} es obligatoria.`;
+    if ([question.optionA, question.optionB, question.optionC, question.optionD].some((option) => !option.trim())) return `Las cuatro opciones de la pregunta ${questionNumber} son obligatorias.`;
+    if (Number(question.assignedScore) <= 0) return `El puntaje de la pregunta ${questionNumber} debe ser mayor que cero.`;
+    if (Number(question.timeLimitSeconds) < 5) return `El tiempo limite de la pregunta ${questionNumber} debe ser de al menos 5 segundos.`;
+  }
+
   return null;
 }
 

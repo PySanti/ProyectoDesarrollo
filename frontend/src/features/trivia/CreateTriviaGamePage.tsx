@@ -132,7 +132,7 @@ export function CreateTriviaGamePage({ accessToken }: CreateTriviaGamePageProps)
     <div className="page">
       <div className="card">
         <h1>Crear partida de Trivia</h1>
-        <p>Flujo HU-17 para operadores usando Trivia Game Service.</p>
+        <p>Configura y publica una partida de Trivia usando un formulario valido.</p>
 
         {error ? (
           <div role="alert" className="notice error">

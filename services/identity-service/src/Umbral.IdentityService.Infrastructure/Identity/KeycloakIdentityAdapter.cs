@@ -1,3 +1,4 @@
+using System.Net;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -39,6 +40,10 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
             return userId;
         }
         catch (KeycloakIntegrationException)
+        {
+            throw;
+        }
+        catch (DuplicateEmailException)
         {
             throw;
         }
@@ -115,6 +120,11 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         using var response = await _httpClient.SendAsync(request, cancellationToken);
         if (!response.IsSuccessStatusCode)
         {
+            if (response.StatusCode == HttpStatusCode.Conflict)
+            {
+                throw new DuplicateEmailException(email);
+            }
+
             throw new KeycloakIntegrationException($"Failed to create user in Keycloak. StatusCode={(int)response.StatusCode}");
         }
 

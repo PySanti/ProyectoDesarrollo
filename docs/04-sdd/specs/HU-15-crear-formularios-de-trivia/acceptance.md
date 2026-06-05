@@ -10,7 +10,7 @@
 | Client | React web |
 | Service | Trivia Game Service |
 | SDD status | Ready for review |
-| Implementation status | Backend complete / React web minimal creation UI integrated |
+| Implementation status | Backend complete / React web multi-question creation UI integrated |
 
 ---
 
@@ -35,7 +35,7 @@
 ### Funcional — Frontend
 
 - [x] **AC-FE-01** Operador accede a pantalla de creación de formulario desde panel web.
-- [ ] **AC-FE-02** Puede ingresar título y agregar múltiples preguntas.
+- [x] **AC-FE-02** Puede ingresar título y agregar múltiples preguntas.
 - [x] **AC-FE-03** Cada pregunta muestra exactamente 4 campos de opción.
 - [x] **AC-FE-04** Solo una opción puede marcarse como correcta por pregunta (select único en UI mínima).
 - [x] **AC-FE-05** Puede configurar puntaje y temporizador por pregunta.
@@ -112,13 +112,13 @@
 | Application validator tests | `CreateTriviaFormCommandValidatorTests` | Done | 32 tests green |
 | API integration tests | `TriviaFormsControllerTests` | Done | 6 tests green |
 | Auth integration tests | `TriviaFormsControllerTests` (403 test) | Done | Included in 6 tests |
-| Frontend component tests | `frontend/src/features/trivia/TriviaOperationsPage.test.tsx` | Done | `npm test --prefix frontend` → 43 passed |
+| Frontend component tests | `frontend/src/features/trivia/TriviaOperationsPage.test.tsx` | Done | `npm test --prefix frontend -- TriviaOperationsPage` → 5 passed; multi-question payload verified |
 
 ## Integration pass evidence
 
-- React web added `TriviaOperationsPage` for a minimal HU-15 creation flow with exactly four options, one selected correct answer, score and time limit.
-- Validation run: `npm test --prefix frontend` → 43 passed.
-- Validation run: `npm run build --prefix frontend` → passed.
+- React web added `TriviaOperationsPage` for HU-15 creation flow with multiple questions, exactly four options per question, one selected correct answer, score and time limit.
+- Validation run: `npm test --prefix frontend -- TriviaOperationsPage` → 5 passed.
+- Validation run: `npm test --prefix frontend` → 44 passed; `npm run build --prefix frontend` → passed; TypeScript check passed.
 
 > Completar columna **Evidence** con enlace a CI run, captura o comando local al finalizar implementación.
 

@@ -101,7 +101,7 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
     <div className="page">
       <div className="card">
         <h1>Crear partida BDT</h1>
-        <p>Flujo HU-34 para operadores usando BDT Game Service.</p>
+        <p>Configura una busqueda del tesoro con area textual, modalidad y etapas con QR esperado.</p>
 
         {error ? (
           <div role="alert" className="notice error">

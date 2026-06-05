@@ -47,7 +47,10 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__IdentityDatabase: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
-      Keycloak__Authority: http://keycloak:8080
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_CLIENT_ID: identity-service
+      KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,account
     depends_on:
       - postgres
       - rabbitmq
@@ -67,7 +70,7 @@ services:
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_CLIENT_ID: team-service
-      KEYCLOAK_VALID_AUDIENCES: team-service,umbral-mobile
+      KEYCLOAK_VALID_AUDIENCES: team-service,umbral-mobile,account
     depends_on:
       - postgres
       - rabbitmq
@@ -94,10 +97,14 @@ services:
       context: ../services/bdt-game-service
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=umbral
+      ConnectionStrings__BdtDatabase: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
       TeamService__BaseUrl: http://team-service
       IdentityService__BaseUrl: http://identity-service
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_CLIENT_ID: bdt-game-service
+      KEYCLOAK_VALID_AUDIENCES: bdt-game-service,umbral-web,umbral-mobile,account
     depends_on:
       - postgres
       - rabbitmq

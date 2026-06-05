@@ -4,6 +4,14 @@ import { submitTransferLeadershipFromScreen } from "./transferLeadershipScreenMo
 
 const emptyStyles = {};
 
+/**
+ * @typedef {{ userId?: string, usuarioId?: string, nombre?: string, esLider?: boolean }} TeamMember
+ */
+
+/**
+ * @param {{ members?: TeamMember[], [key: string]: unknown }} props
+ */
+
 export function TransferLeadershipScreenController({
   apiBaseUrl,
   token,

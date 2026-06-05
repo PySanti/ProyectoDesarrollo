@@ -11,6 +11,12 @@ export interface AuthProvider {
   logout(): Promise<void>;
 }
 
+const knownRoles = new Map<string, string>([
+  ["administrador", "Administrador"],
+  ["operador", "Operador"],
+  ["participante", "Participante"]
+]);
+
 const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL as string | undefined;
 const keycloakRealm = import.meta.env.VITE_KEYCLOAK_REALM as string | undefined;
 const keycloakClientId = import.meta.env.VITE_KEYCLOAK_CLIENT_ID as string | undefined;
@@ -48,9 +54,7 @@ class KeycloakAuthProvider implements AuthProvider {
         }
 
         const parsed = this.keycloak.tokenParsed;
-        const roles = Array.isArray(parsed?.realm_access?.roles)
-          ? parsed.realm_access.roles
-          : [];
+        const roles = extractRoles(parsed);
 
         const username =
           (parsed?.preferred_username as string | undefined) ??
@@ -74,6 +78,23 @@ class KeycloakAuthProvider implements AuthProvider {
   async logout(): Promise<void> {
     await this.keycloak.logout({ redirectUri: window.location.origin });
   }
+}
+
+function extractRoles(parsed: Keycloak.KeycloakTokenParsed | undefined): string[] {
+  const realmRoles = Array.isArray(parsed?.realm_access?.roles)
+    ? parsed.realm_access.roles
+    : [];
+
+  const resourceAccess = parsed?.resource_access ?? {};
+  const clientRoles = Object.values(resourceAccess).flatMap((client) =>
+    Array.isArray(client?.roles) ? client.roles : []
+  );
+
+  return Array.from(new Set([...realmRoles, ...clientRoles].map(normalizeRole).filter(Boolean)));
+}
+
+function normalizeRole(role: string): string {
+  return knownRoles.get(role.trim().toLowerCase()) ?? role.trim();
 }
 
 export const authProvider: AuthProvider = new KeycloakAuthProvider();

@@ -1,10 +1,9 @@
 using System.Security.Claims;
 using System.Text.Json;
-using Microsoft.AspNetCore.Authentication;
 
-namespace Umbral.TriviaGame.Api.Services;
+namespace Umbral.IdentityService.Api.Authentication;
 
-public class KeycloakRolesClaimsTransformation : IClaimsTransformation
+internal static class KeycloakRoleClaims
 {
     private static readonly Dictionary<string, string> KnownRoles = new(StringComparer.OrdinalIgnoreCase)
     {
@@ -13,23 +12,15 @@ public class KeycloakRolesClaimsTransformation : IClaimsTransformation
         ["participante"] = "Participante"
     };
 
-    public Task<ClaimsPrincipal> TransformAsync(ClaimsPrincipal principal)
+    public static void AddRolesFromKeycloakClaims(ClaimsIdentity identity)
     {
-        if (principal.Identity?.IsAuthenticated != true)
-            return Task.FromResult(principal);
-
-        var identity = principal.Identities.FirstOrDefault() ?? new ClaimsIdentity();
-        var roleClaimType = identity.RoleClaimType;
-
-        foreach (var role in ReadRealmRoles(principal).Concat(ReadClientRoles(principal)).Select(NormalizeRole).Distinct(StringComparer.Ordinal))
+        foreach (var role in ReadRealmRoles(identity).Concat(ReadClientRoles(identity)).Select(NormalizeRole).Distinct(StringComparer.Ordinal))
         {
-            if (!string.IsNullOrWhiteSpace(role) && !principal.HasClaim(roleClaimType, role))
+            if (!string.IsNullOrWhiteSpace(role) && !identity.HasClaim(identity.RoleClaimType, role))
             {
-                identity.AddClaim(new Claim(roleClaimType, role));
+                identity.AddClaim(new Claim(identity.RoleClaimType, role));
             }
         }
-
-        return Task.FromResult(principal);
     }
 
     private static string NormalizeRole(string role)
@@ -37,9 +28,9 @@ public class KeycloakRolesClaimsTransformation : IClaimsTransformation
         return KnownRoles.TryGetValue(role.Trim(), out var normalized) ? normalized : role.Trim();
     }
 
-    private static IEnumerable<string> ReadRealmRoles(ClaimsPrincipal principal)
+    private static IEnumerable<string> ReadRealmRoles(ClaimsIdentity identity)
     {
-        var realmAccessClaim = principal.FindFirst("realm_access")?.Value;
+        var realmAccessClaim = identity.FindFirst("realm_access")?.Value;
         if (string.IsNullOrWhiteSpace(realmAccessClaim))
         {
             return [];
@@ -58,9 +49,9 @@ public class KeycloakRolesClaimsTransformation : IClaimsTransformation
         }
     }
 
-    private static IEnumerable<string> ReadClientRoles(ClaimsPrincipal principal)
+    private static IEnumerable<string> ReadClientRoles(ClaimsIdentity identity)
     {
-        var resourceAccessClaim = principal.FindFirst("resource_access")?.Value;
+        var resourceAccessClaim = identity.FindFirst("resource_access")?.Value;
         if (string.IsNullOrWhiteSpace(resourceAccessClaim))
         {
             return [];

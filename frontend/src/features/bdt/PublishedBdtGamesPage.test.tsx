@@ -42,6 +42,34 @@ describe("PublishedBdtGamesPage", () => {
     expect(screen.getByRole("table", { name: /partidas bdt publicadas para operador/i })).toBeInTheDocument();
   });
 
+  it("opens and closes an operator summary modal for a listed BDT game", async () => {
+    vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([
+      {
+        partidaId: "p1",
+        nombre: "Busqueda QR Campus",
+        modalidad: "Individual",
+        estado: "Lobby",
+        areaBusqueda: "Patio central",
+        cantidadEtapas: 2
+      }
+    ]);
+
+    render(<PublishedBdtGamesPage accessToken="operator-token" />);
+
+    await userEvent.click(await screen.findByRole("button", { name: /ver resumen/i }));
+
+    const dialog = screen.getByRole("dialog", { name: /busqueda qr campus/i });
+    expect(dialog).toBeInTheDocument();
+    expect(dialog).toHaveTextContent("Resumen operativo");
+    expect(dialog).toHaveTextContent("p1");
+    expect(dialog).toHaveTextContent("Patio central");
+    expect(dialog).toHaveTextContent("2");
+
+    await userEvent.click(screen.getByRole("button", { name: /cerrar/i }));
+
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
   it("renders empty state when there are no published games", async () => {
     vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([]);
 

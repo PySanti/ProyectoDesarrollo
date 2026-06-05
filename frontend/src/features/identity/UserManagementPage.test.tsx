@@ -84,7 +84,7 @@ describe("UserManagementPage", () => {
     await userEvent.click(await screen.findByRole("button", { name: /ana/i }));
     await userEvent.click(screen.getByRole("button", { name: /guardar datos/i }));
 
-    expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe.");
+    expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe en UMBRAL o Keycloak.");
   });
 
   it("deactivates selected user and shows state feedback", async () => {

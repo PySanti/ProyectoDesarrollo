@@ -25,6 +25,7 @@ type StartState =
 export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProps) {
   const [state, setState] = useState<LoadState>({ status: "loading" });
   const [startState, setStartState] = useState<StartState>({ status: "idle" });
+  const [selectedGame, setSelectedGame] = useState<PublishedBdtGameItem | null>(null);
 
   useEffect(() => {
     let active = true;
@@ -71,7 +72,7 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
     <div className="page">
       <div className="card">
         <h1>Partidas BDT publicadas</h1>
-        <p>Flujo HU-37 para operadores usando BDT Game Service.</p>
+        <p>Consulta partidas publicadas y controla el inicio operativo cuando cumplan los minimos.</p>
 
         {state.status === "loading" ? <div className="notice">Cargando partidas BDT publicadas...</div> : null}
 
@@ -121,15 +122,20 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
                     <td>{game.areaBusqueda}</td>
                     <td>{game.cantidadEtapas}</td>
                     <td>
-                      <button
-                        type="button"
-                        onClick={() => void handleStart(game.partidaId)}
-                        disabled={startState.status === "starting"}
-                      >
-                        {startState.status === "starting" && startState.partidaId === game.partidaId
-                          ? "Iniciando..."
-                          : "Iniciar BDT"}
-                      </button>
+                      <div className="actions compact-actions">
+                        <button type="button" className="secondary-button" onClick={() => setSelectedGame(game)}>
+                          Ver resumen
+                        </button>
+                        <button
+                          type="button"
+                          onClick={() => void handleStart(game.partidaId)}
+                          disabled={startState.status === "starting"}
+                        >
+                          {startState.status === "starting" && startState.partidaId === game.partidaId
+                            ? "Iniciando..."
+                            : "Iniciar BDT"}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -137,7 +143,52 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
             </table>
           </div>
         ) : null}
+
+        {selectedGame ? (
+          <GameSummaryModal game={selectedGame} onClose={() => setSelectedGame(null)} />
+        ) : null}
       </div>
+    </div>
+  );
+}
+
+function GameSummaryModal({ game, onClose }: { game: PublishedBdtGameItem; onClose: () => void }) {
+  return (
+    <div className="modal-backdrop" role="presentation">
+      <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="bdt-summary-title">
+        <div className="modal-header">
+          <div>
+            <p className="eyebrow">Resumen operativo</p>
+            <h2 id="bdt-summary-title">{game.nombre}</h2>
+          </div>
+          <button type="button" className="secondary-button" onClick={onClose}>
+            Cerrar
+          </button>
+        </div>
+
+        <dl className="detail-grid">
+          <div>
+            <dt>Estado</dt>
+            <dd><span className="badge">{game.estado}</span></dd>
+          </div>
+          <div>
+            <dt>Modalidad</dt>
+            <dd>{game.modalidad}</dd>
+          </div>
+          <div>
+            <dt>Etapas configuradas</dt>
+            <dd>{game.cantidadEtapas}</dd>
+          </div>
+          <div>
+            <dt>Identificador</dt>
+            <dd>{game.partidaId}</dd>
+          </div>
+          <div className="detail-wide">
+            <dt>Area de busqueda</dt>
+            <dd>{game.areaBusqueda}</dd>
+          </div>
+        </dl>
+      </section>
     </div>
   );
 }

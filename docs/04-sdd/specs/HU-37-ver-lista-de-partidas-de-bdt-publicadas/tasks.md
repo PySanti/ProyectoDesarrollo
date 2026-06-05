@@ -43,6 +43,7 @@
 - [x] Add API client method for operator published BDT list.
 - [x] Render name and state for each game.
 - [x] Render loading, empty and error states.
+- [x] Render read-only summary modal from list row data without introducing HU-38 full-detail endpoint.
 
 ## Acceptance and Traceability
 
@@ -57,6 +58,7 @@
 - [x] Add frontend API client tests for `getOperatorPublishedBdtGames`, verifying it calls `GET /api/bdt/operator/games/published`, sends the bearer token and maps non-OK responses to `BdtApiError`.
 - [x] Add React web handling and tests for `401` from HU-37 with a clear unauthenticated/session-expired message, separate from the existing `403` operator-role message.
 - [x] Add an accessible table caption or equivalent `aria-label` to the HU-37 published BDT games table and cover it in the React test.
+- [x] Add React web test for opening and closing the row summary modal.
 - [x] Add a manual/runtime smoke evidence entry for React web HU-37 with real Keycloak `Operador` token against BDT Game Service, or explicitly document why it remains environment-dependent.
 - [x] Re-run and record final evidence after hardening: HU-37 unit, HU-37 integration, HU-37 contract, HU-37 PostgreSQL, frontend tests and frontend build.
 - [x] Update `acceptance.md`, `docs/04-sdd/traceability-matrix.md` and `docs/04-sdd/SPECS-LIST.md` after these hardening tasks are completed.

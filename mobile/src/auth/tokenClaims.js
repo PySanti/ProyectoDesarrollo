@@ -31,3 +31,13 @@ export function buildAuthUser(accessToken) {
   const username = payload.preferred_username || payload.name || "unknown";
   return { sub, username, roles };
 }
+
+export function isJwtExpired(accessToken, clockSkewSeconds = 30) {
+  const payload = parseJwtPayload(accessToken);
+  if (typeof payload.exp !== "number") {
+    return true;
+  }
+
+  const nowSeconds = Math.floor(Date.now() / 1000);
+  return payload.exp <= nowSeconds + clockSkewSeconds;
+}

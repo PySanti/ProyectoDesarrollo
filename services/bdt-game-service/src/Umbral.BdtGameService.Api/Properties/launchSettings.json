@@ -13,18 +13,30 @@
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "http://localhost:5016",
+      "applicationUrl": "http://0.0.0.0:5016",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__BdtDatabase": "Host=localhost;Port=55432;Database=umbral_bdt_game;Username=umbral;Password=16102005",
+        "KEYCLOAK_BASE_URL": "http://localhost:8080",
+        "KEYCLOAK_REALM": "UMBRAL-UCAB",
+        "KEYCLOAK_CLIENT_ID": "bdt-game-service",
+        "KEYCLOAK_VALID_AUDIENCES": "bdt-game-service,umbral-web,umbral-mobile,account",
+        "KEYCLOAK_VALID_ISSUERS": "http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB"
       }
     },
     "https": {
       "commandName": "Project",
       "dotnetRunMessages": true,
       "launchBrowser": true,
-      "applicationUrl": "https://localhost:7010;http://localhost:5016",
+      "applicationUrl": "https://localhost:7010;http://0.0.0.0:5016",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ConnectionStrings__BdtDatabase": "Host=localhost;Port=55432;Database=umbral_bdt_game;Username=umbral;Password=16102005",
+        "KEYCLOAK_BASE_URL": "http://localhost:8080",
+        "KEYCLOAK_REALM": "UMBRAL-UCAB",
+        "KEYCLOAK_CLIENT_ID": "bdt-game-service",
+        "KEYCLOAK_VALID_AUDIENCES": "bdt-game-service,umbral-web,umbral-mobile,account",
+        "KEYCLOAK_VALID_ISSUERS": "http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB"
       }
     },
     "IIS Express": {
