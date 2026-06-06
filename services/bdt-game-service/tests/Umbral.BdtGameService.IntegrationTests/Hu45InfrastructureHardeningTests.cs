@@ -2,6 +2,7 @@ using QRCoder;
 using Umbral.BdtGameService.Infrastructure.Qr;
 using Umbral.BdtGameService.Infrastructure.Storage;
 using Microsoft.Extensions.Configuration;
+using SkiaSharp;
 
 namespace Umbral.BdtGameService.IntegrationTests;
 
@@ -15,6 +16,30 @@ public sealed class Hu45InfrastructureHardeningTests
         var decoder = new ZxingQrImageDecoder();
 
         var decoded = await decoder.DecodeAsync(content, "image/png", CancellationToken.None);
+
+        Assert.Equal(expected, decoded);
+    }
+
+    [Fact]
+    public async Task ZxingQrImageDecoder_Should_Decode_Qr_Inside_Large_Png_Canvas()
+    {
+        var expected = "QR-ETAPA-CANVAS";
+        var content = CreateLargeCanvasQrImage(expected, SKEncodedImageFormat.Png, rotateDegrees: 0);
+        var decoder = new ZxingQrImageDecoder();
+
+        var decoded = await decoder.DecodeAsync(content, "image/png", CancellationToken.None);
+
+        Assert.Equal(expected, decoded);
+    }
+
+    [Fact]
+    public async Task ZxingQrImageDecoder_Should_Decode_Rotated_Qr_Inside_Jpeg_Canvas()
+    {
+        var expected = "QR-ETAPA-JPEG-ROTADO";
+        var content = CreateLargeCanvasQrImage(expected, SKEncodedImageFormat.Jpeg, rotateDegrees: 90);
+        var decoder = new ZxingQrImageDecoder();
+
+        var decoded = await decoder.DecodeAsync(content, "image/jpeg", CancellationToken.None);
 
         Assert.Equal(expected, decoded);
     }
@@ -55,5 +80,25 @@ public sealed class Hu45InfrastructureHardeningTests
         using var data = generator.CreateQrCode(text, QRCodeGenerator.ECCLevel.Q);
         var qrCode = new PngByteQRCode(data);
         return qrCode.GetGraphic(20);
+    }
+
+    private static byte[] CreateLargeCanvasQrImage(string text, SKEncodedImageFormat format, int rotateDegrees)
+    {
+        using var qrBitmap = SKBitmap.Decode(CreateQrPng(text));
+        using var surface = SKSurface.Create(new SKImageInfo(2200, 1600));
+        var canvas = surface.Canvas;
+        canvas.Clear(SKColors.White);
+
+        var qrTarget = new SKRect(760, 420, 1240, 900);
+        canvas.Save();
+        canvas.Translate(qrTarget.MidX, qrTarget.MidY);
+        canvas.RotateDegrees(rotateDegrees);
+        canvas.Translate(-qrTarget.MidX, -qrTarget.MidY);
+        canvas.DrawBitmap(qrBitmap, qrTarget);
+        canvas.Restore();
+
+        using var image = surface.Snapshot();
+        using var encoded = image.Encode(format, quality: 90);
+        return encoded.ToArray();
     }
 }

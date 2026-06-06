@@ -29,6 +29,17 @@ builder.Services.AddBdtApplication();
 builder.Services.AddBdtInfrastructure(builder.Configuration);
 builder.Services.AddSignalR();
 builder.Services.AddScoped<IPartidaBdtRealtimeNotifier, SignalRPartidaBdtRealtimeNotifier>();
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("FrontendDev", policy =>
+    {
+        policy
+            .WithOrigins("http://localhost:5173")
+            .AllowAnyHeader()
+            .AllowAnyMethod()
+            .AllowCredentials();
+    });
+});
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
@@ -127,6 +138,7 @@ using (var scope = app.Services.CreateScope())
     await dbContext.Database.EnsureCreatedAsync();
 }
 
+app.UseCors("FrontendDev");
 app.UseAuthentication();
 app.UseAuthorization();
 
@@ -221,8 +233,7 @@ app.MapGet("/api/bdt/games/published", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }
@@ -257,8 +268,7 @@ app.MapGet("/api/bdt/operator/games/published", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }
@@ -299,8 +309,7 @@ app.MapPost("/api/bdt/games/{partidaId}/individual-inscriptions", async (
             return Results.BadRequest(new { message = "PartidaId invalido." });
         }
 
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var participanteUserId))
         {
             return Results.Forbid();
         }
@@ -349,8 +358,7 @@ app.MapPost("/api/bdt/games/{partidaId}/start", async (
             return Results.BadRequest(new { message = "PartidaId invalido." });
         }
 
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var operadorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var operadorUserId))
         {
             return Results.Forbid();
         }
@@ -399,8 +407,7 @@ app.MapGet("/api/bdt/games/{partidaId}/active-stage", async (
             return Results.BadRequest(new { message = "PartidaId invalido." });
         }
 
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var participanteUserId))
         {
             return Results.Forbid();
         }
@@ -460,8 +467,7 @@ app.MapPost("/api/bdt/games/{partidaId}/stages/{etapaId}/treasures", async (
             return Results.BadRequest(new { message = "EtapaId invalido." });
         }
 
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var participanteUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var participanteUserId))
         {
             return Results.Forbid();
         }

@@ -95,3 +95,17 @@
 - [x] Update `acceptance.md` after multi-stage UI is implemented and verified.
 - [x] Update `docs/04-sdd/traceability-matrix.md` after the multi-stage UI and HU-37 traceability reconciliation are complete.
 - [x] Update `docs/04-sdd/SPECS-LIST.md` only after HU-34 is truly back to `10/10`.
+
+## QR Decode Robustness Hardening
+
+- [x] Harden `ZxingQrImageDecoder` with fallback decode attempts for original, resized, grayscale, contrast-adjusted and rotated QR images.
+- [x] Add infrastructure tests for QR images embedded in a large PNG canvas.
+- [x] Add infrastructure tests for rotated QR images embedded in a JPEG canvas.
+- [x] Verify HU-34 QR decode contracts still return the documented response shape.
+- [x] Record focused and full BDT backend test evidence in `acceptance.md`.
+
+## React Web QR Decode Connectivity Hardening
+
+- [x] Add BDT Game Service CORS policy for React web development origin `http://localhost:5173`.
+- [x] Apply CORS middleware before authentication/authorization so browser preflight reaches the QR decode endpoint.
+- [x] Verify `OPTIONS /api/bdt/stages/expected-qr/decode` returns CORS headers for `Authorization` and `POST`.

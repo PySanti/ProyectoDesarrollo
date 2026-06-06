@@ -21,6 +21,8 @@
 - [x] HU-34 closure evidence is traced to `POST /api/bdt/games`; operator listing remains HU-37 scope.
 - [x] Frontend documents runtime requirement `VITE_BDT_API_BASE_URL` for real API calls.
 - [x] Operator can upload a QR image per stage and have BDT Game Service decode the expected textual QR content.
+- [x] BDT Game Service QR decoder handles real-world variants: large image canvas, JPEG encoding and rotated QR images before returning `NoLegible`.
+- [x] React web can reach the BDT QR decode endpoint from `http://localhost:5173` through CORS preflight with `Authorization` and `POST` allowed.
 
 ## Manual Verification Steps
 
@@ -46,11 +48,13 @@ Current evidence:
 | Domain unit | `dotnet test "tests/Umbral.BdtGameService.UnitTests/Umbral.BdtGameService.UnitTests.csproj"` in `services/bdt-game-service` | Passed: 74/74 |
 | Application | `CrearPartidaBdtCommandHandlerTests` included in BDT unit suite | Passed |
 | QR decode application | `DecodificarQrEsperadoBdtCommandHandlerTests` included in BDT unit suite | Passed: readable, unreadable and validator coverage |
+| QR decoder infrastructure focused | `dotnet test "tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj" --filter "FullyQualifiedName~Hu45InfrastructureHardeningTests" -p:BaseOutputPath="C:\Users\santi\AppData\Local\Temp\opencode\bdt-test-bin\"` | Passed: 5/5, including perfect PNG QR, large PNG canvas QR, rotated JPEG canvas QR and unreadable image |
 | API integration | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Hu34CreateBdtGameIntegrationTests"` | Passed: 11/11 |
 | API integration focused | `dotnet test "tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj" --filter "FullyQualifiedName~Hu34CreateBdtGameIntegrationTests\|FullyQualifiedName~Hu45InfrastructureHardeningTests\|FullyQualifiedName~Hu45UploadTreasureIntegrationTests"` | Passed: 23/23 |
-| Full integration | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore` | Passed: 28/28 |
-| Contract | `dotnet test "tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj"` in `services/bdt-game-service` | Passed: 43/43 |
-| QR decode contract | `Hu34ExpectedQrDecodeContractTests` included in BDT contract suite | Passed: 5/5 |
+| CORS preflight focused | `Invoke-WebRequest -Method Options http://localhost:5516/api/bdt/stages/expected-qr/decode` with `Origin=http://localhost:5173`, `Access-Control-Request-Method=POST`, `Access-Control-Request-Headers=authorization,content-type` against temporary rebuilt BDT API | Passed: `204`, headers include `Access-Control-Allow-Origin=http://localhost:5173`, `Access-Control-Allow-Headers=authorization,content-type`, `Access-Control-Allow-Methods=POST` |
+| Full integration | `dotnet test "tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj" -p:BaseOutputPath="C:\Users\santi\AppData\Local\Temp\opencode\bdt-integration-bin\"` | Passed: 96/96 |
+| Contract | `dotnet test "tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj" -p:BaseOutputPath="C:\Users\santi\AppData\Local\Temp\opencode\bdt-contract-full-bin\"` | Passed: 46/46 |
+| QR decode contract | `dotnet test "tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj" --filter "FullyQualifiedName~Hu34ExpectedQrDecodeContractTests\|FullyQualifiedName~Hu34ContractTests" -p:BaseOutputPath="C:\Users\santi\AppData\Local\Temp\opencode\bdt-contract-bin\"` | Passed: 14/14 |
 | PostgreSQL | `$env:BDT_POSTGRES_TEST_CONNECTION='Host=localhost;Port=5432;Database=umbral_bdt_game;Username=postgres;Password=postgres;'; dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore` | Passed: 28/28 with isolated schema factory |
 | React web | `npm test -- --run` in `frontend/` | Passed: 48/48 |
 | React web focused | `npm test -- --run CreateBdtGamePage bdtApi` in `frontend/` | Passed: 14/14 |

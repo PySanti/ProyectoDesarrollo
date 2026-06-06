@@ -61,6 +61,21 @@ public sealed class Hu37OperatorPublishedGamesIntegrationTests : IClassFixture<B
     }
 
     [Fact]
+    public async Task GetOperatorPublished_Should_Accept_NameIdentifier_UserId_When_Sub_Claim_Is_Not_Present()
+    {
+        await ClearDatabaseAsync();
+        await SeedAsync(PartidaBDT.CrearPublicada("BDT operador", Modalidad.Individual, new AreaBusqueda("Area"), OneStage()));
+
+        var response = await _client.SendAsync(CreateGetRequest(userIdClaimMode: "NameIdentifierOnly"));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        var item = Assert.Single(document.RootElement.EnumerateArray());
+        Assert.Equal("BDT operador", item.GetProperty("nombre").GetString());
+    }
+
+    [Fact]
     public async Task GetOperatorPublished_Should_Return_Only_Lobby_Games_With_Contract_Fields()
     {
         await ClearDatabaseAsync();
@@ -126,7 +141,7 @@ public sealed class Hu37OperatorPublishedGamesIntegrationTests : IClassFixture<B
         Assert.Equal(before, after);
     }
 
-    private static HttpRequestMessage CreateGetRequest(string role = "Operador", string? userId = "default")
+    private static HttpRequestMessage CreateGetRequest(string role = "Operador", string? userId = "default", string? userIdClaimMode = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/bdt/operator/games/published");
         request.Headers.Add("X-Test-Role", role);
@@ -134,6 +149,12 @@ public sealed class Hu37OperatorPublishedGamesIntegrationTests : IClassFixture<B
         {
             request.Headers.Add("X-Test-UserId", userId == "default" ? Guid.NewGuid().ToString() : userId);
         }
+
+        if (!string.IsNullOrWhiteSpace(userIdClaimMode))
+        {
+            request.Headers.Add("X-Test-UserId-Claim", userIdClaimMode);
+        }
+
         return request;
     }
 

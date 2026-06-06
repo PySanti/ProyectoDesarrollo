@@ -12,6 +12,7 @@
 - [x] Contracts are updated after SDD review.
 - [x] Traceability matrix is updated for implementation readiness.
 - [x] No SignalR behavior is required for HU-37 closure.
+- [x] Endpoint accepts real JWT user id mapping when Keycloak/.NET exposes `sub` as `ClaimTypes.NameIdentifier`.
 
 ## Manual Verification Steps
 
@@ -29,12 +30,12 @@ Evidence will be recorded after implementation:
 | Test type | Command / evidence | Status |
 |---|---|---|
 | Application | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.UnitTests/Umbral.BdtGameService.UnitTests.csproj --no-restore --filter "FullyQualifiedName~ListarPartidasBdtPublicadasOperadorHandlerTests"` | Passed: 2/2 |
-| API integration | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Hu37OperatorPublishedGamesIntegrationTests"` | Passed: 8/8 |
-| Contract | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj --no-restore --filter "FullyQualifiedName~Hu37ContractTests"` | Passed: 3/3 |
+| API integration | `dotnet test "tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj" --filter "FullyQualifiedName~Hu37OperatorPublishedGamesIntegrationTests" -p:BaseOutputPath="C:\Users\santi\AppData\Local\Temp\opencode\bdt-hu37-integration-bin\"` | Passed: 9/9, including `NameIdentifier`-only user id claim |
+| Contract | `dotnet test "tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj" --filter "FullyQualifiedName~Hu37ContractTests" --artifacts-path "C:\Users\santi\AppData\Local\Temp\opencode\bdt-hu37-contract-artifacts"` | Passed: 4/4, including `NameIdentifier`-only user id claim |
 | PostgreSQL | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore --filter "FullyQualifiedName~Hu37PostgresOperatorPublishedGamesTests"` after creating local `umbral_bdt_game_test` database with `PGPASSWORD=postgres createdb -h localhost -p 5432 -U postgres umbral_bdt_game_test` | Passed: 1/1 with isolated schema factory |
-| Full BDT unit suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.UnitTests/Umbral.BdtGameService.UnitTests.csproj --no-restore` | Passed: 31/31 |
-| Full BDT integration suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj --no-restore` | Passed: 37/37 |
-| Full BDT contract suite | `dotnet test services/bdt-game-service/tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj --no-restore` | Passed: 13/13 |
+| Full BDT unit suite | `dotnet test "tests/Umbral.BdtGameService.UnitTests/Umbral.BdtGameService.UnitTests.csproj" --artifacts-path "C:\Users\santi\AppData\Local\Temp\opencode\bdt-auth-unit-artifacts"` | Passed: 74/74 |
+| Full BDT integration suite | `dotnet test "tests/Umbral.BdtGameService.IntegrationTests/Umbral.BdtGameService.IntegrationTests.csproj" --artifacts-path "C:\Users\santi\AppData\Local\Temp\opencode\bdt-auth-integration-artifacts"` | Passed: 97/97 |
+| Full BDT contract suite | `dotnet test "tests/Umbral.BdtGameService.ContractTests/Umbral.BdtGameService.ContractTests.csproj" --artifacts-path "C:\Users\santi\AppData\Local\Temp\opencode\bdt-auth-contract-artifacts"` | Passed: 47/47 |
 | React web focused | `npm test --prefix frontend -- PublishedBdtGamesPage` | Passed: 9/9 including row summary modal |
 | Full React web | `npm test --prefix frontend` | Passed: 45/45 |
 | React web typecheck | `tsc -p tsconfig.json --noEmit` in `frontend/` | Passed |

@@ -33,8 +33,19 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
         if (Request.Headers.TryGetValue("X-Test-UserId", out var userIdValue))
         {
             var userId = userIdValue.ToString();
-            claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));
-            claims.Add(new Claim("sub", userId));
+            var userIdClaimMode = Request.Headers.TryGetValue("X-Test-UserId-Claim", out var modeValue)
+                ? modeValue.ToString()
+                : "Both";
+
+            if (!userIdClaimMode.Equals("SubOnly", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add(new Claim(ClaimTypes.NameIdentifier, userId));
+            }
+
+            if (!userIdClaimMode.Equals("NameIdentifierOnly", StringComparison.OrdinalIgnoreCase))
+            {
+                claims.Add(new Claim("sub", userId));
+            }
         }
 
         var identity = new ClaimsIdentity(claims, SchemeName);

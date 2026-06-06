@@ -62,3 +62,11 @@
 - [x] Add a manual/runtime smoke evidence entry for React web HU-37 with real Keycloak `Operador` token against BDT Game Service, or explicitly document why it remains environment-dependent.
 - [x] Re-run and record final evidence after hardening: HU-37 unit, HU-37 integration, HU-37 contract, HU-37 PostgreSQL, frontend tests and frontend build.
 - [x] Update `acceptance.md`, `docs/04-sdd/traceability-matrix.md` and `docs/04-sdd/SPECS-LIST.md` after these hardening tasks are completed.
+
+## Runtime Authorization Fix
+
+- [x] Add BDT API helper to resolve authenticated user id from literal `sub` or mapped `ClaimTypes.NameIdentifier`.
+- [x] Use the helper in BDT HTTP endpoints that require authenticated user ids.
+- [x] Use the helper in `BdtPartidaHub.SubscribeToPartida`.
+- [x] Add HU-37 integration coverage for `Operador` with `NameIdentifier` only and no literal `sub` claim.
+- [x] Add HU-37 contract coverage for `NameIdentifier`-only user id claims.

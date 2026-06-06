@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Umbral.BdtGameService.Api.Authentication;
 using Umbral.BdtGameService.Application.Abstractions.Realtime;
 
 namespace Umbral.BdtGameService.Api.Realtime;
@@ -28,8 +29,7 @@ public sealed class BdtPartidaHub : Hub
             throw new HubException("PartidaId invalido.");
         }
 
-        var userIdClaim = Context.User?.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var userId))
+        if (Context.User is null || !AuthenticatedUserClaims.TryGetUserId(Context.User, out var userId))
         {
             throw new HubException("Usuario invalido.");
         }

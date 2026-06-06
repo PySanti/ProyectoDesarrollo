@@ -40,6 +40,23 @@ public sealed class Hu37ContractTests : IClassFixture<BdtApiFactory>
     }
 
     [Fact]
+    public async Task GetOperatorPublished_Should_Match_Response_Shape_When_UserId_Is_NameIdentifier_Only()
+    {
+        await ClearDatabaseAsync();
+        await SeedAsync(PartidaBDT.CrearPublicada("BDT publicada", Modalidad.Individual, new AreaBusqueda("Area"), OneStage()));
+
+        var response = await _client.SendAsync(CreateGetRequest(userIdClaimMode: "NameIdentifierOnly"));
+        var body = await response.Content.ReadAsStringAsync();
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        var item = Assert.Single(document.RootElement.EnumerateArray());
+        Assert.Equal("BDT publicada", item.GetProperty("nombre").GetString());
+        Assert.True(item.TryGetProperty("partidaId", out _));
+        Assert.True(item.TryGetProperty("estado", out _));
+    }
+
+    [Fact]
     public async Task GetOperatorPublished_Should_Match_Unauthenticated_Contract_Status()
     {
         var response = await _client.GetAsync("/api/bdt/operator/games/published");
@@ -55,11 +72,16 @@ public sealed class Hu37ContractTests : IClassFixture<BdtApiFactory>
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
-    private static HttpRequestMessage CreateGetRequest(string role = "Operador")
+    private static HttpRequestMessage CreateGetRequest(string role = "Operador", string? userIdClaimMode = null)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, "/api/bdt/operator/games/published");
         request.Headers.Add("X-Test-Role", role);
         request.Headers.Add("X-Test-UserId", Guid.NewGuid().ToString());
+        if (!string.IsNullOrWhiteSpace(userIdClaimMode))
+        {
+            request.Headers.Add("X-Test-UserId-Claim", userIdClaimMode);
+        }
+
         return request;
     }
 
