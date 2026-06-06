@@ -156,7 +156,7 @@ Business rules:
 - In `Individual` modality, `maximoParticipantes` is required and represents maximum players.
 - In `Equipo` modality, `maximoEquipos` and `minimoJugadoresPorEquipo` are required.
 - BDT creation must not create numeric accumulated score or BDT ranking state.
-- In the React web operator flow, `codigoQrEsperado` must come from a backend-decoded QR image through `POST /api/bdt/qr/decode`; the operator must not type the expected QR string manually.
+- In the React web operator flow, `codigoQrEsperado` must come from a backend-decoded QR image through `POST /api/bdt/stages/expected-qr/decode`; the operator must not type the expected QR string manually.
 
 Events published:
 
@@ -166,7 +166,7 @@ Real-time updates:
 
 - none required for HU-34 closure. Real-time publication/lobby updates are deferred to the BDT real-time/lobby stories such as HU-42 or HU-55 unless a later SDD introduces a SignalR contract.
 
-## POST /api/bdt/qr/decode
+## POST /api/bdt/stages/expected-qr/decode
 
 Related HU:
 
@@ -174,7 +174,6 @@ Related HU:
 
 Related requirement:
 
-- RF-25
 - RF-26
 - RF-35
 - RF-36
@@ -191,15 +190,27 @@ Authorization:
 Request:
 
 - `multipart/form-data`.
-- Required field `image`: QR image uploaded by the operator while configuring a BDT stage.
-- Accepted media types: `image/jpeg`, `image/png`.
+- Required field `image`: QR image selected by the operator while configuring a BDT stage.
+- Accepted media types: `image/jpeg` and `image/png`.
 - Maximum image size: `5 MB`.
 
-Response (`200 OK`):
+Response (`200 OK`) for readable QR:
 
 ```json
 {
-  "qrDecodificado": "QR-ETAPA-1"
+  "estadoProcesamiento": "Decodificado",
+  "qrDecodificado": "QR-ETAPA-1",
+  "mensaje": "QR decodificado correctamente."
+}
+```
+
+Response (`200 OK`) for unreadable QR:
+
+```json
+{
+  "estadoProcesamiento": "NoLegible",
+  "qrDecodificado": null,
+  "mensaje": "No se pudo leer un QR en la imagen."
 }
 ```
 
@@ -212,16 +223,15 @@ Error responses:
 | 403 | Authenticated user without operator authorization/policy |
 | 413 | Image exceeds `5 MB` |
 | 415 | Image media type is not `image/jpeg` or `image/png` |
-| 422 | QR content cannot be decoded from the uploaded image |
 | 500 | Decoder infrastructure failure |
 
 Business rules:
 
-- This endpoint is a backend decoding utility for HU-34 and does not persist BDT state.
-- The operator uploads a QR image per stage; BDT Game Service decodes the embedded textual QR content.
-- React web stores the returned `qrDecodificado` in the create-game payload as `codigoQrEsperado`.
-- The operator creation form must not expose a manual text input for `codigoQrEsperado`.
-- Backend remains authoritative for QR decoding; frontend does not decode QR locally.
+- This endpoint is an operator configuration helper for HU-34.
+- The BDT Game Service decodes the uploaded QR image and returns its textual content.
+- The endpoint does not create or mutate a BDT game, stage, treasure upload, ranking or history record.
+- The decoded text can be used as `etapas[].codigoQrEsperado` in `POST /api/bdt/games`.
+- React web must not be treated as authoritative for QR decoding or BDT rules.
 
 Events published:
 
@@ -229,7 +239,7 @@ Events published:
 
 Real-time updates:
 
-- none required.
+- none.
 
 ## GET /api/bdt/operator/games/published
 

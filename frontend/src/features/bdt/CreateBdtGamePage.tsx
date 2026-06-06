@@ -5,7 +5,7 @@ import {
   BdtModoInicio,
   createBdtGame,
   CreateBdtGameResponse,
-  decodeExpectedBdtQrImage
+  decodeBdtExpectedQrImage
 } from "../../api/bdtApi";
 
 interface CreateBdtGamePageProps {
@@ -123,11 +123,20 @@ export function CreateBdtGamePage({ accessToken }: CreateBdtGamePageProps) {
     setResult(null);
 
     try {
-      const response = await decodeExpectedBdtQrImage(file, accessToken);
+      const response = await decodeBdtExpectedQrImage(file, accessToken);
+      if (response.estadoProcesamiento === "Decodificado" && response.qrDecodificado) {
+        updateStage(setForm, index, {
+          codigoQrEsperado: response.qrDecodificado,
+          qrDecodeStatus: "decoded",
+          qrDecodeError: null
+        });
+        return;
+      }
+
       updateStage(setForm, index, {
-        codigoQrEsperado: response.qrDecodificado,
-        qrDecodeStatus: "decoded",
-        qrDecodeError: null
+        codigoQrEsperado: "",
+        qrDecodeStatus: "error",
+        qrDecodeError: response.mensaje
       });
     } catch (caught) {
       const message = caught instanceof BdtApiError
@@ -426,14 +435,16 @@ function mapErrorMessage(statusCode: number, fallbackMessage: string): string {
 
 function mapQrDecodeErrorMessage(statusCode: number, fallbackMessage: string): string {
   switch (statusCode) {
+    case 400:
+      return "Selecciona una imagen QR valida.";
     case 413:
       return "La imagen QR no puede superar 5 MB.";
     case 415:
       return "Solo se aceptan imagenes QR JPEG o PNG.";
-    case 422:
-      return "No se pudo leer un QR en la imagen seleccionada.";
     case 403:
       return "No autorizado. Debes tener rol Operador para decodificar QR.";
+    case 500:
+      return "Error del servicio al decodificar el QR.";
     default:
       return fallbackMessage;
   }

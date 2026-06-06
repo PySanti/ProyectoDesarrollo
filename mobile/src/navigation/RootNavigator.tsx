@@ -17,6 +17,7 @@ import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGa
 import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
 import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
+import { colors } from "../shared/theme";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -37,7 +38,14 @@ export function RootNavigator() {
   }
 
   return (
-    <AppStack.Navigator>
+    <AppStack.Navigator
+      screenOptions={{
+        headerStyle: { backgroundColor: colors.primaryDark },
+        headerTintColor: colors.white,
+        headerTitleStyle: { fontWeight: "800" },
+        contentStyle: { backgroundColor: colors.background },
+      }}
+    >
       <AppStack.Screen name="Home" component={HomeScreen} options={{ title: "Inicio" }} />
       <AppStack.Screen
         name="CreateTeam"

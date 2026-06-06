@@ -106,18 +106,25 @@ public sealed class Hu34ContractTests : IClassFixture<BdtApiFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
         using var document = JsonDocument.Parse(body);
+        Assert.Equal("Decodificado", document.RootElement.GetProperty("estadoProcesamiento").GetString());
         Assert.Equal("QR-ETAPA-1", document.RootElement.GetProperty("qrDecodificado").GetString());
+        Assert.Equal("QR decodificado correctamente.", document.RootElement.GetProperty("mensaje").GetString());
     }
 
     [Fact]
-    public async Task PostBdtQrDecode_Should_Return_UnprocessableEntity_When_Qr_Is_Not_Readable()
+    public async Task PostBdtQrDecode_Should_Return_NoLegible_When_Qr_Is_Not_Readable()
     {
         await using var factory = new QrDecoderBdtApiFactory(null);
         var client = factory.CreateClient();
 
         var response = await client.SendAsync(CreateDecodeRequest("image/png", new byte[] { 1, 2, 3 }));
+        var body = await response.Content.ReadAsStringAsync();
 
-        Assert.Equal(HttpStatusCode.UnprocessableEntity, response.StatusCode);
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        using var document = JsonDocument.Parse(body);
+        Assert.Equal("NoLegible", document.RootElement.GetProperty("estadoProcesamiento").GetString());
+        Assert.Equal(JsonValueKind.Null, document.RootElement.GetProperty("qrDecodificado").ValueKind);
+        Assert.Equal("No se pudo leer un QR en la imagen.", document.RootElement.GetProperty("mensaje").GetString());
     }
 
     [Fact]
@@ -146,7 +153,7 @@ public sealed class Hu34ContractTests : IClassFixture<BdtApiFactory>
         imageContent.Headers.ContentType = new MediaTypeHeaderValue(contentType);
         content.Add(imageContent, "image", contentType == "image/png" ? "qr.png" : "qr.txt");
 
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/bdt/qr/decode")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/api/bdt/stages/expected-qr/decode")
         {
             Content = content
         };

@@ -29,10 +29,6 @@ export interface CreateBdtGameResponse {
   cantidadEtapas: number;
 }
 
-export interface DecodeBdtQrResponse {
-  qrDecodificado: string;
-}
-
 export interface PublishedBdtGameItem {
   partidaId: string;
   nombre: string;
@@ -56,6 +52,12 @@ export interface StartBdtGameResponse {
   estado: "Iniciada";
   modalidad: BdtModalidad;
   etapaActiva: ActiveBdtStageResponse;
+  mensaje: string;
+}
+
+export interface DecodeExpectedQrResponse {
+  estadoProcesamiento: "Decodificado" | "NoLegible";
+  qrDecodificado: string | null;
   mensaje: string;
 }
 
@@ -107,15 +109,15 @@ export async function createBdtGame(
   return body as CreateBdtGameResponse;
 }
 
-export async function decodeExpectedBdtQrImage(
+export async function decodeBdtExpectedQrImage(
   image: File,
   accessToken: string,
   fetchImpl: typeof fetch = fetch
-): Promise<DecodeBdtQrResponse> {
+): Promise<DecodeExpectedQrResponse> {
   const formData = new FormData();
   formData.append("image", image);
 
-  const response = await fetchImpl(`${resolveBaseUrl()}/api/bdt/qr/decode`, {
+  const response = await fetchImpl(`${resolveBaseUrl()}/api/bdt/stages/expected-qr/decode`, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${accessToken}`
@@ -125,7 +127,7 @@ export async function decodeExpectedBdtQrImage(
 
   const body = (await response.json().catch(() => ({}))) as
     | { message?: string }
-    | DecodeBdtQrResponse;
+    | DecodeExpectedQrResponse;
 
   if (!response.ok) {
     const message =
@@ -134,7 +136,7 @@ export async function decodeExpectedBdtQrImage(
     throw new BdtApiError(message, response.status);
   }
 
-  return body as DecodeBdtQrResponse;
+  return body as DecodeExpectedQrResponse;
 }
 
 export async function getOperatorPublishedBdtGames(

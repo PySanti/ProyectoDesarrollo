@@ -13,6 +13,7 @@ using Umbral.BdtGameService.Application;
 using Umbral.BdtGameService.Application.Abstractions.Qr;
 using Umbral.BdtGameService.Application.Abstractions.Realtime;
 using Umbral.BdtGameService.Application.Games.Create;
+using Umbral.BdtGameService.Application.Games.DecodeExpectedQr;
 using Umbral.BdtGameService.Application.Games.ActiveStage;
 using Umbral.BdtGameService.Application.Games.JoinIndividual;
 using Umbral.BdtGameService.Application.Games.ListPublished;
@@ -164,9 +165,10 @@ app.MapPost("/api/bdt/games", async (
     .WithName("CreateBdtGame")
     .RequireAuthorization("OperatorOnly");
 
-app.MapPost("/api/bdt/qr/decode", async (
+app.MapPost("/api/bdt/stages/expected-qr/decode", async (
         IFormFile? image,
-        IQrImageDecoder qrImageDecoder,
+        IValidator<DecodificarQrEsperadoBdtCommand> validator,
+        ISender sender,
         CancellationToken cancellationToken) =>
     {
         if (image is null || image.Length == 0)
@@ -180,7 +182,7 @@ app.MapPost("/api/bdt/qr/decode", async (
             return Results.Json(new { message = "Solo se aceptan imagenes JPEG o PNG." }, statusCode: StatusCodes.Status415UnsupportedMediaType);
         }
 
-        if (image.Length > SubirTesoroQrCommandValidator.MaxImageSizeBytes)
+        if (image.Length > DecodificarQrEsperadoBdtCommandValidator.MaxImageSizeBytes)
         {
             return Results.Json(new { message = "La imagen no puede superar 5 MB." }, statusCode: StatusCodes.Status413PayloadTooLarge);
         }
@@ -193,15 +195,22 @@ app.MapPost("/api/bdt/qr/decode", async (
             imageContent = memoryStream.ToArray();
         }
 
-        var qrDecodificado = await qrImageDecoder.DecodeAsync(imageContent, image.ContentType, cancellationToken);
-        if (string.IsNullOrWhiteSpace(qrDecodificado))
+        var command = new DecodificarQrEsperadoBdtCommand(
+            image.FileName,
+            image.ContentType,
+            image.Length,
+            imageContent);
+
+        var validation = await validator.ValidateAsync(command, cancellationToken);
+        if (!validation.IsValid)
         {
-            return Results.Json(new { message = "No se pudo leer un QR en la imagen." }, statusCode: StatusCodes.Status422UnprocessableEntity);
+            return Results.ValidationProblem(validation.ToDictionary());
         }
 
-        return Results.Ok(new { qrDecodificado });
+        var response = await sender.Send(command, cancellationToken);
+        return Results.Ok(response);
     })
-    .WithName("DecodeBdtExpectedQr")
+    .WithName("DecodeExpectedBdtQr")
     .DisableAntiforgery()
     .RequireAuthorization("OperatorOnly");
 

@@ -20,7 +20,7 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("submits individual BDT creation and shows success", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage").mockResolvedValue({ qrDecodificado: "QR-ETAPA-1" });
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue(decodedQr("QR-ETAPA-1"));
     const spy = vi.spyOn(bdtApi, "createBdtGame").mockResolvedValue({
       partidaId: "p1",
       nombre: "Busqueda QR Campus",
@@ -52,6 +52,37 @@ describe("CreateBdtGamePage", () => {
     expect(await screen.findByTestId("bdt-create-success")).toBeInTheDocument();
   });
 
+  it("decodes a QR image and fills expected QR text", async () => {
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue({
+      estadoProcesamiento: "Decodificado",
+      qrDecodificado: "QR-IMAGEN-1",
+      mensaje: "QR decodificado correctamente."
+    });
+
+    render(<CreateBdtGamePage accessToken="token-1" />);
+
+    const file = new File(["QR:QR-IMAGEN-1"], "qr.png", { type: "image/png" });
+    await userEvent.upload(screen.getByLabelText(/imagen qr esperada etapa 1/i), file);
+
+    expect(await screen.findByText(/qr detectado correctamente desde qr.png/i)).toBeInTheDocument();
+  });
+
+  it("shows unreadable QR message without filling expected text", async () => {
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue({
+      estadoProcesamiento: "NoLegible",
+      qrDecodificado: null,
+      mensaje: "No se pudo leer un QR en la imagen."
+    });
+
+    render(<CreateBdtGamePage accessToken="token-1" />);
+
+    const file = new File(["not-a-qr"], "qr.png", { type: "image/png" });
+    await userEvent.upload(screen.getByLabelText(/imagen qr esperada etapa 1/i), file);
+
+    expect(await screen.findByText("No se pudo leer un QR en la imagen.")).toBeInTheDocument();
+    expect(screen.queryByLabelText(/^qr esperado/i)).not.toBeInTheDocument();
+  });
+
   it("shows validation error when stage QR is missing", async () => {
     render(<CreateBdtGamePage accessToken="token" />);
 
@@ -63,7 +94,7 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("submits team BDT creation with team limits payload", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage").mockResolvedValue({ qrDecodificado: "QR-EQUIPO-1" });
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue(decodedQr("QR-EQUIPO-1"));
     const spy = vi.spyOn(bdtApi, "createBdtGame").mockResolvedValue({
       partidaId: "p2",
       nombre: "Busqueda Equipos",
@@ -100,9 +131,9 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("submits multiple stages with deterministic order", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage")
-      .mockResolvedValueOnce({ qrDecodificado: "QR-ETAPA-1" })
-      .mockResolvedValueOnce({ qrDecodificado: "QR-ETAPA-2" });
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage")
+      .mockResolvedValueOnce(decodedQr("QR-ETAPA-1"))
+      .mockResolvedValueOnce(decodedQr("QR-ETAPA-2"));
     const spy = vi.spyOn(bdtApi, "createBdtGame").mockResolvedValue({
       partidaId: "p3",
       nombre: "Busqueda Multi Etapa",
@@ -141,10 +172,10 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("removes a stage and submits remaining stages with contiguous order", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage")
-      .mockResolvedValueOnce({ qrDecodificado: "QR-ELIMINAR" })
-      .mockResolvedValueOnce({ qrDecodificado: "QR-UNO" })
-      .mockResolvedValueOnce({ qrDecodificado: "QR-DOS" });
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage")
+      .mockResolvedValueOnce(decodedQr("QR-ELIMINAR"))
+      .mockResolvedValueOnce(decodedQr("QR-UNO"))
+      .mockResolvedValueOnce(decodedQr("QR-DOS"));
     const spy = vi.spyOn(bdtApi, "createBdtGame").mockResolvedValue({
       partidaId: "p4",
       nombre: "Busqueda Reordenada",
@@ -182,7 +213,7 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("maps 409 backend conflict to modality limits message", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage").mockResolvedValue({ qrDecodificado: "QR-ETAPA-1" });
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockResolvedValue(decodedQr("QR-ETAPA-1"));
     vi.spyOn(bdtApi, "createBdtGame").mockRejectedValue(
       new bdtApi.BdtApiError("conflict", 409)
     );
@@ -199,8 +230,8 @@ describe("CreateBdtGamePage", () => {
   });
 
   it("shows QR image decode errors and blocks manual QR string input", async () => {
-    vi.spyOn(bdtApi, "decodeExpectedBdtQrImage").mockRejectedValue(
-      new bdtApi.BdtApiError("No legible", 422)
+    vi.spyOn(bdtApi, "decodeBdtExpectedQrImage").mockRejectedValue(
+      new bdtApi.BdtApiError("No legible", 500)
     );
 
     render(<CreateBdtGamePage accessToken="token" />);
@@ -208,9 +239,17 @@ describe("CreateBdtGamePage", () => {
     expect(screen.queryByLabelText(/^qr esperado/i)).not.toBeInTheDocument();
     await userEvent.upload(screen.getByLabelText(/imagen qr esperada etapa 1/i), createQrFile("sin-qr.png"));
 
-    expect(await screen.findByText("No se pudo leer un QR en la imagen seleccionada.")).toBeInTheDocument();
+    expect(await screen.findByText("Error del servicio al decodificar el QR.")).toBeInTheDocument();
   });
 });
+
+function decodedQr(qrDecodificado: string): bdtApi.DecodeExpectedQrResponse {
+  return {
+    estadoProcesamiento: "Decodificado",
+    qrDecodificado,
+    mensaje: "QR decodificado correctamente."
+  };
+}
 
 function createQrFile(name: string) {
   return new File(["fake png content"], name, { type: "image/png" });

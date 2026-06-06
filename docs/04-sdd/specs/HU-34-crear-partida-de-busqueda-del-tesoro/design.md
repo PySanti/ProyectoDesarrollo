@@ -9,7 +9,7 @@
 - Identity Service / Keycloak token claims for authenticated role `Operador`.
 - PostgreSQL through EF Core inside BDT Game Service.
 - React web as operator client.
-- BDT-owned QR decoder adapter (`IQrImageDecoder`) to decode expected QR content from operator-uploaded stage QR images.
+- BDT-owned QR image decoder adapter for operator convenience when configuring expected textual QR content.
 
 No other microservice is allowed to own BDT creation. Team Service is not required for HU-34 because no team is registered during creation.
 
@@ -62,6 +62,28 @@ Handler responsibilities:
 - Persist aggregate through repository.
 - Return DTO.
 
+### `DecodificarQrEsperadoBdtCommand`
+
+Input:
+
+- `FileName`
+- `ContentType`
+- `Length`
+- `ImageContent`
+
+Output:
+
+- QR processing state: `Decodificado` or `NoLegible`.
+- Decoded textual QR content when readable.
+- Operator-facing message.
+
+Handler responsibilities:
+
+- Decode the uploaded QR image through the BDT-owned QR decoder port.
+- Return the decoded textual content for the operator to use as `CodigoQrEsperado`.
+- Avoid creating a BDT game, stage or treasure upload record.
+- Avoid final QR comparison, stage closing or ranking updates.
+
 ## Queries
 
 - None required for HU-34. Listing is HU-37.
@@ -72,15 +94,16 @@ Documented endpoint in `contracts/http/bdt-game-api.md`:
 
 ```txt
 POST /api/bdt/games
+POST /api/bdt/stages/expected-qr/decode
 ```
 
 React web must first decode each stage QR image through:
 
 ```txt
-POST /api/bdt/qr/decode
+POST /api/bdt/stages/expected-qr/decode
 ```
 
-The decode endpoint accepts `multipart/form-data` field `image`, is authorized for `Operador`, returns `{ "qrDecodificado": "..." }`, and does not persist state.
+The decode endpoint accepts `multipart/form-data` field `image`, is authorized for `Operador`, returns `estadoProcesamiento`, `qrDecodificado` and `mensaje`, and does not persist state.
 
 Authorization:
 
@@ -122,6 +145,22 @@ Response `201 Created`:
 }
 ```
 
+Expected QR image decode request:
+
+```txt
+multipart/form-data field `image`
+```
+
+Expected QR image decode response `200 OK`:
+
+```json
+{
+  "estadoProcesamiento": "Decodificado",
+  "qrDecodificado": "QR-ETAPA-1",
+  "mensaje": "QR decodificado correctamente."
+}
+```
+
 Errors:
 
 | Status | Reason |
@@ -130,6 +169,8 @@ Errors:
 | 401 | Unauthenticated |
 | 403 | Authenticated user is not operator |
 | 409 | Business rule conflict, such as invalid modality-specific limits |
+| 413 | Expected QR image exceeds 5 MB |
+| 415 | Expected QR image media type is not JPEG or PNG |
 | 500 | Persistence failure |
 
 ## Events
@@ -153,6 +194,7 @@ Internal/domain event candidate:
 | Pattern | Location | Problem solved | Justification |
 |---|---|---|---|
 | CQRS + Mediator | `CrearPartidaBdtCommand` and handler | Separates state mutation from queries | Required project architecture |
+| Adapter | `IQrImageDecoder` infrastructure implementation | Decodes QR images without coupling API/application to ZXing/SkiaSharp | Keeps QR decoding infrastructure outside domain and frontend |
 | Factory Method | `PartidaBDT.Crear(...)` | Creates aggregate with required invariants | BDT creation must validate stages and modality limits atomically |
 | Composite | `PartidaBDT` with `EtapaBDT` children | Models game composed of ordered stages | BDT is naturally a parent aggregate with stage children |
 | Repository | BDT application port and EF Core implementation | Isolates persistence | Clean/hexagonal architecture requirement |
@@ -190,6 +232,7 @@ Frontend tests:
 - Web form validates required fields for usability.
 - Web form uploads a QR image per stage for backend decoding and does not expose manual QR string input.
 - Web form submits to documented API and renders success/error states.
+- Web form decodes an uploaded QR image through BDT Game Service and fills the expected QR text.
 
 PostgreSQL tests:
 

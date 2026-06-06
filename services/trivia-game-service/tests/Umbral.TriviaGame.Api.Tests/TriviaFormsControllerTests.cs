@@ -92,7 +92,7 @@ public sealed class TriviaFormsControllerTests : IClassFixture<IntegrationTestFa
 
         var command = new
         {
-            title = $"Form List {Guid.NewGuid()}",
+            title = $"Form List {Guid.NewGuid():N}",
             questions = new[]
             {
                 new
@@ -114,15 +114,15 @@ public sealed class TriviaFormsControllerTests : IClassFixture<IntegrationTestFa
 
         var createResponse = await client.PostAsJsonAsync("/api/trivia-forms", command);
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
+
         var created = await createResponse.Content.ReadFromJsonAsync<TriviaFormDetailDto>();
         Assert.NotNull(created);
 
         var listResponse = await client.GetAsync("/api/trivia-forms");
         Assert.Equal(HttpStatusCode.OK, listResponse.StatusCode);
         var forms = await listResponse.Content.ReadFromJsonAsync<IReadOnlyList<TriviaFormListItemDto>>();
-        Assert.NotNull(forms);
 
-        var listed = Assert.Single(forms.Where(form => form.Id == created.Id));
+        var listed = Assert.Single(forms!.Where(form => form.Id == created.Id));
         Assert.True(listed.IsComplete);
         Assert.Equal(1, listed.QuestionsCount);
     }
