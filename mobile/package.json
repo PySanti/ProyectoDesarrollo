@@ -8,12 +8,8 @@
     "node": ">=20.19.4"
   },
   "scripts": {
-    "prestart": "node ./scripts/check-node-version.cjs",
-    "start": "expo start",
-    "start:lan": "expo start --clear --host lan",
-    "start:tunnel": "expo start --clear --host tunnel",
-    "start:logged": "node ./scripts/start-expo-logged.cjs --host lan",
-    "start:tunnel:logged": "node ./scripts/start-expo-logged.cjs --host tunnel",
+    "mobile": "REACT_NATIVE_PACKAGER_HOSTNAME=192.168.125.236 expo start --clear --host lan",
+    "start": "REACT_NATIVE_PACKAGER_HOSTNAME=192.168.125.236 expo start --clear --host lan",
     "android": "expo run:android",
     "ios": "expo run:ios",
     "web": "expo start --web",
@@ -21,7 +17,6 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@expo/ngrok": "^4.1.3",
     "@react-navigation/native": "^6.1.17",
     "@react-navigation/native-stack": "^6.9.26",
     "expo": "^54.0.0",
