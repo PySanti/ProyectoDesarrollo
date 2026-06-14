@@ -105,14 +105,47 @@ La verificación visual es **manual con Expo**. Roadmap y avance: `mobile-redesi
 - **`EmptyPanel`** (`title`, `message`, `action?`, `icon?`): empty state que **enseña** (panel punteado).
 - **`Mono`** (`chip?`): identificadores/códigos/QR en JetBrains Mono (regla Mono For Machine Strings).
 - **`ScreenHeader`** (`title`, `subtitle?`, `right?`): cabecera display, **sin eyebrow** (No-Eyebrow).
-- **`DetailRow`** (`label`, `value`): fila etiqueta→valor para paneles de detalle.
+- **`DetailRow`** (`label`, `value`, `onStage?`): fila etiqueta→valor para paneles de detalle (con
+  `onStage` usa texto claro sobre superficies de color).
+
+## Primitivos del **registro de juego** (v2 inmersivo, `ui/` + `shared/`)
+
+Capa de uso más intensa para el participante (misma paleta/fuentes). Tokens en `theme.ts > game`
+(superficies *stage*, `onStage*`, `gradient` mismo-hue, `glow`, `motion`). **Toda animación tiene
+alternativa estática** (`shared/useReducedMotion.ts`); color/forma siguen comunicando sin movimiento.
+
+- **`Stage`** (`variant`: magenta/indigo/ink/plain, `gradient?`, `scroll?`): lienzo inmersivo a sangre
+  completa con safe area (`react-native-safe-area-context`) y status bar adaptada.
+- **`Hero`** / **`BigNumber`**: cabecera dramática (Space Grotesk 700) / número protagonista (XL).
+- **`Panel`**: tarjeta translúcida "glass" para contenido sobre un `Stage` de color (equivalente a `Card`).
+- **`Icon`** (Feather, `@expo/vector-icons`): iconografía de línea coherente con la web.
+- **`PressableScale`**: envoltorio táctil con press-scale (spring `Animated`), reduce-motion aware.
+- **`Countdown`** (`seconds`, `warnAt`/`dangerAt`): timer gigante **presentacional** (recibe los
+  segundos; no posee reloj) normal→ámbar→rojo + pulso de urgencia.
+- **`Reaction`** (`correct`): veredicto ✓/✕ verde/rojo con pop sobrio (sin confeti).
+- **`Podium`** (`entries: PodiumEntry[]`): top-3 por **altura** + "Tú" resaltado + deltas. **Agnóstico
+  del criterio**: muestra `valor` ya formateado (Trivia: "300 pts"; BDT: "3 etapas · 4:12") — **no asume
+  puntaje**, por eso sirve también al ranking BDT (etapas/tiempo).
+- **`shared/useCountUp.ts`**: anima un entero 0→target (count-up), reduce-motion salta al valor.
+
+**AA en superficies de color:** texto blanco/`onStage` solo sobre `primary-fill #982f93` / `accent
+#3e5fad` o más oscuro; los gradientes nunca arrancan más claros que esa base. `onStageMuted` es blanco
+al **80%** (no 74%) para que el texto atenuado pequeño pase AA aun sobre la superficie más clara permitida.
+
+**Maquetas (datos mock + plantilla de integración)**, para ver/probar el juego sin backend en vivo:
+`features/trivia/live/` (interfaz `LiveTriviaSource` + mock + `TriviaLivePlayScreen`: pregunta→Countdown→
+Reaction→Score count-up→Podium) y `features/bdt/ranking/` (`BdtRankingSource` + mock + Podium por
+etapas/tiempo). Cada carpeta documenta cómo cablear el backend (cambiar **una** fuente; la pantalla no
+cambia). Accesos "(demo)" auto-removibles en estados vacíos/lobby.
 
 ## Convenciones aprendidas (mobile)
 
-- **Dos patrones de pantalla:** (a) presentacionales con lógica inline (Login, Home, Create/Join,
-  las 5 de Trivia) → usan los **primitivos** directamente; (b) **controller-driven** (las 3 de BDT y
-  equipos Leave/Transfer) → el render vive en un `Controller.js` **testeado** que recibe `components`
-  + `styles`; se re-skinean cambiando **solo los valores** de `styles` (vía `cs.*`), nunca las claves.
+- **Patrones de pantalla:** **presentacionales** con lógica inline o vía **hook** (Login, Home,
+  Create/Join, las 5 de Trivia, las 3 de BDT) → usan los **primitivos** directamente. La lógica de las
+  pantallas BDT vive en **hooks `.js` testeables** (`useBdtActiveStage`/`useBdtTreasureUpload`/
+  `useBdtPublishedGames`) que reemplazaron a los antiguos `Controller.js`: la orquestación se testea por
+  el **valor de retorno del hook**, no por el texto renderizado. Equipos **Leave/Transfer** siguen
+  controller-driven (re-skin por valores de `styles` vía `cs.*`, sin tocar el controller testeado).
 - **Estado:** `gameStatePill` conserva el texto del backend como etiqueta para no romper aserciones.
 - **One Live Voice:** magenta solo en acción primaria / foco / estado "En vivo"; rol y metadatos en chip neutro.
 - **QR en mobile:** el decode es **autoritativo en backend**; el teléfono solo sube la foto → estados como error/éxito.
@@ -126,7 +159,7 @@ La verificación visual es **manual con Expo**. Roadmap y avance: `mobile-redesi
 ```bash
 cd mobile
 npx tsc --noEmit              # tipos
-node --test tests/*.test.js   # 83 tests (lógica/flujos/controllers)
+node --test tests/*.test.js   # 81 tests (lógica/flujos/hooks)
 npm start                     # pase visual manual en Expo
 ```
 

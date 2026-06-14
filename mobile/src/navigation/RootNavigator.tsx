@@ -10,10 +10,12 @@ import { TransferLeadershipScreenContainer } from "../features/teams/TransferLea
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
 import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
 import { TriviaLobbyScreenContainer } from "../features/trivia/screens/TriviaLobbyScreenContainer";
+import { TriviaLivePlayScreenContainer } from "../features/trivia/live/TriviaLivePlayScreenContainer";
 import { TriviaAnswerScreenContainer } from "../features/trivia/screens/TriviaAnswerScreenContainer";
 import { TriviaResultScreenContainer } from "../features/trivia/screens/TriviaResultScreenContainer";
 import { TriviaScoreScreenContainer } from "../features/trivia/screens/TriviaScoreScreenContainer";
 import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
+import { BdtRankingScreenContainer } from "../features/bdt/ranking/BdtRankingScreenContainer";
 import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
 import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
@@ -45,9 +47,10 @@ export function RootNavigator() {
         headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.bg },
+        animation: "slide_from_right",
       }}
     >
-      <AppStack.Screen name="Home" component={HomeScreen} options={{ title: "Inicio" }} />
+      <AppStack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
       <AppStack.Screen
         name="CreateTeam"
         component={CreateTeamScreenContainer}
@@ -79,6 +82,11 @@ export function RootNavigator() {
         options={{ title: "Espera Trivia" }}
       />
       <AppStack.Screen
+        name="TriviaLivePlay"
+        component={TriviaLivePlayScreenContainer}
+        options={{ headerShown: false }}
+      />
+      <AppStack.Screen
         name="TriviaAnswer"
         component={TriviaAnswerScreenContainer}
         options={{ title: "Responder Trivia" }}
@@ -97,6 +105,11 @@ export function RootNavigator() {
         name="BdtPublishedGames"
         component={BdtPublishedGamesScreenContainer}
         options={{ title: "Partidas BDT" }}
+      />
+      <AppStack.Screen
+        name="BdtRanking"
+        component={BdtRankingScreenContainer}
+        options={{ headerShown: false }}
       />
       <AppStack.Screen
         name="BdtActiveStage"

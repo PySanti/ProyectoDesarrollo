@@ -1,38 +1,67 @@
-import React from "react";
-import { ActivityIndicator, SafeAreaView, StyleSheet, View } from "react-native";
-import { AppText } from "../shared/ui";
-import { colors, spacing } from "../shared/theme";
+import React, { useEffect, useRef } from "react";
+import { ActivityIndicator, Animated, Easing, StyleSheet, View } from "react-native";
+import { AppText, Stage } from "../shared/ui";
+import { game, spacing } from "../shared/theme";
+import { useReducedMotion } from "../shared/useReducedMotion";
 
 /**
- * Pantalla de carga. Se muestra en dos momentos: mientras cargan las fuentes (gate en
- * `App.tsx`, aún con fuente del sistema) y mientras se restaura la sesión. Por eso se mantiene
- * legible sin depender de las fuentes de marca.
+ * Pantalla de carga inmersiva (registro de juego). Stage magenta con entrada animada del wordmark
+ * (API `Animated` nativa, sin dependencias nativas extra). Se muestra mientras cargan las fuentes y
+ * al restaurar sesión; legible aun sin las fuentes de marca. Respeta `prefers-reduced-motion`.
  */
 export function SplashScreen() {
+  const progress = useRef(new Animated.Value(0)).current;
+  const reduced = useReducedMotion();
+
+  useEffect(() => {
+    if (reduced) {
+      progress.setValue(1);
+      return;
+    }
+    Animated.timing(progress, {
+      toValue: 1,
+      duration: 440,
+      easing: Easing.out(Easing.cubic),
+      useNativeDriver: true,
+    }).start();
+  }, [reduced, progress]);
+
+  const brandStyle = {
+    opacity: progress,
+    transform: [
+      {
+        translateY: progress.interpolate({ inputRange: [0, 1], outputRange: [14, 0] }),
+      },
+    ],
+  };
+
   return (
-    <SafeAreaView style={styles.safe}>
+    <Stage variant="magenta" gradient>
       <View style={styles.center}>
-        <AppText variant="display" color={colors.primaryStrong}>
-          UMBRAL
-        </AppText>
-        <ActivityIndicator size="large" color={colors.primaryFill} />
-        <AppText variant="body" color={colors.muted}>
-          Cargando…
-        </AppText>
+        <Animated.View style={brandStyle}>
+          <AppText variant="mega" color={game.onStage} style={styles.wordmark}>
+            UMBRAL
+          </AppText>
+        </Animated.View>
+        <ActivityIndicator color={game.onStage} />
       </View>
-    </SafeAreaView>
+    </Stage>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
   center: {
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    gap: spacing.lg,
+    gap: spacing.xl,
+  },
+  wordmark: {
+    fontSize: 52,
+    lineHeight: 56,
+    letterSpacing: -1.5,
+    textAlign: "center",
+    // En Android, letterSpacing negativo recorta el último glifo; el padding evita el clip ("UMBRA" → "UMBRAL").
+    paddingHorizontal: spacing.sm,
   },
 });

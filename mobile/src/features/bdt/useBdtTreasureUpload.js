@@ -1,7 +1,5 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { submitTreasureUpload, validateTreasureImage } from "./bdtTreasureUploadFlow.js";
-
-const emptyStyles = {};
 
 async function defaultRequestImagePermission() {
   return { granted: false, unavailable: true };
@@ -16,27 +14,28 @@ async function defaultPickImage() {
 }
 
 /**
+ * Orquestación de la subida de tesoro QR (HU-45), extraída del antiguo controller para que la UI sea
+ * presentacional (registro de juego). Conserva las dependencias inyectables (permiso de imagen y de
+ * geolocalización, selector de imagen, fetch, FormData) y la lógica testeada:
+ *   - gatea la subida tras los permisos (imagen + geolocalización),
+ *   - valida la imagen seleccionada (tipo/tamaño) antes de habilitar el envío,
+ *   - envía al backend, que es **autoritativo** para decodificar/validar el QR.
+ * Expone además `uploadResult` (estado de procesamiento, QR) para la reacción de resultado.
+ *
  * @param {{
- *   apiBaseUrl: string,
- *   token: string,
- *   partidaId: string,
- *   etapaId: string,
- *   components: any,
- *   styles?: any,
+ *   apiBaseUrl: string, token: string, partidaId: string, etapaId: string,
  *   requestImagePermission?: () => Promise<{ granted: boolean, unavailable?: boolean }>,
  *   requestGeolocationPermission?: () => Promise<{ granted: boolean }>,
- *   pickImage?: () => Promise<{ cancelled?: boolean, image?: { uri: string, name: string, type: string, size?: number } }>,
+ *   pickImage?: () => Promise<{ cancelled?: boolean, image?: any }>,
  *   fetchImpl?: typeof fetch,
  *   formDataFactory?: () => FormData,
  * }} props
  */
-export function BdtTreasureUploadScreenController({
+export function useBdtTreasureUpload({
   apiBaseUrl,
   token,
   partidaId,
   etapaId,
-  components,
-  styles = emptyStyles,
   requestImagePermission = defaultRequestImagePermission,
   requestGeolocationPermission = defaultRequestGeolocationPermission,
   pickImage = defaultPickImage,
@@ -49,8 +48,7 @@ export function BdtTreasureUploadScreenController({
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState(null);
   const [successMessage, setSuccessMessage] = useState(null);
-
-  const { ActivityIndicator, Pressable, SafeAreaView, ScrollView, Text, View } = components;
+  const [uploadResult, setUploadResult] = useState(null);
 
   useEffect(() => {
     let active = true;
@@ -68,6 +66,7 @@ export function BdtTreasureUploadScreenController({
   const selectImage = async () => {
     setErrorMessage(null);
     setSuccessMessage(null);
+    setUploadResult(null);
     const permission = await requestImagePermission();
     if (!permission?.granted) {
       setImagePermissionDenied(true);
@@ -118,43 +117,22 @@ export function BdtTreasureUploadScreenController({
       return;
     }
 
+    setUploadResult(result.data);
     setSuccessMessage(result.data.mensaje ?? "Tesoro recibido para validacion.");
   };
 
   const canSubmit = Boolean(selectedImage) && !loading && !imagePermissionDenied && !geolocationDenied;
 
-  return React.createElement(
-    SafeAreaView,
-    { style: styles.safeArea },
-    React.createElement(
-      ScrollView,
-      { contentContainerStyle: styles.container },
-      React.createElement(Text, { style: styles.title }, "Subir tesoro QR"),
-      React.createElement(Text, { style: styles.description }, "Toma o selecciona una foto del QR encontrado. La validacion autoritativa la realiza el backend."),
-      imagePermissionDenied ? React.createElement(Text, { style: styles.error }, "Debes permitir camara o imagenes para subir el tesoro QR.") : null,
-      geolocationDenied ? React.createElement(Text, { style: styles.error }, "Debes permitir geolocalizacion para participar en la BDT activa.") : null,
-      errorMessage ? React.createElement(Text, { style: styles.error }, errorMessage) : null,
-      successMessage ? React.createElement(Text, { style: styles.success }, successMessage) : null,
-      selectedImage
-        ? React.createElement(
-            View,
-            { style: styles.card },
-            React.createElement(Text, { style: styles.cardTitle }, "Imagen seleccionada"),
-            React.createElement(Text, { style: styles.cardLine }, selectedImage.name),
-            React.createElement(Text, { style: styles.cardLine }, selectedImage.type),
-          )
-        : React.createElement(Text, { style: styles.empty }, "Aun no has seleccionado una imagen."),
-      loading ? React.createElement(ActivityIndicator, { color: "#0b5fff" }) : null,
-      React.createElement(
-        Pressable,
-        { accessibilityRole: "button", onPress: selectImage, style: styles.secondaryButton },
-        React.createElement(Text, { style: styles.secondaryButtonText }, "Tomar o seleccionar foto"),
-      ),
-      React.createElement(
-        Pressable,
-        { accessibilityRole: "button", disabled: !canSubmit, onPress: submit, style: canSubmit ? styles.joinButton : styles.disabledButton },
-        React.createElement(Text, { style: styles.joinButtonText }, loading ? "Subiendo..." : "Subir tesoro"),
-      ),
-    ),
-  );
+  return {
+    imagePermissionDenied,
+    geolocationDenied,
+    selectedImage,
+    loading,
+    errorMessage,
+    successMessage,
+    uploadResult,
+    canSubmit,
+    selectImage,
+    submit,
+  };
 }

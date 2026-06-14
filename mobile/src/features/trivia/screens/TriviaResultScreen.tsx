@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
-import { AppText, Card, DetailRow, Notice, StatePill } from "../../../shared/ui";
-import { colors, spacing } from "../../../shared/theme";
+import { ActivityIndicator } from "react-native";
+import { AppText, DetailRow, Notice, Panel, Reaction, Stage } from "../../../shared/ui";
+import { game } from "../../../shared/theme";
 import { TriviaMobileApiError, TriviaQuestionResultResponse, getTriviaQuestionResult } from "../../../api/triviaApi";
 
 type Props = {
@@ -33,46 +33,28 @@ export function TriviaResultScreen({ apiBaseUrl, token, partidaId, preguntaId }:
   }, [loadResult]);
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.head}>
-          <AppText variant="display">Resultado de pregunta</AppText>
-          <AppText variant="body" color={colors.muted}>
+    <Stage variant="ink" gradient scroll>
+      {loading ? <ActivityIndicator color={game.onStage} /> : null}
+      {error ? <Notice variant="error">{error}</Notice> : null}
+
+      {result ? (
+        <>
+          <Reaction
+            correct={result.esCorrecta === true}
+            title={result.esCorrecta ? "¡Correcta!" : "Incorrecta"}
+            subtitle={result.textoPregunta}
+          />
+          <Panel>
+            <DetailRow label="Correcta" value={result.opcionCorrectaText} onStage />
+            <DetailRow label="Tu respuesta" value={result.miOpcionText ?? "Sin respuesta"} onStage />
+            <DetailRow label="Puntaje" value={String(result.puntajeObtenido)} onStage />
+            <DetailRow label="Cierre" value={result.motivoCierre} onStage />
+          </Panel>
+          <AppText variant="body" color={game.onStageMuted}>
             HU-28 muestra la respuesta correcta enviada por backend.
           </AppText>
-        </View>
-
-        {loading ? <ActivityIndicator color={colors.primaryFill} /> : null}
-        {error ? <Notice variant="error">{error}</Notice> : null}
-
-        {result ? (
-          <Card>
-            <AppText variant="title">{result.textoPregunta}</AppText>
-            <StatePill
-              state={result.esCorrecta ? "ok" : "cancel"}
-              label={result.esCorrecta ? "Correcta" : "Incorrecta"}
-            />
-            <DetailRow label="Correcta" value={result.opcionCorrectaText} />
-            <DetailRow label="Tu respuesta" value={result.miOpcionText ?? "Sin respuesta"} />
-            <DetailRow label="Puntaje" value={String(result.puntajeObtenido)} />
-            <DetailRow label="Cierre" value={result.motivoCierre} />
-          </Card>
-        ) : null}
-      </ScrollView>
-    </SafeAreaView>
+        </>
+      ) : null}
+    </Stage>
   );
 }
-
-const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  head: {
-    gap: spacing.xs,
-  },
-});

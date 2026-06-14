@@ -1,21 +1,23 @@
 import React from 'react';
 import { StyleSheet, View } from 'react-native';
-import { colors, spacing } from '../theme';
+import { colors, game, spacing } from '../theme';
 import { AppText } from './AppText';
 
 interface Props {
   label: string;
   value: string;
+  /** Sobre un `Stage`/`Panel` de color: usa texto claro (`onStage*`) en vez de tinta. */
+  onStage?: boolean;
 }
 
 /** Fila etiqueta → valor para paneles de detalle (espejo del `.detail-grid` de la web). */
-export function DetailRow({ label, value }: Props) {
+export function DetailRow({ label, value, onStage }: Props) {
   return (
     <View style={styles.row}>
-      <AppText variant="label" color={colors.muted}>
+      <AppText variant="label" color={onStage ? game.onStageMuted : colors.muted}>
         {label}
       </AppText>
-      <AppText variant="bodyStrong" style={styles.value}>
+      <AppText variant="bodyStrong" color={onStage ? game.onStage : undefined} style={styles.value}>
         {value}
       </AppText>
     </View>

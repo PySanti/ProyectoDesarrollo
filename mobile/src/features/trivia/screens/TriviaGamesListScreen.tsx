@@ -1,16 +1,8 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import {
-  ActivityIndicator,
-  FlatList,
-  RefreshControl,
-  SafeAreaView,
-  StyleSheet,
-  TouchableOpacity,
-  View,
-} from 'react-native';
-import { AppText, Button, EmptyPanel, Notice, StatePill } from '../../../shared/ui';
+import { ActivityIndicator, FlatList, RefreshControl, StyleSheet, View } from 'react-native';
+import { AppText, Button, EmptyPanel, Icon, Notice, PressableScale, Stage, StatePill } from '../../../shared/ui';
 import { gameStatePill } from '../../../shared/statusPill';
-import { colors, radius, spacing } from '../../../shared/theme';
+import { game, radius, spacing } from '../../../shared/theme';
 import { getPublishedTriviaGames, TriviaMobileApiError } from '../../../api/triviaApi';
 import { TriviaGameListItem } from '../types';
 import { TEAM_TRIVIA_LEADER_WARNING } from '../triviaParticipantScreenModel.js';
@@ -19,6 +11,8 @@ type Props = {
   apiBaseUrl: string;
   token: string;
   onOpenLobby?: (partidaId: string) => void;
+  /** Lanza la maqueta de partida en vivo (G2): demostrable sin backend. */
+  onPlayDemo?: () => void;
 };
 
 function formatDate(iso: string): string {
@@ -33,7 +27,7 @@ function formatDate(iso: string): string {
 
 type Filtro = 'Todas' | 'Individual' | 'Equipo';
 
-export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby }: Props) {
+export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby, onPlayDemo }: Props) {
   const [games, setGames] = useState<TriviaGameListItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -66,89 +60,110 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby }
 
   const renderGame = ({ item }: { item: TriviaGameListItem }) => {
     const pill = gameStatePill(item.estado);
+    const individual = item.modalidad === 'Individual';
     return (
-      <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => onOpenLobby?.(item.id)}>
+      <PressableScale
+        style={styles.card}
+        accessibilityRole="button"
+        accessibilityLabel={item.nombre}
+        onPress={() => onOpenLobby?.(item.id)}
+      >
         <View style={styles.cardHead}>
-          <AppText variant="title" style={styles.cardName}>
+          <View style={styles.iconChip}>
+            <Icon name={individual ? 'user' : 'users'} size={20} color={game.onStage} />
+          </View>
+          <AppText variant="title" color={game.onStage} style={styles.cardName}>
             {item.nombre}
           </AppText>
           <StatePill state={pill.state} label={pill.label} />
         </View>
         <View style={styles.cardRow}>
-          <AppText variant="label" color={colors.inkSoft}>
-            {item.modalidad === 'Individual' ? 'Individual' : 'Equipo'}
+          <AppText variant="label" color={game.onStage}>
+            {individual ? 'Individual' : 'Equipo'}
           </AppText>
-          <AppText variant="label" color={colors.muted}>
+          <AppText variant="label" color={game.onStageMuted}>
             {formatDate(item.tiempoInicio)}
           </AppText>
         </View>
-        <AppText variant="body" color={colors.muted}>
-          {item.modalidad === 'Individual'
+        <AppText variant="body" color={game.onStageMuted}>
+          {individual
             ? `Jugadores: ${item.minimoParticipantes} - ${item.maximoJugadores ?? '-'}`
             : `Equipos: ${item.minimoParticipantes} - ${item.maximoEquipos ?? '-'}`}
         </AppText>
-        <AppText variant="label" color={colors.primaryStrong}>
-          {item.modalidad === 'Individual' ? 'Toca para unirte o ver espera' : TEAM_TRIVIA_LEADER_WARNING}
+        <AppText variant="label" color={game.onStage}>
+          {individual ? 'Toca para unirte o ver espera' : TEAM_TRIVIA_LEADER_WARNING}
         </AppText>
-      </TouchableOpacity>
+      </PressableScale>
     );
   };
 
   if (loading) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <Stage variant="ink" gradient>
         <View style={styles.centered}>
-          <ActivityIndicator size="large" color={colors.primaryFill} />
-          <AppText variant="body" color={colors.muted}>
+          <ActivityIndicator size="large" color={game.onStage} />
+          <AppText variant="body" color={game.onStageMuted}>
             Cargando partidas...
           </AppText>
         </View>
-      </SafeAreaView>
+      </Stage>
     );
   }
 
   if (error) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <Stage variant="ink" gradient>
         <View style={styles.centered}>
           <Notice variant="error" style={styles.notice}>
             {error}
           </Notice>
-          <Button label="Reintentar" variant="secondary" onPress={() => fetchGames()} />
+          <Button label="Reintentar" variant="secondary" onStage onPress={() => fetchGames()} />
+          {onPlayDemo ? (
+            <Button label="Probar partida en vivo (demo)" icon="play" onStage onPress={onPlayDemo} />
+          ) : null}
         </View>
-      </SafeAreaView>
+      </Stage>
     );
   }
 
   if (games.length === 0) {
     return (
-      <SafeAreaView style={styles.safe}>
+      <Stage variant="ink" gradient>
         <View style={styles.centered}>
           <EmptyPanel
             title="No hay partidas de Trivia publicadas"
             message="Cuando un operador publique una Trivia, aparecerá aquí para que te unas."
-            action={<Button label="Actualizar" variant="secondary" onPress={() => fetchGames()} />}
+            action={
+              <View style={styles.emptyActions}>
+                <Button label="Actualizar" variant="secondary" onPress={() => fetchGames()} />
+                {onPlayDemo ? (
+                  <Button label="Probar partida en vivo (demo)" icon="play" onPress={onPlayDemo} />
+                ) : null}
+              </View>
+            }
           />
         </View>
-      </SafeAreaView>
+      </Stage>
     );
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
+    <Stage variant="ink" gradient contentStyle={styles.stageContent}>
       <View style={styles.filterBar}>
         {(['Todas', 'Individual', 'Equipo'] as Filtro[]).map((opcion) => {
           const active = filtro === opcion;
           return (
-            <TouchableOpacity
+            <PressableScale
               key={opcion}
               style={[styles.filterChip, active && styles.filterChipActive]}
+              accessibilityRole="button"
+              accessibilityLabel={opcion}
               onPress={() => setFiltro(opcion)}
             >
-              <AppText variant="label" color={active ? colors.primaryStrong : colors.inkSoft}>
+              <AppText variant="label" color={active ? game.stage.ink : game.onStageMuted}>
                 {opcion}
               </AppText>
-            </TouchableOpacity>
+            </PressableScale>
           );
         })}
       </View>
@@ -157,16 +172,19 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby }
         keyExtractor={(item) => item.id}
         renderItem={renderGame}
         contentContainerStyle={styles.list}
-        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchGames(true)} />}
+        refreshControl={
+          <RefreshControl refreshing={refreshing} onRefresh={() => fetchGames(true)} tintColor={game.onStage} />
+        }
       />
-    </SafeAreaView>
+    </Stage>
   );
 }
 
 const styles = StyleSheet.create({
-  safe: {
+  stageContent: {
+    padding: 0,
+    gap: 0,
     flex: 1,
-    backgroundColor: colors.bg,
   },
   centered: {
     flex: 1,
@@ -176,6 +194,10 @@ const styles = StyleSheet.create({
     gap: spacing.lg,
   },
   notice: {
+    alignSelf: 'stretch',
+  },
+  emptyActions: {
+    gap: spacing.sm,
     alignSelf: 'stretch',
   },
   filterBar: {
@@ -189,33 +211,42 @@ const styles = StyleSheet.create({
     minHeight: 44,
     justifyContent: 'center',
     borderWidth: 1,
-    borderColor: colors.lineStrong,
-    backgroundColor: colors.surface,
+    borderColor: game.onStageLine,
+    backgroundColor: game.onStageSunk,
     borderRadius: radius.pill,
     paddingHorizontal: spacing.lg,
     paddingVertical: spacing.sm,
   },
   filterChipActive: {
-    borderColor: colors.primaryBright,
-    backgroundColor: colors.primaryWash,
+    borderColor: game.onStage,
+    backgroundColor: game.onStage,
   },
   list: {
     padding: spacing.lg,
     gap: spacing.md,
   },
   card: {
-    backgroundColor: colors.surface,
+    backgroundColor: game.onStageSunk,
     borderWidth: 1,
-    borderColor: colors.line,
+    borderColor: game.onStageLine,
     borderRadius: radius.lg,
     padding: spacing.lg,
     gap: spacing.sm,
   },
   cardHead: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: spacing.sm,
+  },
+  iconChip: {
+    width: 36,
+    height: 36,
+    borderRadius: radius.md,
+    backgroundColor: game.onStageSunk,
+    borderWidth: 1,
+    borderColor: game.onStageLine,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   cardName: {
     flex: 1,

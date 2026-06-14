@@ -1,7 +1,7 @@
 import React, { useState } from "react";
-import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
-import { AppText, Button, Card, DetailRow, Field, Notice, StatePill } from "../../../shared/ui";
-import { colors, fonts, spacing } from "../../../shared/theme";
+import { StyleSheet } from "react-native";
+import { AppText, Button, Card, DetailRow, Field, Hero, Notice, Panel, Reaction, Stage } from "../../../shared/ui";
+import { fonts, game, spacing } from "../../../shared/theme";
 import { TriviaAnswerResponse, TriviaMobileApiError, answerTriviaQuestion } from "../../../api/triviaApi";
 
 type Props = {
@@ -45,55 +45,57 @@ export function TriviaAnswerScreen({ apiBaseUrl, token, partidaId, onResult }: P
   }
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
-        <View style={styles.head}>
-          <AppText variant="display">Responder Trivia</AppText>
-          <AppText variant="body" color={colors.muted}>
-            HU-26 consume el contrato backend de respuesta individual. La pregunta activa se entrega por
-            contrato futuro de ejecucion sincronizada.
-          </AppText>
-        </View>
+    <Stage variant="magenta" gradient scroll>
+      <Hero
+        title="Responde"
+        subtitle="HU-26 envía tu respuesta individual al backend autoritativo."
+        onStage
+      />
 
-        {error ? <Notice variant="error">{error}</Notice> : null}
+      {error ? <Notice variant="error">{error}</Notice> : null}
 
-        {answer ? (
-          <Card>
-            <StatePill
-              state={answer.esCorrecta ? "ok" : "done"}
-              label={answer.esCorrecta ? "Respuesta correcta" : "Respuesta registrada"}
-            />
-            <DetailRow label="Puntaje obtenido" value={String(answer.puntajeObtenido)} />
-            <DetailRow label="Tiempo empleado" value={`${answer.tiempoEmpleadoSegundos}s`} />
-          </Card>
-        ) : null}
-
-        <Card>
-          <Field
-            label="ID de pregunta"
-            value={preguntaId}
-            onChangeText={setPreguntaId}
-            placeholder="uuid de pregunta activa"
-            autoCapitalize="none"
-            autoCorrect={false}
-            style={styles.mono}
+      {answer ? (
+        <Panel>
+          <Reaction
+            correct={answer.esCorrecta}
+            title={answer.esCorrecta ? "¡Respuesta correcta!" : "Respuesta registrada"}
+            subtitle={answer.esCorrecta ? "Sumaste puntos en esta pregunta." : "Tu respuesta quedó registrada."}
           />
-          <Field
-            label="Opcion seleccionada (0-3)"
-            value={opcionIndex}
-            onChangeText={setOpcionIndex}
-            keyboardType="number-pad"
-          />
-          <Button label="Enviar respuesta" onPress={() => void handleSubmit()} loading={loading} />
-        </Card>
+          <DetailRow label="Puntaje obtenido" value={String(answer.puntajeObtenido)} onStage />
+          <DetailRow label="Tiempo empleado" value={`${answer.tiempoEmpleadoSegundos}s`} onStage />
+        </Panel>
+      ) : null}
 
-        <Button
-          label="Ver resultado de pregunta"
-          variant="secondary"
-          onPress={() => preguntaId.trim() && onResult?.(partidaId, preguntaId.trim())}
+      <Card>
+        <Field
+          label="ID de pregunta"
+          value={preguntaId}
+          onChangeText={setPreguntaId}
+          placeholder="uuid de pregunta activa"
+          autoCapitalize="none"
+          autoCorrect={false}
+          style={styles.mono}
         />
-      </ScrollView>
-    </SafeAreaView>
+        <Field
+          label="Opcion seleccionada (0-3)"
+          value={opcionIndex}
+          onChangeText={setOpcionIndex}
+          keyboardType="number-pad"
+        />
+        <Button label="Enviar respuesta" icon="send" onPress={() => void handleSubmit()} loading={loading} />
+      </Card>
+
+      <Button
+        label="Ver resultado de pregunta"
+        variant="secondary"
+        onStage
+        onPress={() => preguntaId.trim() && onResult?.(partidaId, preguntaId.trim())}
+      />
+
+      <AppText variant="label" color={game.onStageMuted} style={styles.note}>
+        La pregunta activa se entrega por contrato futuro de ejecución sincronizada.
+      </AppText>
+    </Stage>
   );
 }
 
@@ -107,18 +109,10 @@ function mapError(caught: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  head: {
-    gap: spacing.xs,
-  },
   mono: {
     fontFamily: fonts.mono,
+  },
+  note: {
+    marginTop: spacing.xs,
   },
 });

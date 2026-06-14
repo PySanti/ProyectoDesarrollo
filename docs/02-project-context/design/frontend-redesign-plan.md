@@ -79,6 +79,10 @@ Artefactos de marca (fuente de verdad visual): `PRODUCT.md`, `DESIGN.md`, `.impe
   Verificado por fase: `tsc --noEmit` + `npm test` (83 tests).
 - **Pendiente transversal:** pase visual manual en Expo con datos reales (dispositivo/LAN), análogo al
   pendiente de Fase 1 web. Único bloqueo: requiere entorno levantado (Keycloak + servicios + Expo).
+- **v2 — Registro de juego (inmersivo):** sobre el v1, una capa más **competitiva/inmersiva** para el
+  participante manteniendo **misma paleta y fuentes**. Plan: `mobile-game-register-plan.md`. Decidido
+  (2026-06-14): inmersivo total, las 4 palancas (motion/tipografía/color/iconos) y los 4 momentos estelares
+  (podio/cuenta regresiva/lobby vivo/puntaje con reacción). Guardrail: inmersivo sí, kitsch no.
 
 ## Observaciones del usuario (2026-06-13) y su resolución
 

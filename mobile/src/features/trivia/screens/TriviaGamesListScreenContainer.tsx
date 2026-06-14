@@ -20,6 +20,7 @@ export function TriviaGamesListScreenContainer({ navigation }: Props) {
       apiBaseUrl={mobileEnv.triviaApiBaseUrl}
       token={session.token}
       onOpenLobby={(partidaId) => navigation.navigate("TriviaLobby", { partidaId })}
+      onPlayDemo={() => navigation.navigate("TriviaLivePlay", { partidaId: "demo-partida" })}
     />
   );
 }

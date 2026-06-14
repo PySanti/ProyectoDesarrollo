@@ -1,4 +1,4 @@
-import { TextStyle } from 'react-native';
+import { TextStyle, ViewStyle } from 'react-native';
 
 /**
  * Theme de marca UMBRAL para mobile (Fase 2 del rediseño).
@@ -92,9 +92,12 @@ export const fonts = {
  * no las mayúsculas (regla No-Eyebrow). Labels en sentence case.
  */
 export const typography: Record<
-  'display' | 'headline' | 'title' | 'body' | 'bodyStrong' | 'label' | 'mono',
+  'mega' | 'hero' | 'display' | 'headline' | 'title' | 'body' | 'bodyStrong' | 'label' | 'mono',
   TextStyle
 > = {
+  // Números/timer protagonistas del registro de juego (Space Grotesk 700).
+  mega: { fontFamily: fonts.displayStrong, fontSize: 64, lineHeight: 66, letterSpacing: -1.5, color: colors.ink },
+  hero: { fontFamily: fonts.displayStrong, fontSize: 40, lineHeight: 44, letterSpacing: -1, color: colors.ink },
   display: { fontFamily: fonts.display, fontSize: 30, lineHeight: 34, letterSpacing: -0.6, color: colors.ink },
   headline: { fontFamily: fonts.display, fontSize: 22, lineHeight: 28, letterSpacing: -0.3, color: colors.ink },
   title: { fontFamily: fonts.semibold, fontSize: 18, lineHeight: 24, letterSpacing: -0.2, color: colors.ink },
@@ -103,3 +106,48 @@ export const typography: Record<
   label: { fontFamily: fonts.semibold, fontSize: 13, lineHeight: 18, letterSpacing: 0.1, color: colors.muted },
   mono: { fontFamily: fonts.mono, fontSize: 13, lineHeight: 19, color: colors.inkSoft },
 };
+
+/**
+ * **Registro de juego (v2, solo mobile).** Capa de uso inmersiva sobre los mismos tokens: superficies
+ * a sangre completa, gradientes del **mismo hue** magenta/indigo, glow magenta y parámetros de motion.
+ * No introduce colores nuevos. El texto sobre `stage` va en blanco/`onStageMuted` (AA: los fondos
+ * elegidos son ≥ `primary-fill`/indigo, donde el blanco alcanza ≥4.5:1).
+ */
+export const game = {
+  stage: {
+    magenta: colors.primaryFill, // #982f93 (blanco encima: 6.6:1)
+    magentaDeep: colors.primaryStrong, // #7d2278
+    indigo: colors.accent, // #3e5fad
+    ink: '#1a1119', // oscuro dramático con tinte magenta
+  },
+  onStage: '#ffffff',
+  // 0.80 (no 0.74): garantiza AA del texto atenuado pequeño aun sobre la superficie de color más clara
+  // permitida (indigo #3e5fad → ~4.6:1). Estado/jerarquía siguen dándose por color + forma + tamaño.
+  onStageMuted: 'rgba(255,255,255,0.80)',
+  onStageLine: 'rgba(255,255,255,0.18)',
+  onStageSunk: 'rgba(255,255,255,0.10)',
+  // Gradientes verticales fill → deep del **mismo hue**. El tope nunca es más claro que el color base
+  // permitido (regla AA: blanco solo sobre `primary-fill`/`accent` o más oscuro), por eso el indigo
+  // arranca en el accent #3e5fad y no en un tono más claro.
+  gradient: {
+    magenta: ['#982f93', '#7d2278'] as const,
+    indigo: ['#3e5fad', '#2c4790'] as const,
+    ink: ['#2a1f29', '#140d13'] as const,
+  },
+  // Sombra/halo magenta para elementos "vivos" sobre fondo claro (permitido en el registro de juego).
+  glow: {
+    shadowColor: colors.primaryFill,
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.35,
+    shadowRadius: 16,
+    elevation: 8,
+  } as ViewStyle,
+  // Parámetros para la API `Animated` nativa de RN (sin dependencias nativas extra).
+  motion: {
+    fast: 140,
+    base: 220,
+    slow: 360,
+    pressScale: 0.96,
+    spring: { friction: 7, tension: 180 }, // feel de press (Animated.spring)
+  },
+} as const;

@@ -20,6 +20,7 @@ export function TriviaLobbyScreenContainer({ route, navigation }: Props) {
       apiBaseUrl={mobileEnv.triviaApiBaseUrl}
       token={session.token}
       partidaId={route.params.partidaId}
+      onLivePlay={(partidaId) => navigation.navigate("TriviaLivePlay", { partidaId })}
       onAnswer={(partidaId) => navigation.navigate("TriviaAnswer", { partidaId })}
       onScore={(partidaId) => navigation.navigate("TriviaScore", { partidaId })}
     />

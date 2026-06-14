@@ -1,19 +1,21 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
-import { AppText, Button, Card, DetailRow, Notice, StatePill } from "../../../shared/ui";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { AppText, Button, DetailRow, Hero, Notice, Panel, Stage, StatePill } from "../../../shared/ui";
 import { gameStatePill } from "../../../shared/statusPill";
-import { colors, spacing } from "../../../shared/theme";
+import { game, spacing, typography } from "../../../shared/theme";
+import { useCountUp } from "../../../shared/useCountUp";
 import { TriviaLobbyResponse, joinIndividualTriviaGame, getTriviaLobby, TriviaMobileApiError } from "../../../api/triviaApi";
 
 type Props = {
   apiBaseUrl: string;
   token: string;
   partidaId: string;
+  onLivePlay?: (partidaId: string) => void;
   onAnswer?: (partidaId: string) => void;
   onScore?: (partidaId: string) => void;
 };
 
-export function TriviaLobbyScreen({ apiBaseUrl, token, partidaId, onAnswer, onScore }: Props) {
+export function TriviaLobbyScreen({ apiBaseUrl, token, partidaId, onLivePlay, onAnswer, onScore }: Props) {
   const [lobby, setLobby] = useState<TriviaLobbyResponse | null>(null);
   const [loading, setLoading] = useState(true);
   const [joining, setJoining] = useState(false);
@@ -54,38 +56,46 @@ export function TriviaLobbyScreen({ apiBaseUrl, token, partidaId, onAnswer, onSc
   const pill = lobby ? gameStatePill(lobby.estado) : null;
 
   return (
-    <SafeAreaView style={styles.safe}>
-      <ScrollView contentContainerStyle={styles.content}>
-        <View style={styles.head}>
-          <AppText variant="display">Espera de Trivia</AppText>
-          <AppText variant="body" color={colors.muted}>
-            HU-18 y HU-21 para participante movil.
-          </AppText>
-        </View>
+    <Stage variant="indigo" gradient scroll>
+      <Hero
+        title={lobby?.nombre ?? "Sala de espera"}
+        subtitle="Esperando el inicio de la partida (HU-18 · HU-21)."
+        onStage
+        right={pill ? <StatePill state={pill.state} label={pill.label} /> : undefined}
+      />
 
-        {loading ? <ActivityIndicator color={colors.primaryFill} /> : null}
-        {message ? <Notice variant="success">{message}</Notice> : null}
-        {error ? <Notice variant="error">{error}</Notice> : null}
+      {loading ? <ActivityIndicator color={game.onStage} /> : null}
+      {message ? <Notice variant="success">{message}</Notice> : null}
+      {error ? <Notice variant="error">{error}</Notice> : null}
 
-        {lobby ? (
-          <Card>
-            <View style={styles.cardHead}>
-              <AppText variant="title" style={styles.cardName}>
-                {lobby.nombre}
-              </AppText>
-              {pill ? <StatePill state={pill.state} label={pill.label} /> : null}
-            </View>
-            <DetailRow label="Modalidad" value={lobby.modalidad} />
-            <DetailRow label="Participantes" value={String(lobby.participantesActual)} />
-            <DetailRow label="Mínimo" value={String(lobby.minimoParticipantes)} />
-          </Card>
-        ) : null}
+      {lobby ? <LobbyFill lobby={lobby} /> : null}
 
-        <Button label="Unirme individualmente" onPress={() => void handleJoin()} loading={joining} />
-        <Button label="Responder pregunta" variant="secondary" onPress={() => onAnswer?.(partidaId)} />
-        <Button label="Ver puntaje" variant="ghost" onPress={() => onScore?.(partidaId)} />
-      </ScrollView>
-    </SafeAreaView>
+      <View style={styles.actions}>
+        <Button label="Unirme individualmente" icon="user-plus" onPress={() => void handleJoin()} loading={joining} onStage />
+        <Button label="Jugar partida en vivo (demo)" icon="play" variant="secondary" onPress={() => onLivePlay?.(partidaId)} onStage />
+        <Button label="Responder pregunta" variant="ghost" onPress={() => onAnswer?.(partidaId)} onStage />
+        <Button label="Ver puntaje" variant="ghost" onPress={() => onScore?.(partidaId)} onStage />
+      </View>
+    </Stage>
+  );
+}
+
+/** Sala "llenándose": el conteo de participantes hace count-up hacia el valor real. */
+function LobbyFill({ lobby }: { lobby: TriviaLobbyResponse }) {
+  const count = useCountUp(lobby.participantesActual);
+  return (
+    <Panel>
+      <View style={styles.fillRow}>
+        <AppText style={styles.fillNumber} color={game.onStage} allowFontScaling={false}>
+          {count}
+        </AppText>
+        <AppText variant="title" color={game.onStageMuted}>
+          participantes
+        </AppText>
+      </View>
+      <DetailRow label="Modalidad" value={lobby.modalidad} onStage />
+      <DetailRow label="Mínimo para iniciar" value={String(lobby.minimoParticipantes)} onStage />
+    </Panel>
   );
 }
 
@@ -100,24 +110,18 @@ function mapError(caught: unknown, fallback: string): string {
 }
 
 const styles = StyleSheet.create({
-  safe: {
-    flex: 1,
-    backgroundColor: colors.bg,
-  },
-  content: {
-    padding: spacing.xl,
-    gap: spacing.lg,
-  },
-  head: {
-    gap: spacing.xs,
-  },
-  cardHead: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "flex-start",
+  actions: {
     gap: spacing.sm,
   },
-  cardName: {
-    flex: 1,
+  fillRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: spacing.sm,
+  },
+  fillNumber: {
+    ...typography.hero,
+    fontSize: 56,
+    lineHeight: 60,
+    color: game.onStage,
   },
 });
