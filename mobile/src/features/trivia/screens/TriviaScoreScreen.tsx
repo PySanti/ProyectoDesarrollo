@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import ScreenWrapper from "../../../shared/components/ScreenWrapper";
-import { screenStyles } from "../../../shared/styles";
-import { colors } from "../../../shared/theme";
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { AppText, Card, DetailRow, Notice } from "../../../shared/ui";
+import { colors, spacing } from "../../../shared/theme";
 import { TriviaMobileApiError, TriviaScoreResponse, getTriviaScore } from "../../../api/triviaApi";
 
 type Props = {
@@ -33,31 +32,57 @@ export function TriviaScoreScreen({ apiBaseUrl, token, partidaId }: Props) {
   }, [loadScore]);
 
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Puntaje Trivia</Text>
-        <Text style={styles.description}>HU-29 muestra el puntaje acumulado calculado por Trivia Game Service.</Text>
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.head}>
+          <AppText variant="display">Puntaje Trivia</AppText>
+          <AppText variant="body" color={colors.muted}>
+            HU-29 muestra el puntaje acumulado calculado por Trivia Game Service.
+          </AppText>
+        </View>
+
+        {loading ? <ActivityIndicator color={colors.primaryFill} /> : null}
+        {error ? <Notice variant="error">{error}</Notice> : null}
+
         {score ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{score.puntajeAcumulado} puntos</Text>
-            <Text style={styles.cardLine}>Correctas: {score.respuestasCorrectas}</Text>
-            <Text style={styles.cardLine}>Respuestas totales: {score.totalRespuestas}</Text>
-            <Text style={styles.cardLine}>Tiempo acumulado: {score.tiempoAcumuladoSegundos}s</Text>
-          </View>
+          <Card>
+            <View style={styles.scoreRow}>
+              <AppText variant="display" color={colors.primaryStrong} style={styles.scoreNumber}>
+                {score.puntajeAcumulado}
+              </AppText>
+              <AppText variant="title" color={colors.muted}>
+                puntos
+              </AppText>
+            </View>
+            <DetailRow label="Correctas" value={String(score.respuestasCorrectas)} />
+            <DetailRow label="Respuestas totales" value={String(score.totalRespuestas)} />
+            <DetailRow label="Tiempo acumulado" value={`${score.tiempoAcumuladoSegundos}s`} />
+          </Card>
         ) : null}
-      </View>
-    </ScreenWrapper>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  error: screenStyles.error,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  head: {
+    gap: spacing.xs,
+  },
+  scoreRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: spacing.sm,
+  },
+  scoreNumber: {
+    fontSize: 40,
+    lineHeight: 44,
+  },
 });

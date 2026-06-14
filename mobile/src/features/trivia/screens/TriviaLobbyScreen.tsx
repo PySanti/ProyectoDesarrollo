@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, StyleSheet, Text, View } from "react-native";
-import ScreenWrapper from "../../../shared/components/ScreenWrapper";
-import { screenStyles } from "../../../shared/styles";
-import { colors } from "../../../shared/theme";
+import { ActivityIndicator, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { AppText, Button, Card, DetailRow, Notice, StatePill } from "../../../shared/ui";
+import { gameStatePill } from "../../../shared/statusPill";
+import { colors, spacing } from "../../../shared/theme";
 import { TriviaLobbyResponse, joinIndividualTriviaGame, getTriviaLobby, TriviaMobileApiError } from "../../../api/triviaApi";
 
 type Props = {
@@ -51,34 +51,41 @@ export function TriviaLobbyScreen({ apiBaseUrl, token, partidaId, onAnswer, onSc
     }
   }
 
+  const pill = lobby ? gameStatePill(lobby.estado) : null;
+
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Espera de Trivia</Text>
-        <Text style={styles.description}>HU-18 y HU-21 para participante movil.</Text>
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {message ? <Text style={styles.success}>{message}</Text> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <View style={styles.head}>
+          <AppText variant="display">Espera de Trivia</AppText>
+          <AppText variant="body" color={colors.muted}>
+            HU-18 y HU-21 para participante movil.
+          </AppText>
+        </View>
+
+        {loading ? <ActivityIndicator color={colors.primaryFill} /> : null}
+        {message ? <Notice variant="success">{message}</Notice> : null}
+        {error ? <Notice variant="error">{error}</Notice> : null}
+
         {lobby ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{lobby.nombre}</Text>
-            <Text style={styles.cardLine}>Estado: {lobby.estado}</Text>
-            <Text style={styles.cardLine}>Modalidad: {lobby.modalidad}</Text>
-            <Text style={styles.cardLine}>Participantes: {lobby.participantesActual}</Text>
-            <Text style={styles.cardLine}>Minimo: {lobby.minimoParticipantes}</Text>
-          </View>
+          <Card>
+            <View style={styles.cardHead}>
+              <AppText variant="title" style={styles.cardName}>
+                {lobby.nombre}
+              </AppText>
+              {pill ? <StatePill state={pill.state} label={pill.label} /> : null}
+            </View>
+            <DetailRow label="Modalidad" value={lobby.modalidad} />
+            <DetailRow label="Participantes" value={String(lobby.participantesActual)} />
+            <DetailRow label="Mínimo" value={String(lobby.minimoParticipantes)} />
+          </Card>
         ) : null}
-        <Pressable style={styles.joinButton} onPress={() => void handleJoin()} disabled={joining}>
-          <Text style={styles.joinButtonText}>{joining ? "Uniendote..." : "Unirme individualmente"}</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => onAnswer?.(partidaId)}>
-          <Text style={styles.secondaryButtonText}>Responder pregunta</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => onScore?.(partidaId)}>
-          <Text style={styles.secondaryButtonText}>Ver puntaje</Text>
-        </Pressable>
-      </View>
-    </ScreenWrapper>
+
+        <Button label="Unirme individualmente" onPress={() => void handleJoin()} loading={joining} />
+        <Button label="Responder pregunta" variant="secondary" onPress={() => onAnswer?.(partidaId)} />
+        <Button label="Ver puntaje" variant="ghost" onPress={() => onScore?.(partidaId)} />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -93,16 +100,24 @@ function mapError(caught: unknown, fallback: string): string {
 }
 
 const styles = StyleSheet.create({
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  error: screenStyles.error,
-  success: { ...screenStyles.empty, color: colors.success },
-  joinButton: screenStyles.joinButton,
-  joinButtonText: screenStyles.joinButtonText,
-  secondaryButton: { ...screenStyles.filterButton, marginTop: 10 },
-  secondaryButtonText: screenStyles.filterText,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  head: {
+    gap: spacing.xs,
+  },
+  cardHead: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "flex-start",
+    gap: spacing.sm,
+  },
+  cardName: {
+    flex: 1,
+  },
 });

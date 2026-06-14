@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Pressable, StyleSheet, Text, TextInput, View } from "react-native";
-import ScreenWrapper from "../../../shared/components/ScreenWrapper";
-import { screenStyles } from "../../../shared/styles";
-import { colors } from "../../../shared/theme";
+import { SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
+import { AppText, Button, Card, DetailRow, Field, Notice, StatePill } from "../../../shared/ui";
+import { colors, fonts, spacing } from "../../../shared/theme";
 import { TriviaAnswerResponse, TriviaMobileApiError, answerTriviaQuestion } from "../../../api/triviaApi";
 
 type Props = {
@@ -29,7 +28,15 @@ export function TriviaAnswerScreen({ apiBaseUrl, token, partidaId, onResult }: P
     setError(null);
     setAnswer(null);
     try {
-      setAnswer(await answerTriviaQuestion({ apiBaseUrl, token, partidaId, preguntaId: preguntaId.trim(), opcionIndex: Number(opcionIndex) }));
+      setAnswer(
+        await answerTriviaQuestion({
+          apiBaseUrl,
+          token,
+          partidaId,
+          preguntaId: preguntaId.trim(),
+          opcionIndex: Number(opcionIndex),
+        }),
+      );
     } catch (caught) {
       setError(mapError(caught));
     } finally {
@@ -38,30 +45,55 @@ export function TriviaAnswerScreen({ apiBaseUrl, token, partidaId, onResult }: P
   }
 
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Responder Trivia</Text>
-        <Text style={styles.description}>HU-26 consume el contrato backend de respuesta individual. La pregunta activa se entrega por contrato futuro de ejecucion sincronizada.</Text>
-        {error ? <Text style={styles.error}>{error}</Text> : null}
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content} keyboardShouldPersistTaps="handled">
+        <View style={styles.head}>
+          <AppText variant="display">Responder Trivia</AppText>
+          <AppText variant="body" color={colors.muted}>
+            HU-26 consume el contrato backend de respuesta individual. La pregunta activa se entrega por
+            contrato futuro de ejecucion sincronizada.
+          </AppText>
+        </View>
+
+        {error ? <Notice variant="error">{error}</Notice> : null}
+
         {answer ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{answer.esCorrecta ? "Respuesta correcta" : "Respuesta registrada"}</Text>
-            <Text style={styles.cardLine}>Puntaje obtenido: {answer.puntajeObtenido}</Text>
-            <Text style={styles.cardLine}>Tiempo empleado: {answer.tiempoEmpleadoSegundos}s</Text>
-          </View>
+          <Card>
+            <StatePill
+              state={answer.esCorrecta ? "ok" : "done"}
+              label={answer.esCorrecta ? "Respuesta correcta" : "Respuesta registrada"}
+            />
+            <DetailRow label="Puntaje obtenido" value={String(answer.puntajeObtenido)} />
+            <DetailRow label="Tiempo empleado" value={`${answer.tiempoEmpleadoSegundos}s`} />
+          </Card>
         ) : null}
-        <Text style={styles.label}>ID de pregunta</Text>
-        <TextInput style={styles.input} value={preguntaId} onChangeText={setPreguntaId} placeholder="uuid de pregunta activa" autoCapitalize="none" />
-        <Text style={styles.label}>Opcion seleccionada (0-3)</Text>
-        <TextInput style={styles.input} value={opcionIndex} onChangeText={setOpcionIndex} keyboardType="number-pad" />
-        <Pressable style={styles.joinButton} onPress={() => void handleSubmit()} disabled={loading}>
-          <Text style={styles.joinButtonText}>{loading ? "Enviando..." : "Enviar respuesta"}</Text>
-        </Pressable>
-        <Pressable style={styles.secondaryButton} onPress={() => preguntaId.trim() && onResult?.(partidaId, preguntaId.trim())}>
-          <Text style={styles.secondaryButtonText}>Ver resultado de pregunta</Text>
-        </Pressable>
-      </View>
-    </ScreenWrapper>
+
+        <Card>
+          <Field
+            label="ID de pregunta"
+            value={preguntaId}
+            onChangeText={setPreguntaId}
+            placeholder="uuid de pregunta activa"
+            autoCapitalize="none"
+            autoCorrect={false}
+            style={styles.mono}
+          />
+          <Field
+            label="Opcion seleccionada (0-3)"
+            value={opcionIndex}
+            onChangeText={setOpcionIndex}
+            keyboardType="number-pad"
+          />
+          <Button label="Enviar respuesta" onPress={() => void handleSubmit()} loading={loading} />
+        </Card>
+
+        <Button
+          label="Ver resultado de pregunta"
+          variant="secondary"
+          onPress={() => preguntaId.trim() && onResult?.(partidaId, preguntaId.trim())}
+        />
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
@@ -75,17 +107,18 @@ function mapError(caught: unknown): string {
 }
 
 const styles = StyleSheet.create({
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  error: screenStyles.error,
-  label: { color: colors.text, fontWeight: "700", marginTop: 10 },
-  input: screenStyles.input,
-  joinButton: screenStyles.joinButton,
-  joinButtonText: screenStyles.joinButtonText,
-  secondaryButton: { ...screenStyles.filterButton, marginTop: 10 },
-  secondaryButtonText: screenStyles.filterText,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  head: {
+    gap: spacing.xs,
+  },
+  mono: {
+    fontFamily: fonts.mono,
+  },
 });

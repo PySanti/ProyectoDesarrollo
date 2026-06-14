@@ -109,6 +109,21 @@
 - HU-02 row is aligned for current stage (`Completed / tested / acceptance updated`).
 - Contract alignment for HU-02 is documented in `contracts/http/identity-api.md` and re-validated through HU-02 contract tests.
 
+## Frontend redesign update (2026-06-13)
+
+Cambios de **presentación** durante la reconstrucción visual (ver
+`docs/02-project-context/design/frontend-redesign-plan.md`, observaciones OBS-01 / OBS-02). No
+alteran el contrato HTTP, las reglas de negocio ni los endpoints de HU-02.
+
+- El panel de gestión **ya no muestra el rol/permisos** del usuario (se removieron el campo "Rol" y
+  el input de rol solo-lectura del detalle). El rol se asigna en la creación (HU-01) y sigue sin ser
+  modificable; aquí simplemente no se expone.
+- La lista de usuarios se renderiza como **tabla con paginación** (columnas Nombre/Correo/Estado con
+  indicador de estado, paginación cliente y empty state) en vez de una lista simple.
+- `getIdentityUsers` sigue devolviendo `role` en el contrato; el frontend solo deja de mostrarlo.
+- Pruebas frontend actualizadas: `frontend/src/features/identity/UserManagementPage.test.tsx` y
+  `frontend/src/app/App.test.tsx` siguen verdes con la nueva UI.
+
 ## Assumptions
 
 - HU-02 includes deactivation by explicit decision recorded during SDD creation for this session.

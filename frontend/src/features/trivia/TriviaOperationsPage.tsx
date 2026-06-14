@@ -1,69 +1,23 @@
-import { FormEvent, useEffect, useState } from "react";
+import { ReactNode, useEffect, useState } from "react";
 import {
   TriviaApiError,
   TriviaGameListItem,
   TriviaGameLobby,
   TriviaRankingEntry,
   TriviaTeamLobbyItem,
-  createTriviaForm,
   getOperatorTriviaGamesForSupervision,
   getTriviaParticipants,
   getTriviaRanking,
   getTriviaTeams,
   startTriviaGame
 } from "../../api/triviaApi";
+import { Activity, Compass, Play, RefreshCw, Trophy, Users } from "../../shell/icons";
 
 interface TriviaOperationsPageProps {
   accessToken: string;
 }
 
-type FormState = {
-  title: string;
-  questions: QuestionFormState[];
-};
-
-type QuestionFormState = {
-  id: string;
-  question: string;
-  optionA: string;
-  optionB: string;
-  optionC: string;
-  optionD: string;
-  correctIndex: string;
-  assignedScore: string;
-  timeLimitSeconds: string;
-};
-
-let questionIdCounter = 0;
-
-function createQuestionId(): string {
-  questionIdCounter += 1;
-  return `question-${questionIdCounter}`;
-}
-
-function createEmptyQuestion(): QuestionFormState {
-  return {
-    id: createQuestionId(),
-    question: "",
-    optionA: "",
-    optionB: "",
-    optionC: "",
-    optionD: "",
-    correctIndex: "0",
-    assignedScore: "100",
-    timeLimitSeconds: "30"
-  };
-}
-
-function createInitialFormState(): FormState {
-  return {
-    title: "",
-    questions: [createEmptyQuestion()]
-  };
-}
-
 export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps) {
-  const [form, setForm] = useState<FormState>(createInitialFormState);
   const [supervisableGames, setSupervisableGames] = useState<TriviaGameListItem[]>([]);
   const [selectedGameId, setSelectedGameId] = useState("");
   const [loading, setLoading] = useState<string | null>(null);
@@ -76,77 +30,8 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
 
   useEffect(() => {
     void handleLoadSupervisableGames();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
-
-  async function handleCreateForm(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    setError(null);
-    setMessage(null);
-
-    const validationError = validateForm(form);
-    if (validationError) {
-      setError(validationError);
-      return;
-    }
-
-    setLoading("form");
-    try {
-      const questions = form.questions.map((question, questionIndex) => {
-        const options = [question.optionA, question.optionB, question.optionC, question.optionD].map((text, index) => ({
-          text: text.trim(),
-          isCorrect: index === Number(question.correctIndex)
-        }));
-
-        return {
-          text: question.question.trim(),
-          assignedScore: Number(question.assignedScore),
-          timeLimitSeconds: Number(question.timeLimitSeconds),
-          displayOrder: questionIndex + 1,
-          options
-        };
-      });
-
-      const created = await createTriviaForm(
-        {
-          title: form.title.trim(),
-          questions
-        },
-        accessToken
-      );
-      const questionLabel = created.questions.length === 1 ? "pregunta" : "preguntas";
-      setMessage(`Formulario creado: ${created.title} (${created.questions.length} ${questionLabel}).`);
-      setForm(createInitialFormState());
-    } catch (caught) {
-      setError(mapTriviaError(caught, "No se pudo crear el formulario de Trivia."));
-    } finally {
-      setLoading(null);
-    }
-  }
-
-  function updateQuestion(questionId: string, patch: Partial<QuestionFormState>) {
-    setForm((current) => ({
-      ...current,
-      questions: current.questions.map((question) =>
-        question.id === questionId ? { ...question, ...patch } : question
-      )
-    }));
-  }
-
-  function addQuestion() {
-    setForm((current) => ({
-      ...current,
-      questions: [...current.questions, createEmptyQuestion()]
-    }));
-  }
-
-  function removeQuestion(questionId: string) {
-    setForm((current) => ({
-      ...current,
-      questions: current.questions.length === 1
-        ? current.questions
-        : current.questions.filter((question) => question.id !== questionId)
-    }));
-  }
 
   async function handleLoadSupervisableGames(preferredSelectedGameId = selectedGameId) {
     setLoading("supervision-list");
@@ -169,8 +54,12 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
   }
 
   async function handleSelectGame(gameId: string) {
+    if (gameId === selectedGameId) {
+      return;
+    }
     setSelectedGameId(gameId);
     clearSupervisionDetail();
+    setMessage(null);
 
     if (!gameId) {
       return;
@@ -187,7 +76,6 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
 
     setLoading("detail");
     setError(null);
-    setMessage(null);
     try {
       const [participantsData, teamsData, rankingData] = await Promise.all([
         getTriviaParticipants(gameId.trim(), accessToken),
@@ -222,9 +110,9 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
     setMessage(null);
     try {
       const started = await startTriviaGame(selectedGameId.trim(), accessToken);
-      setSupervisableGames((current) => current.map((game) =>
-        game.id === started.id ? { ...game, estado: started.estado } : game
-      ));
+      setSupervisableGames((current) =>
+        current.map((game) => (game.id === started.id ? { ...game, estado: started.estado } : game))
+      );
       await handleLoadSelectedGameDetail(started.id);
       await handleLoadSupervisableGames(started.id);
       setMessage(`Partida iniciada: ${started.nombre}. Estado ${started.estado}.`);
@@ -235,235 +123,341 @@ export function TriviaOperationsPage({ accessToken }: TriviaOperationsPageProps)
     }
   }
 
+  const isLoadingList = loading === "supervision-list";
+  const isLoadingDetail = loading === "detail";
+  const showSkeleton = isLoadingDetail && !participants && !teams && !ranking;
+
   return (
-    <div className="page">
-      <div className="card stack">
-        <div>
-          <h1>Operacion Trivia</h1>
-          <p>Crea formularios, supervisa lobbies, inicia partidas y consulta rankings de Trivia.</p>
+    <div className="page wide">
+      <header className="ops-head">
+        <h1>Operación Trivia</h1>
+        <p className="muted">
+          Supervisa los lobbies en vivo, inicia partidas y consulta participantes, equipos y ranking
+          en tiempo real.
+        </p>
+      </header>
+
+      {message ? (
+        <div className="notice success" role="status">
+          {message}
         </div>
+      ) : null}
+      {error ? (
+        <div className="notice error" role="alert">
+          {error}
+        </div>
+      ) : null}
 
-        {message ? <div className="notice success" role="status">{message}</div> : null}
-        {error ? <div className="notice error" role="alert">{error}</div> : null}
-
-        <form onSubmit={handleCreateForm} noValidate>
-          <fieldset>
-            <legend>Crear formulario</legend>
-            <label htmlFor="form-title">Titulo del formulario
-              <input id="form-title" value={form.title} onChange={(event) => setForm((current) => ({ ...current, title: event.target.value }))} />
-            </label>
-            <div className="question-list">
-              {form.questions.map((question, index) => (
-                <QuestionEditor
-                  key={question.id}
-                  index={index}
-                  question={question}
-                  canRemove={form.questions.length > 1}
-                  onChange={(patch) => updateQuestion(question.id, patch)}
-                  onRemove={() => removeQuestion(question.id)}
-                />
-              ))}
-            </div>
-            <button type="button" className="secondary-button" onClick={addQuestion}>
-              Agregar pregunta
+      <div className="ops-grid">
+        <aside className="ops-master" aria-label="Partidas supervisables">
+          <div className="ops-master__head">
+            <span className="ops-master__title">
+              <Activity />
+              Partidas
+            </span>
+            <button
+              type="button"
+              className="ops-icon-btn"
+              onClick={() => void handleLoadSupervisableGames()}
+              disabled={isLoadingList}
+              aria-label="Actualizar partidas"
+            >
+              <RefreshCw className={isLoadingList ? "ops-spin" : undefined} />
             </button>
-            <button type="submit" disabled={loading === "form"}>{loading === "form" ? "Creando..." : "Crear formulario"}</button>
-          </fieldset>
-        </form>
-
-        <fieldset>
-          <legend>Supervisar partida</legend>
-          <button type="button" className="secondary-button" onClick={() => void handleLoadSupervisableGames()} disabled={loading === "supervision-list"}>
-            {loading === "supervision-list" ? "Cargando partidas..." : "Actualizar partidas"}
-          </button>
-
-          {supervisableGames.length === 0 && loading !== "supervision-list" ? (
-            <p className="muted">No hay partidas Trivia en lobby o iniciadas para supervisar.</p>
-          ) : null}
-
-          {supervisableGames.length > 0 ? (
-            <label htmlFor="trivia-game-selector">Partida Trivia
-              <select
-                id="trivia-game-selector"
-                value={selectedGameId}
-                onChange={(event) => void handleSelectGame(event.target.value)}
-              >
-                <option value="">Selecciona una partida</option>
-                {supervisableGames.map((game) => (
-                  <option key={game.id} value={game.id}>
-                    {game.nombre} - {game.estado} - {game.modalidad}
-                  </option>
-                ))}
-              </select>
-            </label>
-          ) : null}
-
-          {selectedGame ? <SelectedGameSummary game={selectedGame} /> : null}
-
-          <div className="actions">
-            <button type="button" onClick={() => void handleLoadSelectedGameDetail()} disabled={!selectedGameId || loading === "detail"}>
-              {loading === "detail" ? "Cargando detalle..." : "Actualizar detalle"}
-            </button>
-            <button type="button" onClick={() => void handleStart()} disabled={!selectedGameId || selectedGame?.estado === "Iniciada" || loading === "start"}>Iniciar Trivia</button>
           </div>
-        </fieldset>
 
-        {participants ? <ParticipantsTable data={participants} /> : null}
-        {teams ? <TeamsTable teams={teams} /> : null}
-        {ranking ? <RankingTable ranking={ranking} /> : null}
+          {supervisableGames.length === 0 ? (
+            <p className="ops-master__empty">
+              {isLoadingList
+                ? "Cargando partidas…"
+                : "No hay partidas Trivia en lobby o iniciadas para supervisar."}
+            </p>
+          ) : (
+            <div className="ops-list">
+              {supervisableGames.map((game) => {
+                const state = stateLabel(game.estado);
+                const isActive = game.id === selectedGameId;
+                return (
+                  <button
+                    key={game.id}
+                    type="button"
+                    className={isActive ? "ops-row is-active" : "ops-row"}
+                    aria-pressed={isActive}
+                    onClick={() => void handleSelectGame(game.id)}
+                  >
+                    <span className="ops-row__top">
+                      <span className="ops-row__name">{game.nombre}</span>
+                      <span className={`pill ${state.cls}`}>
+                        <span className="pill__dot" />
+                        {state.label}
+                      </span>
+                    </span>
+                    <span className="ops-row__meta">Modalidad {game.modalidad}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </aside>
+
+        <section className="ops-detail" aria-label="Detalle de la partida">
+          {!selectedGame ? (
+            <div className="empty-panel">
+              <Compass />
+              <p className="muted">
+                Selecciona una partida de la lista para ver su lobby, equipos y ranking.
+              </p>
+            </div>
+          ) : (
+            <>
+              <SelectedGameCard
+                game={selectedGame}
+                onStart={() => void handleStart()}
+                onRefreshDetail={() => void handleLoadSelectedGameDetail()}
+                starting={loading === "start"}
+                refreshing={isLoadingDetail}
+              />
+
+              {showSkeleton ? (
+                <SkeletonPanels />
+              ) : (
+                <>
+                  {participants ? <ParticipantsPanel data={participants} /> : null}
+                  {teams ? <TeamsPanel teams={teams} /> : null}
+                  {ranking ? <RankingPanel ranking={ranking} /> : null}
+                </>
+              )}
+            </>
+          )}
+        </section>
       </div>
     </div>
   );
 }
 
-function QuestionEditor({
-  index,
-  question,
-  canRemove,
-  onChange,
-  onRemove
+function SelectedGameCard({
+  game,
+  onStart,
+  onRefreshDetail,
+  starting,
+  refreshing
 }: {
-  index: number;
-  question: QuestionFormState;
-  canRemove: boolean;
-  onChange: (patch: Partial<QuestionFormState>) => void;
-  onRemove: () => void;
+  game: TriviaGameListItem;
+  onStart: () => void;
+  onRefreshDetail: () => void;
+  starting: boolean;
+  refreshing: boolean;
 }) {
-  const number = index + 1;
+  const state = stateLabel(game.estado);
+  const alreadyStarted = game.estado === "Iniciada";
 
   return (
-    <section className="question-card" aria-label={`Pregunta ${number}`}>
-      <div className="question-card-header">
-        <h3>Pregunta {number}</h3>
-        <button type="button" className="secondary-button" onClick={onRemove} disabled={!canRemove}>
-          Eliminar pregunta
-        </button>
+    <div className="ops-detail__card">
+      <div className="ops-detail__head">
+        <div className="ops-detail__title">
+          <span className={`pill ${state.cls}`}>
+            <span className="pill__dot" />
+            {state.label}
+          </span>
+          <h2>{game.nombre}</h2>
+        </div>
+        <div className="ops-detail__actions">
+          <button type="button" className="secondary-button" onClick={onRefreshDetail} disabled={refreshing}>
+            {refreshing ? "Actualizando…" : "Actualizar detalle"}
+          </button>
+          <button type="button" className="btn-icon" onClick={onStart} disabled={alreadyStarted || starting}>
+            <Play />
+            {starting ? "Iniciando…" : "Iniciar Trivia"}
+          </button>
+        </div>
       </div>
-      <label htmlFor={`form-question-${number}`}>Texto de pregunta {number}
-        <input id={`form-question-${number}`} value={question.question} onChange={(event) => onChange({ question: event.target.value })} />
-      </label>
-      <div className="row">
-        <label htmlFor={`option-a-${number}`}>Opcion A pregunta {number}<input id={`option-a-${number}`} value={question.optionA} onChange={(event) => onChange({ optionA: event.target.value })} /></label>
-        <label htmlFor={`option-b-${number}`}>Opcion B pregunta {number}<input id={`option-b-${number}`} value={question.optionB} onChange={(event) => onChange({ optionB: event.target.value })} /></label>
+
+      <dl className="ops-stats">
+        <div className="ops-stat">
+          <dt>Modalidad</dt>
+          <dd>{game.modalidad}</dd>
+        </div>
+        <div className="ops-stat">
+          <dt>Inicio</dt>
+          <dd className="is-mono">{formatDateTime(game.tiempoInicio)}</dd>
+        </div>
+        <div className="ops-stat">
+          <dt>Mínimo participantes</dt>
+          <dd>{game.minimoParticipantes}</dd>
+        </div>
+        <div className="ops-stat">
+          <dt>Máximo jugadores</dt>
+          <dd>{game.maximoJugadores ?? "No aplica"}</dd>
+        </div>
+        <div className="ops-stat">
+          <dt>Máximo equipos</dt>
+          <dd>{game.maximoEquipos ?? "No aplica"}</dd>
+        </div>
+      </dl>
+    </div>
+  );
+}
+
+function Panel({
+  title,
+  icon,
+  count,
+  children
+}: {
+  title: string;
+  icon: JSX.Element;
+  count?: number;
+  children: ReactNode;
+}) {
+  return (
+    <section className="ops-panel" aria-label={title}>
+      <div className="ops-panel__head">
+        {icon}
+        <h3>{title}</h3>
+        {typeof count === "number" ? <span className="badge ops-panel__count">{count}</span> : null}
       </div>
-      <div className="row">
-        <label htmlFor={`option-c-${number}`}>Opcion C pregunta {number}<input id={`option-c-${number}`} value={question.optionC} onChange={(event) => onChange({ optionC: event.target.value })} /></label>
-        <label htmlFor={`option-d-${number}`}>Opcion D pregunta {number}<input id={`option-d-${number}`} value={question.optionD} onChange={(event) => onChange({ optionD: event.target.value })} /></label>
-      </div>
-      <div className="row">
-        <label htmlFor={`correct-index-${number}`}>Respuesta correcta pregunta {number}
-          <select id={`correct-index-${number}`} value={question.correctIndex} onChange={(event) => onChange({ correctIndex: event.target.value })}>
-            <option value="0">A</option>
-            <option value="1">B</option>
-            <option value="2">C</option>
-            <option value="3">D</option>
-          </select>
-        </label>
-        <label htmlFor={`assigned-score-${number}`}>Puntaje pregunta {number}<input id={`assigned-score-${number}`} type="number" min="1" value={question.assignedScore} onChange={(event) => onChange({ assignedScore: event.target.value })} /></label>
-        <label htmlFor={`time-limit-${number}`}>Tiempo limite pregunta {number}<input id={`time-limit-${number}`} type="number" min="5" value={question.timeLimitSeconds} onChange={(event) => onChange({ timeLimitSeconds: event.target.value })} /></label>
-      </div>
+      <div className="ops-panel__body">{children}</div>
     </section>
   );
 }
 
-function SelectedGameSummary({ game }: { game: TriviaGameListItem }) {
+function ParticipantsPanel({ data }: { data: TriviaGameLobby }) {
   return (
-    <div className="table-wrap" aria-label="Detalle de partida Trivia seleccionada">
-      <h2>{game.nombre}</h2>
-      <p className="muted">
-        Estado {game.estado} - Modalidad {game.modalidad} - Inicio {game.tiempoInicio}
-      </p>
-      <table aria-label="Resumen de partida Trivia seleccionada">
-        <thead><tr><th>Minimo</th><th>Maximo jugadores</th><th>Maximo equipos</th></tr></thead>
-        <tbody>
-          <tr>
-            <td>{game.minimoParticipantes}</td>
-            <td>{game.maximoJugadores ?? "No aplica"}</td>
-            <td>{game.maximoEquipos ?? "No aplica"}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
+    <Panel title="Participantes" icon={<Users />} count={data.participantesActual}>
+      {data.participantes.length === 0 ? (
+        <p className="ops-panel__empty">
+          {data.nombre} aún no tiene participantes inscritos en el lobby.
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table aria-label="Participantes unidos a Trivia publicada">
+            <thead>
+              <tr>
+                <th>Usuario</th>
+                <th>Inscripción</th>
+                <th>Fecha</th>
+              </tr>
+            </thead>
+            <tbody>
+              {data.participantes.map((item) => (
+                <tr key={item.inscripcionId}>
+                  <td>{item.usuarioId}</td>
+                  <td>{item.inscripcionId}</td>
+                  <td>{formatDateTime(item.fechaInscripcion)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
   );
 }
 
-function ParticipantsTable({ data }: { data: TriviaGameLobby }) {
-  if (data.participantes.length === 0) {
-    return (
-      <div className="table-wrap">
-        <h2>Participantes en lobby</h2>
-        <p className="muted">{data.nombre} - sin participantes inscritos.</p>
+function TeamsPanel({ teams }: { teams: TriviaTeamLobbyItem[] }) {
+  return (
+    <Panel title="Equipos" icon={<Users />} count={teams.length}>
+      {teams.length === 0 ? (
+        <p className="ops-panel__empty">No hay equipos inscritos en esta Trivia.</p>
+      ) : (
+        <div className="table-wrap">
+          <table aria-label="Equipos unidos a Trivia publicada">
+            <thead>
+              <tr>
+                <th>Equipo</th>
+                <th>Fecha inscripción</th>
+              </tr>
+            </thead>
+            <tbody>
+              {teams.map((item) => (
+                <tr key={item.equipoId}>
+                  <td>{item.equipoId}</td>
+                  <td>{formatDateTime(item.fechaInscripcion)}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function RankingPanel({ ranking }: { ranking: TriviaRankingEntry[] }) {
+  return (
+    <Panel title="Ranking" icon={<Trophy />} count={ranking.length}>
+      {ranking.length === 0 ? (
+        <p className="ops-panel__empty">
+          Todavia no hay posiciones de ranking para esta partida. Aparecerán cuando inicie y se
+          respondan preguntas.
+        </p>
+      ) : (
+        <div className="table-wrap">
+          <table aria-label="Ranking durante Trivia">
+            <thead>
+              <tr>
+                <th>Posición</th>
+                <th>Usuario</th>
+                <th>Puntaje</th>
+                <th>Tiempo acumulado</th>
+                <th>Correctas</th>
+              </tr>
+            </thead>
+            <tbody>
+              {ranking.map((item) => (
+                <tr key={`${item.posicion}-${item.usuarioId}`}>
+                  <td>{item.posicion}</td>
+                  <td>{item.usuarioId}</td>
+                  <td>{item.puntajeAcumulado}</td>
+                  <td>{item.tiempoAcumuladoSegundos}s</td>
+                  <td>
+                    {item.respuestasCorrectas}/{item.totalRespuestas}
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      )}
+    </Panel>
+  );
+}
+
+function SkeletonPanels() {
+  return (
+    <div className="ops-panel" aria-busy="true" aria-label="Cargando detalle">
+      <div className="ops-skel">
+        <span style={{ width: "40%" }} />
+        <span style={{ width: "90%" }} />
+        <span style={{ width: "75%" }} />
+        <span style={{ width: "85%" }} />
       </div>
-    );
-  }
-
-  return (
-    <div className="table-wrap">
-      <h2>Participantes en lobby</h2>
-      <p className="muted">{data.nombre} - {data.participantesActual} participantes</p>
-      <table aria-label="Participantes unidos a Trivia publicada">
-        <thead><tr><th>Usuario</th><th>Inscripcion</th><th>Fecha</th></tr></thead>
-        <tbody>{data.participantes.map((item) => <tr key={item.inscripcionId}><td>{item.usuarioId}</td><td>{item.inscripcionId}</td><td>{item.fechaInscripcion}</td></tr>)}</tbody>
-      </table>
     </div>
   );
 }
 
-function TeamsTable({ teams }: { teams: TriviaTeamLobbyItem[] }) {
-  if (teams.length === 0) {
-    return (
-      <div className="table-wrap">
-        <h2>Equipos en lobby</h2>
-        <p className="muted">No hay equipos inscritos en esta Trivia.</p>
-      </div>
-    );
+function stateLabel(estado: string): { cls: string; label: string } {
+  if (estado === "Iniciada") {
+    return { cls: "pill--live", label: "Iniciada" };
   }
-
-  return (
-    <div className="table-wrap">
-      <h2>Equipos en lobby</h2>
-      <table aria-label="Equipos unidos a Trivia publicada">
-        <thead><tr><th>Equipo</th><th>Fecha inscripcion</th></tr></thead>
-        <tbody>{teams.map((item) => <tr key={item.equipoId}><td>{item.equipoId}</td><td>{item.fechaInscripcion}</td></tr>)}</tbody>
-      </table>
-    </div>
-  );
+  if (estado === "Lobby") {
+    return { cls: "pill--lobby", label: "Lobby" };
+  }
+  return { cls: "pill--done", label: estado };
 }
 
-function RankingTable({ ranking }: { ranking: TriviaRankingEntry[] }) {
-  if (ranking.length === 0) {
-    return (
-      <div className="table-wrap">
-        <h2>Ranking Trivia</h2>
-        <p className="muted">Todavia no hay posiciones de ranking para esta partida.</p>
-      </div>
-    );
+function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
   }
-
-  return (
-    <div className="table-wrap">
-      <h2>Ranking Trivia</h2>
-      <table aria-label="Ranking durante Trivia">
-        <thead><tr><th>Posicion</th><th>Usuario</th><th>Puntaje</th><th>Tiempo acumulado</th><th>Correctas</th></tr></thead>
-        <tbody>{ranking.map((item) => <tr key={`${item.posicion}-${item.usuarioId}`}><td>{item.posicion}</td><td>{item.usuarioId}</td><td>{item.puntajeAcumulado}</td><td>{item.tiempoAcumuladoSegundos}s</td><td>{item.respuestasCorrectas}/{item.totalRespuestas}</td></tr>)}</tbody>
-      </table>
-    </div>
-  );
-}
-
-function validateForm(form: FormState): string | null {
-  if (!form.title.trim()) return "El titulo es obligatorio.";
-  if (form.questions.length === 0) return "Agrega al menos una pregunta.";
-
-  for (const [index, question] of form.questions.entries()) {
-    const questionNumber = index + 1;
-    if (!question.question.trim()) return `La pregunta ${questionNumber} es obligatoria.`;
-    if ([question.optionA, question.optionB, question.optionC, question.optionD].some((option) => !option.trim())) return `Las cuatro opciones de la pregunta ${questionNumber} son obligatorias.`;
-    if (Number(question.assignedScore) <= 0) return `El puntaje de la pregunta ${questionNumber} debe ser mayor que cero.`;
-    if (Number(question.timeLimitSeconds) < 5) return `El tiempo limite de la pregunta ${questionNumber} debe ser de al menos 5 segundos.`;
-  }
-
-  return null;
+  return date.toLocaleString("es", {
+    day: "2-digit",
+    month: "short",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function mapTriviaError(caught: unknown, fallback: string): string {

@@ -8,10 +8,13 @@ import {
   IdentityUserSummary,
   updateIdentityUserGeneralData
 } from "../../api/identityApi";
+import { RefreshCw, Users } from "../../shell/icons";
 
 interface UserManagementPageProps {
   accessToken: string;
 }
+
+const PAGE_SIZE = 8;
 
 export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   const [users, setUsers] = useState<IdentityUserSummary[]>([]);
@@ -26,6 +29,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [page, setPage] = useState(1);
 
   useEffect(() => {
     void loadUsers();
@@ -38,6 +42,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
     try {
       const response = await getIdentityUsers(accessToken);
       setUsers(response);
+      setPage(1);
     } catch (caught) {
       if (caught instanceof IdentityApiError) {
         setListError(mapHu02ErrorMessage(caught.statusCode, caught.message));
@@ -88,7 +93,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
     }
 
     if (!email.trim() || !email.includes("@")) {
-      setActionError("El correo es invalido.");
+      setActionError("El correo es inválido.");
       return;
     }
 
@@ -146,116 +151,201 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
     }
   }
 
+  const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
+  const currentPage = Math.min(page, totalPages);
+  const pageUsers = users.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
+
   return (
-    <div className="card">
-      <h1>Gestion de usuarios</h1>
-      <p>Consulta, actualiza datos generales y desactiva usuarios sin modificar su rol inicial.</p>
-
-      {listError ? (
-        <div className="notice error" role="alert">
-          {listError}
+    <div className="page">
+      <div className="stack">
+        <div>
+          <h1>Gestión de usuarios</h1>
+          <p className="muted">
+            Consulta, actualiza datos generales y desactiva usuarios. El rol inicial se asigna al
+            crear y no se gestiona desde aquí.
+          </p>
         </div>
-      ) : null}
 
-      <button type="button" onClick={loadUsers} disabled={isLoadingList}>
-        {isLoadingList ? "Cargando..." : "Recargar lista"}
-      </button>
+        {listError ? (
+          <div className="notice error" role="alert">
+            {listError}
+          </div>
+        ) : null}
 
-      <h2>Usuarios</h2>
-      <ul className="clean-list">
-        {users.map((user) => (
-          <li key={user.userId}>
-            <button type="button" onClick={() => onSelectUser(user.userId)}>
-              {user.name} ({user.email}) - {user.status}
+        <div className="card stack">
+          <div className="card-head">
+            <h2 className="q-title">
+              Usuarios
+              {users.length > 0 ? <span className="badge">{users.length}</span> : null}
+            </h2>
+            <button
+              type="button"
+              className="secondary-button btn-icon"
+              onClick={loadUsers}
+              disabled={isLoadingList}
+            >
+              <RefreshCw className={isLoadingList ? "ops-spin" : undefined} />
+              {isLoadingList ? "Cargando…" : "Recargar lista"}
             </button>
-          </li>
-        ))}
-      </ul>
+          </div>
 
-      {detailError ? (
-        <div className="notice error" role="alert">
-          {detailError}
+          {users.length === 0 && !isLoadingList ? (
+            <div className="empty-panel">
+              <Users />
+              <p>No hay usuarios registrados todavía.</p>
+              <p className="muted">
+                Crea el primero en <strong>Crear usuario</strong>.
+              </p>
+            </div>
+          ) : (
+            <>
+              <div className="table-wrap">
+                <table aria-label="Usuarios">
+                  <thead>
+                    <tr>
+                      <th scope="col">Nombre</th>
+                      <th scope="col">Correo</th>
+                      <th scope="col">Estado</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {pageUsers.map((user) => (
+                      <tr key={user.userId}>
+                        <td>
+                          <button
+                            type="button"
+                            className="row-link"
+                            onClick={() => onSelectUser(user.userId)}
+                          >
+                            {user.name}
+                          </button>
+                        </td>
+                        <td>{user.email}</td>
+                        <td>
+                          <StatusPill status={user.status} />
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              {users.length > PAGE_SIZE ? (
+                <div className="card-head">
+                  <span className="muted">
+                    Página {currentPage} de {totalPages} · {users.length} usuarios
+                  </span>
+                  <div className="compact-actions">
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={currentPage === 1}
+                      onClick={() => setPage((current) => Math.max(1, current - 1))}
+                    >
+                      Anterior
+                    </button>
+                    <button
+                      type="button"
+                      className="secondary-button"
+                      disabled={currentPage === totalPages}
+                      onClick={() => setPage((current) => Math.min(totalPages, current + 1))}
+                    >
+                      Siguiente
+                    </button>
+                  </div>
+                </div>
+              ) : null}
+            </>
+          )}
         </div>
-      ) : null}
 
-      {isLoadingDetail ? <p>Cargando detalle...</p> : null}
+        {detailError ? (
+          <div className="notice error" role="alert">
+            {detailError}
+          </div>
+        ) : null}
 
-      {selectedUser ? (
-        <>
-          <h2>Detalle de usuario</h2>
+        {isLoadingDetail ? <p className="muted">Cargando detalle…</p> : null}
 
-          <p>
-            <strong>UserId:</strong> {selectedUser.userId}
-          </p>
-          <p>
-            <strong>Rol:</strong> {selectedUser.role}
-          </p>
-          <p>
-            <strong>Estado:</strong> {selectedUser.status}
-          </p>
-
-          {actionError ? (
-            <div className="notice error" role="alert">
-              {actionError}
+        {selectedUser ? (
+          <div className="card stack">
+            <div className="card-head">
+              <h2>Detalle de usuario</h2>
+              <StatusPill status={selectedUser.status} />
             </div>
-          ) : null}
+            <p className="muted">
+              ID: <span className="mono">{selectedUser.userId}</span>
+            </p>
 
-          {successMessage ? (
-            <div className="notice success" data-testid="hu02-success">
-              {successMessage}
-            </div>
-          ) : null}
+            {actionError ? (
+              <div className="notice error" role="alert">
+                {actionError}
+              </div>
+            ) : null}
 
-          <form onSubmit={onUpdateUser} noValidate>
-            <label htmlFor="edit-name">
-              Nombre
-              <input
-                id="edit-name"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-                autoComplete="name"
-              />
-            </label>
+            {successMessage ? (
+              <div className="notice success" data-testid="hu02-success">
+                {successMessage}
+              </div>
+            ) : null}
 
-            <label htmlFor="edit-email">
-              Correo
-              <input
-                id="edit-email"
-                value={email}
-                onChange={(event) => setEmail(event.target.value)}
-                autoComplete="email"
-              />
-            </label>
+            <form onSubmit={onUpdateUser} noValidate>
+              <label htmlFor="edit-name">
+                Nombre
+                <input
+                  id="edit-name"
+                  value={name}
+                  onChange={(event) => setName(event.target.value)}
+                  autoComplete="name"
+                />
+              </label>
 
-            <label htmlFor="edit-role-readonly">
-              Rol (solo lectura)
-              <input id="edit-role-readonly" value={selectedUser.role} readOnly />
-            </label>
+              <label htmlFor="edit-email">
+                Correo
+                <input
+                  id="edit-email"
+                  value={email}
+                  onChange={(event) => setEmail(event.target.value)}
+                  autoComplete="email"
+                />
+              </label>
 
-            <div className="row">
-              <button type="submit" disabled={isSubmitting}>
-                {isSubmitting ? "Guardando..." : "Guardar datos"}
-              </button>
+              <div className="row">
+                <button type="submit" disabled={isSubmitting}>
+                  {isSubmitting ? "Guardando…" : "Guardar datos"}
+                </button>
 
-              <button
-                type="button"
-                disabled={isDeactivating || selectedUser.status === "Desactivado"}
-                onClick={onDeactivateUser}
-              >
-                {isDeactivating ? "Desactivando..." : "Desactivar usuario"}
-              </button>
-            </div>
-          </form>
-        </>
-      ) : null}
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={isDeactivating || selectedUser.status === "Desactivado"}
+                  onClick={onDeactivateUser}
+                >
+                  {isDeactivating ? "Desactivando…" : "Desactivar usuario"}
+                </button>
+              </div>
+            </form>
+          </div>
+        ) : null}
+      </div>
     </div>
+  );
+}
+
+function StatusPill({ status }: { status: string }) {
+  const variant = status === "Activo" ? "pill--ok" : "pill--done";
+  return (
+    <span className={`pill ${variant}`}>
+      <span className="pill__dot" />
+      {status}
+    </span>
   );
 }
 
 function mapHu02ErrorMessage(statusCode: number, fallbackMessage: string): string {
   switch (statusCode) {
     case 401:
-      return "No autenticado. Inicia sesion nuevamente.";
+      return "No autenticado. Inicia sesión nuevamente.";
     case 403:
       return "No autorizado. Debes tener rol Administrador.";
     case 404:
@@ -263,7 +353,7 @@ function mapHu02ErrorMessage(statusCode: number, fallbackMessage: string): strin
     case 409:
       return "El correo ya existe en UMBRAL o Keycloak.";
     case 400:
-      return "Solicitud invalida. Verifica los datos enviados.";
+      return "Solicitud inválida. Verifica los datos enviados.";
     default:
       return fallbackMessage || "Error inesperado en Identity Service.";
   }

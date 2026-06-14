@@ -1,0 +1,496 @@
+/* Shared primitives. Reuse the existing class API so feature surfaces stay
+   coherent now and get crafted individually later. Flat, tokenized, on-brand. */
+
+/* Layout helpers */
+.page {
+  width: 100%;
+  max-width: 760px;
+  margin: 0 auto;
+  padding: var(--sp-xl);
+}
+
+.page.wide {
+  max-width: 1180px;
+}
+
+.stack {
+  display: grid;
+  gap: var(--sp-lg);
+}
+
+.row {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-md);
+}
+
+.actions,
+.compact-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+}
+
+.muted {
+  color: var(--muted);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+}
+
+/* Teaching empty state: centered icon + copy inside a dashed panel */
+.empty-panel {
+  display: grid;
+  gap: var(--sp-sm);
+  place-items: center;
+  text-align: center;
+  padding: var(--sp-3xl) var(--sp-xl);
+  background: var(--surface);
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-lg);
+  color: var(--muted);
+}
+
+.empty-panel svg {
+  width: 28px;
+  height: 28px;
+  color: var(--line-strong);
+}
+
+/* Card — flat by default (no glass, no big shadow, contained radius) */
+.card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+}
+
+/* Buttons */
+button {
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--fs-label);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  padding: 10px 16px;
+  background: var(--primary-fill);
+  color: var(--bg);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease), box-shadow var(--dur) var(--ease),
+    border-color var(--dur) var(--ease);
+}
+
+button:hover:not(:disabled) {
+  background: var(--primary-strong);
+  box-shadow: var(--shadow-hover);
+}
+
+button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Icon + label buttons: keep the glyph and text optically aligned */
+.btn-icon {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+}
+
+.btn-icon svg {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
+
+.secondary-button {
+  background: var(--surface);
+  color: var(--ink);
+  border-color: var(--line-strong);
+}
+
+.secondary-button:hover:not(:disabled) {
+  background: var(--surface-sunk);
+  box-shadow: none;
+}
+
+.ghost-button {
+  background: transparent;
+  color: var(--accent-strong);
+  border-color: transparent;
+}
+
+.ghost-button:hover:not(:disabled) {
+  background: var(--accent-wash);
+  box-shadow: none;
+}
+
+/* Inline text button (e.g. a name cell that opens detail) */
+.row-link {
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--accent-strong);
+  font-weight: 600;
+  text-align: left;
+  cursor: pointer;
+}
+
+.row-link:hover:not(:disabled) {
+  background: transparent;
+  box-shadow: none;
+  text-decoration: underline;
+}
+
+/* Forms */
+form {
+  display: grid;
+  gap: var(--sp-md);
+}
+
+label {
+  display: grid;
+  gap: var(--sp-xs);
+  font-weight: 600;
+  font-size: var(--fs-label);
+  color: var(--ink-soft);
+}
+
+input,
+select,
+textarea {
+  font: inherit;
+  font-size: var(--fs-body);
+  color: var(--ink);
+  background: var(--bg);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  transition: border-color var(--dur) var(--ease), box-shadow var(--dur) var(--ease);
+}
+
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px var(--primary-wash);
+}
+
+textarea {
+  min-height: 96px;
+  resize: vertical;
+}
+
+/* File inputs: brand the native selector button, keep the control intact */
+input[type="file"] {
+  padding: var(--sp-sm);
+  cursor: pointer;
+}
+
+input[type="file"]::file-selector-button {
+  font: inherit;
+  font-weight: 600;
+  font-size: var(--fs-label);
+  margin-right: var(--sp-md);
+  padding: 6px 12px;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  background: var(--surface);
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+input[type="file"]::file-selector-button:hover {
+  background: var(--surface-sunk);
+}
+
+fieldset {
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  margin: 0;
+  padding: var(--sp-lg);
+  background: var(--surface);
+  display: grid;
+  gap: var(--sp-md);
+}
+
+legend {
+  padding: 0 var(--sp-xs);
+  font-family: var(--font-body);
+  font-weight: 600;
+  font-size: var(--fs-title);
+  color: var(--ink);
+}
+
+/* Notices — flat washes, never color-only (icon space via leading weight) */
+.notice {
+  border-radius: var(--r-md);
+  padding: 10px 12px;
+  border: 1px solid transparent;
+  font-size: var(--fs-body);
+}
+
+.notice.error {
+  background: var(--danger-wash);
+  border-color: var(--danger);
+  color: var(--danger-strong);
+}
+
+.notice.success {
+  background: var(--success-wash);
+  border-color: var(--success);
+  color: var(--success-strong);
+}
+
+.notice.info {
+  background: var(--accent-wash);
+  border-color: var(--accent);
+  color: var(--accent-strong);
+}
+
+/* Badge / pill */
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  width: fit-content;
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+/* State pills — color + text + shape (never color alone) */
+.pill {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-xs);
+  border-radius: var(--r-pill);
+  padding: 3px 10px;
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.pill__dot {
+  width: 8px;
+  height: 8px;
+  border-radius: var(--r-pill);
+  flex: none;
+}
+
+.pill--live {
+  background: var(--primary-wash);
+  color: var(--primary-strong);
+}
+.pill--live .pill__dot {
+  background: var(--primary);
+  animation: pill-pulse 1.6s var(--ease) infinite;
+}
+
+.pill--lobby {
+  background: var(--accent-wash);
+  color: var(--accent-strong);
+}
+.pill--lobby .pill__dot {
+  border: 2px solid var(--accent);
+}
+
+.pill--done {
+  background: var(--surface-sunk);
+  color: var(--ink-soft);
+}
+.pill--done .pill__dot {
+  background: var(--state-done);
+}
+
+.pill--ok {
+  background: var(--success-wash);
+  color: var(--success-strong);
+}
+.pill--ok .pill__dot {
+  background: var(--success);
+}
+
+.pill--warn {
+  background: var(--warning-wash);
+  color: var(--warning-strong);
+}
+.pill--warn .pill__dot {
+  background: var(--warning);
+}
+
+.pill--cancel {
+  background: var(--danger-wash);
+  color: var(--danger-strong);
+}
+.pill--cancel .pill__dot {
+  background: var(--danger);
+}
+
+@keyframes pill-pulse {
+  0% {
+    box-shadow: 0 0 0 0 color-mix(in oklch, var(--primary) 50%, transparent);
+  }
+  70% {
+    box-shadow: 0 0 0 6px transparent;
+  }
+  100% {
+    box-shadow: 0 0 0 0 transparent;
+  }
+}
+
+/* Tables — sticky header, flat, hover, mono for machine strings */
+.table-wrap {
+  width: 100%;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--fs-body);
+}
+
+th {
+  position: sticky;
+  top: 0;
+  background: var(--surface);
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-weight: 600;
+  text-align: left;
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+}
+
+td {
+  padding: 10px 12px;
+  border-bottom: 1px solid var(--line);
+  vertical-align: top;
+}
+
+tbody tr:hover {
+  background: var(--surface-sunk);
+}
+
+tbody tr:last-child td {
+  border-bottom: none;
+}
+
+/* Question editor cards (Trivia form) */
+.question-list {
+  display: grid;
+  gap: var(--sp-md);
+}
+
+.question-card {
+  display: grid;
+  gap: var(--sp-md);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-lg);
+  background: var(--surface);
+}
+
+.question-card-header,
+.card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+}
+
+.question-card h3 {
+  margin: 0;
+}
+
+/* Definition grid (detail modal) */
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-md);
+  margin: 0;
+}
+
+.detail-grid div {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  padding: var(--sp-md);
+  background: var(--surface);
+}
+
+.detail-grid dt {
+  color: var(--muted);
+  font-size: var(--fs-label);
+  font-weight: 600;
+}
+
+.detail-grid dd {
+  margin: var(--sp-xs) 0 0;
+  overflow-wrap: anywhere;
+  font-weight: 600;
+}
+
+.detail-grid .detail-wide {
+  grid-column: 1 / -1;
+}
+
+ul.clean-list {
+  display: grid;
+  gap: var(--sp-sm);
+  margin: var(--sp-md) 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Modal — overlay shadow is the one earned elevation */
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: var(--z-modal-backdrop);
+  display: grid;
+  place-items: center;
+  padding: var(--sp-lg);
+  background: color-mix(in oklch, var(--ink) 45%, transparent);
+}
+
+.modal-card {
+  width: min(620px, 100%);
+  z-index: var(--z-modal);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  box-shadow: var(--shadow-overlay);
+}
+
+.modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-lg);
+  margin-bottom: var(--sp-lg);
+}
+
+@media (max-width: 640px) {
+  .page {
+    padding: var(--sp-lg);
+  }
+  .row,
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
+  .question-card-header,
+  .modal-header {
+    flex-direction: column;
+    align-items: stretch;
+  }
+}

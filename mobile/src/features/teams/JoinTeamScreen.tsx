@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
-import { screenStyles } from "../../shared/styles";
+import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { Button, Card, Field, Notice, ScreenHeader } from "../../shared/ui";
+import { colors, fonts, spacing } from "../../shared/theme";
 import { submitJoinTeamFromScreen } from "./joinTeamScreenModel.js";
 
 type JoinTeamScreenProps = {
@@ -31,46 +32,43 @@ export function JoinTeamScreen({ apiBaseUrl, token, onJoined }: JoinTeamScreenPr
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Unirse a equipo</Text>
-        <Text style={styles.description}>Ingresa el codigo de acceso que te compartio el lider del equipo.</Text>
-        <Text style={styles.label}>Codigo de acceso</Text>
-        <TextInput
-          value={accessCode}
-          onChangeText={setAccessCode}
-          placeholder="Ej. ABCD1234"
-          autoCapitalize="characters"
-          style={styles.input}
-          editable={!loading}
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <ScreenHeader
+          title="Unirse a equipo"
+          subtitle="Ingresa el codigo de acceso que te compartio el lider del equipo."
         />
-
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={handleSubmit}
-          disabled={!canSubmit}
-          style={[styles.button, !canSubmit && styles.buttonDisabled]}
-        >
-          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Unirme al equipo</Text>}
-        </Pressable>
-      </View>
+        <Card>
+          <Field
+            label="Codigo de acceso"
+            value={accessCode}
+            onChangeText={setAccessCode}
+            placeholder="Ej. ABCD1234"
+            autoCapitalize="characters"
+            autoCorrect={false}
+            editable={!loading}
+            style={styles.codeInput}
+          />
+          {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
+          {successMessage ? <Notice variant="success">{successMessage}</Notice> : null}
+          <Button label="Unirme al equipo" onPress={handleSubmit} disabled={!canSubmit} loading={loading} />
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: screenStyles.safeArea,
-  container: screenStyles.container,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  label: screenStyles.label,
-  input: screenStyles.input,
-  error: screenStyles.error,
-  success: screenStyles.success,
-  button: screenStyles.primaryButton,
-  buttonDisabled: screenStyles.primaryButtonDisabled,
-  buttonText: screenStyles.primaryButtonText,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  codeInput: {
+    fontFamily: fonts.mono,
+    letterSpacing: 2,
+  },
 });

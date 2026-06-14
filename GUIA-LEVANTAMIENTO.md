@@ -95,6 +95,14 @@ Host=localhost;Port=55432;Database=<database>;Username=umbral;Password=16102005
 
 ## Levantamiento de Keycloak
 
+> **IMPORTANTE (actualizado 2026-06-13):** el realm `UMBRAL-UCAB` ahora se **siembra automáticamente**
+> al levantar el contenedor, vía realm import (`infra/keycloak/import/umbral-realm.json`,
+> `start-dev --import-realm` + volumen persistente `umbral-keycloak-data`). **No hace falta crear el
+> realm, roles, clientes ni usuarios a mano** — los pasos manuales de abajo quedan como referencia de
+> lo que el import ya configura. Incluye usuarios de prueba `admin/admin`, `operador/operador`,
+> `participante/participante` y el tema de login `umbral`. Para re-sembrar desde el JSON ver
+> `infra/keycloak/README.md`. (Re-sembrar rota las claves de firma: reinicia los backend `dotnet run`.)
+
 El contenedor se levanta con:
 
 ```txt

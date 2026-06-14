@@ -1,7 +1,7 @@
 import React from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { requestBdtGeolocationPermission } from "../../permissions/bdtGeolocationPermission.js";
-import { screenStyles } from "../../shared/styles";
+import { cs } from "../../shared/controllerStyles";
 import { BdtActiveStageScreenController } from "./BdtActiveStageScreenController.js";
 
 type Props = {
@@ -25,16 +25,17 @@ export function BdtActiveStageScreen({ apiBaseUrl, token, partidaId, onUploadTre
   );
 }
 
+// Re-skin: solo valores de marca; el controller (testeado) consume estas claves.
 const styles = StyleSheet.create({
-  safeArea: screenStyles.safeArea,
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  error: screenStyles.error,
-  empty: screenStyles.empty,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  joinButton: screenStyles.joinButton,
-  joinButtonText: screenStyles.joinButtonText,
+  safeArea: cs.safeArea,
+  container: cs.container,
+  title: cs.title,
+  description: cs.description,
+  error: cs.error,
+  empty: cs.empty,
+  card: cs.card,
+  cardTitle: cs.cardTitle,
+  cardLine: cs.cardLine,
+  joinButton: cs.primaryButton,
+  joinButtonText: cs.primaryButtonText,
 });

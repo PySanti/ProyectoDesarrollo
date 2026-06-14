@@ -17,7 +17,7 @@ import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGa
 import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
 import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
-import { colors } from "../shared/theme";
+import { colors, fonts } from "../shared/theme";
 
 const AuthStack = createNativeStackNavigator<AuthStackParamList>();
 const AppStack = createNativeStackNavigator<AppStackParamList>();
@@ -40,10 +40,11 @@ export function RootNavigator() {
   return (
     <AppStack.Navigator
       screenOptions={{
-        headerStyle: { backgroundColor: colors.primaryDark },
-        headerTintColor: colors.white,
-        headerTitleStyle: { fontWeight: "800" },
-        contentStyle: { backgroundColor: colors.background },
+        headerStyle: { backgroundColor: colors.bg },
+        headerTintColor: colors.primaryStrong,
+        headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
+        headerShadowVisible: false,
+        contentStyle: { backgroundColor: colors.bg },
       }}
     >
       <AppStack.Screen name="Home" component={HomeScreen} options={{ title: "Inicio" }} />

@@ -2,7 +2,7 @@ import React from "react";
 import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
 import { requestBdtGeolocationPermission } from "../../permissions/bdtGeolocationPermission.js";
 import { pickBdtTreasureImage, requestBdtTreasureImagePermission } from "../../permissions/bdtTreasureImagePicker.js";
-import { screenStyles } from "../../shared/styles";
+import { cs } from "../../shared/controllerStyles";
 import { BdtTreasureUploadScreenController } from "./BdtTreasureUploadScreenController.js";
 
 type Props = {
@@ -28,20 +28,22 @@ export function BdtTreasureUploadScreen({ apiBaseUrl, token, partidaId, etapaId 
   );
 }
 
+// Re-skin: solo valores de marca; el controller (testeado) consume estas claves.
+// `disabledButton` se usa como estilo completo del botón (no override), por eso lleva relleno.
 const styles = StyleSheet.create({
-  safeArea: screenStyles.safeArea,
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  error: screenStyles.error,
-  success: screenStyles.success,
-  empty: screenStyles.empty,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  joinButton: screenStyles.joinButton,
-  disabledButton: screenStyles.disabledButton,
-  joinButtonText: screenStyles.joinButtonText,
-  secondaryButton: screenStyles.secondaryButton,
-  secondaryButtonText: screenStyles.secondaryButtonText,
+  safeArea: cs.safeArea,
+  container: cs.container,
+  title: cs.title,
+  description: cs.description,
+  error: cs.error,
+  success: cs.success,
+  empty: cs.empty,
+  card: cs.card,
+  cardTitle: cs.cardTitle,
+  cardLine: cs.cardLine,
+  joinButton: cs.primaryButton,
+  disabledButton: cs.primaryButtonDisabledFill,
+  joinButtonText: cs.primaryButtonText,
+  secondaryButton: cs.secondaryButton,
+  secondaryButtonText: cs.secondaryButtonText,
 });

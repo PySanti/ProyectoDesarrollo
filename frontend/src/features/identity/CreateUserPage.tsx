@@ -70,11 +70,16 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
 
   return (
     <div className="page">
-      <div className="card">
-        <h1>Crear usuario con rol inicial</h1>
-        <p>
-          Alta administrativa de usuarios con rol inicial gestionado por Keycloak e Identity Service.
-        </p>
+      <div className="card stack">
+        <header className="create-head">
+          <div>
+            <h1>Crear usuario con rol inicial</h1>
+            <p className="muted">
+              Alta administrativa gestionada por Keycloak e Identity Service. El{" "}
+              <strong>rol inicial</strong> se asigna ahora y no se cambia desde Gestión de usuarios.
+            </p>
+          </div>
+        </header>
 
         {error ? (
           <div role="alert" className="notice error">

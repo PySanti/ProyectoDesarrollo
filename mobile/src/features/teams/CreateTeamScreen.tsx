@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
-import { ActivityIndicator, Pressable, SafeAreaView, StyleSheet, Text, TextInput, View } from "react-native";
-import { screenStyles } from "../../shared/styles";
+import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
+import { Button, Card, Field, Notice, ScreenHeader } from "../../shared/ui";
+import { colors, spacing } from "../../shared/theme";
 import { submitCreateTeam } from "./createTeamFlow.js";
 
 type CreateTeamScreenProps = {
@@ -48,44 +49,34 @@ export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScr
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
-      <View style={styles.container}>
-        <Text style={styles.title}>Crear equipo</Text>
-        <Text style={styles.label}>Nombre del equipo</Text>
-        <TextInput
-          value={teamName}
-          onChangeText={setTeamName}
-          placeholder="Ej. Exploradores"
-          autoCapitalize="words"
-          style={styles.input}
-          editable={!loading}
-        />
-
-        {errorMessage ? <Text style={styles.error}>{errorMessage}</Text> : null}
-        {successMessage ? <Text style={styles.success}>{successMessage}</Text> : null}
-
-        <Pressable
-          accessibilityRole="button"
-          onPress={handleSubmit}
-          disabled={!canSubmit}
-          style={[styles.button, !canSubmit && styles.buttonDisabled]}
-        >
-          {loading ? <ActivityIndicator color="#ffffff" /> : <Text style={styles.buttonText}>Crear equipo</Text>}
-        </Pressable>
-      </View>
+    <SafeAreaView style={styles.safe}>
+      <ScrollView contentContainerStyle={styles.content}>
+        <ScreenHeader title="Crear equipo" subtitle="Dale un nombre a tu equipo para empezar a jugar." />
+        <Card>
+          <Field
+            label="Nombre del equipo"
+            value={teamName}
+            onChangeText={setTeamName}
+            placeholder="Ej. Exploradores"
+            autoCapitalize="words"
+            editable={!loading}
+          />
+          {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
+          {successMessage ? <Notice variant="success">{successMessage}</Notice> : null}
+          <Button label="Crear equipo" onPress={handleSubmit} disabled={!canSubmit} loading={loading} />
+        </Card>
+      </ScrollView>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: screenStyles.safeArea,
-  container: screenStyles.container,
-  title: screenStyles.title,
-  label: screenStyles.label,
-  input: screenStyles.input,
-  error: screenStyles.error,
-  success: screenStyles.success,
-  button: screenStyles.primaryButton,
-  buttonDisabled: screenStyles.primaryButtonDisabled,
-  buttonText: screenStyles.primaryButtonText,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  content: {
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
 });

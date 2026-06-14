@@ -1,0 +1,161 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-06-13T00:00:00Z",
+  "title": "Design System: UMBRAL",
+  "extensions": {
+    "colorMeta": {
+      "primary": {
+        "role": "primary",
+        "displayName": "Magenta Umbral",
+        "canonical": "oklch(0.58 0.19 330)",
+        "tonalRamp": ["oklch(0.18 0.08 330)", "oklch(0.28 0.12 330)", "oklch(0.37 0.15 330)", "oklch(0.43 0.16 330)", "oklch(0.50 0.18 330)", "oklch(0.58 0.19 330)", "oklch(0.72 0.13 330)", "oklch(0.95 0.03 330)"]
+      },
+      "accent": {
+        "role": "secondary",
+        "displayName": "Indigo Señal",
+        "canonical": "oklch(0.50 0.13 265)",
+        "tonalRamp": ["oklch(0.20 0.06 265)", "oklch(0.30 0.09 265)", "oklch(0.40 0.12 265)", "oklch(0.50 0.13 265)", "oklch(0.60 0.12 265)", "oklch(0.72 0.09 265)", "oklch(0.85 0.05 265)", "oklch(0.95 0.025 265)"]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Tinta",
+        "canonical": "oklch(0.20 0.02 330)",
+        "tonalRamp": ["oklch(0.20 0.02 330)", "oklch(0.36 0.02 330)", "oklch(0.52 0.015 330)", "oklch(0.66 0.012 330)", "oklch(0.84 0.01 330)", "oklch(0.90 0.008 330)", "oklch(0.97 0.005 330)", "oklch(1 0 0)"]
+      },
+      "success": {
+        "role": "tertiary",
+        "displayName": "Verde Validación",
+        "canonical": "oklch(0.55 0.14 150)",
+        "tonalRamp": ["oklch(0.22 0.06 150)", "oklch(0.32 0.09 150)", "oklch(0.42 0.12 150)", "oklch(0.55 0.14 150)", "oklch(0.66 0.12 150)", "oklch(0.78 0.08 150)", "oklch(0.88 0.05 150)", "oklch(0.95 0.03 150)"]
+      },
+      "warning": {
+        "role": "tertiary",
+        "displayName": "Ámbar Atención",
+        "canonical": "oklch(0.80 0.14 75)",
+        "tonalRamp": ["oklch(0.30 0.06 75)", "oklch(0.42 0.09 75)", "oklch(0.55 0.12 75)", "oklch(0.68 0.14 75)", "oklch(0.80 0.14 75)", "oklch(0.88 0.10 80)", "oklch(0.93 0.06 82)", "oklch(0.95 0.04 85)"]
+      },
+      "danger": {
+        "role": "tertiary",
+        "displayName": "Rojo Corte",
+        "canonical": "oklch(0.55 0.20 25)",
+        "tonalRamp": ["oklch(0.22 0.08 25)", "oklch(0.32 0.12 25)", "oklch(0.43 0.16 25)", "oklch(0.55 0.20 25)", "oklch(0.66 0.17 25)", "oklch(0.78 0.11 25)", "oklch(0.88 0.06 25)", "oklch(0.95 0.03 25)"]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Superficie",
+        "canonical": "oklch(0.97 0.005 330)",
+        "tonalRamp": ["oklch(0.945 0.006 330)", "oklch(0.97 0.005 330)", "oklch(1 0 0)"]
+      }
+    },
+    "typographyMeta": {
+      "display": { "displayName": "Display", "purpose": "Título de página y cabecera de sección principal. Techo modesto (es herramienta, no héroe)." },
+      "headline": { "displayName": "Headline", "purpose": "Títulos de bloque dentro de una pantalla." },
+      "title": { "displayName": "Title", "purpose": "Títulos de tarjeta, tabla o panel." },
+      "body": { "displayName": "Body", "purpose": "Texto general; prosa acotada a 65–75ch." },
+      "label": { "displayName": "Label", "purpose": "Etiquetas de formulario, cabeceras de tabla, chips. Sentence case, nunca mayúsculas." },
+      "mono": { "displayName": "Mono", "purpose": "IDs, códigos de acceso, QR, timestamps técnicos." }
+    },
+    "shadows": [
+      { "name": "lift-hover", "value": "0 1px 2px rgba(27,19,26,0.06), 0 2px 6px rgba(27,19,26,0.08)", "purpose": "Realce sutil en hover de filas y botones accionables." },
+      { "name": "overlay", "value": "0 8px 24px rgba(27,19,26,0.16)", "purpose": "Modales y menús que flotan sobre la página." }
+    ],
+    "motion": [
+      { "name": "ease-out-quart", "value": "cubic-bezier(0.25, 1, 0.5, 1)", "purpose": "Easing por defecto de transiciones de estado." },
+      { "name": "duration-fast", "value": "120ms", "purpose": "Feedback inmediato (hover, foco)." },
+      { "name": "duration-base", "value": "160ms", "purpose": "Transiciones de borde/sombra en inputs y botones." },
+      { "name": "duration-slow", "value": "240ms", "purpose": "Entradas de overlays y cambios de panel." }
+    ],
+    "breakpoints": [
+      { "name": "sm", "value": "640px" },
+      { "name": "md", "value": "960px" },
+      { "name": "lg", "value": "1280px" }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "Acción que cambia el estado del juego: Iniciar partida, Enviar pista, Crear formulario.",
+      "html": "<button class=\"ds-btn-primary\">Iniciar partida</button>",
+      "css": ".ds-btn-primary { background: #982f93; color: #fff; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 600; padding: 10px 16px; border: none; border-radius: 8px; cursor: pointer; transition: background 160ms cubic-bezier(0.25,1,0.5,1), box-shadow 160ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-primary:hover { background: #7d2278; box-shadow: 0 1px 2px rgba(27,19,26,0.06), 0 2px 6px rgba(27,19,26,0.08); } .ds-btn-primary:focus-visible { outline: none; box-shadow: 0 0 0 3px #fbe8f8; }"
+    },
+    {
+      "name": "Secondary Button",
+      "kind": "button",
+      "refersTo": "button-secondary",
+      "description": "Acciones de apoyo: Actualizar, Cancelar edición.",
+      "html": "<button class=\"ds-btn-secondary\">Actualizar</button>",
+      "css": ".ds-btn-secondary { background: #f7f4f7; color: #1b131a; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 600; padding: 10px 16px; border: 1px solid #cec8ce; border-radius: 8px; cursor: pointer; transition: background 160ms cubic-bezier(0.25,1,0.5,1); } .ds-btn-secondary:hover { background: #efebef; } .ds-btn-secondary:focus-visible { outline: none; box-shadow: 0 0 0 3px #fbe8f8; }"
+    },
+    {
+      "name": "Text Input",
+      "kind": "input",
+      "refersTo": "input",
+      "description": "Campo de formulario con label en sentence case sobre el campo.",
+      "html": "<label class=\"ds-field\"><span>Nombre de la partida</span><input class=\"ds-input\" type=\"text\" placeholder=\"Busqueda QR Campus\" /></label>",
+      "css": ".ds-field { display: grid; gap: 6px; font-family: Inter, system-ui, sans-serif; } .ds-field span { font-size: 13px; font-weight: 600; color: #433942; } .ds-input { background: #fff; color: #1b131a; font-size: 15px; padding: 10px 12px; border: 1px solid #cec8ce; border-radius: 8px; transition: border-color 160ms cubic-bezier(0.25,1,0.5,1), box-shadow 160ms cubic-bezier(0.25,1,0.5,1); } .ds-input:focus-visible { outline: none; border-color: #b545ae; box-shadow: 0 0 0 3px #fbe8f8; }"
+    },
+    {
+      "name": "Nav Item (active)",
+      "kind": "nav",
+      "refersTo": "nav-item-active",
+      "description": "Item del nav rail; estado activo con lavado magenta y barra interior.",
+      "html": "<a class=\"ds-nav-item ds-nav-item--active\" href=\"#\"><svg width=\"16\" height=\"16\" viewBox=\"0 0 24 24\" fill=\"none\" stroke=\"currentColor\" stroke-width=\"2\"><rect x=\"3\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"3\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"3\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/><rect x=\"14\" y=\"14\" width=\"7\" height=\"7\" rx=\"1\"/></svg><span>Operar Trivia</span></a>",
+      "css": ".ds-nav-item { display: flex; align-items: center; gap: 8px; padding: 8px 12px; border-radius: 8px; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 600; color: #433942; text-decoration: none; position: relative; } .ds-nav-item:hover { background: #f7f4f7; } .ds-nav-item--active { background: #fbe8f8; color: #7d2278; } .ds-nav-item--active::before { content: \"\"; position: absolute; left: 0; top: 6px; bottom: 6px; width: 2px; border-radius: 2px; background: #b545ae; }"
+    },
+    {
+      "name": "State Pill (live)",
+      "kind": "chip",
+      "refersTo": "state-pill",
+      "description": "Estado siempre como color + texto + forma. Variante En vivo (magenta).",
+      "html": "<span class=\"ds-pill ds-pill--live\"><span class=\"ds-pill__dot\"></span>En vivo</span>",
+      "css": ".ds-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-family: Inter, system-ui, sans-serif; font-size: 13px; font-weight: 600; } .ds-pill--live { background: #fbe8f8; color: #7d2278; } .ds-pill__dot { width: 8px; height: 8px; border-radius: 999px; background: #b545ae; box-shadow: 0 0 0 0 rgba(181,69,174,0.5); animation: ds-pulse 1.6s ease-out infinite; } @keyframes ds-pulse { 0% { box-shadow: 0 0 0 0 rgba(181,69,174,0.5); } 70% { box-shadow: 0 0 0 6px rgba(181,69,174,0); } 100% { box-shadow: 0 0 0 0 rgba(181,69,174,0); } } @media (prefers-reduced-motion: reduce) { .ds-pill__dot { animation: none; } }"
+    },
+    {
+      "name": "Data Table",
+      "kind": "card",
+      "refersTo": "table-header",
+      "description": "Componente firma: cabecera sticky, UUID en mono truncado con copiar, estado como pill.",
+      "html": "<table class=\"ds-table\"><thead><tr><th>Participante</th><th>Inscripción</th><th>Estado</th></tr></thead><tbody><tr><td>maria.gomez</td><td><code>3f1a…b29c</code></td><td><span class=\"ds-pill ds-pill--lobby\"><span class=\"ds-pill__ring\"></span>Lobby</span></td></tr></tbody></table>",
+      "css": ".ds-table { width: 100%; border-collapse: collapse; font-family: Inter, system-ui, sans-serif; font-size: 15px; color: #1b131a; } .ds-table thead th { position: sticky; top: 0; background: #f7f4f7; color: #6e666d; font-size: 13px; font-weight: 600; text-align: left; padding: 10px 12px; border-bottom: 1px solid #e1dce0; } .ds-table td { padding: 10px 12px; border-bottom: 1px solid #e1dce0; } .ds-table tbody tr:hover { background: #efebef; } .ds-table code { font-family: 'JetBrains Mono', ui-monospace, monospace; font-size: 13px; color: #433942; } .ds-pill { display: inline-flex; align-items: center; gap: 6px; padding: 3px 10px; border-radius: 999px; font-size: 13px; font-weight: 600; } .ds-pill--lobby { background: #e6efff; color: #2c4a8a; } .ds-pill__ring { width: 8px; height: 8px; border-radius: 999px; border: 2px solid #3e5fad; }"
+    }
+  ],
+  "narrative": {
+    "northStar": "El tablero que respira",
+    "overview": "UMBRAL es una consola operativa, no un dashboard de marketing ni un panel administrativo gris. Quien la usa cruza un umbral: pasa de preparar una experiencia a conducirla en vivo. La superficie es blanca y nítida; el magenta de marca es la señal de que algo está pasando ahora. El color no decora, señala estado. La densidad es de grado operador: los neutros hacen el trabajo pesado y el magenta aparece poco, por eso pesa. Cada estado se comunica con color + texto + forma, nunca solo con color.",
+    "keyCharacteristics": [
+      "Superficie blanca pura; el magenta de marca carga la energía, no el fondo.",
+      "El color codifica estado; los neutros cargan la densidad.",
+      "Estado siempre como color + texto + forma (nunca solo color).",
+      "Mismos tokens en web (CSS) y mobile (theme TS): una sola verdad, dos plataformas.",
+      "WCAG 2.1 AA verificado en cada par de color."
+    ],
+    "rules": [
+      { "name": "The One Live Voice Rule", "body": "El magenta es la única marca y significa vivo/ahora. Prohibido usarlo como relleno decorativo o repartido por más del ~10% de una pantalla. Su rareza es lo que lo hace señal.", "section": "colors" },
+      { "name": "The State Is Never Color Alone Rule", "body": "Todo estado se codifica con color + etiqueta de texto + forma. Quitar el color nunca debe destruir la información.", "section": "colors" },
+      { "name": "The No-Eyebrow Rule", "body": "Prohibido el kicker en mayúsculas con tracking sobre cada sección. La jerarquía se construye con escala y peso (ratio ≥1.25), no con mayúsculas.", "section": "typography" },
+      { "name": "The Mono For Machine Strings Rule", "body": "Todo identificador, código o QR se renderiza en mono, truncado y con copiar; nunca un UUID en la tipografía de cuerpo.", "section": "typography" },
+      { "name": "The Flat-By-Default Rule", "body": "Las superficies están planas en reposo. Una sombra es una afirmación de estado, nunca decoración ambiental.", "section": "elevation" }
+    ],
+    "dos": [
+      "Do mantener el fondo en blanco puro (#ffffff) y dejar que el Magenta Umbral cargue la energía.",
+      "Do reservar el magenta para acción primaria, foco, nav activa y el estado En vivo (≤10% de la pantalla).",
+      "Do codificar cada estado con color + texto + forma.",
+      "Do renderizar todo UUID, código de acceso y QR en JetBrains Mono, truncado y con copiar.",
+      "Do construir jerarquía con escala y peso (ratio ≥1.25); etiquetas en sentence case.",
+      "Do mantener superficies planas en reposo; sombras solo en overlays y hover.",
+      "Do verificar AA: cuerpo ≥4.5:1, texto grande ≥3:1, foco visible, prefers-reduced-motion con alternativa."
+    ],
+    "donts": [
+      "Don't caer en el dashboard SaaS azul/teal con tarjetas iguales, gradientes suaves y glassmorphism.",
+      "Don't volverlo infantil o gamificado: sin confeti, mascotas ni estética de casino.",
+      "Don't dejarlo caer en corporativo gris apagado.",
+      "Don't vestirlo de marketing llamativo: nada de héroes, eslóganes ni CTA gigantes.",
+      "Don't usar el kicker en mayúsculas con tracking sobre cada sección.",
+      "Don't usar border-left/right de más de 1px como franja de color.",
+      "Don't usar texto en gradiente ni sombras grandes difusas decorativas (0 18px 50px).",
+      "Don't imprimir un UUID en la tipografía de cuerpo ni mostrar un estado solo por color."
+    ]
+  }
+}

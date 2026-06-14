@@ -3,14 +3,14 @@ import {
   ActivityIndicator,
   FlatList,
   RefreshControl,
+  SafeAreaView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
 } from 'react-native';
-import ScreenWrapper from '../../../shared/components/ScreenWrapper';
-import { colors } from '../../../shared/theme';
-import { screenStyles } from '../../../shared/styles';
+import { AppText, Button, EmptyPanel, Notice, StatePill } from '../../../shared/ui';
+import { gameStatePill } from '../../../shared/statusPill';
+import { colors, radius, spacing } from '../../../shared/theme';
 import { getPublishedTriviaGames, TriviaMobileApiError } from '../../../api/triviaApi';
 import { TriviaGameListItem } from '../types';
 import { TEAM_TRIVIA_LEADER_WARNING } from '../triviaParticipantScreenModel.js';
@@ -64,137 +64,165 @@ export default function TriviaGamesListScreen({ apiBaseUrl, token, onOpenLobby }
     fetchGames();
   }, [fetchGames]);
 
-  const renderGame = ({ item }: { item: TriviaGameListItem }) => (
-    <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => onOpenLobby?.(item.id)}>
-      <Text style={styles.gameName}>{item.nombre}</Text>
-      <View style={styles.cardRow}>
-        <Text style={styles.modalidad}>
-          {item.modalidad === 'Individual' ? 'Individual' : 'Equipo'}
-        </Text>
-        <Text style={styles.date}>{formatDate(item.tiempoInicio)}</Text>
-      </View>
-      <Text style={styles.participants}>
-        {item.modalidad === 'Individual'
-          ? `Jugadores: ${item.minimoParticipantes} - ${item.maximoJugadores ?? '-'}`
-          : `Equipos: ${item.minimoParticipantes} - ${item.maximoEquipos ?? '-'}`}
-      </Text>
-      <Text style={styles.actionText}>
-        {item.modalidad === 'Individual' ? 'Toca para unirte o ver espera' : TEAM_TRIVIA_LEADER_WARNING}
-      </Text>
-    </TouchableOpacity>
-  );
+  const renderGame = ({ item }: { item: TriviaGameListItem }) => {
+    const pill = gameStatePill(item.estado);
+    return (
+      <TouchableOpacity style={styles.card} activeOpacity={0.7} onPress={() => onOpenLobby?.(item.id)}>
+        <View style={styles.cardHead}>
+          <AppText variant="title" style={styles.cardName}>
+            {item.nombre}
+          </AppText>
+          <StatePill state={pill.state} label={pill.label} />
+        </View>
+        <View style={styles.cardRow}>
+          <AppText variant="label" color={colors.inkSoft}>
+            {item.modalidad === 'Individual' ? 'Individual' : 'Equipo'}
+          </AppText>
+          <AppText variant="label" color={colors.muted}>
+            {formatDate(item.tiempoInicio)}
+          </AppText>
+        </View>
+        <AppText variant="body" color={colors.muted}>
+          {item.modalidad === 'Individual'
+            ? `Jugadores: ${item.minimoParticipantes} - ${item.maximoJugadores ?? '-'}`
+            : `Equipos: ${item.minimoParticipantes} - ${item.maximoEquipos ?? '-'}`}
+        </AppText>
+        <AppText variant="label" color={colors.primaryStrong}>
+          {item.modalidad === 'Individual' ? 'Toca para unirte o ver espera' : TEAM_TRIVIA_LEADER_WARNING}
+        </AppText>
+      </TouchableOpacity>
+    );
+  };
 
   if (loading) {
     return (
-      <ScreenWrapper style={styles.centered}>
-        <ActivityIndicator size="large" color={colors.primary} />
-        <Text style={styles.loadingText}>Cargando partidas...</Text>
-      </ScreenWrapper>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centered}>
+          <ActivityIndicator size="large" color={colors.primaryFill} />
+          <AppText variant="body" color={colors.muted}>
+            Cargando partidas...
+          </AppText>
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (error) {
     return (
-      <ScreenWrapper style={styles.centered}>
-        <Text style={styles.errorText}>{error}</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => fetchGames()}>
-          <Text style={styles.retryText}>Reintentar</Text>
-        </TouchableOpacity>
-      </ScreenWrapper>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centered}>
+          <Notice variant="error" style={styles.notice}>
+            {error}
+          </Notice>
+          <Button label="Reintentar" variant="secondary" onPress={() => fetchGames()} />
+        </View>
+      </SafeAreaView>
     );
   }
 
   if (games.length === 0) {
     return (
-      <ScreenWrapper style={styles.centered}>
-        <Text style={styles.emptyText}>No hay partidas de Trivia publicadas</Text>
-        <TouchableOpacity style={styles.retryButton} onPress={() => fetchGames()}>
-          <Text style={styles.retryText}>Actualizar</Text>
-        </TouchableOpacity>
-      </ScreenWrapper>
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.centered}>
+          <EmptyPanel
+            title="No hay partidas de Trivia publicadas"
+            message="Cuando un operador publique una Trivia, aparecerá aquí para que te unas."
+            action={<Button label="Actualizar" variant="secondary" onPress={() => fetchGames()} />}
+          />
+        </View>
+      </SafeAreaView>
     );
   }
 
   return (
-    <ScreenWrapper>
+    <SafeAreaView style={styles.safe}>
       <View style={styles.filterBar}>
-        {(['Todas', 'Individual', 'Equipo'] as Filtro[]).map((opcion) => (
-          <TouchableOpacity
-            key={opcion}
-            style={[styles.filterChip, filtro === opcion && styles.filterChipActive]}
-            onPress={() => setFiltro(opcion)}
-          >
-            <Text style={[styles.filterChipText, filtro === opcion && styles.filterChipTextActive]}>
-              {opcion === 'Todas' ? 'Todas' : opcion}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        {(['Todas', 'Individual', 'Equipo'] as Filtro[]).map((opcion) => {
+          const active = filtro === opcion;
+          return (
+            <TouchableOpacity
+              key={opcion}
+              style={[styles.filterChip, active && styles.filterChipActive]}
+              onPress={() => setFiltro(opcion)}
+            >
+              <AppText variant="label" color={active ? colors.primaryStrong : colors.inkSoft}>
+                {opcion}
+              </AppText>
+            </TouchableOpacity>
+          );
+        })}
       </View>
       <FlatList
         data={games}
         keyExtractor={(item) => item.id}
         renderItem={renderGame}
         contentContainerStyle={styles.list}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={() => fetchGames(true)} />
-        }
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={() => fetchGames(true)} />}
       />
-    </ScreenWrapper>
+    </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
+  centered: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: spacing.xl,
+    gap: spacing.lg,
+  },
+  notice: {
+    alignSelf: 'stretch',
+  },
   filterBar: {
     flexDirection: 'row',
-    paddingHorizontal: 16,
-    paddingTop: 12,
-    paddingBottom: 4,
-    gap: 8,
+    paddingHorizontal: spacing.lg,
+    paddingTop: spacing.md,
+    paddingBottom: spacing.xs,
+    gap: spacing.sm,
   },
   filterChip: {
-    ...screenStyles.filterButton,
-    paddingHorizontal: 16,
-    paddingVertical: 6,
+    minHeight: 44,
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    backgroundColor: colors.surface,
+    borderRadius: radius.pill,
+    paddingHorizontal: spacing.lg,
+    paddingVertical: spacing.sm,
   },
-  filterChipActive: screenStyles.filterButtonActive,
-  filterChipText: screenStyles.filterText,
-  filterChipTextActive: screenStyles.filterTextActive,
-  centered: {
-    ...screenStyles.centered,
+  filterChipActive: {
+    borderColor: colors.primaryBright,
+    backgroundColor: colors.primaryWash,
   },
   list: {
-    padding: 16,
+    padding: spacing.lg,
+    gap: spacing.md,
   },
   card: {
-    ...screenStyles.card,
-    padding: 16,
-    marginBottom: 12,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+    borderRadius: radius.lg,
+    padding: spacing.lg,
+    gap: spacing.sm,
   },
-  gameName: screenStyles.cardTitle,
+  cardHead: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-start',
+    gap: spacing.sm,
+  },
+  cardName: {
+    flex: 1,
+  },
   cardRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 4,
   },
-  modalidad: screenStyles.cardLine,
-  date: {
-    fontSize: 12,
-    color: colors.textSoft,
-  },
-  participants: {
-    fontSize: 12,
-    color: colors.textSoft,
-    marginTop: 4,
-  },
-  actionText: {
-    color: colors.primary,
-    fontWeight: '700',
-    marginTop: 10,
-  },
-  loadingText: screenStyles.loadingText,
-  errorText: screenStyles.errorText,
-  retryButton: screenStyles.joinButton,
-  retryText: screenStyles.joinButtonText,
-  emptyText: screenStyles.emptyText,
 });

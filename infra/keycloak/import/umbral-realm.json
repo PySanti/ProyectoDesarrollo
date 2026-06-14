@@ -1,0 +1,114 @@
+{
+  "realm": "UMBRAL-UCAB",
+  "enabled": true,
+  "displayName": "UMBRAL",
+  "loginTheme": "umbral",
+  "sslRequired": "none",
+  "registrationAllowed": false,
+  "roles": {
+    "realm": [
+      { "name": "Administrador", "description": "Administra usuarios y configuración de la plataforma." },
+      { "name": "Operador", "description": "Crea y supervisa partidas de Trivia y BDT." },
+      { "name": "Participante", "description": "Juega Trivia y BDT desde la app móvil." }
+    ]
+  },
+  "clients": [
+    {
+      "clientId": "umbral-web",
+      "name": "UMBRAL Web (Administrador / Operador)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["http://localhost:5173/*"],
+      "webOrigins": ["http://localhost:5173"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "http://localhost:5173/*"
+      }
+    },
+    {
+      "clientId": "umbral-mobile",
+      "name": "UMBRAL Mobile (Participante / Líder)",
+      "enabled": true,
+      "publicClient": true,
+      "standardFlowEnabled": true,
+      "directAccessGrantsEnabled": false,
+      "redirectUris": ["umbral://auth", "exp://*", "exp://*/--/auth"],
+      "webOrigins": ["+"],
+      "attributes": {
+        "pkce.code.challenge.method": "S256"
+      }
+    },
+    {
+      "clientId": "identity-service",
+      "name": "Identity Service (backend)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "umbral-identity-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "team-service",
+      "name": "Team Service (backend)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "umbral-team-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    },
+    {
+      "clientId": "bdt-game-service",
+      "name": "BDT Game Service (backend)",
+      "enabled": true,
+      "publicClient": false,
+      "secret": "umbral-bdt-secret",
+      "standardFlowEnabled": false,
+      "directAccessGrantsEnabled": true,
+      "serviceAccountsEnabled": true
+    }
+  ],
+  "users": [
+    {
+      "username": "admin",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "admin@umbral.local",
+      "firstName": "Admin",
+      "lastName": "UMBRAL",
+      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "realmRoles": ["default-roles-umbral-ucab", "Administrador"]
+    },
+    {
+      "username": "operador",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "operador@umbral.local",
+      "firstName": "Operador",
+      "lastName": "UMBRAL",
+      "credentials": [{ "type": "password", "value": "operador", "temporary": false }],
+      "realmRoles": ["default-roles-umbral-ucab", "Operador"]
+    },
+    {
+      "username": "participante",
+      "enabled": true,
+      "emailVerified": true,
+      "email": "participante@umbral.local",
+      "firstName": "Participante",
+      "lastName": "UMBRAL",
+      "credentials": [{ "type": "password", "value": "participante", "temporary": false }],
+      "realmRoles": ["default-roles-umbral-ucab", "Participante"]
+    },
+    {
+      "username": "service-account-identity-service",
+      "enabled": true,
+      "serviceAccountClientId": "identity-service",
+      "clientRoles": {
+        "realm-management": ["realm-admin"]
+      }
+    }
+  ]
+}
