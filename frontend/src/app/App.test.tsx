@@ -37,7 +37,9 @@ describe("App shell + auth guard", () => {
 
     render(<App />);
 
-    expect(await screen.findByText(/acceso restringido/i)).toBeInTheDocument();
+    expect(
+      await screen.findByText(/el panel web es exclusivo para administradores y operadores/i)
+    ).toBeInTheDocument();
   });
 
   it("lands an operator on Operar Trivia and navigates to Crear BDT", async () => {

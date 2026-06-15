@@ -168,7 +168,7 @@ export function App() {
 
   const roles = authState.user.roles;
   if (!roles.includes("Administrador") && !roles.includes("Operador")) {
-    return <UnauthorizedScreen username={authState.user.username} />;
+    return <UnauthorizedScreen username={authState.user.username} onLogout={onLogout} />;
   }
 
   return (

@@ -3,6 +3,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth } from "../auth/AuthProvider";
 import { SplashScreen } from "../screens/SplashScreen";
 import { LoginScreen } from "../screens/LoginScreen";
+import { RoleRestrictedScreen } from "../screens/RoleRestrictedScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
 import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContainer";
@@ -35,6 +36,20 @@ export function RootNavigator() {
     return (
       <AuthStack.Navigator>
         <AuthStack.Screen name="Login" component={LoginScreen} options={{ headerShown: false }} />
+      </AuthStack.Navigator>
+    );
+  }
+
+  // La app móvil es exclusiva para participantes. Una cuenta de Administrador u Operador puede
+  // autenticarse en Keycloak, pero no debe entrar al flujo de juego: se le muestra un aviso.
+  if (!session.user.roles.includes("Participante")) {
+    return (
+      <AuthStack.Navigator>
+        <AuthStack.Screen
+          name="Login"
+          component={RoleRestrictedScreen}
+          options={{ headerShown: false }}
+        />
       </AuthStack.Navigator>
     );
   }

@@ -60,16 +60,29 @@ export function AuthErrorScreen({ message, onRetry }: { message: string; onRetry
   );
 }
 
-export function UnauthorizedScreen({ username }: { username: string }) {
+export function UnauthorizedScreen({
+  username,
+  onLogout
+}: {
+  username: string;
+  onLogout?: () => void;
+}) {
   return (
     <div className="sh-state">
-      <div className="sh-state__card">
-        <Lock className="sh-state__icon" style={{ color: "var(--warning-strong)" }} />
-        <h1>Acceso restringido</h1>
+      <div className="sh-state__card" role="alert">
+        <Lock className="sh-state__icon" style={{ color: "var(--danger)" }} />
+        <h1 style={{ color: "var(--danger)" }}>
+          El panel web es exclusivo para administradores y operadores
+        </h1>
         <p className="muted">
-          La cuenta <strong>{username}</strong> no tiene rol Administrador u Operador. Esta consola
-          es solo para administración y operación.
+          La cuenta <strong>{username}</strong> no tiene rol Administrador u Operador. Usa la app
+          móvil para participar en las partidas.
         </p>
+        {onLogout ? (
+          <button type="button" onClick={onLogout}>
+            Cerrar sesión
+          </button>
+        ) : null}
       </div>
     </div>
   );
