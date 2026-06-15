@@ -99,3 +99,14 @@
 - [x] Remove forced startup DB connection (`EnsureCreatedAsync`) from API bootstrap to avoid service crash on transient/local DB auth mismatch.
 - [x] Align HU-02 HTTP contract response/error sections with implemented endpoints (`PATCH /users/{userId}`, `PATCH /users/{userId}/deactivation`).
 - [x] Re-run backend and frontend automated tests after operational hardening changes.
+
+## Phase - Reenvío de credenciales al cambiar el correo (extensión 2026-06-15)
+
+- [x] Añadir a `IKeycloakIdentityPort`: `HasTemporaryPasswordAsync`, `UpdateEmailAsync`, `ResetTemporaryPasswordAsync`; implementarlos en `KeycloakIdentityAdapter`.
+- [x] Inyectar Keycloak port + `ITemporaryPasswordGenerator` + `IUserWelcomeEmailSender` en `UpdateUserGeneralDataCommandHandler`.
+- [x] Implementar lógica: si email cambia y hay contraseña temporal pendiente → sync email + reset password + envío de correo; revertir si falla.
+- [x] Mapear `KeycloakIntegrationException` y `EmailDeliveryException` a `502` en el endpoint PATCH.
+- [x] Actualizar todos los dobles de `IKeycloakIdentityPort` y el constructor del handler en tests.
+- [x] Añadir tests: reenvío en (email-cambia + temporal-pendiente), no-reenvío (no temporal / email igual), revert al fallar el correo.
+- [x] Actualizar `contracts/http/identity-api.md` (side effect + `502`), `acceptance.md` y `traceability-matrix.md`.
+- [x] Re-ejecutar tests (Unit 36 / Contract 6 / Integration 21 — verdes).

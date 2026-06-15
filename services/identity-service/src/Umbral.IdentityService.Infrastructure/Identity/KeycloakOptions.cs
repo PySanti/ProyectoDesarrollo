@@ -9,5 +9,4 @@ public sealed class KeycloakOptions
     public string ClientId { get; set; } = string.Empty;
     public string ClientSecret { get; set; } = string.Empty;
     public bool RequireUpdatePasswordAction { get; set; } = true;
-    public string TemporaryPassword { get; set; } = "Temp@123456";
 }

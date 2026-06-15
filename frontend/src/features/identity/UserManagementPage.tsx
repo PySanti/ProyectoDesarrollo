@@ -31,6 +31,11 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   const [email, setEmail] = useState("");
   const [page, setPage] = useState(1);
 
+  // El front no sabe si el usuario aún tiene contraseña temporal (eso lo decide el backend
+  // contra Keycloak), pero sí sabe si el correo cambió, que es la condición para que se reenvíe.
+  const emailChanged =
+    selectedUser != null && email.trim().toLowerCase() !== selectedUser.email.toLowerCase();
+
   useEffect(() => {
     void loadUsers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -310,9 +315,25 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
                 />
               </label>
 
+              <p className="muted" data-testid="hu02-email-hint">
+                Si cambias el correo de un usuario que aún no ha iniciado sesión, se le enviará un{" "}
+                <strong>correo</strong> con su nueva contraseña temporal al nuevo correo.
+              </p>
+
+              {isSubmitting && emailChanged ? (
+                <p className="muted" role="status" data-testid="hu02-update-status">
+                  Guardando los cambios y, si el usuario aún no ha iniciado sesión, enviando el correo
+                  con su nueva contraseña temporal…
+                </p>
+              ) : null}
+
               <div className="row">
                 <button type="submit" disabled={isSubmitting}>
-                  {isSubmitting ? "Guardando…" : "Guardar datos"}
+                  {isSubmitting
+                    ? emailChanged
+                      ? "Guardando y enviando correo…"
+                      : "Guardando…"
+                    : "Guardar datos"}
                 </button>
 
                 <button
@@ -354,6 +375,13 @@ function mapHu02ErrorMessage(statusCode: number, fallbackMessage: string): strin
       return "El correo ya existe en UMBRAL o Keycloak.";
     case 400:
       return "Solicitud inválida. Verifica los datos enviados.";
+    case 502:
+      // Al cambiar el correo de un usuario con contraseña temporal pendiente, el backend
+      // reenvía credenciales; si falla (correo o Keycloak) revierte el cambio.
+      if (/smtp|email|correo/i.test(fallbackMessage)) {
+        return "No se pudo enviar el correo con la nueva contraseña temporal. El cambio se revirtió; revisa la configuración de correo (SMTP) e inténtalo nuevamente.";
+      }
+      return "Error de integración con Keycloak al actualizar el usuario. El cambio se revirtió; inténtalo nuevamente.";
     default:
       return fallbackMessage || "Error inesperado en Identity Service.";
   }

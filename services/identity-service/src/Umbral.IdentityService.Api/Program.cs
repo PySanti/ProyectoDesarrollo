@@ -169,6 +169,10 @@ app.MapPost("/api/identity/users", async (
         {
             return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
         }
+        catch (EmailDeliveryException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
+        }
         catch (PersistenceException ex)
         {
             return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status500InternalServerError);
@@ -231,6 +235,14 @@ app.MapMethods("/api/identity/users/{userId:guid}", new[] { "PATCH" }, async (
         catch (DuplicateEmailException ex)
         {
             return Results.Conflict(new { message = ex.Message });
+        }
+        catch (KeycloakIntegrationException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
+        }
+        catch (EmailDeliveryException ex)
+        {
+            return Results.Json(new { message = ex.Message }, statusCode: StatusCodes.Status502BadGateway);
         }
         catch (PersistenceException ex)
         {

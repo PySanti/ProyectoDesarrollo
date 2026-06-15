@@ -5,6 +5,7 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
 using Umbral.IdentityService.Application.Abstractions.Identity;
+using Umbral.IdentityService.Application.Abstractions.Notifications;
 using Umbral.IdentityService.Infrastructure.Persistence;
 
 namespace Umbral.IdentityService.ContractTests;
@@ -24,6 +25,9 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
             services.RemoveAll<IKeycloakIdentityPort>();
             services.AddSingleton<IKeycloakIdentityPort, TestKeycloakIdentityPort>();
 
+            services.RemoveAll<IUserWelcomeEmailSender>();
+            services.AddSingleton<IUserWelcomeEmailSender, NoOpWelcomeEmailSender>();
+
             services.AddAuthentication(options =>
             {
                 options.DefaultAuthenticateScheme = TestAuthHandler.SchemeName;
@@ -34,7 +38,25 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
 
     private sealed class TestKeycloakIdentityPort : IKeycloakIdentityPort
     {
-        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, CancellationToken cancellationToken)
+        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, string temporaryPassword, CancellationToken cancellationToken)
             => Task.FromResult(Guid.NewGuid().ToString("N"));
+
+        public Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult(false);
+
+        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+    }
+
+    private sealed class NoOpWelcomeEmailSender : IUserWelcomeEmailSender
+    {
+        public Task SendWelcomeEmailAsync(UserWelcomeEmailMessage message, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

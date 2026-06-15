@@ -136,3 +136,34 @@
 - [x] If `UsuarioCreado` does not stay in scope, remove HU-01 design/traceability dependency on that event contract.
 - [x] Update `acceptance.md` to separate automated evidence from manual/runtime verification.
 - [x] Update `docs/04-sdd/traceability-matrix.md` status only after these gaps are resolved.
+
+## Phase 9 - Welcome-email credential notification (extensión 2026-06-15)
+
+### Application
+- [x] Add `ITemporaryPasswordGenerator` port.
+- [x] Add `IUserWelcomeEmailSender` port + `UserWelcomeEmailMessage` record.
+- [x] Add `EmailDeliveryException`.
+- [x] Extend `IKeycloakIdentityPort` with per-user password and `DeleteUserAsync`.
+- [x] Add `IUsuarioRepository.RemoveAsync` for compensation.
+- [x] Update handler: generate password, create in Keycloak, persist, send email, compensate on failure (no password in response, no password persisted).
+
+### Infrastructure
+- [x] Implement `CryptoTemporaryPasswordGenerator`.
+- [x] Implement `SmtpUserWelcomeEmailSender` (System.Net.Mail) + `SmtpOptions` + branded `WelcomeEmailTemplate`.
+- [x] Update `KeycloakIdentityAdapter` to use per-user password and add `DeleteUserAsync`; remove unused `TemporaryPassword` option.
+- [x] Add `UsuarioRepository.RemoveAsync`.
+- [x] Register new services + bind `Smtp` options with env fallback.
+
+### API
+- [x] Map `EmailDeliveryException` to `502`.
+
+### Tests
+- [x] Update all `IKeycloakIdentityPort` test doubles and register fake `IUserWelcomeEmailSender` in test factories.
+- [x] Add handler tests: email sent on success, compensation on email failure.
+- [x] Add `CryptoTemporaryPasswordGenerator` unit test (complexity + uniqueness).
+- [x] Re-run unit/integration/contract tests (Unit 32, Contract 6, Integration 21 — all passing).
+
+### Contracts / config / docs
+- [x] Note welcome-email side effect + `502` mapping in `contracts/http/identity-api.md`.
+- [x] Add SMTP env vars to `.env.example` and `GUIA-LEVANTAMIENTO.md`.
+- [x] Update `acceptance.md` and `traceability-matrix.md`.

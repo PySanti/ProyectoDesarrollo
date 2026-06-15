@@ -1,6 +1,8 @@
 using MediatR;
 using Umbral.IdentityService.Application.Abstractions.Identity;
+using Umbral.IdentityService.Application.Abstractions.Notifications;
 using Umbral.IdentityService.Application.Abstractions.Persistence;
+using Umbral.IdentityService.Application.Abstractions.Security;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Domain.Entities;
 using Umbral.IdentityService.Domain.Enums;
@@ -11,13 +13,19 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
 {
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly IKeycloakIdentityPort _keycloakIdentityPort;
+    private readonly ITemporaryPasswordGenerator _temporaryPasswordGenerator;
+    private readonly IUserWelcomeEmailSender _welcomeEmailSender;
 
     public CreateUserWithInitialRoleCommandHandler(
         IUsuarioRepository usuarioRepository,
-        IKeycloakIdentityPort keycloakIdentityPort)
+        IKeycloakIdentityPort keycloakIdentityPort,
+        ITemporaryPasswordGenerator temporaryPasswordGenerator,
+        IUserWelcomeEmailSender welcomeEmailSender)
     {
         _usuarioRepository = usuarioRepository;
         _keycloakIdentityPort = keycloakIdentityPort;
+        _temporaryPasswordGenerator = temporaryPasswordGenerator;
+        _welcomeEmailSender = welcomeEmailSender;
     }
 
     public async Task<CreateUserWithInitialRoleResponse> Handle(CreateUserWithInitialRoleCommand request, CancellationToken cancellationToken)
@@ -28,10 +36,15 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
             throw new DuplicateEmailException(normalizedEmail);
         }
 
+        // La contraseña temporal es única por usuario y solo vive en memoria durante el request:
+        // se asigna en Keycloak y se envía por correo, pero nunca se persiste (RB-U03).
+        var temporaryPassword = _temporaryPasswordGenerator.Generate();
+
         var keycloakId = await _keycloakIdentityPort.CreateUserWithInitialRoleAsync(
             request.Name,
             normalizedEmail,
             request.InitialRole,
+            temporaryPassword,
             cancellationToken);
 
         var role = request.InitialRole switch
@@ -42,7 +55,32 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
         };
 
         var usuario = Usuario.Crear(keycloakId, request.Name, normalizedEmail, role);
-        await _usuarioRepository.AddAsync(usuario, cancellationToken);
+
+        try
+        {
+            await _usuarioRepository.AddAsync(usuario, cancellationToken);
+        }
+        catch
+        {
+            // Persistencia local falló tras crear en Keycloak: deshacer Keycloak para no dejar huérfanos.
+            await CompensateKeycloakAsync(keycloakId, cancellationToken);
+            throw;
+        }
+
+        try
+        {
+            // El envío es el último paso: si falla, la operación falla y se compensan ambas creaciones
+            // (all-or-nothing), de modo que no queden usuarios sin notificar.
+            await _welcomeEmailSender.SendWelcomeEmailAsync(
+                new UserWelcomeEmailMessage(usuario.Nombre, usuario.Correo, usuario.Rol.ToString(), temporaryPassword),
+                cancellationToken);
+        }
+        catch
+        {
+            await CompensateLocalAsync(usuario, cancellationToken);
+            await CompensateKeycloakAsync(keycloakId, cancellationToken);
+            throw;
+        }
 
         return new CreateUserWithInitialRoleResponse(
             usuario.UsuarioId,
@@ -51,5 +89,29 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
             usuario.Correo,
             usuario.Rol.ToString(),
             usuario.Estado.ToString());
+    }
+
+    private async Task CompensateKeycloakAsync(string keycloakId, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _keycloakIdentityPort.DeleteUserAsync(keycloakId, cancellationToken);
+        }
+        catch
+        {
+            // Compensación best-effort: no enmascarar la excepción original de la operación.
+        }
+    }
+
+    private async Task CompensateLocalAsync(Usuario usuario, CancellationToken cancellationToken)
+    {
+        try
+        {
+            await _usuarioRepository.RemoveAsync(usuario, cancellationToken);
+        }
+        catch
+        {
+            // Compensación best-effort: no enmascarar la excepción original de la operación.
+        }
     }
 }

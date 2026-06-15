@@ -53,4 +53,20 @@ describe("CreateUserPage", () => {
 
     expect(await screen.findByRole("alert")).toHaveTextContent("El correo ya existe en UMBRAL o Keycloak.");
   });
+
+  it("shows welcome-email failure message and notes the user was not created on 502", async () => {
+    vi.spyOn(identityApi, "createIdentityUser").mockRejectedValue(
+      new identityApi.IdentityApiError("Failed to send welcome email to ana@test.com.", 502)
+    );
+
+    render(<CreateUserPage accessToken="token-1" />);
+
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Ana");
+    await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
+    await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
+
+    const alert = await screen.findByRole("alert");
+    expect(alert).toHaveTextContent(/correo de bienvenida/i);
+    expect(alert).toHaveTextContent(/El usuario no fue creado/i);
+  });
 });

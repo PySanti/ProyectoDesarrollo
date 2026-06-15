@@ -1,5 +1,7 @@
 using Umbral.IdentityService.Application.Abstractions.Identity;
+using Umbral.IdentityService.Application.Abstractions.Notifications;
 using Umbral.IdentityService.Application.Abstractions.Persistence;
+using Umbral.IdentityService.Application.Abstractions.Security;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Application.Users.CreateUser;
 using Umbral.IdentityService.Domain.Entities;
@@ -13,7 +15,9 @@ public sealed class CreateUserHandlerTests
     {
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort("kc-123");
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak);
+        var passwordGenerator = new FakeTemporaryPasswordGenerator("Temp-Pass-1");
+        var emailSender = new FakeWelcomeEmailSender();
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
 
         var response = await handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -22,6 +26,46 @@ public sealed class CreateUserHandlerTests
         Assert.Equal("kc-123", response.KeycloakId);
         Assert.Equal("Administrador", response.Role);
         Assert.Single(repository.StoredUsers);
+        Assert.Empty(keycloak.DeletedIds);
+    }
+
+    [Fact]
+    public async Task Handle_Should_Send_Welcome_Email_With_Generated_Temporary_Password()
+    {
+        var repository = new FakeUsuarioRepository();
+        var keycloak = new FakeKeycloakIdentityPort("kc-123");
+        var passwordGenerator = new FakeTemporaryPasswordGenerator("Generated-Temp-9");
+        var emailSender = new FakeWelcomeEmailSender();
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
+
+        await handler.Handle(
+            new CreateUserWithInitialRoleCommand("Ana", "ANA@umbral.dev", "Participante"),
+            CancellationToken.None);
+
+        Assert.NotNull(emailSender.LastMessage);
+        Assert.Equal("ana@umbral.dev", emailSender.LastMessage!.Email);
+        Assert.Equal("Participante", emailSender.LastMessage.Role);
+        Assert.Equal("Generated-Temp-9", emailSender.LastMessage.TemporaryPassword);
+        // The temporary password is sent to Keycloak too (never persisted locally).
+        Assert.Equal("Generated-Temp-9", keycloak.LastTemporaryPassword);
+    }
+
+    [Fact]
+    public async Task Handle_Should_Compensate_When_Email_Delivery_Fails()
+    {
+        var repository = new FakeUsuarioRepository();
+        var keycloak = new FakeKeycloakIdentityPort("kc-999");
+        var passwordGenerator = new FakeTemporaryPasswordGenerator("Temp-Pass-1");
+        var emailSender = new FakeWelcomeEmailSender(throwOnSend: true);
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
+
+        await Assert.ThrowsAsync<EmailDeliveryException>(() => handler.Handle(
+            new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
+            CancellationToken.None));
+
+        // Compensation: local persistence rolled back and Keycloak user deleted.
+        Assert.Empty(repository.StoredUsers);
+        Assert.Contains("kc-999", keycloak.DeletedIds);
     }
 
     [Fact]
@@ -29,7 +73,8 @@ public sealed class CreateUserHandlerTests
     {
         var repository = new FakeUsuarioRepository(existsByEmail: true);
         var keycloak = new FakeKeycloakIdentityPort("kc-123");
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak);
+        var handler = new CreateUserWithInitialRoleCommandHandler(
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -41,7 +86,8 @@ public sealed class CreateUserHandlerTests
     {
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort(exception: new KeycloakIntegrationException("keycloak failed"));
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak);
+        var handler = new CreateUserWithInitialRoleCommandHandler(
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -53,7 +99,8 @@ public sealed class CreateUserHandlerTests
     {
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort(exception: new KeycloakIntegrationException("authenticated user is not administrator"));
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak);
+        var handler = new CreateUserWithInitialRoleCommandHandler(
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Operator", "operator@umbral.dev", "Operador"),
@@ -87,6 +134,12 @@ public sealed class CreateUserHandlerTests
 
         public Task UpdateAsync(Usuario usuario, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task RemoveAsync(Usuario usuario, CancellationToken cancellationToken)
+        {
+            StoredUsers.Remove(usuario);
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeKeycloakIdentityPort : IKeycloakIdentityPort
@@ -94,20 +147,74 @@ public sealed class CreateUserHandlerTests
         private readonly string _keycloakId;
         private readonly Exception? _exception;
 
+        public string? LastTemporaryPassword { get; private set; }
+        public List<string> DeletedIds { get; } = [];
+
         public FakeKeycloakIdentityPort(string keycloakId = "kc-default", Exception? exception = null)
         {
             _keycloakId = keycloakId;
             _exception = exception;
         }
 
-        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, CancellationToken cancellationToken)
+        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, string temporaryPassword, CancellationToken cancellationToken)
         {
             if (_exception is not null)
             {
                 throw _exception;
             }
 
+            LastTemporaryPassword = temporaryPassword;
             return Task.FromResult(_keycloakId);
+        }
+
+        public Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken)
+        {
+            DeletedIds.Add(keycloakId);
+            return Task.CompletedTask;
+        }
+
+        public Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult(false);
+
+        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+    }
+
+    private sealed class FakeTemporaryPasswordGenerator : ITemporaryPasswordGenerator
+    {
+        private readonly string _password;
+
+        public FakeTemporaryPasswordGenerator(string password)
+        {
+            _password = password;
+        }
+
+        public string Generate() => _password;
+    }
+
+    private sealed class FakeWelcomeEmailSender : IUserWelcomeEmailSender
+    {
+        private readonly bool _throwOnSend;
+
+        public UserWelcomeEmailMessage? LastMessage { get; private set; }
+
+        public FakeWelcomeEmailSender(bool throwOnSend = false)
+        {
+            _throwOnSend = throwOnSend;
+        }
+
+        public Task SendWelcomeEmailAsync(UserWelcomeEmailMessage message, CancellationToken cancellationToken)
+        {
+            if (_throwOnSend)
+            {
+                throw new EmailDeliveryException("forced email failure for test");
+            }
+
+            LastMessage = message;
+            return Task.CompletedTask;
         }
     }
 }

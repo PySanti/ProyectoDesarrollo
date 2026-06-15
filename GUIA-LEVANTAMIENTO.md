@@ -62,6 +62,9 @@ cd ./mobile/
 npm start
 ```
 
+> Nota: `identity-service` necesita SMTP configurado para enviar el correo de bienvenida con la
+> contraseña temporal al crear usuarios. Ver la sección "Correo de bienvenida (SMTP)" más abajo.
+
 ### Powershell
 
 ```cmd
@@ -91,4 +94,24 @@ npm run dev
 # Terminal 6
 cd ./mobile/
 npm start
+```
+
+## Correo de bienvenida (SMTP)
+
+Al crear un usuario (cualquier rol), `identity-service` le envía un correo con su **contraseña
+temporal** y los estilos de la plataforma. El envío es síncrono: si el correo no se puede entregar,
+la creación falla con `502` y no queda usuario creado (se compensa Keycloak + BD).
+
+Configura estas variables en `services/identity-service/.env` (ver `.env.example`). Ejemplo con
+Gmail + app password (requiere 2FA; crea el app password en
+https://myaccount.google.com/apppasswords):
+
+```
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USE_STARTTLS=true
+SMTP_USERNAME=tu-cuenta@gmail.com
+SMTP_PASSWORD=tu-app-password-de-16-caracteres
+SMTP_FROM_ADDRESS=tu-cuenta@gmail.com
+SMTP_FROM_NAME=UMBRAL
 ```

@@ -42,6 +42,10 @@ describe("UserManagementPage", () => {
     render(<UserManagementPage accessToken="token" />);
 
     await userEvent.click(await screen.findByRole("button", { name: /ana/i }));
+    // Anticipa al admin que cambiar el correo de un usuario sin primer login reenvía credenciales.
+    expect(await screen.findByTestId("hu02-email-hint")).toHaveTextContent(
+      /se le enviará un .*correo.* con su nueva contraseña temporal/i
+    );
     await userEvent.clear(screen.getByLabelText(/nombre/i));
     await userEvent.type(screen.getByLabelText(/nombre/i), "Ana Maria");
     await userEvent.clear(screen.getByLabelText(/correo/i));

@@ -77,6 +77,8 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
             <p className="muted">
               Alta administrativa gestionada por Keycloak e Identity Service. El{" "}
               <strong>rol inicial</strong> se asigna ahora y no se cambia desde Gestión de usuarios.
+              Al crear la cuenta se enviará un <strong>correo</strong> con la contraseña temporal
+              para el primer inicio de sesión.
             </p>
           </div>
         </header>
@@ -146,8 +148,13 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
           </div>
 
           <button type="submit" disabled={loading}>
-            {loading ? "Creando..." : "Crear usuario"}
+            {loading ? "Creando usuario y enviando correo…" : "Crear usuario"}
           </button>
+          {loading ? (
+            <p className="muted" role="status" data-testid="create-status">
+              Creando el usuario y enviando el correo con su contraseña temporal…
+            </p>
+          ) : null}
         </form>
       </div>
     </div>
@@ -163,9 +170,14 @@ function mapErrorMessage(statusCode: number, fallbackMessage: string): string {
     case 409:
       return "El correo ya existe en UMBRAL o Keycloak.";
     case 500:
-      return "Error de persistencia local en Identity Service.";
+      return "Error de persistencia local en Identity Service. El usuario no fue creado.";
     case 502:
-      return "Error de integracion con Keycloak.";
+      // El 502 puede venir de Keycloak o del envio del correo de bienvenida. En ambos casos
+      // el backend revierte el alta (Keycloak + base local), asi que el usuario no queda creado.
+      if (/smtp|email|correo/i.test(fallbackMessage)) {
+        return "No se pudo enviar el correo de bienvenida con la contrasena temporal. El usuario no fue creado; revisa la configuracion de correo (SMTP) e intentalo nuevamente.";
+      }
+      return "Error de integracion con Keycloak. El usuario no fue creado; intentalo nuevamente.";
     default:
       return fallbackMessage;
   }
