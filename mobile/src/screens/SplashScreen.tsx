@@ -61,7 +61,9 @@ const styles = StyleSheet.create({
     lineHeight: 56,
     letterSpacing: -1.5,
     textAlign: "center",
-    // En Android, letterSpacing negativo recorta el último glifo; el padding evita el clip ("UMBRA" → "UMBRAL").
-    paddingHorizontal: spacing.sm,
+    // En Android, letterSpacing negativo sub-mide el ancho de línea y recorta el último glifo
+    // ("UMBRAL" → "UMBRA"). El padding extiende el frame y deja sitio a la "L". Aquí va `md`
+    // (no `sm`) porque la "mega" usa el tracking más agresivo (-1.5) y el glifo más grande.
+    paddingHorizontal: spacing.md,
   },
 });

@@ -58,5 +58,8 @@ const styles = StyleSheet.create({
     fontSize: 44,
     lineHeight: 48,
     letterSpacing: -1,
+    // En Android, letterSpacing negativo sub-mide el ancho de línea y recorta el último glifo
+    // ("UMBRAL" → "UMBRA"). El padding extiende el frame del texto y deja sitio a la "L".
+    paddingRight: spacing.sm,
   },
 });
