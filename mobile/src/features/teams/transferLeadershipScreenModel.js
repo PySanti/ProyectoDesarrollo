@@ -1,8 +1,7 @@
 import { submitTransferLeadership } from "./transferLeadershipFlow.js";
 
-export function getTransferLeadershipSuccessMessage(result) {
-  const nuevoLider = result?.nuevoLiderUserId ? ` Nuevo lider: ${result.nuevoLiderUserId}.` : "";
-  return `Liderazgo transferido correctamente.${nuevoLider} Ahora puedes salir del equipo desde HU-07 si lo deseas.`;
+export function getTransferLeadershipSuccessMessage() {
+  return "Liderazgo transferido correctamente. Ahora puedes salir del equipo si lo deseas.";
 }
 
 export async function submitTransferLeadershipFromScreen({
