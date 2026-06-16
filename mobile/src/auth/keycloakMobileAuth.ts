@@ -8,6 +8,9 @@ import { buildAuthUser, isJwtExpired } from "./tokenClaims.js";
 WebBrowser.maybeCompleteAuthSession();
 
 const storageKey = "umbral.auth.session";
+// El refresh token se guarda aparte (no en AuthSessionState) solo para poder
+// cerrar la sesion SSO de Keycloak por backchannel al hacer logout.
+const refreshKey = "umbral.auth.refresh";
 
 const discovery = {
   authorizationEndpoint: `${mobileEnv.keycloakUrl}/realms/${mobileEnv.keycloakRealm}/protocol/openid-connect/auth`,
@@ -33,7 +36,11 @@ export async function loginWithKeycloakAsync(): Promise<AuthSessionState> {
   });
 
   await request.makeAuthUrlAsync(discovery);
-  const authResult = await request.promptAsync(discovery);
+  // preferEphemeralSession evita que el navegador comparta/persista la cookie SSO
+  // de Keycloak entre logins. Junto con el cierre de sesion por backchannel en
+  // logoutAsync, garantiza que un nuevo "iniciar sesion" muestre el formulario
+  // limpio (sin reusar la cuenta anterior y sin panel de reautenticacion).
+  const authResult = await request.promptAsync(discovery, { preferEphemeralSession: true });
 
   if (authResult.type !== "success" || !authResult.params.code) {
     throw new Error("Authentication was cancelled or failed.");
@@ -61,6 +68,11 @@ export async function loginWithKeycloakAsync(): Promise<AuthSessionState> {
   };
 
   await SecureStore.setItemAsync(storageKey, JSON.stringify(sessionState));
+  if (tokenResult.refreshToken) {
+    await SecureStore.setItemAsync(refreshKey, tokenResult.refreshToken);
+  } else {
+    await SecureStore.deleteItemAsync(refreshKey);
+  }
   return sessionState;
 }
 
@@ -78,6 +90,7 @@ export async function restoreSessionAsync(): Promise<AuthSessionState | null> {
 
     if (isJwtExpired(parsed.token)) {
       await SecureStore.deleteItemAsync(storageKey);
+      await SecureStore.deleteItemAsync(refreshKey);
       return null;
     }
 
@@ -88,5 +101,25 @@ export async function restoreSessionAsync(): Promise<AuthSessionState | null> {
 }
 
 export async function logoutAsync(): Promise<void> {
-  await SecureStore.deleteItemAsync(storageKey);
+  try {
+    const refreshToken = await SecureStore.getItemAsync(refreshKey);
+    if (refreshToken) {
+      // Cierre de sesion por backchannel: invalida la sesion SSO en Keycloak con
+      // un POST (sin abrir navegador, sin parpadeo). Si no se hace, la cookie SSO
+      // sobrevive y el siguiente login reusa la misma cuenta sin pedir credenciales.
+      const body =
+        `client_id=${encodeURIComponent(mobileEnv.keycloakClientId)}` +
+        `&refresh_token=${encodeURIComponent(refreshToken)}`;
+      await fetch(discovery.endSessionEndpoint, {
+        method: "POST",
+        headers: { "Content-Type": "application/x-www-form-urlencoded" },
+        body,
+      });
+    }
+  } catch {
+    // El logout local debe completarse aunque falle el cierre remoto (p.ej. sin red).
+  } finally {
+    await SecureStore.deleteItemAsync(refreshKey);
+    await SecureStore.deleteItemAsync(storageKey);
+  }
 }
