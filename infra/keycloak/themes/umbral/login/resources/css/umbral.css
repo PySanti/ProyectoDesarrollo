@@ -53,6 +53,41 @@ div[class*="pf-c-login__main"] {
   border: 1px solid var(--umbral-line) !important;
   border-radius: 12px !important;
   box-shadow: 0 8px 24px rgba(27, 19, 26, 0.12) !important;
+  /* Aire interno: en el template stock el formulario queda pegado a los bordes
+     de la tarjeta, sobre todo en teléfono. */
+  padding: 32px 28px !important;
+  box-sizing: border-box !important;
+}
+
+/* Separación de la tarjeta respecto a los bordes de la PANTALLA. En móvil la
+   tarjeta ocupa casi todo el ancho; este padding en el contenedor evita que el
+   contenido toque los bordes del teléfono. */
+.login-pf-page,
+#kc-content,
+#kc-content-wrapper,
+body div[class*="pf-v5-c-login"],
+body div[class*="pf-c-login"] {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 480px) {
+  .login-pf-page,
+  #kc-content,
+  #kc-content-wrapper,
+  body div[class*="pf-v5-c-login"],
+  body div[class*="pf-c-login"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .card-pf,
+  .login-pf-page .card-pf,
+  div[class*="pf-v5-c-card"],
+  div[class*="pf-c-login__main"] {
+    padding: 28px 22px !important;
+  }
 }
 
 /* Headings inside the card. */
