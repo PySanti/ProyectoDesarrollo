@@ -17,6 +17,7 @@ export function HomeScreen({ navigation }: Props) {
       <Hero
         title={`Hola, ${session?.user.username ?? "participante"}`}
         subtitle="Elige tu próxima partida."
+        titleVariant="display"
         onStage
         right={<RoleChip label={roleLabel} />}
       />
