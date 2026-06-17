@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { SafeAreaView, StyleSheet, View } from "react-native";
 import { useAuth } from "../auth/AuthProvider";
+import { AuthError } from "../auth/keycloakMobileAuth";
 import { AppText, Button, Card, Notice } from "../shared/ui";
 import { colors, spacing } from "../shared/theme";
 
@@ -15,7 +16,14 @@ export function LoginScreen() {
     try {
       await login();
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : "No se pudo autenticar.");
+      // Nunca mostramos el mensaje crudo de la librería/Keycloak (puede venir en inglés):
+      // AuthError ya trae el texto en español; cualquier otro caso usa un genérico en español.
+      if (authError instanceof AuthError) {
+        // Cancelación voluntaria del usuario: no es un error que deba mostrarse.
+        setError(authError.cancelled ? null : authError.message);
+      } else {
+        setError("No se pudo iniciar sesión. Intenta de nuevo.");
+      }
     } finally {
       setBusy(false);
     }

@@ -10,7 +10,12 @@
       "**/*"
     ],
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "infoPlist": {
+        "NSCameraUsageDescription": "UMBRAL usa la cámara para que tomes la foto del tesoro durante la Búsqueda del Tesoro.",
+        "NSPhotoLibraryUsageDescription": "UMBRAL accede a tus fotos para que subas la imagen del tesoro durante la Búsqueda del Tesoro.",
+        "NSLocationWhenInUseUsageDescription": "UMBRAL usa tu ubicación para compartir tu posición durante la Búsqueda del Tesoro."
+      }
     },
     "android": {
       "adaptiveIcon": {

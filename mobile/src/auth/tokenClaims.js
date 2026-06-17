@@ -5,7 +5,7 @@ function base64UrlDecode(value) {
     .padEnd(Math.ceil(value.length / 4) * 4, "=");
 
   if (typeof atob !== "function") {
-    throw new Error("Global atob is not available in this runtime.");
+    throw new Error("atob no está disponible en este entorno de ejecución.");
   }
 
   return atob(normalized);
@@ -14,7 +14,7 @@ function base64UrlDecode(value) {
 export function parseJwtPayload(token) {
   const parts = token.split(".");
   if (parts.length < 2) {
-    throw new Error("Invalid access token format.");
+    throw new Error("El formato del token de acceso no es válido.");
   }
 
   return JSON.parse(base64UrlDecode(parts[1]));
@@ -29,7 +29,7 @@ export function buildAuthUser(accessToken) {
   const payload = parseJwtPayload(accessToken);
   const sub = payload.sub;
   if (!sub) {
-    throw new Error("Token does not contain sub claim.");
+    throw new Error("El token no contiene el identificador de usuario (sub).");
   }
 
   const rawRoles = Array.isArray(payload.realm_access?.roles) ? payload.realm_access.roles : [];

@@ -3,6 +3,9 @@
   "enabled": true,
   "displayName": "UMBRAL",
   "loginTheme": "umbral",
+  "internationalizationEnabled": true,
+  "supportedLocales": ["es"],
+  "defaultLocale": "es",
   "sslRequired": "none",
   "registrationAllowed": false,
   "roles": {

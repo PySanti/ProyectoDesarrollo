@@ -7,6 +7,23 @@ import { buildAuthUser, isJwtExpired } from "./tokenClaims.js";
 
 WebBrowser.maybeCompleteAuthSession();
 
+/**
+ * Error de autenticación con el mensaje YA en español, listo para mostrarse al usuario.
+ * Toda falla de login (cancelación, fallo del navegador, error de Keycloak/expo-auth-session,
+ * token inválido) se normaliza a esta clase para que nunca se filtre un texto en inglés de la
+ * librería o del servidor a la interfaz. `cancelled=true` marca la cancelación voluntaria
+ * (el usuario cerró el navegador): la pantalla de login no muestra ningún error en ese caso.
+ */
+export class AuthError extends Error {
+  readonly cancelled: boolean;
+
+  constructor(message: string, options?: { cancelled?: boolean }) {
+    super(message);
+    this.name = "AuthError";
+    this.cancelled = options?.cancelled ?? false;
+  }
+}
+
 const storageKey = "umbral.auth.session";
 // El refresh token se guarda aparte (no en AuthSessionState) solo para poder
 // cerrar la sesion SSO de Keycloak por backchannel al hacer logout.
@@ -33,6 +50,10 @@ export async function loginWithKeycloakAsync(): Promise<AuthSessionState> {
     responseType: AuthSession.ResponseType.Code,
     usePKCE: true,
     scopes: ["openid", "profile", "email"],
+    // Fuerza la página de login de Keycloak en español (param OIDC estándar `ui_locales`).
+    // Junto con `defaultLocale=es` del realm, evita que el idioma del dispositivo/navegador
+    // muestre "Sign in..." / "Invalid..." en inglés.
+    extraParams: { ui_locales: "es" },
   });
 
   await request.makeAuthUrlAsync(discovery);
@@ -40,31 +61,54 @@ export async function loginWithKeycloakAsync(): Promise<AuthSessionState> {
   // de Keycloak entre logins. Junto con el cierre de sesion por backchannel en
   // logoutAsync, garantiza que un nuevo "iniciar sesion" muestre el formulario
   // limpio (sin reusar la cuenta anterior y sin panel de reautenticacion).
-  const authResult = await request.promptAsync(discovery, { preferEphemeralSession: true });
-
-  if (authResult.type !== "success" || !authResult.params.code) {
-    throw new Error("Authentication was cancelled or failed.");
+  let authResult: AuthSession.AuthSessionResult;
+  try {
+    authResult = await request.promptAsync(discovery, { preferEphemeralSession: true });
+  } catch {
+    throw new AuthError("No se pudo abrir el inicio de sesión. Intenta de nuevo.");
   }
 
-  const tokenResult = await AuthSession.exchangeCodeAsync(
-    {
-      code: authResult.params.code,
-      clientId: mobileEnv.keycloakClientId,
-      redirectUri,
-      extraParams: {
-        code_verifier: request.codeVerifier || "",
+  // El usuario cerró el navegador sin autenticarse: no es un error que deba alarmarlo.
+  if (authResult.type === "cancel" || authResult.type === "dismiss") {
+    throw new AuthError("Inicio de sesión cancelado.", { cancelled: true });
+  }
+
+  if (authResult.type !== "success" || !authResult.params.code) {
+    throw new AuthError("No se pudo completar el inicio de sesión. Intenta de nuevo.");
+  }
+
+  let tokenResult: AuthSession.TokenResponse;
+  try {
+    tokenResult = await AuthSession.exchangeCodeAsync(
+      {
+        code: authResult.params.code,
+        clientId: mobileEnv.keycloakClientId,
+        redirectUri,
+        extraParams: {
+          code_verifier: request.codeVerifier || "",
+        },
       },
-    },
-    discovery,
-  );
+      discovery,
+    );
+  } catch {
+    // Errores del endpoint de token / red de Keycloak (en inglés) se normalizan a español.
+    throw new AuthError("No se pudo validar tu sesión con el servidor. Intenta de nuevo.");
+  }
 
   if (!tokenResult.accessToken) {
-    throw new Error("Token endpoint did not return access token.");
+    throw new AuthError("El servidor de autenticación no devolvió un token de acceso.");
+  }
+
+  let user: AuthSessionState["user"];
+  try {
+    user = buildAuthUser(tokenResult.accessToken);
+  } catch {
+    throw new AuthError("El token recibido no es válido. Intenta iniciar sesión de nuevo.");
   }
 
   const sessionState: AuthSessionState = {
     token: tokenResult.accessToken,
-    user: buildAuthUser(tokenResult.accessToken),
+    user,
   };
 
   await SecureStore.setItemAsync(storageKey, JSON.stringify(sessionState));
