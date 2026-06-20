@@ -15,13 +15,7 @@
       "launchBrowser": true,
       "applicationUrl": "http://0.0.0.0:5016",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__BdtDatabase": "Host=localhost;Port=55432;Database=umbral_bdt_game;Username=umbral;Password=16102005",
-        "KEYCLOAK_BASE_URL": "http://localhost:8080",
-        "KEYCLOAK_REALM": "UMBRAL-UCAB",
-        "KEYCLOAK_CLIENT_ID": "bdt-game-service",
-        "KEYCLOAK_VALID_AUDIENCES": "bdt-game-service,umbral-web,umbral-mobile,account",
-        "KEYCLOAK_VALID_ISSUERS": "http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB"
+        "_comment": "La configuracion (puertos, BD, Keycloak, issuers) viene del .env raiz + services/bdt-game-service/.env, cargados por run-local.sh/.ps1. NO dupliques ni hardcodees la IP aqui: pisaria al .env y reaparece el 401 'Sesion expirada' al cambiar de red."
       }
     },
     "https": {
@@ -30,13 +24,7 @@
       "launchBrowser": true,
       "applicationUrl": "https://localhost:7010;http://0.0.0.0:5016",
       "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development",
-        "ConnectionStrings__BdtDatabase": "Host=localhost;Port=55432;Database=umbral_bdt_game;Username=umbral;Password=16102005",
-        "KEYCLOAK_BASE_URL": "http://localhost:8080",
-        "KEYCLOAK_REALM": "UMBRAL-UCAB",
-        "KEYCLOAK_CLIENT_ID": "bdt-game-service",
-        "KEYCLOAK_VALID_AUDIENCES": "bdt-game-service,umbral-web,umbral-mobile,account",
-        "KEYCLOAK_VALID_ISSUERS": "http://localhost:8080/realms/UMBRAL-UCAB,http://192.168.1.104:8080/realms/UMBRAL-UCAB"
+        "_comment": "La configuracion (puertos, BD, Keycloak, issuers) viene del .env raiz + services/bdt-game-service/.env, cargados por run-local.sh/.ps1. NO dupliques ni hardcodees la IP aqui: pisaria al .env y reaparece el 401 'Sesion expirada' al cambiar de red."
       }
     },
     "IIS Express": {

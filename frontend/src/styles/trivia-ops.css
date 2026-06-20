@@ -1,0 +1,305 @@
+/* Operación Trivia — supervisión de partidas (master-detail console).
+   Restrained: magenta only on the live/active signal. Reuses the shared
+   primitives (.pill, .table-wrap, .badge, .notice) where they fit. */
+
+.ops-head {
+  display: grid;
+  gap: var(--sp-xs);
+}
+
+.ops-head h1 {
+  margin: 0;
+}
+
+.ops-grid {
+  display: grid;
+  grid-template-columns: minmax(240px, 320px) 1fr;
+  gap: var(--sp-lg);
+  align-items: start;
+}
+
+/* ---- Master: list of supervisable partidas ---- */
+.ops-master {
+  position: sticky;
+  top: calc(var(--topbar-h) + var(--sp-lg));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.ops-master__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  padding: var(--sp-md) var(--sp-md) var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--line);
+}
+
+.ops-master__title {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-family: var(--font-display);
+  font-weight: 600;
+  font-size: var(--fs-title);
+  color: var(--ink);
+}
+
+.ops-icon-btn {
+  display: inline-grid;
+  place-items: center;
+  width: 34px;
+  height: 34px;
+  padding: 0;
+  background: transparent;
+  color: var(--ink-soft);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-md);
+}
+
+.ops-icon-btn:hover:not(:disabled) {
+  background: var(--surface-sunk);
+  color: var(--ink);
+  box-shadow: none;
+}
+
+.ops-icon-btn svg {
+  width: 17px;
+  height: 17px;
+}
+
+.ops-list {
+  display: grid;
+  max-height: min(62vh, 640px);
+  overflow-y: auto;
+}
+
+.ops-row {
+  display: grid;
+  gap: 6px;
+  padding: var(--sp-md) var(--sp-lg);
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  text-align: left;
+  color: var(--ink);
+  cursor: pointer;
+  transition: background var(--dur) var(--ease);
+}
+
+.ops-row:last-child {
+  border-bottom: none;
+}
+
+.ops-row:hover:not(.is-active) {
+  background: var(--surface-sunk);
+  box-shadow: none;
+}
+
+.ops-row.is-active {
+  background: var(--primary-wash);
+  box-shadow: none;
+}
+
+.ops-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+}
+
+.ops-row__name {
+  font-weight: 600;
+  font-size: var(--fs-body);
+  overflow-wrap: anywhere;
+}
+
+.ops-row__meta {
+  font-size: var(--fs-label);
+  color: var(--muted);
+}
+
+.ops-master__empty {
+  padding: var(--sp-lg);
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+
+/* ---- Detail ---- */
+.ops-detail {
+  display: grid;
+  gap: var(--sp-lg);
+  min-width: 0;
+}
+
+.ops-detail__card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  padding: var(--sp-xl);
+  display: grid;
+  gap: var(--sp-lg);
+}
+
+.ops-detail__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-lg);
+  flex-wrap: wrap;
+}
+
+.ops-detail__title {
+  display: grid;
+  gap: var(--sp-sm);
+  min-width: 0;
+}
+
+.ops-detail__title h2 {
+  margin: 0;
+  font-size: var(--fs-headline);
+  overflow-wrap: anywhere;
+}
+
+.ops-detail__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-sm);
+}
+
+/* Stat strip */
+.ops-stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  gap: var(--sp-sm);
+  margin: 0;
+}
+
+.ops-stat {
+  display: grid;
+  gap: 2px;
+  padding: var(--sp-md);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+.ops-stat dt {
+  font-size: var(--fs-label);
+  font-weight: 600;
+  color: var(--muted);
+}
+
+.ops-stat dd {
+  margin: 0;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.ops-stat dd.is-mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-mono);
+}
+
+/* Panels: participantes / equipos / ranking */
+.ops-panel {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+  overflow: hidden;
+}
+
+.ops-panel__head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  padding: var(--sp-md) var(--sp-lg);
+  border-bottom: 1px solid var(--line);
+}
+
+.ops-panel__head svg {
+  width: 18px;
+  height: 18px;
+  color: var(--ink-soft);
+}
+
+.ops-panel__head h3 {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 600;
+}
+
+.ops-panel__count {
+  margin-left: auto;
+}
+
+.ops-panel__body {
+  padding: var(--sp-lg);
+}
+
+.ops-panel .table-wrap {
+  border: none;
+  border-radius: 0;
+}
+
+.ops-panel__empty {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-body);
+}
+
+/* Loading skeleton rows */
+.ops-skel {
+  display: grid;
+  gap: var(--sp-sm);
+  padding: var(--sp-lg);
+}
+
+.ops-skel span {
+  height: 12px;
+  border-radius: var(--r-pill);
+  background: linear-gradient(
+    90deg,
+    var(--surface-sunk) 0%,
+    var(--line) 50%,
+    var(--surface-sunk) 100%
+  );
+  background-size: 200% 100%;
+  animation: ops-shimmer 1.4s var(--ease) infinite;
+}
+
+@keyframes ops-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.ops-spin {
+  animation: ops-rotate 0.9s linear infinite;
+}
+
+@keyframes ops-rotate {
+  to { transform: rotate(360deg); }
+}
+
+@media (max-width: 900px) {
+  .ops-grid {
+    grid-template-columns: 1fr;
+  }
+  .ops-master {
+    position: static;
+  }
+  .ops-list {
+    max-height: 320px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .ops-skel span,
+  .ops-spin {
+    animation: none;
+  }
+}

@@ -6,6 +6,7 @@ import {
   StartBdtGameResponse,
   startBdtGame
 } from "../../api/bdtApi";
+import { Flag, Play } from "../../shell/icons";
 
 interface PublishedBdtGamesPageProps {
   accessToken: string;
@@ -68,13 +69,26 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
     }
   }
 
-  return (
-    <div className="page">
-      <div className="card">
-        <h1>Partidas BDT publicadas</h1>
-        <p>Consulta partidas publicadas y controla el inicio operativo cuando cumplan los minimos.</p>
+  const games = state.status === "ready" ? state.games : [];
 
-        {state.status === "loading" ? <div className="notice">Cargando partidas BDT publicadas...</div> : null}
+  return (
+    <div className="page wide">
+      <div className="card stack">
+        <header className="create-head">
+          <div>
+            <h1>Partidas BDT publicadas</h1>
+            <p className="muted">
+              Consulta las partidas publicadas e inicia su operación cuando cumplan los mínimos.
+            </p>
+          </div>
+          {state.status === "ready" && games.length > 0 ? (
+            <span className="badge">{games.length} publicadas</span>
+          ) : null}
+        </header>
+
+        {state.status === "loading" ? (
+          <div className="notice info">Cargando partidas BDT publicadas...</div>
+        ) : null}
 
         {state.status === "error" ? (
           <div role="alert" className="notice error">
@@ -82,15 +96,10 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
           </div>
         ) : null}
 
-        {state.status === "ready" && state.games.length === 0 ? (
-          <div className="notice" data-testid="bdt-published-empty">
-            No hay partidas BDT publicadas.
-          </div>
-        ) : null}
-
         {startState.status === "started" ? (
           <div role="status" className="notice success">
-            {startState.response.mensaje} Estado: {startState.response.estado}. Etapa activa {startState.response.etapaActiva.orden} cierra en {startState.response.etapaActiva.cierraEnUtc}.
+            {startState.response.mensaje} Estado: {startState.response.estado}. Etapa activa{" "}
+            {startState.response.etapaActiva.orden} cierra {formatDateTime(startState.response.etapaActiva.cierraEnUtc)}.
           </div>
         ) : null}
 
@@ -100,7 +109,17 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
           </div>
         ) : null}
 
-        {state.status === "ready" && state.games.length > 0 ? (
+        {state.status === "ready" && games.length === 0 ? (
+          <div className="empty-panel" data-testid="bdt-published-empty">
+            <Flag />
+            <p>No hay partidas BDT publicadas.</p>
+            <p className="muted">
+              Crea y publica una búsqueda del tesoro en <strong>Crear BDT</strong> para verla aquí.
+            </p>
+          </div>
+        ) : null}
+
+        {state.status === "ready" && games.length > 0 ? (
           <div className="table-wrap">
             <table aria-label="Partidas BDT publicadas para operador">
               <thead>
@@ -114,31 +133,41 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
                 </tr>
               </thead>
               <tbody>
-                {state.games.map((game) => (
-                  <tr key={game.partidaId}>
-                    <td>{game.nombre}</td>
-                    <td><span className="badge">{game.estado}</span></td>
-                    <td>{game.modalidad}</td>
-                    <td>{game.areaBusqueda}</td>
-                    <td>{game.cantidadEtapas}</td>
-                    <td>
-                      <div className="actions compact-actions">
-                        <button type="button" className="secondary-button" onClick={() => setSelectedGame(game)}>
-                          Ver resumen
-                        </button>
-                        <button
-                          type="button"
-                          onClick={() => void handleStart(game.partidaId)}
-                          disabled={startState.status === "starting"}
-                        >
-                          {startState.status === "starting" && startState.partidaId === game.partidaId
-                            ? "Iniciando..."
-                            : "Iniciar BDT"}
-                        </button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
+                {games.map((game) => {
+                  const pill = estadoPill(game.estado);
+                  const isStarting =
+                    startState.status === "starting" && startState.partidaId === game.partidaId;
+                  return (
+                    <tr key={game.partidaId}>
+                      <td>{game.nombre}</td>
+                      <td>
+                        <span className={`pill ${pill.cls}`}>
+                          <span className="pill__dot" />
+                          {pill.label}
+                        </span>
+                      </td>
+                      <td>{game.modalidad}</td>
+                      <td>{game.areaBusqueda}</td>
+                      <td>{game.cantidadEtapas}</td>
+                      <td>
+                        <div className="actions compact-actions">
+                          <button type="button" className="secondary-button" onClick={() => setSelectedGame(game)}>
+                            Ver resumen
+                          </button>
+                          <button
+                            type="button"
+                            className="btn-icon"
+                            onClick={() => void handleStart(game.partidaId)}
+                            disabled={startState.status === "starting"}
+                          >
+                            <Play />
+                            {isStarting ? "Iniciando..." : "Iniciar BDT"}
+                          </button>
+                        </div>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>
@@ -153,12 +182,14 @@ export function PublishedBdtGamesPage({ accessToken }: PublishedBdtGamesPageProp
 }
 
 function GameSummaryModal({ game, onClose }: { game: PublishedBdtGameItem; onClose: () => void }) {
+  const pill = estadoPill(game.estado);
+
   return (
     <div className="modal-backdrop" role="presentation">
       <section className="modal-card" role="dialog" aria-modal="true" aria-labelledby="bdt-summary-title">
         <div className="modal-header">
           <div>
-            <p className="eyebrow">Resumen operativo</p>
+            <span className="badge">Resumen operativo</span>
             <h2 id="bdt-summary-title">{game.nombre}</h2>
           </div>
           <button type="button" className="secondary-button" onClick={onClose}>
@@ -169,7 +200,12 @@ function GameSummaryModal({ game, onClose }: { game: PublishedBdtGameItem; onClo
         <dl className="detail-grid">
           <div>
             <dt>Estado</dt>
-            <dd><span className="badge">{game.estado}</span></dd>
+            <dd>
+              <span className={`pill ${pill.cls}`}>
+                <span className="pill__dot" />
+                {pill.label}
+              </span>
+            </dd>
           </div>
           <div>
             <dt>Modalidad</dt>
@@ -181,7 +217,9 @@ function GameSummaryModal({ game, onClose }: { game: PublishedBdtGameItem; onClo
           </div>
           <div>
             <dt>Identificador</dt>
-            <dd>{game.partidaId}</dd>
+            <dd>
+              <span className="mono">{game.partidaId}</span>
+            </dd>
           </div>
           <div className="detail-wide">
             <dt>Area de busqueda</dt>
@@ -191,6 +229,29 @@ function GameSummaryModal({ game, onClose }: { game: PublishedBdtGameItem; onClo
       </section>
     </div>
   );
+}
+
+function estadoPill(estado: string): { cls: string; label: string } {
+  if (estado === "Iniciada") {
+    return { cls: "pill--live", label: "Iniciada" };
+  }
+  if (estado === "Lobby") {
+    return { cls: "pill--lobby", label: "Lobby" };
+  }
+  return { cls: "pill--done", label: estado };
+}
+
+function formatDateTime(iso: string): string {
+  const date = new Date(iso);
+  if (Number.isNaN(date.getTime())) {
+    return iso;
+  }
+  return date.toLocaleString("es", {
+    day: "2-digit",
+    month: "short",
+    hour: "2-digit",
+    minute: "2-digit"
+  });
 }
 
 function mapStartErrorMessage(statusCode: number, fallbackMessage: string): string {

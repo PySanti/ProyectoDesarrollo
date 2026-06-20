@@ -1,8 +1,9 @@
-import { describe, expect, it, vi } from "vitest";
-import { render, screen, waitFor } from "@testing-library/react";
+import { beforeEach, describe, expect, it, vi } from "vitest";
+import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import * as bdtApi from "../api/bdtApi";
 import * as identityApi from "../api/identityApi";
+import * as triviaApi from "../api/triviaApi";
 
 const { initMock } = vi.hoisted(() => ({
   initMock: vi.fn()
@@ -12,6 +13,7 @@ vi.mock("../auth/keycloak", () => {
   return {
     authProvider: {
       init: initMock,
+      login: vi.fn(),
       logout: vi.fn()
     }
   };
@@ -19,7 +21,13 @@ vi.mock("../auth/keycloak", () => {
 
 import { App } from "./App";
 
-describe("App auth guard", () => {
+beforeEach(() => {
+  initMock.mockReset();
+  // Reset the URL so each test starts from the index route (role landing).
+  window.history.pushState({}, "", "/");
+});
+
+describe("App shell + auth guard", () => {
   it("blocks users without admin or operator role", async () => {
     initMock.mockResolvedValueOnce({
       username: "participante",
@@ -29,12 +37,13 @@ describe("App auth guard", () => {
 
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByText(/acceso restringido/i)).toBeInTheDocument();
-    });
+    expect(
+      await screen.findByText(/el panel web es exclusivo para administradores y operadores/i)
+    ).toBeInTheDocument();
   });
 
-  it("shows BDT creation flow for operator users", async () => {
+  it("lands an operator on Operar Trivia and navigates to Crear BDT", async () => {
+    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
@@ -43,16 +52,16 @@ describe("App auth guard", () => {
 
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /crear bdt/i })).toBeInTheDocument();
-    });
+    // Operador landing = Operar Trivia.
+    expect(await screen.findByRole("heading", { name: /operaci[oó]n trivia/i })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("button", { name: /crear bdt/i }));
+    await userEvent.click(screen.getByRole("link", { name: /crear bdt/i }));
 
-    expect(screen.getByRole("heading", { name: /crear partida bdt/i })).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /crear partida bdt/i })).toBeInTheDocument();
   });
 
-  it("shows published BDT flow for operator users", async () => {
+  it("navigates an operator to published BDT games", async () => {
+    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
     vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
       username: "operador",
@@ -62,18 +71,15 @@ describe("App auth guard", () => {
 
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("button", { name: /partidas bdt/i })).toBeInTheDocument();
-    });
+    await userEvent.click(await screen.findByRole("link", { name: /partidas bdt/i }));
 
-    await userEvent.click(screen.getByRole("button", { name: /partidas bdt/i }));
-
-    expect(await screen.findByRole("heading", { name: /partidas bdt publicadas/i })).toBeInTheDocument();
+    expect(
+      await screen.findByRole("heading", { name: /partidas bdt publicadas/i })
+    ).toBeInTheDocument();
   });
 
-  it("shows form for admin users", async () => {
+  it("lands an admin on user management and navigates to Crear usuario", async () => {
     vi.spyOn(identityApi, "getIdentityUsers").mockResolvedValue([]);
-
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
@@ -82,14 +88,28 @@ describe("App auth guard", () => {
 
     render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /crear usuario/i })).toBeInTheDocument();
+    // Administrador landing = Gestión de usuarios.
+    expect(
+      await screen.findByRole("heading", { name: /gesti[oó]n de usuarios/i })
+    ).toBeInTheDocument();
+
+    await userEvent.click(screen.getByRole("link", { name: /crear usuario/i }));
+
+    expect(await screen.findByRole("heading", { name: /crear usuario/i })).toBeInTheDocument();
+  });
+
+  it("does not show admin areas to an operator", async () => {
+    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      token: "token"
     });
 
-    await userEvent.click(screen.getByRole("button", { name: /gestion de usuarios/i }));
+    render(<App />);
 
-    await waitFor(() => {
-      expect(screen.getByRole("heading", { name: /gestion de usuarios/i })).toBeInTheDocument();
-    });
+    await screen.findByRole("heading", { name: /operaci[oó]n trivia/i });
+
+    expect(screen.queryByRole("link", { name: /gestión de usuarios/i })).not.toBeInTheDocument();
   });
 });

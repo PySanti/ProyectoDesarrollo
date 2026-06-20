@@ -180,3 +180,35 @@ Based on `contracts/http/identity-api.md` (HU-02 section):
 - Guard admin para pantalla HU-02.
 - Flujo de listado, detalle, edicion y desactivacion.
 - Manejo de errores (`400`, `403`, `404`, `409`, `500`).
+
+## Extensión 2026-06-15 — Reenvío de credenciales al cambiar el correo
+
+### Flujo de `UpdateUserGeneralDataCommandHandler` (actualizado)
+
+1. Cargar usuario local; validar request y unicidad de correo (sin cambios).
+2. Calcular `emailChanged`. Si cambió, consultar Keycloak `HasTemporaryPasswordAsync` (acción
+   `UPDATE_PASSWORD` pendiente) → `mustResendCredentials`.
+3. Aplicar la edición local y persistir (`UpdateAsync`).
+4. Si `mustResendCredentials`:
+   a. `UpdateEmailAsync` en Keycloak (sincroniza `email`).
+   b. Generar contraseña con `ITemporaryPasswordGenerator` + `ResetTemporaryPasswordAsync` (temporary=true).
+   c. `IUserWelcomeEmailSender.SendWelcomeEmailAsync` al nuevo correo con la nueva contraseña.
+   d. Si algo falla → revertir (restaurar nombre/email local previos + `UpdateEmailAsync` al email previo)
+      y propagar la excepción.
+5. Retornar DTO (sin contraseña).
+
+### Puertos Keycloak añadidos (`IKeycloakIdentityPort`)
+
+- `HasTemporaryPasswordAsync(keycloakId)` → `GET /admin/realms/{realm}/users/{id}`, busca `UPDATE_PASSWORD` en `requiredActions`.
+- `UpdateEmailAsync(keycloakId, email)` → `PUT /admin/realms/{realm}/users/{id}` con `{ email }` (merge parcial).
+- `ResetTemporaryPasswordAsync(keycloakId, password)` → `PUT /admin/realms/{realm}/users/{id}/reset-password` con `temporary=true`.
+
+Reutiliza `ITemporaryPasswordGenerator`, `IUserWelcomeEmailSender` y la plantilla de marca introducidos en HU-01.
+
+### Error mapping (PATCH actualizado)
+
+- `502` para `KeycloakIntegrationException` (sincronizar email / resetear contraseña) y para `EmailDeliveryException` (reenvío). Tras el `502` el cambio queda revertido.
+
+### Alcance (decisión del usuario)
+
+- La sincronización de Keycloak y el reenvío **solo** ocurren en el caso correo-cambia + contraseña-temporal-pendiente. Para usuarios ya activos no se toca Keycloak (se mantiene el comportamiento previo; el desfase histórico BD↔Keycloak para usuarios activos queda fuera de alcance).

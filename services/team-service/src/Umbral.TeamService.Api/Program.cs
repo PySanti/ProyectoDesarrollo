@@ -129,8 +129,7 @@ app.MapPost("/api/teams", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }
@@ -178,8 +177,7 @@ app.MapPost("/api/teams/join-by-code", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }
@@ -230,8 +228,7 @@ app.MapDelete("/api/teams/membership", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }
@@ -271,8 +268,7 @@ app.MapPatch("/api/teams/leadership", async (
         HttpContext httpContext,
         CancellationToken cancellationToken) =>
     {
-        var userIdClaim = httpContext.User.FindFirst("sub")?.Value;
-        if (!Guid.TryParse(userIdClaim, out var actorUserId))
+        if (!AuthenticatedUserClaims.TryGetUserId(httpContext.User, out var actorUserId))
         {
             return Results.Forbid();
         }

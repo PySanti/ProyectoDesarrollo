@@ -133,9 +133,21 @@ public sealed class CreateUserEndpointIntegrationTests : IClassFixture<IdentityA
 
     private sealed class FailingKeycloakIdentityPort : IKeycloakIdentityPort
     {
-        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, CancellationToken cancellationToken)
+        public Task<string> CreateUserWithInitialRoleAsync(string name, string email, string initialRole, string temporaryPassword, CancellationToken cancellationToken)
         {
             throw new KeycloakIntegrationException("forced keycloak failure for integration test");
         }
+
+        public Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult(false);
+
+        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

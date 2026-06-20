@@ -28,7 +28,7 @@ public sealed class KeycloakIdentityAdapterTests
             }));
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() =>
-            adapter.CreateUserWithInitialRoleAsync("Ana", "ana@test.com", "Participante", CancellationToken.None));
+            adapter.CreateUserWithInitialRoleAsync("Ana", "ana@test.com", "Participante", "Temp-Pass-1", CancellationToken.None));
     }
 
     private sealed class SequenceHttpMessageHandler : HttpMessageHandler

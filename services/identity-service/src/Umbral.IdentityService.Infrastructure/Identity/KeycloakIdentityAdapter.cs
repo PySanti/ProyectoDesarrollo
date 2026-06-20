@@ -23,6 +23,7 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         string name,
         string email,
         string initialRole,
+        string temporaryPassword,
         CancellationToken cancellationToken)
     {
         ValidateOptions();
@@ -32,10 +33,15 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
             throw new KeycloakIntegrationException("Initial role is required for Keycloak user creation");
         }
 
+        if (string.IsNullOrWhiteSpace(temporaryPassword))
+        {
+            throw new KeycloakIntegrationException("Temporary password is required for Keycloak user creation");
+        }
+
         try
         {
             var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
-            var userId = await CreateUserAsync(accessToken, name, email, cancellationToken);
+            var userId = await CreateUserAsync(accessToken, name, email, temporaryPassword, cancellationToken);
             await AssignRealmRoleAsync(accessToken, userId, initialRole, cancellationToken);
             return userId;
         }
@@ -50,6 +56,172 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         catch (Exception ex)
         {
             throw new KeycloakIntegrationException("Unexpected Keycloak integration failure", ex);
+        }
+    }
+
+    public async Task DeleteUserAsync(string keycloakId, CancellationToken cancellationToken)
+    {
+        ValidateOptions();
+
+        if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            return;
+        }
+
+        try
+        {
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+            using var request = new HttpRequestMessage(HttpMethod.Delete, $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+
+            // 404 = el usuario ya no existe: la compensación es idempotente.
+            if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.NotFound)
+            {
+                throw new KeycloakIntegrationException($"Failed to delete user in Keycloak. StatusCode={(int)response.StatusCode}");
+            }
+        }
+        catch (KeycloakIntegrationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure during user deletion", ex);
+        }
+    }
+
+    public async Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken)
+    {
+        ValidateOptions();
+
+        if (string.IsNullOrWhiteSpace(keycloakId))
+        {
+            return false;
+        }
+
+        try
+        {
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+            using var request = new HttpRequestMessage(HttpMethod.Get, $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}");
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new KeycloakIntegrationException($"Failed to fetch user from Keycloak. StatusCode={(int)response.StatusCode}");
+            }
+
+            var payload = await response.Content.ReadFromJsonAsync<JsonElement>(cancellationToken);
+            if (payload.TryGetProperty("requiredActions", out var actions) && actions.ValueKind == JsonValueKind.Array)
+            {
+                foreach (var action in actions.EnumerateArray())
+                {
+                    if (string.Equals(action.GetString(), "UPDATE_PASSWORD", StringComparison.OrdinalIgnoreCase))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }
+        catch (KeycloakIntegrationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure while reading user", ex);
+        }
+    }
+
+    public async Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+    {
+        ValidateOptions();
+
+        try
+        {
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+            // Partial update: Keycloak fusiona la representación enviada; el resto de atributos
+            // del usuario (enabled, roles, requiredActions) se conservan.
+            var requestBody = new { email };
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}")
+            {
+                Content = JsonContent.Create(requestBody)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                if (response.StatusCode == HttpStatusCode.Conflict)
+                {
+                    throw new DuplicateEmailException(email);
+                }
+
+                throw new KeycloakIntegrationException($"Failed to update user email in Keycloak. StatusCode={(int)response.StatusCode}");
+            }
+        }
+        catch (KeycloakIntegrationException)
+        {
+            throw;
+        }
+        catch (DuplicateEmailException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure while updating email", ex);
+        }
+    }
+
+    public async Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
+    {
+        ValidateOptions();
+
+        if (string.IsNullOrWhiteSpace(temporaryPassword))
+        {
+            throw new KeycloakIntegrationException("Temporary password is required for Keycloak password reset");
+        }
+
+        try
+        {
+            var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+            // temporary=true reinstaura la acción requerida UPDATE_PASSWORD para el próximo login.
+            var requestBody = new
+            {
+                type = "password",
+                value = temporaryPassword,
+                temporary = true
+            };
+
+            using var request = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}/reset-password")
+            {
+                Content = JsonContent.Create(requestBody)
+            };
+            request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+            using var response = await _httpClient.SendAsync(request, cancellationToken);
+            if (!response.IsSuccessStatusCode)
+            {
+                throw new KeycloakIntegrationException($"Failed to reset password in Keycloak. StatusCode={(int)response.StatusCode}");
+            }
+        }
+        catch (KeycloakIntegrationException)
+        {
+            throw;
+        }
+        catch (Exception ex)
+        {
+            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure while resetting password", ex);
         }
     }
 
@@ -91,7 +263,7 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         return tokenElement.GetString() ?? throw new KeycloakIntegrationException("Keycloak returned empty access_token");
     }
 
-    private async Task<string> CreateUserAsync(string accessToken, string name, string email, CancellationToken cancellationToken)
+    private async Task<string> CreateUserAsync(string accessToken, string name, string email, string temporaryPassword, CancellationToken cancellationToken)
     {
         var requestBody = new
         {
@@ -105,7 +277,7 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
                 new
                 {
                     type = "password",
-                    value = _options.TemporaryPassword,
+                    value = temporaryPassword,
                     temporary = true
                 }
             }

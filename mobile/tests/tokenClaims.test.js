@@ -31,7 +31,7 @@ test("buildAuthUser should throw when sub claim is missing", () => {
     realm_access: { roles: ["Participante"] },
   });
 
-  assert.throws(() => buildAuthUser(token), /sub claim/);
+  assert.throws(() => buildAuthUser(token), /identificador de usuario/);
 });
 
 test("isJwtExpired should detect expired tokens", () => {

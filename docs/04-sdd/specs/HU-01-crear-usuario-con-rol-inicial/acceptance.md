@@ -117,6 +117,37 @@ Frontend runtime evidence (real Keycloak + running Identity Service):
   - `frontend/runtime-hu01-after-login.png`
   - `frontend/runtime-hu01-create-user.png`
 
+## Extensión 2026-06-15 — Notificación de credenciales por correo
+
+Acceptance checklist (extensión):
+
+- [x] Al crear un usuario válido (cualquier rol) se le envía un correo de bienvenida con su contraseña temporal y los estilos de la plataforma (`WelcomeEmailTemplate` usa la paleta/tipografía de `DESIGN.md`).
+- [x] La contraseña temporal es **única por usuario** (`CryptoTemporaryPasswordGenerator`) y **no se persiste** localmente (RB-U03).
+- [x] La contraseña **no** aparece en la respuesta HTTP de creación.
+- [x] Si el envío del correo falla, la operación devuelve `502` y se compensa la creación (Keycloak + persistencia local), sin dejar estado inconsistente.
+- [x] El envío es síncrono mediante puerto de aplicación (`IUserWelcomeEmailSender`) + adapter SMTP en infraestructura (Clean Architecture respetada).
+
+Automated evidence (extensión):
+
+- Handler: `Handle_Should_Send_Welcome_Email_With_Generated_Temporary_Password` y `Handle_Should_Compensate_When_Email_Delivery_Fails` (`tests/.../CreateUserHandlerTests.cs`).
+- Password generator: `tests/.../TemporaryPasswordGeneratorTests.cs` (complejidad + unicidad).
+- Test factories registran un `IUserWelcomeEmailSender` no-op para no enviar correos reales.
+- Suite tras la extensión: **Unit 32/32, Contract 6/6, Integration 21/21** (`dotnet test "services/identity-service/Umbral.IdentityService.sln"`).
+
+Code references (extensión):
+
+- `Application/Abstractions/Security/ITemporaryPasswordGenerator.cs`
+- `Application/Abstractions/Notifications/IUserWelcomeEmailSender.cs`
+- `Application/Exceptions/EmailDeliveryException.cs`
+- `Application/Users/CreateUser/CreateUserWithInitialRoleCommandHandler.cs`
+- `Infrastructure/Security/CryptoTemporaryPasswordGenerator.cs`
+- `Infrastructure/Notifications/{SmtpOptions,WelcomeEmailTemplate,SmtpUserWelcomeEmailSender}.cs`
+- `Infrastructure/Identity/KeycloakIdentityAdapter.cs` (per-user password + `DeleteUserAsync`)
+
+Pending manual evidence (runtime):
+
+- [ ] Configurar SMTP real (Gmail app password) en `services/identity-service/.env` y verificar la recepción del correo al crear un usuario desde la web.
+
 ## Traceability status
 
 - HU: `HU-01`
@@ -125,6 +156,7 @@ Frontend runtime evidence (real Keycloak + running Identity Service):
 - Contract file:
   - `contracts/http/identity-api.md`
 - Event contract:
-  - Not required for HU-01 closure.
+  - Not required for HU-01 closure (la notificación de correo es síncrona, no usa eventos).
 - Status:
   - `Completed with automated + runtime Keycloak/PostgreSQL verification evidence`
+  - `Extensión 2026-06-15 (correo de credenciales): implementada + tests automatizados; pendiente verificación runtime con SMTP real.`

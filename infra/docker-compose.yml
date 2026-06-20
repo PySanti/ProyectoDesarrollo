@@ -33,12 +33,27 @@ services:
   keycloak:
     image: quay.io/keycloak/keycloak:25.0
     container_name: umbral-keycloak
-    command: start-dev
+    # --import-realm seeds UMBRAL-UCAB (realm, roles, clients, test users) from
+    # /opt/keycloak/data/import on startup when the realm does not already exist.
+    # This keeps the realm reproducible: recreating the container no longer loses it.
+    command: start-dev --import-realm
     environment:
       KEYCLOAK_ADMIN: admin
       KEYCLOAK_ADMIN_PASSWORD: admin
     ports:
       - "8080:8080"
+    volumes:
+      # UMBRAL login theme. start-dev disables theme caching, so CSS edits
+      # hot-reload. The realm import (umbral-realm.json) already sets
+      # loginTheme=umbral, so the branded credentials page is active by default.
+      # See infra/keycloak/README.md.
+      - ./keycloak/themes:/opt/keycloak/themes
+      # Realm import source (read on startup by --import-realm).
+      - ./keycloak/import:/opt/keycloak/data/import
+      # Persist Keycloak data so users/changes created at runtime survive a
+      # container recreation. Wipe with `docker compose down -v` to re-seed
+      # from the import file.
+      - umbral-keycloak-data:/opt/keycloak/data
 
   identity-service:
     build:
@@ -113,3 +128,4 @@ services:
 
 volumes:
   umbral-postgres-data:
+  umbral-keycloak-data:

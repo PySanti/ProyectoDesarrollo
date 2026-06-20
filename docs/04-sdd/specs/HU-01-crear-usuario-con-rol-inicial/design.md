@@ -124,6 +124,54 @@ Error drafts:
 
 - No real-time update is required for HU-01.
 
+## Extensión 2026-06-15 — Notificación de credenciales por correo
+
+### Command flow (actualizado)
+
+1. Validar actor administrador y request (sin cambios).
+2. Verificar unicidad del correo (sin cambios).
+3. **Generar contraseña temporal aleatoria** mediante `ITemporaryPasswordGenerator` (texto plano solo en memoria).
+4. Crear usuario en Keycloak con esa contraseña temporal (`temporary: true` + acción requerida `UPDATE_PASSWORD`).
+5. Crear y **persistir** la entidad local `Usuario`. Si falla → compensar (eliminar usuario en Keycloak) y propagar error.
+6. **Enviar el correo de bienvenida** con la contraseña temporal vía `IUserWelcomeEmailSender`. Si falla → compensar (eliminar local + eliminar usuario en Keycloak) y propagar `EmailDeliveryException`.
+7. Retornar DTO (sin contraseña).
+
+El envío es el último paso para que la compensación deshaga exactamente las dos creaciones previas (all-or-nothing). El password nunca aparece en la respuesta HTTP ni se persiste (`RB-U03`).
+
+### Nuevos puertos / abstracciones (Application)
+
+- `ITemporaryPasswordGenerator` (`Abstractions/Security`): `string Generate()`.
+- `IUserWelcomeEmailSender` (`Abstractions/Notifications`): `Task SendWelcomeEmailAsync(UserWelcomeEmailMessage, ct)`; record `UserWelcomeEmailMessage(Name, Email, Role, TemporaryPassword)`.
+- `IKeycloakIdentityPort` ampliado: `CreateUserWithInitialRoleAsync(..., temporaryPassword, ct)` y `DeleteUserAsync(keycloakId, ct)` (compensación).
+- `IUsuarioRepository.RemoveAsync(usuario, ct)` (compensación local).
+- Nueva excepción `EmailDeliveryException` (Application).
+
+### Nuevos adapters (Infrastructure)
+
+- `CryptoTemporaryPasswordGenerator` (`Security`): genera 16 chars con al menos 1 minúscula/mayúscula/dígito/símbolo usando `RandomNumberGenerator` (sin caracteres ambiguos).
+- `SmtpUserWelcomeEmailSender` (`Notifications`): `System.Net.Mail.SmtpClient` (sin dependencias nuevas; STARTTLS para Gmail). Lanza `EmailDeliveryException` ante cualquier fallo.
+- `WelcomeEmailTemplate`: HTML inline con la paleta/tipografía de marca (`DESIGN.md`), en español.
+- `SmtpOptions` (sección `Smtp`): `Host`, `Port`, `Username`, `Password`, `FromAddress`, `FromName`, `UseStartTls`. Binding por configuración + fallback a env `SMTP_*` (mismo patrón que Keycloak).
+- `KeycloakIdentityAdapter`: usa la contraseña recibida (se elimina `KeycloakOptions.TemporaryPassword`) y agrega `DeleteUserAsync` (`DELETE /admin/realms/{realm}/users/{id}`, tratando `404` como ya-eliminado).
+
+### Error mapping (actualizado)
+
+- `502` también para `EmailDeliveryException` (dependencia externa de correo). Tras el `502` por correo no queda usuario creado.
+
+### Configuración (env)
+
+- `Smtp__Host` / `SMTP_HOST` (Gmail: `smtp.gmail.com`)
+- `Smtp__Port` / `SMTP_PORT` (`587`)
+- `Smtp__Username` / `SMTP_USERNAME`
+- `Smtp__Password` / `SMTP_PASSWORD` (app password de Gmail)
+- `Smtp__FromAddress` / `SMTP_FROM_ADDRESS`
+- `Smtp__FromName` / `SMTP_FROM_NAME` (`UMBRAL`)
+- `Smtp__UseStartTls` / `SMTP_USE_STARTTLS` (`true`)
+
+### Eventos
+
+- Se mantiene la decisión de HU-01: no se publican eventos de integración. La notificación es **síncrona** (no usa `UsuarioCreado` ni RabbitMQ), porque el repositorio no tiene mensajería real implementada (solo un publisher No-Op) y el flujo es intra-servicio.
+
 ## Design Patterns Applied
 
 | Pattern | Location | Problem solved | Justification |

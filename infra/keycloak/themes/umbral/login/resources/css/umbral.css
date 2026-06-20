@@ -1,0 +1,165 @@
+/* UMBRAL login theme — brand overlay over the stock Keycloak login template.
+   Mirrors DESIGN.md tokens (light theme, magenta brand). Selectors cover both
+   legacy (.login-pf / .card-pf / .btn-primary) and PatternFly v5 (.pf-v5-c-*)
+   so it survives Keycloak template variations; trim what your version ignores. */
+@import url("https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Space+Grotesk:wght@600;700&display=swap");
+
+:root {
+  --umbral-bg: #ffffff;
+  --umbral-surface: #f7f4f7;
+  --umbral-sunk: #efebef;
+  --umbral-ink: #1b131a;
+  --umbral-muted: #6e666d;
+  --umbral-line: #cec8ce;
+  --umbral-magenta: #982f93;
+  --umbral-magenta-strong: #7d2278;
+  --umbral-magenta-wash: #fbe8f8;
+  --umbral-indigo: #3e5fad;
+}
+
+html,
+body,
+.login-pf,
+.login-pf body,
+body.login-pf {
+  background: var(--umbral-surface) !important;
+  font-family: "Inter", "Segoe UI", system-ui, sans-serif !important;
+  color: var(--umbral-ink);
+}
+
+/* Kill the stock background image / gradient. */
+.login-pf body,
+.login-pf-page {
+  background-image: none !important;
+}
+
+/* Header / wordmark (realm name renders here in the stock template). */
+#kc-header,
+#kc-header-wrapper {
+  color: var(--umbral-ink) !important;
+  font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif !important;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  text-transform: none;
+  padding: 16px 0;
+}
+
+/* Card / panel. */
+.card-pf,
+.login-pf-page .card-pf,
+div[class*="pf-v5-c-card"],
+div[class*="pf-c-login__main"] {
+  background: var(--umbral-bg) !important;
+  border: 1px solid var(--umbral-line) !important;
+  border-radius: 12px !important;
+  box-shadow: 0 8px 24px rgba(27, 19, 26, 0.12) !important;
+  /* Aire interno: en el template stock el formulario queda pegado a los bordes
+     de la tarjeta, sobre todo en teléfono. */
+  padding: 32px 28px !important;
+  box-sizing: border-box !important;
+}
+
+/* Separación de la tarjeta respecto a los bordes de la PANTALLA. En móvil la
+   tarjeta ocupa casi todo el ancho; este padding en el contenedor evita que el
+   contenido toque los bordes del teléfono. */
+.login-pf-page,
+#kc-content,
+#kc-content-wrapper,
+body div[class*="pf-v5-c-login"],
+body div[class*="pf-c-login"] {
+  padding-left: 20px !important;
+  padding-right: 20px !important;
+  box-sizing: border-box !important;
+}
+
+@media (max-width: 480px) {
+  .login-pf-page,
+  #kc-content,
+  #kc-content-wrapper,
+  body div[class*="pf-v5-c-login"],
+  body div[class*="pf-c-login"] {
+    padding-left: 16px !important;
+    padding-right: 16px !important;
+  }
+
+  .card-pf,
+  .login-pf-page .card-pf,
+  div[class*="pf-v5-c-card"],
+  div[class*="pf-c-login__main"] {
+    padding: 28px 22px !important;
+  }
+}
+
+/* Headings inside the card. */
+#kc-page-title {
+  font-family: "Space Grotesk", "Segoe UI", system-ui, sans-serif;
+  font-weight: 600;
+  color: var(--umbral-ink);
+}
+
+/* Inputs. */
+input[type="text"],
+input[type="password"],
+input[type="email"],
+.pf-c-form-control,
+.pf-v5-c-form-control,
+#kc-form-login input {
+  border: 1px solid var(--umbral-line) !important;
+  border-radius: 8px !important;
+  color: var(--umbral-ink) !important;
+  background: var(--umbral-bg) !important;
+}
+
+input[type="text"]:focus,
+input[type="password"]:focus,
+input[type="email"]:focus,
+.pf-c-form-control:focus,
+.pf-v5-c-form-control:focus,
+#kc-form-login input:focus {
+  outline: none !important;
+  border-color: var(--umbral-magenta) !important;
+  box-shadow: 0 0 0 3px var(--umbral-magenta-wash) !important;
+}
+
+/* Labels. */
+.pf-c-form__label,
+.pf-v5-c-form__label,
+label {
+  color: var(--umbral-ink);
+  font-weight: 600;
+}
+
+/* Primary button. */
+.btn-primary,
+input[type="submit"].btn-primary,
+.pf-c-button.pf-m-primary,
+.pf-v5-c-button.pf-m-primary,
+#kc-login {
+  background: var(--umbral-magenta) !important;
+  border-color: var(--umbral-magenta) !important;
+  color: #ffffff !important;
+  border-radius: 8px !important;
+  font-weight: 600 !important;
+  transition: background 160ms cubic-bezier(0.25, 1, 0.5, 1);
+}
+
+.btn-primary:hover,
+.pf-c-button.pf-m-primary:hover,
+.pf-v5-c-button.pf-m-primary:hover,
+#kc-login:hover {
+  background: var(--umbral-magenta-strong) !important;
+  border-color: var(--umbral-magenta-strong) !important;
+}
+
+/* Links. */
+a,
+#kc-registration a,
+#kc-info-message a {
+  color: var(--umbral-indigo);
+}
+
+/* Alerts keep meaning via the stock structure; just soften the chrome. */
+.alert,
+div[class*="pf-v5-c-alert"] {
+  border-radius: 8px;
+}

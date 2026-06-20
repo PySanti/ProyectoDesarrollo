@@ -2,9 +2,13 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
 using Umbral.IdentityService.Application.Abstractions.Identity;
+using Umbral.IdentityService.Application.Abstractions.Notifications;
 using Umbral.IdentityService.Application.Abstractions.Persistence;
+using Umbral.IdentityService.Application.Abstractions.Security;
 using Umbral.IdentityService.Infrastructure.Identity;
+using Umbral.IdentityService.Infrastructure.Notifications;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Security;
 
 namespace Umbral.IdentityService.Infrastructure;
 
@@ -46,6 +50,34 @@ public static class DependencyInjection
         services.AddHttpClient<IKeycloakIdentityPort, KeycloakIdentityAdapter>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
 
+        services.AddSingleton<ITemporaryPasswordGenerator, CryptoTemporaryPasswordGenerator>();
+
+        services.Configure<SmtpOptions>(configuration.GetSection(SmtpOptions.SectionName));
+        services.PostConfigure<SmtpOptions>(options =>
+        {
+            options.Host = FirstNonEmpty(options.Host, Environment.GetEnvironmentVariable("SMTP_HOST"));
+            options.Username = FirstNonEmpty(options.Username, Environment.GetEnvironmentVariable("SMTP_USERNAME"));
+            options.Password = FirstNonEmpty(options.Password, Environment.GetEnvironmentVariable("SMTP_PASSWORD"));
+            options.FromAddress = FirstNonEmpty(options.FromAddress, Environment.GetEnvironmentVariable("SMTP_FROM_ADDRESS"));
+            options.FromName = FirstNonEmpty(options.FromName, Environment.GetEnvironmentVariable("SMTP_FROM_NAME"));
+
+            var portEnv = Environment.GetEnvironmentVariable("SMTP_PORT");
+            if (!string.IsNullOrWhiteSpace(portEnv) && int.TryParse(portEnv, out var port))
+            {
+                options.Port = port;
+            }
+
+            var startTlsEnv = Environment.GetEnvironmentVariable("SMTP_USE_STARTTLS");
+            if (!string.IsNullOrWhiteSpace(startTlsEnv) && bool.TryParse(startTlsEnv, out var useStartTls))
+            {
+                options.UseStartTls = useStartTls;
+            }
+        });
+        services.AddScoped<IUserWelcomeEmailSender, SmtpUserWelcomeEmailSender>();
+
         return services;
     }
+
+    private static string FirstNonEmpty(string current, string? fallback)
+        => string.IsNullOrWhiteSpace(current) ? fallback ?? string.Empty : current;
 }

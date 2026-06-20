@@ -64,4 +64,17 @@ public sealed class UsuarioRepository : IUsuarioRepository
             throw new PersistenceException("Failed to persist usuario", ex);
         }
     }
+
+    public async Task RemoveAsync(Usuario usuario, CancellationToken cancellationToken)
+    {
+        try
+        {
+            _dbContext.Usuarios.Remove(usuario);
+            await _dbContext.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new PersistenceException("Failed to remove usuario", ex);
+        }
+    }
 }

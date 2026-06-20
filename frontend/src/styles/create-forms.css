@@ -1,0 +1,104 @@
+/* Shared styles for the operator "create" surfaces: Crear formulario, Crear Trivia,
+   Crear BDT. One form card grouped into labeled sections; numbered item editors
+   (Trivia questions / BDT stages) share the same vocabulary. */
+
+/* Header with a live count / status chip on the right */
+.create-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  flex-wrap: wrap;
+}
+
+.create-head h1 {
+  margin: 0;
+}
+
+.create-head p {
+  margin: var(--sp-xs) 0 0;
+}
+
+/* Grouped sections inside one form card, divided by a hairline */
+.form-section {
+  display: grid;
+  gap: var(--sp-md);
+}
+
+.form-section + .form-section {
+  margin-top: var(--sp-xs);
+  padding-top: var(--sp-lg);
+  border-top: 1px solid var(--line);
+}
+
+.form-section__title {
+  margin: 0;
+  font-size: var(--fs-title);
+  font-weight: 600;
+  color: var(--ink);
+}
+
+.form-section__hint {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+/* Numbered item editor (Trivia question / BDT stage) */
+.q-title {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  margin: 0;
+}
+
+.q-badge {
+  display: inline-grid;
+  place-items: center;
+  min-width: 26px;
+  height: 26px;
+  padding: 0 7px;
+  border-radius: var(--r-pill);
+  background: var(--primary-wash);
+  color: var(--primary-strong);
+  font-family: var(--font-display);
+  font-weight: 700;
+  font-size: var(--fs-label);
+}
+
+/* Score / time / correct answer grouped in a sunk meta strip */
+.q-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-md);
+  padding: var(--sp-md);
+  background: var(--bg);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+}
+
+/* BDT stage QR decode status (idle hint; decoded/error use .notice variants) */
+.stage-status {
+  margin: 0;
+  color: var(--muted);
+  font-size: var(--fs-label);
+}
+
+/* Footer / section action bar: secondary action left, primary submit right */
+.create-actions {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-md);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 640px) {
+  .q-meta {
+    grid-template-columns: 1fr;
+  }
+  .create-actions {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+}

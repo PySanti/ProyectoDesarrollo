@@ -109,6 +109,47 @@
 - HU-02 row is aligned for current stage (`Completed / tested / acceptance updated`).
 - Contract alignment for HU-02 is documented in `contracts/http/identity-api.md` and re-validated through HU-02 contract tests.
 
+## Frontend redesign update (2026-06-13)
+
+Cambios de **presentación** durante la reconstrucción visual (ver
+`docs/02-project-context/design/frontend-redesign-plan.md`, observaciones OBS-01 / OBS-02). No
+alteran el contrato HTTP, las reglas de negocio ni los endpoints de HU-02.
+
+- El panel de gestión **ya no muestra el rol/permisos** del usuario (se removieron el campo "Rol" y
+  el input de rol solo-lectura del detalle). El rol se asigna en la creación (HU-01) y sigue sin ser
+  modificable; aquí simplemente no se expone.
+- La lista de usuarios se renderiza como **tabla con paginación** (columnas Nombre/Correo/Estado con
+  indicador de estado, paginación cliente y empty state) en vez de una lista simple.
+- `getIdentityUsers` sigue devolviendo `role` en el contrato; el frontend solo deja de mostrarlo.
+- Pruebas frontend actualizadas: `frontend/src/features/identity/UserManagementPage.test.tsx` y
+  `frontend/src/app/App.test.tsx` siguen verdes con la nueva UI.
+
 ## Assumptions
 
 - HU-02 includes deactivation by explicit decision recorded during SDD creation for this session.
+
+## Extensión 2026-06-15 — Reenvío de credenciales al cambiar el correo
+
+Acceptance checklist (extensión):
+
+- [x] Al cambiar el correo de un usuario con contraseña temporal pendiente, se le envía un correo con una nueva contraseña temporal (plantilla de marca) al nuevo correo.
+- [x] El correo se sincroniza en Keycloak (atributo `email`) y se resetea una nueva contraseña temporal (`temporary=true`); la original nunca se persistió (RB-U03).
+- [x] Si el correo no cambia, o el usuario ya completó su primer inicio de sesión (sin `UPDATE_PASSWORD`), la edición no envía correo ni toca Keycloak.
+- [x] Si el reenvío falla, la edición devuelve `502` y revierte el cambio (email local + email en Keycloak al valor previo).
+- [x] La contraseña no aparece en la respuesta HTTP.
+
+Automated evidence (extensión):
+
+- Handler: `..._Should_Resend_Credentials_When_Email_Changes_And_Temp_Password_Pending`, `..._Should_Not_Resend_When_Temp_Password_Not_Pending`, `..._Should_Not_Check_Keycloak_When_Email_Unchanged`, `..._Should_Revert_When_Email_Delivery_Fails` (`tests/.../Hu02HandlersTests.cs`).
+- Suite tras la extensión: **Unit 36/36, Contract 6/6, Integration 21/21** (`dotnet test "services/identity-service/Umbral.IdentityService.sln"`).
+
+Code references (extensión):
+
+- `Application/Users/UpdateUserGeneralData/UpdateUserGeneralDataCommandHandler.cs`
+- `Application/Abstractions/Identity/IKeycloakIdentityPort.cs` (+`HasTemporaryPasswordAsync`/`UpdateEmailAsync`/`ResetTemporaryPasswordAsync`)
+- `Infrastructure/Identity/KeycloakIdentityAdapter.cs`
+- `Api/Program.cs` (PATCH → `502` para Keycloak/email)
+
+Pending manual evidence (runtime):
+
+- [ ] Con SMTP real configurado: crear un usuario, cambiar su correo antes del primer login y verificar la recepción del correo con la nueva contraseña temporal en el nuevo correo.

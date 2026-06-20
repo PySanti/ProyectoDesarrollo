@@ -90,3 +90,26 @@ Excluded:
 ## Assumptions
 
 - Por decision explicita del usuario en esta sesion, HU-02 incluye desactivacion ademas de consulta y edicion, aunque el titulo de la HU mencione solo consulta/edicion.
+
+## Extensión 2026-06-15 — Reenvío de credenciales al cambiar el correo
+
+Motivación: si el administrador corrige el correo de un usuario que **aún no ha iniciado sesión**
+(todavía tiene contraseña temporal), ese usuario debe recibir sus credenciales en el correo correcto;
+de lo contrario nunca podría entrar (no conoce su contraseña temporal y el correo anterior era erróneo).
+
+Decisiones confirmadas (2026-06-15):
+- **Disparo:** solo cuando el correo **cambia** y el usuario **aún tiene contraseña temporal pendiente**
+  (acción requerida `UPDATE_PASSWORD` en Keycloak; proxy de "no completó el primer inicio de sesión").
+- **Contraseña:** la temporal original es irrecuperable (RB-U03), así que se **genera y resetea una
+  nueva** en Keycloak y se envía esa.
+- **Sincronización:** al cambiar el correo se actualiza también el atributo `email` en Keycloak para que
+  el usuario pueda autenticarse con el nuevo correo (login-by-email).
+- **Fallo:** si el reenvío del correo falla, la operación **falla (`502`) y revierte** el cambio (email
+  local + email en Keycloak al valor previo).
+
+Criterios de aceptación añadidos:
+11. Al cambiar el correo de un usuario con contraseña temporal pendiente, se le envía un correo con una
+    nueva contraseña temporal (estilos de marca) al nuevo correo, y el email se sincroniza en Keycloak.
+12. Si el correo no cambia, o el usuario ya completó su primer inicio de sesión, la edición no envía correo.
+13. Si el envío falla, la edición devuelve `502` y revierte el cambio (sin estado inconsistente).
+14. Se mantiene: UMBRAL no persiste contraseñas (RB-U03).

@@ -1,8 +1,8 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import ScreenWrapper from "../../../shared/components/ScreenWrapper";
-import { screenStyles } from "../../../shared/styles";
-import { colors } from "../../../shared/theme";
+import { ActivityIndicator, StyleSheet, View } from "react-native";
+import { AppText, DetailRow, Hero, Notice, Panel, Stage } from "../../../shared/ui";
+import { game, spacing, typography } from "../../../shared/theme";
+import { useCountUp } from "../../../shared/useCountUp";
 import { TriviaMobileApiError, TriviaScoreResponse, getTriviaScore } from "../../../api/triviaApi";
 
 type Props = {
@@ -33,31 +33,53 @@ export function TriviaScoreScreen({ apiBaseUrl, token, partidaId }: Props) {
   }, [loadScore]);
 
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Puntaje Trivia</Text>
-        <Text style={styles.description}>HU-29 muestra el puntaje acumulado calculado por Trivia Game Service.</Text>
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {score ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{score.puntajeAcumulado} puntos</Text>
-            <Text style={styles.cardLine}>Correctas: {score.respuestasCorrectas}</Text>
-            <Text style={styles.cardLine}>Respuestas totales: {score.totalRespuestas}</Text>
-            <Text style={styles.cardLine}>Tiempo acumulado: {score.tiempoAcumuladoSegundos}s</Text>
-          </View>
-        ) : null}
+    <Stage variant="magenta" gradient scroll>
+      <Hero title="Tu puntaje" subtitle="Lo calcula Trivia Game Service (HU-29)." onStage />
+
+      {loading ? <ActivityIndicator color={game.onStage} /> : null}
+      {error ? <Notice variant="error">{error}</Notice> : null}
+
+      {score ? <ScoreBlock score={score} /> : null}
+    </Stage>
+  );
+}
+
+/** Puntaje protagonista con count-up; detalles de apoyo en panel translúcido. */
+function ScoreBlock({ score }: { score: TriviaScoreResponse }) {
+  const value = useCountUp(score.puntajeAcumulado);
+  return (
+    <View style={styles.block}>
+      <View style={styles.scoreWrap}>
+        <AppText style={styles.scoreNumber} color={game.onStage} allowFontScaling={false}>
+          {value}
+        </AppText>
+        <AppText variant="label" color={game.onStageMuted}>
+          puntos acumulados
+        </AppText>
       </View>
-    </ScreenWrapper>
+
+      <Panel>
+        <DetailRow label="Correctas" value={String(score.respuestasCorrectas)} onStage />
+        <DetailRow label="Respuestas totales" value={String(score.totalRespuestas)} onStage />
+        <DetailRow label="Tiempo acumulado" value={`${score.tiempoAcumuladoSegundos}s`} onStage />
+      </Panel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  error: screenStyles.error,
+  block: {
+    gap: spacing.xl,
+  },
+  scoreWrap: {
+    alignItems: "center",
+    gap: spacing.xs,
+    paddingVertical: spacing.lg,
+  },
+  scoreNumber: {
+    ...typography.mega,
+    fontSize: 88,
+    lineHeight: 92,
+    color: game.onStage,
+  },
 });

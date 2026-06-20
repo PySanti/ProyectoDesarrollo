@@ -1,65 +1,79 @@
 import React, { useState } from "react";
-import { Pressable, SafeAreaView, StyleSheet, Text, View } from "react-native";
+import { SafeAreaView, StyleSheet, View } from "react-native";
 import { useAuth } from "../auth/AuthProvider";
-import { screenStyles } from "../shared/styles";
-import { colors, radius, spacing } from "../shared/theme";
+import { AuthError } from "../auth/keycloakMobileAuth";
+import { AppText, Button, Card, Notice } from "../shared/ui";
+import { colors, spacing } from "../shared/theme";
 
 export function LoginScreen() {
   const { login } = useAuth();
   const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
   async function onLogin() {
     setError(null);
+    setBusy(true);
     try {
       await login();
     } catch (authError) {
-      setError(authError instanceof Error ? authError.message : "No se pudo autenticar.");
+      // Nunca mostramos el mensaje crudo de la librería/Keycloak (puede venir en inglés):
+      // AuthError ya trae el texto en español; cualquier otro caso usa un genérico en español.
+      if (authError instanceof AuthError) {
+        // Cancelación voluntaria del usuario: no es un error que deba mostrarse.
+        setError(authError.cancelled ? null : authError.message);
+      } else {
+        setError("No se pudo iniciar sesión. Intenta de nuevo.");
+      }
+    } finally {
+      setBusy(false);
     }
   }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={styles.safe}>
       <View style={styles.container}>
-        <View style={styles.heroCard}>
-          <Text style={styles.kicker}>Participantes</Text>
-          <Text style={styles.title}>UMBRAL</Text>
-          <Text style={styles.subtitle}>Trivia y Busqueda del Tesoro en tiempo real desde tu telefono.</Text>
-          {error ? <Text style={styles.error}>{error}</Text> : null}
-          <Pressable style={styles.button} onPress={onLogin}>
-            <Text style={styles.buttonText}>Iniciar sesion</Text>
-          </Pressable>
+        <View style={styles.brand}>
+          <AppText variant="display" color={colors.primaryStrong} style={styles.wordmark}>
+            UMBRAL
+          </AppText>
+          <AppText variant="body" color={colors.muted}>
+            Trivia y Búsqueda del Tesoro en tiempo real, desde tu teléfono.
+          </AppText>
         </View>
+
+        <Card>
+          <AppText variant="title">Te damos la bienvenida</AppText>
+          <AppText variant="body">
+            Inicia sesión para unirte a tu equipo y entrar a las partidas publicadas.
+          </AppText>
+          {error ? <Notice variant="error">{error}</Notice> : null}
+          <Button label="Iniciar sesión" onPress={onLogin} loading={busy} />
+        </Card>
       </View>
     </SafeAreaView>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: screenStyles.safeArea,
+  safe: {
+    flex: 1,
+    backgroundColor: colors.bg,
+  },
   container: {
-    ...screenStyles.container,
+    flex: 1,
     justifyContent: "center",
-    backgroundColor: colors.background,
+    padding: spacing.xl,
+    gap: spacing.xxl,
   },
-  heroCard: {
-    ...screenStyles.card,
-    padding: spacing.xxxl,
-    borderRadius: radius.xl,
+  brand: {
+    gap: spacing.sm,
   },
-  kicker: {
-    color: colors.accent,
-    fontSize: 12,
-    fontWeight: "800",
-    letterSpacing: 1.4,
-    textTransform: "uppercase",
+  wordmark: {
+    fontSize: 44,
+    lineHeight: 48,
+    letterSpacing: -1,
+    // En Android, letterSpacing negativo sub-mide el ancho de línea y recorta el último glifo
+    // ("UMBRAL" → "UMBRA"). El padding extiende el frame del texto y deja sitio a la "L".
+    paddingRight: spacing.sm,
   },
-  title: {
-    ...screenStyles.title,
-    fontSize: 38,
-    color: colors.primaryDark,
-  },
-  subtitle: screenStyles.subtitle,
-  error: screenStyles.error,
-  button: screenStyles.primaryButton,
-  buttonText: screenStyles.primaryButtonText,
 });

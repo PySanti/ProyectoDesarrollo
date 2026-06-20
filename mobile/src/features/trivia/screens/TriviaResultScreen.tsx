@@ -1,8 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
-import ScreenWrapper from "../../../shared/components/ScreenWrapper";
-import { screenStyles } from "../../../shared/styles";
-import { colors } from "../../../shared/theme";
+import { ActivityIndicator } from "react-native";
+import { AppText, DetailRow, Notice, Panel, Reaction, Stage } from "../../../shared/ui";
+import { game } from "../../../shared/theme";
 import { TriviaMobileApiError, TriviaQuestionResultResponse, getTriviaQuestionResult } from "../../../api/triviaApi";
 
 type Props = {
@@ -34,33 +33,28 @@ export function TriviaResultScreen({ apiBaseUrl, token, partidaId, preguntaId }:
   }, [loadResult]);
 
   return (
-    <ScreenWrapper>
-      <View style={styles.container}>
-        <Text style={styles.title}>Resultado de pregunta</Text>
-        <Text style={styles.description}>HU-28 muestra la respuesta correcta enviada por backend.</Text>
-        {loading ? <ActivityIndicator color={colors.primary} /> : null}
-        {error ? <Text style={styles.error}>{error}</Text> : null}
-        {result ? (
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>{result.textoPregunta}</Text>
-            <Text style={styles.cardLine}>Correcta: {result.opcionCorrectaText}</Text>
-            <Text style={styles.cardLine}>Tu respuesta: {result.miOpcionText ?? "Sin respuesta"}</Text>
-            <Text style={styles.cardLine}>Resultado: {result.esCorrecta ? "Correcta" : "Incorrecta"}</Text>
-            <Text style={styles.cardLine}>Puntaje: {result.puntajeObtenido}</Text>
-            <Text style={styles.cardLine}>Cierre: {result.motivoCierre}</Text>
-          </View>
-        ) : null}
-      </View>
-    </ScreenWrapper>
+    <Stage variant="ink" gradient scroll>
+      {loading ? <ActivityIndicator color={game.onStage} /> : null}
+      {error ? <Notice variant="error">{error}</Notice> : null}
+
+      {result ? (
+        <>
+          <Reaction
+            correct={result.esCorrecta === true}
+            title={result.esCorrecta ? "¡Correcta!" : "Incorrecta"}
+            subtitle={result.textoPregunta}
+          />
+          <Panel>
+            <DetailRow label="Correcta" value={result.opcionCorrectaText} onStage />
+            <DetailRow label="Tu respuesta" value={result.miOpcionText ?? "Sin respuesta"} onStage />
+            <DetailRow label="Puntaje" value={String(result.puntajeObtenido)} onStage />
+            <DetailRow label="Cierre" value={result.motivoCierre} onStage />
+          </Panel>
+          <AppText variant="body" color={game.onStageMuted}>
+            HU-28 muestra la respuesta correcta enviada por backend.
+          </AppText>
+        </>
+      ) : null}
+    </Stage>
   );
 }
-
-const styles = StyleSheet.create({
-  container: screenStyles.scrollContainer,
-  title: screenStyles.title,
-  description: screenStyles.description,
-  card: screenStyles.card,
-  cardTitle: screenStyles.cardTitle,
-  cardLine: screenStyles.cardLine,
-  error: screenStyles.error,
-});
