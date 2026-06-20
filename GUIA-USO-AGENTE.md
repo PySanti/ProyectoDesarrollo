@@ -9,44 +9,31 @@ git pull origin develop
 git switch -c feature/HU-X-slug
 ```
 
-## Previo a implementacion
+# Uso de plugin superpowers para implementacion de Funcionalidad
 
-Pista A — Funcionalidad nueva (feature)
+## Instalacion 
+```
+/plugin install superpowers@claude-plugins-official
+/reload-plugins
+```
 
-Aquí el flujo SDD es obligatorio (regla de CLAUDE.md: nunca implementar desde un prompt vago).
+## Uso
 
-PRE (planificar):
-1. /create-feature-sdd — solo si la HU aún no tiene carpeta SDD completa (spec.md → design.md → tasks.md → acceptance.md).
-2. /plan-feature — valida que la HU esté en SPECS-LIST.md, no esté deprecada y confirma el microservicio dueño.
-3. /review-boundaries — solo si la feature parece tocar más de un microservicio (decide propiedad y vía HTTP/RabbitMQ/SignalR antes de codificar).
+```
+/brainstorming - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
 
-DURANTE (desarrollar):
-4. /implement-task — una sola tarea del tasks.md por vez. Repítelo tarea por tarea.
-- Apóyate en las skills de la capa: ddd-modeling, cqrs-mediatr, efcore-postgres, rabbitmq-events, websocket-signalr, react-native-mobile, contract-design, testing.
+/using-git-worktrees - Activates after design approval. Creates isolated workspace on new branch, runs project setup, verifies clean test baseline.
 
-POST (cerrar):
-5. /review-feature — cumplimiento SDD, arquitectura, CQRS, ubicación de reglas.
-6. /update-traceability — actualiza traceability-matrix.md con el nuevo estado.
+/writing-plans - Activates with approved design. Breaks work into bite-sized tasks (2-5 minutes each). Every task has exact file paths, complete code, verification steps.
 
----
-Pista B — Fix / bug / algo pequeño
+/subagent-driven-development or executing-plans - Activates with plan. Dispatches fresh subagent per task with two-stage review (spec compliance, then code quality), or executes in batches with human checkpoints.
 
-Aquí no necesitas la ceremonia SDD completa (no es una HU nueva; es código existente). El flujo se aligera:
+/test-driven-development - Activates during implementation. Enforces RED-GREEN-REFACTOR: write failing test, watch it fail, write minimal code, watch it pass, commit. Deletes code written before tests.
 
-PRE:
-- Normalmente ningún comando del repo. Identifica el archivo/causa directamente.
-- Excepción: si el bug toca comportamiento documentado en una HU, conviene leer su carpeta SDD (skill umbral-context si necesitas cargar contexto de dominio).
-- Excepción: si el fix cruza microservicios, /review-boundaries.
+/requesting-code-review - Activates between tasks. Reviews against plan, reports issues by severity. Critical issues block progress.
 
-DURANTE:
-- Implementa el cambio directamente (no uses /implement-task, que está atado a una tarea de tasks.md).
-- Usa la skill de la capa solo si aplica (testing para añadir/ajustar pruebas, react-native-mobile, etc.).
-
-POST:
-- /code-review (comando del harness) sobre el diff — es lo más adecuado para cambios pequeños; busca bugs y oportunidades de simplificación.
-- /review-feature solo si el fix afecta una feature SDD concreta.
-- /update-traceability solo si cambió el estado de una HU/tarea (un bugfix puro normalmente no lo cambia → puedes omitirlo).
-
+/finishing-a-development-branch - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
+```
 
 # Git después de implementar la HU
 
