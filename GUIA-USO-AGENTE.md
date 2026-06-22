@@ -1,29 +1,58 @@
+# Guia para hacer cambios en el proyecto
 
-# Git
 
-## Estado de migracion documental
+# 1. Git
 
-La doctrina documental cambio antes de la migracion completa del codigo. Antes de iniciar una rama o usar agentes, lee `docs/02-project-context/documentation-migration-status.md`.
 
-Doctrina actual: servicios objetivo `Identity`, `Partidas`, `Operaciones de Sesion` y `Puntuaciones`, detras del gateway YARP obligatorio. Las carpetas de implementacion antiguas pueden seguir existiendo como deuda de migracion y no deben usarse como doctrina activa.
+Primero se debe crear una rama nueva a partir de la ultima version de develop
 
-## Comando: partir desde `develop`
 
 ```bash
 git switch develop
 git pull origin develop
-git switch -c feature/HU-X-slug
+git switch -c feature/[nombre de feature]
 ```
 
-# Uso de plugin superpowers para implementacion de Funcionalidad
+# 2. Agente
+
+Para poder hacer un uso optimo del agente, debemos hacerlo junto alguna skill que tome nuestro requerimiento y lo convierta en un plan de trabajo completo. 
+
+El plugin `superpowers` trae un conjunto de skills para llevar a cabo la implementacion de una funcionalidad a traves de un conjunto de fases, buscando el mejor resultado posible para la menor cantidad de tokens.
+
 
 ## Instalacion 
-```
+```txt
+
+# en claude
+
 /plugin install superpowers@claude-plugins-official
 /reload-plugins
 ```
 
+```txt
+
+# en opencode
+
+Fetch and follow instructions from https://raw.githubusercontent.com/obra/superpowers/refs/heads/main/.opencode/INSTALL.md
+```
+
+
+
 ## Uso
+
+### Primer paso : Brainstorming
+
+En este paso, la idea es definir el alcance de lo que se quiere hacer, el agente nos hara preguntas para lograrlo.
+
+Uso:
+
+```
+/brainstorming [descripcion de feature/fix/bug]
+```
+
+Luego, la misma skill nos deberia de conducir a traves del resto de skills que se deben utilizar para ejecutar el flujo, es decir, una vez se termine la fase de brainstorming, la misma skill conduce al agente a utilizar la siguiente (`/writing-plans`)
+
+Si lo anterior no ocurre, aca esta el resto de skills del plugin junto con una descripcion breve de la documentacion
 
 ```
 /brainstorming - Activates before writing code. Refines rough ideas through questions, explores alternatives, presents design in sections for validation. Saves design document.
@@ -41,7 +70,7 @@ git switch -c feature/HU-X-slug
 /finishing-a-development-branch - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
 ```
 
-# Git después de implementar la HU
+# Git después de implementar la funcionalidad nueva
 
 ```bash
 git branch backup/HU-X-before-squash
