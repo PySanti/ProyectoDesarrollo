@@ -1,52 +1,24 @@
 # BDT Ranking Clarification
 
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
+
 ## Decision
 
-Búsqueda del Tesoro ranking is not based on numeric accumulated score.
+BDT native ranking is based on accumulated points from won stages.
 
-The active BDT ranking rule is:
+Ordering:
 
-```txt
-1. More stages won ranks higher.
+1. Higher accumulated BDT points ranks higher.
 2. If tied, lower accumulated time across won stages ranks higher.
-```
 
-## Authoritative concepts
+`EtapasGanadas` may be retained as informative data but is not the primary sort key.
 
-Use:
+## Forbidden Active Assumption
 
-- `EtapasGanadas`
-- `TiempoAcumuladoEtapasGanadas`
-- `TiempoResolucionEtapa`
-- `RankingBDT`
-- `RankingBDTActualizado`
+Do not state that BDT ranking is primarily ordered by number of stages won in current doctrine.
 
-## Deprecated or forbidden as active BDT ranking concepts
+## Context
 
-Do not use these concepts as active BDT ranking rules:
+Each `EtapaBDT` (configured in **Partidas**) carries an operator-set `Puntaje`. A stage is won by the participant or team that first validates the expected QR text during the live game (run by **Operaciones de Sesion**). The won stage grants its `Puntaje`; stages nobody wins grant nothing. **Puntuaciones** accumulates these points per `JuegoBDT`, computes the native `RankingBDT`, and contributes the total to the consolidated partida ranking. The native BDT ranking and the per-game points feed the consolidated ranking (number of `Juego`s won → total accumulated points → lowest total time).
 
-- `PuntajeEtapa`
-- `PuntajeAcumulado` for BDT ranking
-- `PuntajeBDTIncrementado`
-- `BDT scoring` as numeric score accumulation
-
-## Allowed usage of puntaje wording
-
-The word `puntaje` may appear in generic academic wording or historical traceability, but BDT implementation must not calculate ranking from numeric score.
-
-If a BDT feature needs ranking, the SDD must explicitly use:
-
-```txt
-Ranking BDT = EtapasGanadas DESC + TiempoAcumuladoEtapasGanadas ASC
-```
-
-## Related files to keep consistent
-
-- `AGENTS.md`
-- `.opencode/skills/ddd-modeling/SKILL.md`
-- `.opencode/skills/rabbitmq-events/SKILL.md`
-- `services/bdt-game-service/service-context.md`
-- `docs/03-microservices/microservices-map.md`
-- `docs/03-microservices/services/bdt-game-service.md`
-- `contracts/events/bdt-game-events.md`
-- `contracts/http/bdt-game-api.md`
+Relevant events: `EtapaBDTGanada` (carries `Puntaje`) and `RankingBDTActualizado`.

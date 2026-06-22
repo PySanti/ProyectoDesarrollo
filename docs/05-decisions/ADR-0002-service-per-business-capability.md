@@ -1,5 +1,7 @@
 # ADR 0002 service per business capability
 
+> Superseded where conflicting by `ADR-0008-documentation-doctrine-replacement.md`.
+
 ## Status
 
 Accepted

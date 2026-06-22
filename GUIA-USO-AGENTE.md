@@ -1,6 +1,12 @@
 
 # Git
 
+## Estado de migracion documental
+
+La doctrina documental cambio antes de la migracion completa del codigo. Antes de iniciar una rama o usar agentes, lee `docs/02-project-context/documentation-migration-status.md`.
+
+Doctrina actual: servicios objetivo `Identity`, `Partidas`, `Operaciones de Sesion` y `Puntuaciones`, detras del gateway YARP obligatorio. Las carpetas de implementacion antiguas pueden seguir existiendo como deuda de migracion y no deben usarse como doctrina activa.
+
 ## Comando: partir desde `develop`
 
 ```bash

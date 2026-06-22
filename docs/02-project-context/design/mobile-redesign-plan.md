@@ -98,16 +98,17 @@ Primera impresión de marca.
 
 **Hecho (2026-06-14):**
 - `CreateTeamScreen` / `JoinTeamScreen`: **reescritas** con primitivos (`ScreenHeader` + `Card` + `Field`
-  + `Button` + `Notice`). El **código de acceso** se escribe en **mono** (`fonts.mono` + tracking).
-  Lógica intacta (`submitCreateTeam`, `submitJoinTeamFromScreen`) y copy verbatim.
+  + `Button` + `Notice`). La pantalla `JoinTeamScreen` conservaba copy legacy de unión por código durante
+  el re-skin visual; eso es deuda de migración de código/copy, no doctrina activa. La doctrina actual exige
+  unión por `InvitacionEquipo` en Identity.
 - `LeaveTeamScreen` / `TransferLeadershipScreen`: estas delegan el render a un **Controller `.js`
   testeado** vía `components` + `styles`. Re-skin **solo de los valores del objeto `styles`** (mismas
   claves, mismo controller, mismos componentes inyectados) → cero riesgo para los tests. El input de
   userId en Transfer pasa a **mono** (cadena de máquina). Avisos como bloque error/éxito on-brand.
 - Verificado: `tsc --noEmit` exit 0 · `npm test` 83/83 verdes (incluye `LeaveTeamScreenController`,
   `TransferLeadershipScreenController`, `leaveTeamScreenContent`, `joinTeamScreenModel`).
-- **Pendiente (usuario):** pase manual en Expo — recorrer crear → unirse → transferir → salir; confirmar
-  campos/botones de marca, código en mono, y los estados sin-equipo / error / éxito.
+- **Pendiente (usuario):** pase manual en Expo — recorrer crear → invitaciones/unión legacy pendiente de
+  migrar, transferir → salir; confirmar campos/botones de marca y los estados sin-equipo / error / éxito.
 
 **Nota de patrón:** Leave/Transfer mantienen la arquitectura Controller-inyectado por **testabilidad**;
 no se migran a los primitivos (API distinta). Se re-skinean por el objeto `styles`. Las pantallas sin
@@ -144,7 +145,8 @@ controller (Create/Join y las de Trivia/BDT que lo permitan) sí usan los primit
   la foto. Los estados "legible/no-legible" se reflejan como **error/éxito** de la subida (bloque
   `cs.error`/`cs.success` on-brand). El botón del image picker pasa a `secondaryButton` de marca.
 - `ActiveStage`: cuenta regresiva, hint de geolocalización obligatoria y estado de etapa con estilos de
-  marca (ranking BDT por EtapasGanadas/Tiempo vive en backend; aquí solo se muestran datos de etapa).
+  marca. El ranking BDT vive en backend/Puntuaciones y se ordena por puntos acumulados de etapas ganadas,
+  con desempate por menor tiempo de esas etapas; aquí solo se muestran datos de etapa.
 - Verificado: `tsc --noEmit` exit 0 · `npm test` 83/83 verdes (incluye los 3 controllers BDT, flows,
   `bdtGeolocationPermission`, `bdtTreasureImagePicker`).
 - **Pendiente (usuario):** pase manual en Expo — lista BDT → etapa activa (permiso de ubicación,

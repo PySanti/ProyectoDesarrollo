@@ -1,131 +1,115 @@
 # Class Design Summary — UMBRAL
 
-Este resumen traduce el diagrama de clases del project-source en una guía operativa para implementación.
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-## Contexto de Identidad
+Derived from `docs/01-project-source/diagrama-de-clases.md`. Logical contexts materialize onto the four target services: **Identity**, **Partidas**, **Operaciones de Sesion**, **Puntuaciones** (behind the mandatory YARP gateway). The central structure is a **`Partida`** containing **sequential `Juego`s**, each a **`JuegoTrivia`** or **`JuegoBDT`**.
 
-| Clase | Tipo | Responsabilidad |
+## Identidad context (service: Identity)
+
+| Class | Type | Responsibility |
 |---|---|---|
-| Usuario | Entidad / Agregado raíz | Representa un usuario local vinculado a Keycloak. |
+| Usuario | Aggregate root | Local user linked to Keycloak; `Crear/EditarDatosGenerales/Desactivar/ModificarRol/EmitirCredencialTemporal/MarcarCredencialDefinitiva`. |
+| Rol | Aggregate root | Holds `Privilegios` and `PermisosFuncionales`; `AsignarPrivilegio/Retirar/.../EstaProtegido`. Only Administrador/Operador/Participante. |
 | RolUsuario | Enum | Administrador, Operador, Participante. |
 | EstadoUsuario | Enum | Activo, Desactivado. |
-| KeycloakId | Value Object | Referencia externa al usuario autenticado. |
+| EstadoCredencial | Enum | TemporalPendiente, Definitiva. |
+| Privilegio | Enum | GestionarUsuarios, ModificarRolDeUsuario, GestionarPermisosDeRol, GestionarEquiposAdministrativamente, ConsultarOperativoModoLectura. |
+| PermisoFuncional | Enum | GestionarPartidas, GestionarEquipos, ParticiparEnPartidas. |
+| KeycloakId, Correo, RolId, NombreRol | Value Objects | External reference and role identity. |
 
-### Reglas relevantes
+## Equipos context (service: Identity)
 
-- UMBRAL no almacena contraseñas.
-- El rol se asigna inicialmente.
-- El usuario puede editar datos generales o ser desactivado.
-
-## Contexto de Equipos
-
-| Clase | Tipo | Responsabilidad |
+| Class | Type | Responsibility |
 |---|---|---|
-| Equipo | Agregado raíz | Controla integrantes, código, liderazgo y estado. |
-| Participante | Entidad hija | Miembro de equipo, con `UsuarioId`, fecha y `EsLider`. |
-| EquipoId | Value Object | Identificador del equipo. |
-| NombreEquipo | Value Object | Nombre validable del equipo. |
-| CodigoAcceso | Value Object | Código generado y comparado para unirse. |
+| Equipo | Aggregate root | Controls 1–5 members, leadership, and state; receives members via `InvitacionEquipo`. |
+| ParticipanteEquipo | Child entity | Team member with `UsuarioId`, join date, `EsLider`. |
+| InvitacionEquipo | Aggregate root | Created by the leader from a dynamic list; `Aceptar/Rechazar`; does not expire. Independent of `Convocatoria`. |
+| HistorialEquipoUsuario | Aggregate root | Stores only the names of teams a participant belonged to. |
+| EquipoId, NombreEquipo, InvitacionEquipoId, ParticipanteEquipoId | Value Objects | Identifiers and name. |
 | EstadoEquipo | Enum | Activo, Desactivado, Eliminado. |
+| EstadoInvitacion | Enum | Pendiente, Aceptada, Rechazada. |
 
-### Métodos principales
+> Obsolete: there is no `CodigoAcceso`/team access code; members join only via `InvitacionEquipo`.
 
-- `Crear()`
-- `AgregarParticipante()`
-- `RemoverParticipante()`
-- `TransferirLiderazgo()`
-- `Eliminar()`
-- `Desactivar()`
+## Participación context (service: Operaciones de Sesion)
 
-## Contexto de Trivia
-
-### FormularioTrivia
-
-| Clase | Tipo | Responsabilidad |
+| Class | Type | Responsibility |
 |---|---|---|
-| FormularioTrivia | Agregado raíz | Plantilla de preguntas creada por operador. |
-| Pregunta | Entidad hija | Pregunta con opciones, puntaje y tiempo. |
-| Opcion | Value Object | Texto y bandera de respuesta correcta. |
-| PuntajeAsignado | Value Object | Puntaje específico de pregunta. |
-| TiempoLimite | Value Object | Segundos para responder. |
+| InscripcionPartida | Aggregate root | Partida-level inscription; `CrearIndividual/PreinscribirEquipo/ConfirmarSiCumpleMinimos/Cancelar`. One active per participant/team. |
+| Convocatoria | Child entity | Generated when a leader preinscribes a team; `Aceptar/Rechazar`; affects only that partida. |
+| InscripcionId, ConvocatoriaId | Value Objects | Identifiers. |
+| EstadoInscripcion | Enum | Preinscrita, Confirmada, Cancelada, ExcluidaPorMinimos. |
+| EstadoConvocatoria | Enum | Pendiente, Aceptada, Rechazada. |
+| Modalidad | Enum | Individual, Equipo (defined in Partidas; referenced here). |
 
-### PartidaTrivia
+## Partidas context (service: Partidas)
 
-| Clase | Tipo | Responsabilidad |
+| Class | Type | Responsibility |
 |---|---|---|
-| PartidaTrivia | Agregado raíz | Controla ciclo de vida, participantes, pregunta actual y respuestas. |
-| Participante | Entidad hija | Competidor activo; representa usuario o equipo. |
-| RespuestaTrivia | Entidad hija | Respuesta enviada por participante/equipo. |
-| PartidaId | Value Object | Identificador de partida. |
-| Modalidad | Enum | Individual o Equipos. |
+| Partida | Aggregate root | Contains 1..* `Juego` in sequential order; `Crear/AgregarJuego/PublicarPartida/ValidarMinimosParticipacion/IniciarPartida/CancelarAutomaticamentePorMinimos/ActivarSiguienteJuego/CalcularRankingConsolidado/CancelarPartida/FinalizarPartida`. |
+| Juego | Base entity | `Orden`, `TipoJuego`, `EstadoJuego`, `PartidaId`; `Activar/Finalizar`. Specialized as `JuegoTrivia` / `JuegoBDT`. |
+| RankingConsolidado | Value Object | `ConsolidarPorJuegosGanadosPuntosYTiempo()`; computed on finish (games won → total points → lowest time). |
+| PartidaId, JuegoId, NombrePartida, TiempoInicio, MinimosParticipacion, MaximosParticipacion | Value Objects | Identity and configuration. |
+| TipoJuego | Enum | Trivia, BusquedaDelTesoro. |
+| EstadoJuego | Enum | Pendiente, Activo, Finalizado. |
 | EstadoPartida | Enum | Lobby, Iniciada, Cancelada, Terminada. |
+| Modalidad | Enum | Individual, Equipo (one per partida, all games). |
+| ModoInicioPartida | Enum | Manual, Automatico, ManualYAutomatico. |
 
-### Métodos principales
+## Trivia context (`JuegoTrivia`)
 
-- `PublicarLobby()`
-- `IniciarPartida()`
-- `RegistrarRespuestaDefinitiva()`
-- `AcumularPuntaje()`
-- `CancelarPartida()`
-- `FinalizarPartida()`
+> Config lives in **Partidas**; runtime in **Operaciones de Sesion**; scoring/ranking in **Puntuaciones**. There is no `FormularioTrivia`: `JuegoTrivia` owns its questions directly.
 
-## Contexto de Búsqueda del Tesoro
-
-| Clase | Tipo | Responsabilidad |
+| Class | Type | Responsibility |
 |---|---|---|
-| PartidaBDT | Agregado raíz | Controla etapas, participantes, QR, pistas y avance. |
-| EtapaBDT | Entidad hija | Etapa con orden, QR esperado, tiempo y puntaje. |
-| Participante | Entidad hija | Explorador activo, usuario/equipo, puntaje y ubicación. |
-| TesoroQR | Entidad hija | Envío de imagen QR y resultado de validación. |
-| Pista | Entidad hija | Pista enviada por operador. |
-| AreaBusqueda | Value Object | Descripción textual del área. |
-| UbicacionGeografica | Value Object | Latitud, longitud y fecha. |
-| CodigoQREsperado | Value Object | Código QR esperado y comparación. |
-| PuntajeEtapa | Value Object | Puntaje al resolver etapa. |
-| EstadoEtapa | Enum | Pendiente, Activa, Resuelta, Cerrada. |
+| JuegoTrivia | Aggregate root (specialization of `Juego`) | Owns `Pregunta`s (created with the game), `ParticipanteTrivia`, `RespuestaTrivia`; `AgregarPregunta/RegistrarRespuestaDefinitiva/CerrarPregunta/AvanzarPregunta/AcumularPuntaje/ActualizarRanking/Finalizar`. |
+| Pregunta | Child entity | Text, `Opciones`, `PuntajeAsignado`, `TiempoLimite`; created with the game. |
+| Opcion | Value Object | Text + `EsCorrecta`. |
+| ParticipanteTrivia | Child entity | `PuntajeAcumulado`, `TiempoRespuestaAcumulado`; maps to `UsuarioId` or `EquipoId`. |
+| RespuestaTrivia | Child entity | One per participant/question; `ValidarContraPregunta`. |
+| PuntajeAsignado, TiempoLimite, RankingTrivia, ParticipanteId | Value Objects | Direct score, availability timer, native ranking. |
+| TipoParticipante | Enum | Usuario, Equipo. |
+
+## BDT context (`JuegoBDT`)
+
+> Config lives in **Partidas**; runtime in **Operaciones de Sesion**; scoring/ranking in **Puntuaciones**.
+
+| Class | Type | Responsibility |
+|---|---|---|
+| JuegoBDT | Aggregate root (specialization of `Juego`) | Owns `EtapaBDT`s, `ParticipanteBDT`, `TesoroQR`, `Pista`; `ActivarPrimeraEtapa/RegistrarTesoro/ValidarTesoro/CerrarEtapa/AvanzarEtapa/ActualizarRanking/EnviarPista/Finalizar`. |
+| EtapaBDT | Child entity | `Orden`, `CodigoQREsperado`, `PuntajeAsignado`, `TiempoLimite`, `EstadoEtapa`, `GanadorId`, `TiempoResolucion`. Won stage grants its `Puntaje`. |
+| ParticipanteBDT | Child entity | `PuntajeAcumulado`, `EtapasGanadas` (informative), `TiempoAcumuladoEtapasGanadas`, `UbicacionActual`, `GeolocalizacionAutorizada`. |
+| TesoroQR | Child entity | One per upload attempt; `MarcarValido/MarcarInvalido/MarcarNoLegible/MarcarNoCorrespondeEtapaActiva`. |
+| Pista | Child entity | Operator clue to a participant/team. |
+| AreaBusqueda, CodigoQREsperado, PuntajeAsignado, UbicacionGeografica, TiempoResolucionEtapa, RankingBDT | Value Objects | Text area, expected QR text, per-stage points, location, won-stage time, native ranking. |
+| EstadoEtapa | Enum | Pendiente, Activa, Ganada, CerradaPorTiempo, Cerrada. |
 | ResultadoValidacionQR | Enum | Valido, Invalido, NoLegible, NoCorrespondeEtapaActiva. |
 
-### Métodos principales
+## Auditoría context (cross-cutting; materialized in Puntuaciones and Operaciones de Sesion)
 
-- `PublicarLobby()`
-- `IniciarPartida()`
-- `ValidarHito()`
-- `AvanzarEtapa()`
-- `DespacharPista()`
-- `CancelarPartida()`
-- `FinalizarPartida()`
-
-## Clases transversales de inscripción
-
-| Clase | Tipo | Responsabilidad |
+| Class | Type | Responsibility |
 |---|---|---|
-| InscripcionPartida | Entidad | Representa solicitud o registro de participación individual/equipo. |
-| Convocatoria | Entidad | Invitación a integrantes de equipo. |
-| EstadoInscripcion | Enum | Pendiente, Aceptada, Rechazada, Cancelada. |
-| EstadoConvocatoria | Enum | Pendiente, Aceptada, Rechazada. |
+| RegistroAuditoria | Aggregate root | Groups historical events of a partida. |
+| EventoHistorial | Child entity | A recorded fact. |
+| TipoEventoHistorial | Enum | CambioEstado, Inscripcion, Convocatoria, InvitacionEquipo, JuegoActivado, JuegoFinalizado, RespuestaTrivia, TesoroSubido, ValidacionQR, PistaEnviada, Ubicacion, Ranking, RankingConsolidado, Puntaje, Cancelacion, Resultado, EquipoEliminado, CambioRol, PermisosRol. |
 
-## Contexto de Auditoría
+## Main relationships
 
-| Clase | Tipo | Responsabilidad |
-|---|---|---|
-| RegistroAuditoria | Agregado raíz | Agrupa eventos históricos de una partida. |
-| EventoHistorial | Entidad hija | Representa un evento ocurrido. |
-| TipoEventoHistorial | Enum | Clasifica cambios, inscripciones, respuestas, tesoros, validaciones, pistas, ubicación, puntaje, cancelación y resultado. |
-
-## Relaciones principales
-
-| Relación | Cardinalidad / regla |
+| Relationship | Cardinality / rule |
 |---|---|
-| Usuario — Equipo.Participante | Un usuario puede pertenecer como máximo a un equipo. |
-| Equipo — Participante | Un equipo contiene de 1 a 5 integrantes según el diagrama; revisar ambigüedad del modelo inicial. |
-| FormularioTrivia — Pregunta | Un formulario tiene una o más preguntas. |
-| Pregunta — Opcion | Una pregunta tiene dos o más opciones y al menos una respuesta correcta. |
-| PartidaTrivia — FormularioTrivia | Una partida usa un formulario válido. |
-| PartidaTrivia — Participante | Una partida tiene participantes activos. |
-| PartidaTrivia — RespuestaTrivia | Una partida registra respuestas. |
-| PartidaBDT — EtapaBDT | Una BDT tiene una o más etapas. |
-| EtapaBDT — TesoroQR | Una etapa puede recibir varios envíos. |
-| PartidaBDT — Pista | Una partida puede tener pistas enviadas. |
-| Partida — InscripcionPartida | Una partida puede tener múltiples inscripciones. |
-| InscripcionPartida — Convocatoria | Una inscripción por equipo puede generar convocatorias. |
-| RegistroAuditoria — EventoHistorial | Un registro agrupa eventos históricos. |
+| Usuario — ParticipanteEquipo | 1 — 0..1 (at most one active team). |
+| Equipo — ParticipanteEquipo | 1 — 1..5. |
+| Equipo — InvitacionEquipo | 1 — 0..* . |
+| Usuario — HistorialEquipoUsuario | 1 — 0..1. |
+| Partida — Juego | 1 — 1..* in sequential order. |
+| Juego — JuegoTrivia / JuegoBDT | inheritance by `TipoJuego`. |
+| Partida — RankingConsolidado | 1 — 0..1 (computed on finish). |
+| Partida — InscripcionPartida | 1 — 0..* (single lobby phase; one inscription per participant/team). |
+| InscripcionPartida — Convocatoria | 1 — 0..* . |
+| JuegoTrivia — Pregunta | 1 — 1..* (created with the game). |
+| Pregunta — Opcion | 1 — 2..* . |
+| JuegoTrivia — ParticipanteTrivia / RespuestaTrivia | 1 — 1..* / 0..* . |
+| JuegoBDT — EtapaBDT / ParticipanteBDT / Pista | 1 — 1..* / 1..* / 0..* . |
+| EtapaBDT — TesoroQR | 1 — 0..* (multiple attempts). |
+| Usuario — Rol | * — 1; Rol — Privilegio / PermisoFuncional 1 — 0..*. |
+| RegistroAuditoria — EventoHistorial | 1 — 0..* ; Partida — RegistroAuditoria 1 — 1. |

@@ -17,15 +17,17 @@ Base yourself on:
 Use only:
 
 - `contracts/events/identity-events.md`
+- `contracts/events/partidas-events.md`
+- `contracts/events/operaciones-sesion-events.md`
+- `contracts/events/puntuaciones-events.md`
+
+Do not use (obsolete / superseded — archived under `contracts/events/_legacy/` or never valid):
+
 - `contracts/events/team-events.md`
 - `contracts/events/trivia-game-events.md`
 - `contracts/events/bdt-game-events.md`
-
-Do not use:
-
 - `contracts/events/audit-events.md`
 - `contracts/events/scoring-events.md`
-- `contracts/events/session-events.md`
 - `contracts/events/trivia-events.md`
 - `contracts/events/treasure-hunt-events.md`
 
@@ -38,7 +40,7 @@ Do not use:
 - Events represent facts that already happened.
 - Do not use RabbitMQ for direct user-facing queries.
 - Do not put business decisions in consumers that belong to another service's domain.
-- Do not create Audit Service or Scoring Service events as standalone service contracts.
+- Do not create events for the obsolete / superseded services (Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service or Notification Service) as standalone service contracts.
 - Do not use generic `Mission`, `Session` or `Evidence` event names unless the SDD explicitly maps them to current UMBRAL vocabulary.
 
 ## Event naming style
@@ -81,19 +83,17 @@ Valid concepts:
 
 ## BDT ranking events
 
-BDT must not publish events implying numeric score accumulation for ranking.
+BDT ranking is based on accumulated points from won stages (sum of each won stage's `Puntaje`), tie-broken by the lowest accumulated time of the won stages. `EtapaBDTGanada` carries the stage `Puntaje`; `RankingBDTActualizado` broadcasts the recomputed order. See `docs/02-project-context/bdt-ranking-clarification.md`.
 
-Avoid as active BDT event names:
+Use these BDT event names:
 
-- `PuntajeBDTIncrementado`
-- `BdtScoreIncremented`
-- `PuntajeEtapaAsignado`
-
-Use instead:
-
-- `EtapaBDTGanada`
+- `EtapaBDTGanada` (carries stage `Puntaje`)
 - `BdtStageWon`
 - `RankingBDTActualizado`
 - `BdtRankingUpdated`
 
-BDT ranking is based on stages won and accumulated time for won stages.
+Avoid obsolete BDT event names (points now flow via `EtapaBDTGanada`'s `Puntaje` field, not as separate increment events):
+
+- `PuntajeBDTIncrementado`
+- `BdtScoreIncremented`
+- `PuntajeEtapaAsignado`

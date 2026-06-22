@@ -10,8 +10,8 @@ UMBRAL tiene **dos superficies de producto, una sola marca**: una consola web pa
 
 ### A. Consola web — Administrador y Operador (administrar y operar)
 
-- **Administrador**: gestiona usuarios y su rol inicial (crear, consultar, editar datos generales, desactivar). Trabaja sobre Identity Service.
-- **Operador**: crea formularios y partidas de Trivia y de Búsqueda del Tesoro (BDT), las publica, las inicia, supervisa lobbies, sigue rankings, revisa tesoros/validación de QR y envía pistas. Trabaja sobre Trivia Game Service y BDT Game Service.
+- **Administrador**: gestiona usuarios y su rol inicial (crear, consultar, editar datos generales, desactivar). Trabaja sobre Identity.
+- **Operador**: crea formularios y partidas de Trivia y de Búsqueda del Tesoro (BDT), las publica, las inicia, supervisa lobbies, sigue rankings, revisa tesoros/validación de QR y envía pistas. Sus flujos pasan por el gateway YARP y se materializan en Partidas (configuración), Operaciones de Sesion (runtime) y Puntuaciones (rankings/historial).
 
 **Contexto (escena física):** laptop/escritorio, en dos momentos por igual:
 1. **Antes del evento (setup):** configura con calma usuarios, formularios y partidas; manda la precisión y cero ambigüedad.
@@ -21,9 +21,9 @@ Ninguno de los dos modos puede sacrificar al otro. **Registro emocional:** "en c
 
 ### B. App móvil — Participante y Líder de equipo (jugar)
 
-- **Participante**: lista y filtra partidas publicadas, gestiona equipo (crear, unirse por código, salir), se une a partidas individuales, responde Trivia, ve resultados y ranking, ve la etapa activa de BDT con su tiempo, sube la foto del tesoro QR, recibe pistas y comparte geolocalización cuando BDT lo exige.
+- **Participante**: lista y filtra partidas publicadas, gestiona equipo (crear, responder una InvitacionEquipo, salir), se une a partidas individuales, responde Trivia, ve resultados y ranking, ve la etapa activa de BDT con su tiempo, sube la foto del tesoro QR, recibe pistas y comparte geolocalización cuando BDT lo exige.
 - **Líder de equipo** (actuando como participante): además preinscribe al equipo y acepta/rechaza convocatorias.
-- Trabaja sobre Team / Trivia Game / BDT Game Services vía los contratos documentados.
+- Trabaja siempre a través del gateway YARP, consumiendo capacidades de Identity, Partidas, Operaciones de Sesion y Puntuaciones según el contrato documentado. Cualquier carpeta de código con nombres antiguos de servicios es deuda de migración, no frontera activa.
 
 **Contexto (escena física):** teléfono en una mano, dos escenas **por igual**:
 1. **Trivia, sentado en interior:** responde preguntas bajo una cuenta regresiva, ambiente controlado.

@@ -15,10 +15,10 @@ Use this command before implementing any UMBRAL feature.
 4. Confirm the HU/folder appears in the active specs list.
 5. Confirm the SDD folder is not under `docs/04-sdd/specs/_deprecated/`.
 6. Confirm the owning service is one of:
-   - Identity Service
-   - Team Service
-   - Trivia Game Service
-   - BDT Game Service.
+   - Identity
+   - Partidas
+   - Operaciones de Sesion
+   - Puntuaciones.
 7. If any validation fails, stop and report the blocker.
 
 ## Required steps

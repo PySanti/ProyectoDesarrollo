@@ -1,76 +1,79 @@
 # Project Brief — UMBRAL
 
-## Identidad del proyecto
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-**UMBRAL** es una plataforma web para operar experiencias interactivas en tiempo real bajo dos modos de juego:
+## Project identity
+
+**UMBRAL** is a platform for operating real-time interactive experiences under exactly two game modes:
 
 1. **Trivia**
-2. **Búsqueda del Tesoro** o **BDT**
+2. **Búsqueda del Tesoro** (BDT)
 
-No se deben crear, modelar ni implementar modos adicionales.
+No additional game modes, generic workflows, missions, or immersive dynamics may be created, modeled, or implemented.
 
-## Problema que resuelve
+## Core organizing concept: Partida and Juego
 
-La organización actualmente coordina experiencias inmersivas mediante procesos manuales y dispersos: hojas de cálculo, mensajería, decisiones manuales del operador y seguimiento no centralizado. Esto genera retrasos, inconsistencias en puntajes, falta de trazabilidad y una experiencia poco uniforme para operadores y participantes.
+A **`Partida`** is the unit that is published, joined, and ranked. It contains **one or more `Juego`** played in **sequential order**, and each `Juego` is exactly one of two specializations: **`JuegoTrivia`** or **`JuegoBDT`** (by `TipoJuego`).
 
-UMBRAL centraliza la creación, publicación, inscripción, ejecución, validación, puntuación, ranking, geolocalización operativa y trazabilidad de partidas.
+- Lobby, inscription, modality, start mode, lifecycle, and the consolidated ranking are **partida-level**.
+- Each `Juego` has its own internal sub-state (`Pendiente` / `Activo` / `Finalizado`) and activates sequentially when the partida starts.
 
-## Objetivo del sistema
+## Objective
 
-Centralizar y controlar partidas interactivas en tiempo real, permitiendo:
+Centralize and control real-time interactive partidas, supporting: creation of Trivia/BDT partidas with one or more sequential games; team management; individual or team inscription; lobby operation; synchronized execution; validation of Trivia answers or BDT QR treasures; score accumulation; native and consolidated ranking; operational geolocation in BDT; history; real-time communication; and asynchronous event publication.
 
-- creación de partidas de Trivia y BDT;
-- gestión de equipos;
-- inscripción individual o por equipos;
-- operación de lobbies;
-- ejecución sincronizada;
-- validación de respuestas o tesoros QR;
-- cálculo y acumulación de puntajes;
-- ranking en tiempo real;
-- historial de eventos;
-- comunicación en tiempo real;
-- publicación de eventos asíncronos.
+## Actors
 
-## Actores
-
-| Actor | Responsabilidad |
+| Actor | Responsibility |
 |---|---|
-| Administrador | Gestiona usuarios, roles iniciales, datos generales, desactivación de usuarios y gestión administrativa de equipos. |
-| Operador | Crea formularios, partidas, etapas, lobbies; inicia/cancela partidas; supervisa ranking, participantes, tesoros, pistas e historial. |
-| Participante | Crea o se une a equipos, participa individualmente o como líder/miembro, responde Trivia, sube QR en BDT, recibe actualizaciones. |
-| Líder de equipo | Condición de negocio de un participante dentro de un equipo. Puede inscribir al equipo en partidas por equipo. |
-| Sistema | Ejecuta validaciones automáticas, publicación de eventos, actualización de ranking y comunicación en tiempo real. |
+| Administrador | Manages users, initial roles, general data, user deactivation, per-role permission/governance, and administrative team management (web client). |
+| Operador | Creates and configures partidas and their sequential games (Trivia questions, BDT stages), publishes, starts, cancels, and supervises live operation (web client). |
+| Participante | Plays individual partidas, creates or joins teams via invitation, answers Trivia, uploads BDT QR, receives clues, shares geolocation (mobile client). |
+| Líder de equipo | Business attribute of a participant (team creator or leadership transferee), not a Keycloak role. May inscribe the team in team partidas and invite members. |
+| Sistema | Runs automatic validations, sequential game activation, event publication, ranking updates, and real-time communication (backend). |
 
-## Modos de juego
+## Game modes
 
-### Trivia
+### Trivia (`JuegoTrivia`)
 
-Modo síncrono basado en formularios de preguntas. Una partida de Trivia se crea a partir de un formulario válido, se publica en lobby, acepta participantes/equipos y ejecuta preguntas sincronizadas con temporizador.
+Synchronous mode. A `JuegoTrivia` owns its `Pregunta`s (created with the game — no question bank, no reuse), each with options, a correct answer, `PuntajeAsignado`, and time limit. All participants see the same question with a synchronized timer; a question closes for everyone on the first correct answer or on timeout. In `Equipo` modality the valid answer is the first option sent by any active member.
 
-### Búsqueda del Tesoro
+### Búsqueda del Tesoro (`JuegoBDT`)
 
-Modo basado en etapas. Cada etapa tiene un QR esperado y un temporizador. El participante o equipo sube una imagen del QR; el sistema intenta decodificarla y validar el contenido contra el QR esperado de la etapa activa.
+Stage-based mode. A `JuegoBDT` owns its `EtapaBDT`s, each with expected QR **text**, a per-stage `Puntaje`, and a time limit. `AreaBusqueda` is descriptive text. The participant uploads a QR photo; the backend decodes it and compares it to the expected text. A stage closes on first correct validation or timeout; in `Equipo` any active member's correct upload wins it for the whole team. **Geolocation is mandatory** for an active BDT game (location ~every 2 seconds).
 
-## Arquitectura obligatoria
+## Target architecture
 
-- Frontend: React.
-- Backend: .NET Core.
-- Persistencia: PostgreSQL.
-- ORM: Entity Framework Core.
-- Casos de uso: CQRS + MediatR.
-- Tiempo real: WebSockets / SignalR.
-- Mensajería asíncrona: RabbitMQ.
-- Autenticación y autorización base: Keycloak.
-- Ejecución local: Docker Compose.
-- Arquitectura: Hexagonal / Clean Architecture.
-- Pruebas: unitarias, integración y E2E cuando aplique.
+Four independent .NET 8 microservices (Clean Architecture + CQRS via MediatR) behind a **mandatory YARP gateway**:
 
-## Principios obligatorios
+- **Identity** — users/Keycloak references, roles+permissions+governance per role, temporary credentials and async email; teams, membership, leadership/transfer, `InvitacionEquipo`, team-name history.
+- **Partidas** — `Partida`+`Juego` configuration (sequential order, modality, min/max participation, start mode/time); Trivia `Pregunta`s and BDT `EtapaBDT`s.
+- **Operaciones de Sesion** — live runtime (publish→Lobby, manual/automatic start, question/stage sync, answer & QR validation, sequential advance, clue delivery, geolocation, reconnection, real-time comms) plus inscriptions and convocatorias.
+- **Puntuaciones** — scores, won stages, native rankings (during and at end), consolidated ranking, team-performance queries, audit/history materialization (read/projection model fed by RabbitMQ, broadcasts via SignalR).
 
-- El dominio no depende de infraestructura.
-- Los controladores no contienen reglas de negocio.
-- Los comandos modifican estado.
-- Las consultas no modifican estado.
-- Las reglas de negocio viven en agregados, servicios de dominio o handlers de aplicación según corresponda.
-- Los eventos relevantes deben publicarse para auditoría, ranking, historial, trazabilidad y tiempo real.
-- Las acciones de usuario deben respetar rol, liderazgo, estado de partida, modalidad y cupos.
+Each service has its own PostgreSQL database (`umbral_identity`, `umbral_partidas`, `umbral_operaciones_sesion`, `umbral_puntuaciones`); a service never touches another's DB.
+
+## Mandatory technology
+
+- Web client: React + Vite + TypeScript (Administrador / Operador).
+- Mobile client: React Native + Expo (Participante).
+- Backend: .NET 8.
+- Persistence: PostgreSQL + Entity Framework Core.
+- Use cases: CQRS + MediatR.
+- Real-time: WebSockets / SignalR (through the gateway).
+- Async messaging: RabbitMQ.
+- Authentication and base authorization: Keycloak (realm `UMBRAL-UCAB`).
+- Local execution: Docker Compose.
+- Architecture: Hexagonal / Clean Architecture.
+- Tests: unit, integration, contract and E2E where applicable.
+
+## Mandatory principles
+
+- The domain does not depend on infrastructure.
+- Controllers contain no business rules.
+- Commands mutate state; queries do not.
+- Business rules live in aggregates, domain services, or application handlers as appropriate.
+- Cross-service async workflows use RabbitMQ; user-visible real-time updates use SignalR/WebSockets through the gateway.
+- The gateway validates the Keycloak JWT and authorizes by base role at the route level; fine-grained functional-permission authorization stays inside the services.
+- A service must never read or write another service's database.
+- The backend is authoritative for business rules; clients validate for usability only.

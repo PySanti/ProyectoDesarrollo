@@ -17,10 +17,10 @@ Use this command to implement exactly one pending task from a feature `tasks.md`
 6. Confirm `spec.md`, `design.md`, `tasks.md`, and `acceptance.md` exist.
 7. Confirm none of those files contains unresolved TODO.
 8. Confirm the owning service is one of:
-   - Identity Service
-   - Team Service
-   - Trivia Game Service
-   - BDT Game Service.
+   - Identity
+   - Partidas
+   - Operaciones de Sesion
+   - Puntuaciones.
 9. Confirm required contracts exist before implementing endpoints/events.
 10. If any validation fails, stop and report the blocker.
 

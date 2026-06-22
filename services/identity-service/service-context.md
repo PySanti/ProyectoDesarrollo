@@ -1,10 +1,16 @@
 # Identity Service Context
 
+## Migration State
+
+This folder still maps by name to the current target `Identity` service, but it belongs to the previous implementation layout and may require future code migration before it fully satisfies the current doctrine.
+
+Current target services are `Identity`, `Partidas`, `Operaciones de Sesion`, and `Puntuaciones`, behind the mandatory YARP gateway.
+
+Use current documentation under `docs/02-project-context/`, `docs/03-microservices/`, and `contracts/` before planning new work.
+
 ## Responsibility
 
-Identity Service owns identity-related application behavior inside UMBRAL.
-
-It integrates with Keycloak and stores only local references needed by the UMBRAL domain.
+Identity owns identity, access governance and teams in the current doctrine. It integrates with Keycloak, stores only local references needed by the UMBRAL domain, absorbs the former team boundary, and owns temporary-credential email responsibility.
 
 ## Owns
 
@@ -14,46 +20,36 @@ It integrates with Keycloak and stores only local references needed by the UMBRA
 - User consultation.
 - Editing general user data.
 - User deactivation when required by SDD.
-- Role read model for authorization decisions.
-- Temporary password generation for new users (random, per-user, never persisted).
-- Welcome/credential email notification via SMTP: welcome email on user creation (HU-01) and credential re-send on email change while a temporary password is still pending (HU-02).
+- Roles, functional permissions and governance privileges per role.
+- Role modification for operators and participants, including promotion to administrator, propagated to Keycloak.
+- Temporary-credential state and temporary password issuance; passwords are never persisted by UMBRAL.
+- Team membership, leadership, invitations (`InvitacionEquipo`) and team-name history.
+- Async temporary-credential email responsibility via RabbitMQ under the current doctrine.
 
 ## Does not own
 
-- Team leadership.
-- Team membership.
 - Trivia gameplay.
 - BDT gameplay.
 - QR validation.
 - Game ranking.
 - Keycloak internal password storage.
 
-## Active first-sprint stories
+## Legacy implementation notes
 
-| HU | Feature | Client |
-|---|---|---|
-| HU-01 | Crear usuario con rol inicial | React web |
-| HU-02 | Consultar y editar datos generales de usuario | React web |
+Existing code in this folder may still reflect first-sprint behavior, synchronous SMTP, old SDDs or pre-migration assumptions. Treat that as migration debt until a current-doctrine SDD updates the implementation.
 
 ## Business rules
 
 - UMBRAL must not store passwords or sensitive credentials.
 - Role is assigned during user creation.
-- Role cannot be modified later from UMBRAL unless a future SDD explicitly changes this rule.
+- Role modification follows current SRS rules: an administrator may modify operators and participants, including promotion to administrator, but may not modify an administrator's role.
 - General user data can be edited by administrator according to SRS.
 - Identity Service may coordinate with Keycloak through an infrastructure adapter.
-- On user creation, a welcome email with a per-user temporary password is sent synchronously; the password is never persisted (lives only in memory during the request — RB-U03).
-- On editing a user's email, if the user still has a pending temporary password (`UPDATE_PASSWORD` action in Keycloak, i.e. has not completed first login), a new temporary password is generated/reset, the email is synced in Keycloak, and the credentials are re-sent to the new email.
-- If the email cannot be delivered, the operation fails (`502`) and is compensated/reverted (no orphan or inconsistent state).
-- These notifications are synchronous (no RabbitMQ); the `UsuarioCreado` integration event remains unused for this flow.
+- On user creation, a temporary password is issued and delivered according to the current Identity event/email design.
+- On editing a user's email while the credential remains temporary, a new temporary credential is issued and delivered according to the current Identity event/email design.
 
-> Extensión 2026-06-15 documentada en `docs/04-sdd/specs/HU-01-...` y `HU-02-...` (spec/design/tasks/acceptance) y en `contracts/http/identity-api.md`. SMTP se configura por env (`SMTP_*`, ver `.env.example` / `GUIA-LEVANTAMIENTO.md`).
+> Legacy implementation evidence for older HU-01/HU-02 slices is not active doctrine unless it is regenerated under the current SDD workflow.
 
 ## Expected SDD ownership
 
-HU-01 and HU-02 must create SDD folders before implementation:
-
-```txt
-docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/
-docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/
-```
+All new Identity work must use a current spec listed in `docs/04-sdd/SPECS-LIST.md` and the current contracts under `contracts/http/identity-api.md` and `contracts/events/identity-events.md`.

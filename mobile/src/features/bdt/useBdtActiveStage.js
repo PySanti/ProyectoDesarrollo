@@ -16,7 +16,9 @@ function defaultCreateCountdownInterval(callback) {
  * UI sea presentacional (registro de juego) y la lógica siga siendo **testeable** sin acoplarse al render.
  * Mantiene las dependencias inyectables (permiso, realtime, reloj, intervalo) que usan los tests:
  *   - gatea el fetch tras el permiso de geolocalización (denegado ⇒ no consulta la etapa),
- *   - refresca solo ante el evento documentado `PartidaBDTIniciada` de la misma partida,
+ *   - refresca solo ante el evento `PartidaBDTIniciada` de la misma partida (nombre heredado del antiguo
+ *     agregado PartidaBDT; deuda de migración — la doctrina actual usa Partida + JuegoBDT con eventos a nivel
+ *     de partida/juego; ver `docs/02-project-context/documentation-migration-status.md`),
  *   - corre una cuenta regresiva (intervalo de 1s) derivando `remainingSeconds` de `cierraEnUtc`,
  *   - deriva `uploadEnabled` (puede subir + permiso + no expirada).
  *

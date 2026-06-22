@@ -71,9 +71,8 @@ Instead:
 Use actual filenames present in the project:
 
 - `docs/01-project-source/srs.md`
-- `docs/01-project-source/historias de usuario.md`
-- `docs/01-project-source/modelo de dominio.md`
-- `docs/01-project-source/diagrama de clases.md`
+- `docs/01-project-source/modelo-de-dominio.md`
+- `docs/01-project-source/diagrama-de-clases.md`
 - `docs/01-project-source/microservicios.md`
 - `docs/01-project-source/enunciado-proyecto.md`
 - `docs/02-project-context/known-ambiguities-and-decisions.md`
@@ -88,12 +87,12 @@ Use actual filenames present in the project:
 
 Valid owning services are only:
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
 
-Stop if a feature points to Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service as owning service.
+Stop if a feature points to Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service or Notification Service as owning service (these are obsolete / superseded).
 
 ## Resolved business decisions
 

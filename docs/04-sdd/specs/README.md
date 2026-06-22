@@ -1,30 +1,12 @@
-# Active SDD Specs
+# Active Current-Doctrine Specs
 
-This folder must contain only active SDD specs from:
+Only specs listed in `../SPECS-LIST.md` are active.
 
-```txt
-docs/04-sdd/SPECS-LIST.md
-```
+Do not implement from `_legacy-implementation-evidence/`.
 
-## Current rule
+Each active spec must contain:
 
-Do not implement from any spec folder unless:
-
-1. its folder name appears in `docs/04-sdd/SPECS-LIST.md`;
-2. it has `spec.md`, `design.md`, `tasks.md` and `acceptance.md`;
-3. none of those files contains unresolved TODO sections;
-4. the owning service is one of:
-   - Identity Service
-   - Team Service
-   - Trivia Game Service
-   - BDT Game Service.
-
-## Deprecated specs
-
-Old specs must be moved to:
-
-```txt
-docs/04-sdd/specs/_deprecated/
-```
-
-Do not read deprecated specs for implementation.
+- `spec.md`
+- `design.md`
+- `tasks.md`
+- `acceptance.md`

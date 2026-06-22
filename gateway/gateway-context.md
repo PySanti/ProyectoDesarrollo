@@ -2,16 +2,18 @@
 
 ## Purpose
 
-The gateway, if included in the implementation, is an entry-point/routing component. It does not own domain logic and must not implement business rules.
+The gateway is mandatory. It is the YARP entry-point/routing component for all web and mobile client traffic, including SignalR/WebSocket traffic. It does not own domain logic and must not implement business rules.
 
 ## Active backend services
 
 The gateway may route requests only to these backend services:
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
+
+The previous `Team Service`, `Trivia Game Service` and `BDT Game Service` names are legacy implementation boundaries, not active gateway targets.
 
 ## Explicit non-services
 
@@ -29,7 +31,9 @@ The gateway may:
 
 - forward HTTP requests to the owning service;
 - expose a unified frontend-facing base URL;
-- centralize cross-cutting concerns such as authentication forwarding, request correlation, logging or CORS configuration;
+- validate the Keycloak JWT;
+- apply coarse route-level authorization by base role (`Administrador`, `Operador`, `Participante`) without querying Identity on every request;
+- centralize cross-cutting concerns such as request correlation, logging or CORS configuration;
 - route WebSocket/SignalR connections when the approved design requires it.
 
 The gateway must not:
@@ -45,10 +49,10 @@ The gateway must not:
 
 | Path family | Owning service |
 |---|---|
-| `/api/identity/*` | Identity Service |
-| `/api/users/*` | Identity Service |
-| `/api/teams/*` | Team Service |
-| `/api/trivia/*` | Trivia Game Service |
-| `/api/bdt/*` | BDT Game Service |
+| `/api/identity/*` | Identity |
+| `/api/partidas/*` | Partidas |
+| `/api/operaciones-sesion/*` | Operaciones de Sesion |
+| `/api/puntuaciones/*` | Puntuaciones |
+| `/hubs/*` | Gateway-routed SignalR/WebSockets |
 
 Final endpoint paths must be confirmed in the related SDD and `contracts/http/*.md` before implementation.

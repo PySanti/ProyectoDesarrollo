@@ -1,68 +1,78 @@
 # Design Patterns Catalog — UMBRAL
 
-Este catálogo define cómo evidenciar patrones de diseño sin sobreingeniería.
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-## Regla general
+This catalog defines how to evidence design patterns without over-engineering, applied across the four target services (Identity, Partidas, Operaciones de Sesion, Puntuaciones).
 
-No usar patrones por decoración. Un patrón debe resolver un problema real de diseño, reducir acoplamiento, encapsular variación o evidenciar una decisión académica defendible.
+## General rule
 
-## Patrones arquitectónicos obligatorios
+Do not use patterns for decoration. A pattern must solve a real design problem, reduce coupling, encapsulate variation, or evidence a defensible academic decision.
 
-| Patrón | Uso en UMBRAL | Evidencia |
+## Mandatory architectural patterns
+
+| Pattern | Use in UMBRAL | Evidence |
 |---|---|---|
-| CQRS | Separar escritura y lectura. | Commands, Queries, Handlers. |
-| Mediator | Orquestar casos de uso. | MediatR handlers invocados por controllers. |
-| Repository | Abstraer persistencia. | Interfaces en Application/Domain, implementaciones EF Core en Infrastructure. |
-| Adapter / Ports | Aislar infraestructura. | Adaptadores PostgreSQL, RabbitMQ, SignalR, Keycloak, QR decoder. |
-| Dependency Injection | Invertir dependencias. | Registro de servicios e interfaces por capa. |
+| CQRS | Separate writes and reads. | Commands, Queries, Handlers (`Handlers/Commands/`, `Handlers/Queries/`). |
+| Mediator | Orchestrate use cases. | MediatR handlers invoked by controllers inheriting from `BaseController`. |
+| Repository | Abstract persistence. | Interfaces defined in `Domain/`, EF Core implementations in `Infrastructure/persistence/`. |
+| Adapter / Ports | Isolate infrastructure. | Adapters for PostgreSQL, RabbitMQ, SignalR, Keycloak, QR decoder. |
+| Dependency Injection | Invert dependencies. | Per-layer service/interface registration. |
 
-## Patrones tácticos recomendados
+## Recommended tactical patterns
 
-| Patrón | Cuándo usarlo | Ejemplo |
+| Pattern | When to use | Example |
 |---|---|---|
-| Factory Method | Creación de agregados con invariantes. | `Equipo.Crear(...)`, `PartidaTrivia.Crear(...)`. |
-| Strategy | Algoritmos intercambiables. | Política de puntaje directo vs ponderado por tiempo. |
-| State | Transiciones complejas de partida/etapa. | Estados de Partida o Etapa si la lógica crece. |
-| Specification | Validaciones combinables. | Validar inscripción: estado lobby + cupo + liderazgo + equipo activo. |
-| Domain Event | Hechos del dominio. | `RespuestaTriviaValidada`, `HitoBDTEncontrado`. |
-| Observer / PubSub | Actualizaciones en tiempo real. | SignalR hubs para ranking/lobby/etapas. |
-| Outbox | Publicación confiable de eventos. | Guardar evento + publicar RabbitMQ tras commit. |
-| Unit of Work | Persistir cambios de agregado y eventos. | EF Core DbContext. |
-| Result Pattern | Respuestas de dominio sin excepciones para flujo esperado. | QR inválido, respuesta tardía, cupo lleno. |
+| Factory Method | Create aggregates with invariants. | `Equipo.Crear(...)`, `Partida.Crear(...)`, `JuegoTrivia` / `JuegoBDT` creation. |
+| Strategy | Interchangeable algorithms. | Ranking criteria (Trivia by points, BDT by won-stage points). |
+| State | Complex partida/game/stage transitions. | `EstadoPartida`, `EstadoJuego`, `EstadoEtapa` if logic grows. |
+| Specification | Combinable validations. | Validate inscription: `Lobby` state + cupo + leadership + active team + one-active-participation. |
+| Domain Event | Domain facts. | `RespuestaTriviaValidada`, `EtapaBDTGanada`, `RankingConsolidadoCalculado`. |
+| Observer / PubSub | Real-time updates. | SignalR hubs for ranking/lobby/stages/clues/geolocation. |
+| Outbox | Reliable event publication. | Persist event + publish to RabbitMQ after commit. |
+| Unit of Work | Persist aggregate changes and events. | EF Core DbContext. |
+| Result Pattern | Domain responses without exceptions for expected flow. | Invalid QR, late answer, full cupo. |
 
-## Patrones por tipo de HU
+## Patterns by HU type
 
-### Equipos
+### Identity (users, roles, teams)
 
-| HU | Patrones sugeridos |
+| HU | Suggested patterns |
 |---|---|
-| Crear equipo | Factory Method, Repository, CQRS/Mediator. |
-| Unirse a equipo | Specification o validaciones en agregado, Repository, CQRS/Mediator. |
-| Salir/transferir liderazgo | State simple o métodos de agregado, Domain Event si notifica. |
-| Eliminar equipo | Domain Event para notificación, Repository. |
+| Create user / temporary credential | Factory Method, Domain Event (`UsuarioCreado` / `CredencialTemporalEmitida`), Repository. |
+| Modify role / per-role governance | Specification or domain service, Domain Event, Repository. |
+| Create team | Factory Method (`Equipo.Crear`), Repository, CQRS/Mediator. |
+| Invite member / accept invitation | Specification or aggregate validation, Domain Event, Repository. |
+| Leave / transfer leadership / delete team | State or aggregate methods, Domain Event for notification, Repository. |
 
-### Trivia
+### Partidas (configuration)
 
-| HU | Patrones sugeridos |
+| HU | Suggested patterns |
 |---|---|
-| Crear formulario | Composite simple Formulario-Pregunta-Opción, Factory Method. |
-| Crear partida | Factory Method, Specification para formulario válido. |
-| Responder pregunta | Command Handler, Domain Event, Strategy para puntaje si hay variantes. |
-| Ranking | Domain Service, Strategy si el criterio cambia. |
-| Tiempo real | Observer/PubSub vía SignalR. |
+| Create partida with sequential games | Factory Method, Composite (Partida–Juego). |
+| Add Trivia game with its questions | Composite (JuegoTrivia–Pregunta–Opcion), Specification for completeness. |
+| Add BDT game with its stages | Composite (JuegoBDT–EtapaBDT), Specification for valid stages. |
 
-### BDT
+### Operaciones de Sesion (runtime)
 
-| HU | Patrones sugeridos |
+| HU | Suggested patterns |
 |---|---|
-| Crear BDT | Factory Method, Composite Partida-Etapa. |
-| Validar QR | Adapter para decodificador QR, Strategy si hay varios métodos. |
-| Cerrar etapa | State si la lógica crece; Domain Event. |
-| Enviar pista | Command Handler, PubSub/SignalR, Event para auditoría. |
+| Publish / start partida | State, Domain Event, Specification for minimums. |
+| Answer Trivia question | Command Handler, Domain Event, Strategy if variants. |
+| Validate QR | Adapter for QR decoder, Strategy if multiple methods. |
+| Close stage / advance | State if logic grows, Domain Event. |
+| Send clue / geolocation | Command Handler, PubSub/SignalR, Domain Event for audit. |
 
-## Sección obligatoria en cada `design.md`
+### Puntuaciones (scoring, ranking)
 
-Cada feature SDD debe incluir:
+| HU | Suggested patterns |
+|---|---|
+| Update native ranking | Domain Service (`CalculadorRankingTriviaService` / `CalculadorRankingBDTService`), Strategy. |
+| Consolidated ranking | Domain Service (`CalculadorRankingConsolidadoService`). |
+| Real-time ranking broadcast | Observer/PubSub via SignalR. |
+
+## Mandatory section in each `design.md`
+
+Each feature SDD must include:
 
 ```md
 ## Design Patterns Applied
@@ -71,19 +81,20 @@ Cada feature SDD debe incluir:
 |---|---|---|---|
 ```
 
-Si no se introduce patrón táctico adicional:
+If no additional tactical pattern is introduced:
 
 ```md
 No additional tactical pattern is introduced. The feature uses the mandatory architectural patterns: CQRS, Mediator, Repository, Adapter and Dependency Injection.
 ```
 
-## Antipatrones a evitar
+## Antipatterns to avoid
 
-| Antipatrón | Evitar porque |
+| Antipattern | Avoid because |
 |---|---|
-| God Service | Mezcla lógica de varios contextos. |
-| Anemic Domain sin reglas | Lleva reglas a handlers/controllers y debilita DDD. |
-| Controller con lógica de negocio | Rompe Clean Architecture. |
-| Shared database entre servicios | Rompe límites de microservicios. |
-| Patrón innecesario | Aumenta complejidad sin beneficio. |
-| DTO como entidad de dominio | Mezcla API con dominio. |
+| God Service | Mixes logic from several contexts. |
+| Anemic Domain without rules | Pushes rules into handlers/controllers and weakens DDD. |
+| Controller with business logic | Breaks Clean Architecture. |
+| Shared database between services | Breaks microservice boundaries. |
+| Gateway with domain logic | The gateway routes only; it owns no business rules. |
+| Unnecessary pattern | Adds complexity without benefit. |
+| DTO as domain entity | Mixes API with domain. |

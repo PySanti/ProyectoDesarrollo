@@ -24,7 +24,7 @@ se crea una nueva implementación de `LiveTriviaSource` y se cambia **una línea
 1. **Implementar `BackendLiveTriviaSource implements LiveTriviaSource`** (nuevo archivo en esta carpeta),
    recibiendo `apiBaseUrl`, `token`, `partidaId`.
 2. **Mapear cada método** (detalle en la cabecera de `liveTriviaTypes.ts`):
-   - `onQuestion` → **lo que falta**: suscribirse al hub SignalR de Trivia Game Service y emitir la
+   - `onQuestion` → **lo que falta**: suscribirse al hub SignalR del runtime de Trivia en `Operaciones de Sesion` y emitir la
      pregunta activa cuando el operador la abre; emitir `null` al cierre de la partida. El `limiteSegundos`
      y la deadline son **autoritativos del servidor** (sincronizar la cuenta regresiva a esa deadline, no
      correr un reloj local como hace el mock).
@@ -44,6 +44,7 @@ se crea una nueva implementación de `LiveTriviaSource` y se cambia **una línea
 
 - **No cambia contratos ni reglas** (`contracts/`, business rules, HUs). El mock imita las formas reales
   (`TriviaAnswerResponse`, `TriviaQuestionResultResponse`, `TriviaScoreResponse`) para que el mapeo sea 1:1.
-- Esto es **Trivia** (ranking por puntaje). El ranking de **BDT** ordena por `EtapasGanadas` +
-  `TiempoAcumuladoEtapasGanadas`, **no** por puntaje — no reutilizar este ranking ahí.
+- Esto es **Trivia** (ranking por puntaje). El ranking de **BDT** también es point-based bajo la
+  doctrina actual: ordena por puntos acumulados de etapas ganadas y desempata por menor tiempo
+  acumulado de esas etapas; `EtapasGanadas` es solo dato informativo. No reutilizar este ranking ahí.
 - Mobile = solo `Participante` / `Líder de equipo`.

@@ -1,131 +1,75 @@
 # API Contracts
 
-> **Regla de generación:** este contenido fue generado exclusivamente a partir de los archivos `diagrama de clases(2).md`, `enunciado-proyecto(1).md`, `historias de usuario(2).md`, `microservicios(2).md`, `modelo de dominio(2).md` y `srs(2).md`.
->
-> **No se agregan microservicios, endpoints, colas, eventos, bases de datos, rutas HTTP ni contratos que no estén indicados explícitamente en esas fuentes.** Cuando una responsabilidad aparece en el SRS/modelo pero no está asignada a un microservicio en `microservicios(2).md`, queda marcada como **no asignada / pendiente de decisión**.
+> **Authority:** derived from `CLAUDE.md` and `docs/01-project-source/microservicios.md`. This file does **not** invent HTTP routes, methods, payloads, status codes, pagination formats or per-endpoint auth. Concrete contracts are produced per HU during SDD and recorded under `contracts/http/`.
 
+## Routing model
 
-## Estado del project-source
+All HTTP traffic reaches the backend through the **YARP gateway** — there is no direct client → service contact. The gateway validates the Keycloak JWT and applies coarse, route-level authorization by base role (`Administrador`/`Operador`/`Participante`). Each service then enforces its functional permissions and domain rules locally. Contracts are therefore organized by **owning service**, and routes live behind the gateway.
 
-El contexto anexado no define contratos HTTP concretos.
+## HTTP capability areas per service
 
-No se especifican:
+These are functional capability areas, **not** endpoints. They indicate which service would own a given HTTP contract.
 
-- rutas base;
-- endpoints;
-- métodos HTTP;
-- payloads de request;
-- payloads de response;
-- códigos de error;
-- formatos de paginación;
-- autenticación por endpoint;
-- versionado de API.
+### Identity
 
-Por lo tanto, este archivo no inventa endpoints.
+- User creation with initial role; consultation and editing of general user data.
+- Role/permission/governance management **per role** from the governance panel; role modification for operators/participants propagated to Keycloak.
+- Teams: creation, membership, leadership and transfer.
+- Team invitations (`InvitacionEquipo`) from a dynamic participant list; per-participant team-name history.
 
-## Regla para crear contratos HTTP
+### Partidas
 
-Cada contrato HTTP debe ser creado durante el SDD de una HU concreta, cuando el `spec.md` y el `design.md` hayan definido:
+- Creation and configuration of a `Partida` and its `Juego`s (sequential order, modality, min/max participation, start mode/time).
+- Trivia `Pregunta` configuration (options, correct answer, `PuntajeAsignado`, time limit) created with the game.
+- BDT `EtapaBDT` configuration (expected QR text, per-stage `Puntaje`, time limit).
+- Configuration queries for the above.
 
-- historia de usuario;
-- microservicio dueño;
-- acción del usuario;
-- datos de entrada;
-- datos de salida;
-- validaciones;
-- errores;
-- rol autorizado;
-- cambio de estado o consulta;
-- efectos en tiempo real o eventos.
+### Operaciones de Sesion
 
-## Capacidades HTTP por microservicio según historias asignadas
+- Publishing a partida (→ `Lobby`) and manual/automatic start.
+- Inscriptions (`InscripcionPartida`) and convocatorias (`Convocatoria`).
+- Runtime queries: active question/stage, lobby/participant state, session status.
+- Answer submission, QR upload/validation, clue delivery, geolocation, reconnection.
 
-Estas son capacidades funcionales derivadas de las HUs asignadas por `microservicios(2).md`. No son endpoints.
+### Puntuaciones
 
-### Identity Service
+- Ranking queries: Trivia native ranking, BDT native ranking, consolidated partida ranking.
+- Score and won-stage queries; team-performance queries.
+- Audit/history queries.
 
-| HU | Capacidad |
-|---|---|
-| HU-01 | Crear usuarios y asignar rol inicial. |
-| HU-02 | Consultar usuarios, editar datos generales y desactivar usuarios. |
+## Rule for creating HTTP contracts
 
-### Team Service
+Each HTTP contract is created during the SDD of a concrete HU, once `spec.md` and `design.md` define: the user story, the owning service, the user action, input/output data, validations, business errors, the authorized role/permission, whether it mutates state or is a query, and any real-time or event effects.
 
-| HU | Capacidad |
-|---|---|
-| HU-03 | Crear equipo. |
-| HU-04 | Unirse a equipo usando código. |
-| HU-05 | Eliminar equipo creado. |
-| HU-06 | Transferir liderazgo antes de salir del equipo. |
-| HU-07 | Salir del equipo. |
+## Mandatory template for future contracts
 
-### Trivia Game Service
-
-| HU | Capacidad | Contrato |
-|---|---|---|
-| HU-11 | Filtrar partidas de Trivia por modalidad. | Pendiente |
-| HU-13 | Mostrar advertencia al intentar entrar a Trivia por equipo sin ser líder. | Pendiente |
-| HU-15 | Crear formularios de Trivia. | [`contracts/http/trivia-game-api.md`](../../contracts/http/trivia-game-api.md) |
-| HU-17 | Crear y publicar partida de Trivia. | Pendiente |
-| HU-18 | Unirse a Trivia individual. | Pendiente |
-| HU-19 | Unir equipo a Trivia por equipos. | Pendiente |
-| HU-21 | Ver pantalla de espera de Trivia. | Pendiente |
-| HU-22 | Ver participantes unidos a Trivia publicada. | Pendiente |
-| HU-23 | Ver equipos unidos a Trivia publicada. | Pendiente |
-| HU-24 | Iniciar manualmente Trivia. | Pendiente |
-| HU-26 | Responder Trivia individual. | Pendiente |
-| HU-27 | Responder Trivia por equipo. | Pendiente |
-| HU-28 | Ver resultado al cerrar pregunta de Trivia. | Pendiente |
-| HU-29 | Calcular puntaje de respuesta en Trivia. | Pendiente |
-| HU-30 | Ver ranking durante Trivia. | Pendiente |
-| HU-35 | Ver lista de partidas de Trivia publicadas. | Pendiente |
-
-### BDT Game Service
-
-| HU | Capacidad |
-|---|---|
-| HU-12 | Filtrar partidas de BDT por modalidad. |
-| HU-14 | Mostrar advertencia al intentar entrar a BDT por equipo sin ser líder. |
-| HU-34 | Crear partida de Búsqueda del Tesoro. |
-| HU-37 | Ver lista de partidas de BDT publicadas. |
-| HU-39 | Unirse a BDT individual. |
-| HU-40 | Unir equipo a BDT por equipos. |
-| HU-42 | Ver participantes unidos a BDT publicada. |
-| HU-43 | Iniciar partida BDT. |
-| HU-44 | Ver etapa activa y opción de subir tesoro. |
-| HU-45 | Subir foto del tesoro QR. |
-| HU-46 | Validar automáticamente QR enviado. |
-| HU-47 | Cerrar etapa BDT. |
-| HU-49 | Enviar pistas a participantes durante BDT. |
-
-## Plantilla obligatoria para futuros contratos
-
-Cuando una HU requiera contrato HTTP, documentarlo en `contracts/http/<service>.md` con este formato:
+When an HU requires an HTTP contract, document it in `contracts/http/<service>.md` with this format:
 
 ```md
-## <Nombre de la capacidad>
+## <Capability name>
 
-| Campo | Valor |
+| Field | Value |
 |---|---|
 | HU | HU-XX |
-| Microservicio dueño | <service> |
-| Tipo | Command / Query |
-| Método HTTP | Pendiente de definir en SDD |
-| Ruta | Pendiente de definir en SDD |
-| Rol autorizado | Administrador / Operador / Participante |
-| Cambia estado | Sí / No |
-| Publica evento | Sí / No |
-| Actualiza tiempo real | Sí / No |
+| Owning service | Identity / Partidas / Operaciones de Sesion / Puntuaciones |
+| Type | Command / Query |
+| HTTP method | Defined in SDD |
+| Route (behind gateway) | Defined in SDD |
+| Base role (gateway) | Administrador / Operador / Participante |
+| Functional permission (service) | GestionarPartidas / GestionarEquipos / ParticiparEnPartidas |
+| Mutates state | Yes / No |
+| Publishes event | Yes / No |
+| Real-time effect | Yes / No |
 
 ### Request
 
-Pendiente de definir en SDD.
+Defined in SDD.
 
 ### Response
 
-Pendiente de definir en SDD.
+Defined in SDD.
 
-### Errores de negocio
+### Business errors
 
-Pendiente de definir en SDD.
+Defined in SDD.
 ```

@@ -4,7 +4,7 @@
 
 This document defines the React Native mobile client for UMBRAL participant flows.
 
-The mobile app is the primary client for users with role `Participante`.
+The mobile app is the primary client for users with role `Participante`, including `Lider de equipo` when acting as a participant. It calls backend capabilities only through the mandatory YARP gateway.
 
 ## Client ownership
 
@@ -14,7 +14,7 @@ The React Native mobile app owns participant-facing flows:
 - View published BDT games.
 - Filter games by modality: individual or team.
 - Create team.
-- Join team by code.
+- View and respond to team invitations.
 - Leave team.
 - Transfer leadership when applicable.
 - Delete team when allowed.
@@ -37,7 +37,7 @@ The mobile app must not own:
 
 - User administration.
 - Operator game creation.
-- Trivia form creation.
+- Trivia question configuration (JuegoTrivia).
 - BDT stage configuration.
 - Operator lobby supervision.
 - Operator BDT geolocation map.
@@ -49,8 +49,8 @@ The mobile app must not own:
 
 The mobile app consumes:
 
-- HTTP contracts from `contracts/http/`.
-- Real-time contracts/events from `contracts/events/`.
+- HTTP contracts from `contracts/http/`, routed through the gateway.
+- Real-time contracts/events from `contracts/events/`, routed through the gateway when user-visible.
 - Backend validation errors and domain decisions.
 
 The mobile app must not duplicate authoritative business rules. It can perform UI validation for usability, but backend services remain authoritative.
@@ -120,6 +120,8 @@ Every mobile feature must reference:
 - Error states.
 - Loading/empty states.
 - Acceptance criteria.
+
+Current target backend services are `Identity`, `Partidas`, `Operaciones de Sesion` and `Puntuaciones`. The previous `Team Service`, `Trivia Game Service` and `BDT Game Service` names are legacy implementation-folder names, not active service boundaries.
 
 ## Permission rules
 

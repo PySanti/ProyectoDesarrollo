@@ -23,11 +23,14 @@ Use this command to review a completed or partially completed feature.
 8. Acceptance criteria.
 9. Traceability matrix.
 10. Project-source requirements.
-11. No references to inactive services:
+11. No references to obsolete / superseded services as active owning services:
+    - Team Service
+    - Trivia Game Service
+    - BDT Game Service
+    - Treasure Hunt Service
     - Audit Service
     - Scoring Service
     - Trivia Service
-    - Treasure Hunt Service
     - Notification Service.
 12. No usage of generic mission/session/evidence vocabulary unless explicitly mapped to Trivia/BDT.
 

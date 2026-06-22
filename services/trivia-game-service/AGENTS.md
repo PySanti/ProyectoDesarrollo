@@ -1,4 +1,6 @@
-# Trivia Game Service — Flow State
+# Legacy Implementation Folder — Flow State
+
+This file belongs to the previous implementation layout. It is retained as migration-debt context for old code/tests and is not active service doctrine. Current target services are `Identity`, `Partidas`, `Operaciones de Sesion`, and `Puntuaciones`, behind the mandatory YARP gateway.
 
 ## Completed features
 - HU-30 — Ver ranking durante Trivia (backend done, SignalR hub + notifier + ranking endpoint)

@@ -1,116 +1,124 @@
 # Service Ownership
 
-This file defines the owning backend service for each active first-sprint story.
+This file defines what each current target service owns and explicitly does not own, derived from `CLAUDE.md` and `docs/01-project-source/microservicios.md`.
 
-## Valid owning services
+## Current target services
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
 
-Do not create these as physical services:
+Behind the mandatory YARP gateway.
 
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
-- Notification Service
+## Obsolete physical services
 
-## Ownership by active story
+The following are **obsolete** and must not be reintroduced as active physical services:
 
-| HU | Feature | Owning service | Client target |
-| --- | --- | --- | --- |
-| HU-01 | Crear usuario con rol inicial | Identity Service | React web |
-| HU-02 | Consultar y editar datos generales de usuario | Identity Service | React web |
-| HU-03 | Crear equipo | Team Service | React Native mobile |
-| HU-04 | Unirse a equipo usando código | Team Service | React Native mobile |
-| HU-06 | Transferir liderazgo antes de salir del equipo | Team Service | React Native mobile |
-| HU-07 | Salir del equipo | Team Service | React Native mobile |
-| HU-10 | Ver partidas de BDT publicadas | BDT Game Service | React Native mobile |
-| HU-12 | Filtrar partidas de BDT por modalidad | BDT Game Service | React Native mobile |
-| HU-14 | Advertencia al entrar a BDT por equipo sin ser líder | BDT Game Service | React Native mobile |
-| HU-34 | Crear partida de Búsqueda del Tesoro | BDT Game Service | React web |
-| HU-37 | Ver lista de partidas de BDT publicadas | BDT Game Service | React web |
-| HU-39 | Unirse a BDT individual | BDT Game Service | React Native mobile |
-| HU-40 | Unir equipo a BDT por equipos | BDT Game Service | React Native mobile |
-| HU-42 | Ver participantes unidos a BDT publicada | BDT Game Service | React web |
-| HU-43 | Iniciar partida BDT | BDT Game Service | React web |
-| HU-44 | Ver etapa activa y opción de subir tesoro | BDT Game Service | React Native mobile |
-| HU-45 | Subir foto del tesoro QR | BDT Game Service | React Native mobile |
-| HU-46 | Validar automáticamente QR enviado | BDT Game Service | Backend |
-| HU-47 | Cerrar etapa BDT | BDT Game Service | Backend / React Native mobile |
-| HU-49 | Enviar pistas a participantes durante BDT | BDT Game Service | React web |
-| HU-05 | Eliminar equipo creado | Team Service | React Native mobile |
-| HU-09 | Ver partidas de Trivia publicadas | Trivia Game Service | React Native mobile |
-| HU-11 | Filtrar partidas de Trivia por modalidad | Trivia Game Service | React Native mobile |
-| HU-13 | Advertencia al entrar a Trivia por equipo sin ser líder | Trivia Game Service | React Native mobile |
-| HU-15 | Crear formularios de Trivia | Trivia Game Service | React web |
-| HU-17 | Crear y publicar partida de Trivia | Trivia Game Service | React web |
-| HU-18 | Unirse a Trivia individual | Trivia Game Service | React Native mobile |
-| HU-19 | Unir equipo a Trivia por equipos | Trivia Game Service | React Native mobile |
-| HU-21 | Ver pantalla de espera de Trivia | Trivia Game Service | React Native mobile |
-| HU-22 | Ver participantes unidos a Trivia publicada | Trivia Game Service | React web |
-| HU-23 | Ver equipos unidos a Trivia publicada | Trivia Game Service | React web |
-| HU-24 | Iniciar manualmente Trivia | Trivia Game Service | React web |
-| HU-26 | Responder Trivia individual | Trivia Game Service | React Native mobile |
-| HU-27 | Responder Trivia por equipo | Trivia Game Service | React Native mobile |
-| HU-28 | Ver resultado al cerrar pregunta de Trivia | Trivia Game Service | React Native mobile |
-| HU-29 | Calcular puntaje de respuesta en Trivia | Trivia Game Service | Backend / React Native mobile |
-| HU-30 | Ver ranking durante Trivia | Trivia Game Service | React web |
-| HU-35 | Ver lista de partidas de Trivia publicadas | Trivia Game Service | React web |
+- `Team Service` — its responsibilities are absorbed entirely by **Identity**.
+- `Trivia Game Service` — its configuration moves to **Partidas** and its runtime to **Operaciones de Sesion**.
+- `BDT Game Service` (a.k.a. Treasure Hunt Service) — its configuration moves to **Partidas** and its runtime to **Operaciones de Sesion**.
 
-## Identity Service
+The following must also never be created as separate physical services:
+
+- `Scoring Service` — scoring/ranking is **Puntuaciones**.
+- `Audit Service` — audit/history is a cross-cutting capability materialized in **Puntuaciones** and **Operaciones de Sesion**.
+- `Notification Service` — async email notification lives inside **Identity**.
+
+## Identity
 
 Owns:
 
-- user creation through UMBRAL/Keycloak integration;
-- initial role assignment at user creation;
-- local user reference mapped to Keycloak;
-- user consultation;
-- editing general user data;
-- user deactivation when required by SDD.
+- users, local user references and Keycloak mapping;
+- roles, functional permissions and governance privileges **per role** (never per user);
+- role modification for operators/participants — including promotion to admin — propagated to Keycloak (the Administrador role and its governance privileges are protected);
+- temporary-credential state (no passwords stored);
+- teams, team membership, leadership and transfer;
+- team invitations (`InvitacionEquipo`) and per-participant team-name history;
+- async email notification of the temporary password over RabbitMQ (welcome on creation; re-issue on email change while the credential is still temporary).
 
-Active first-sprint stories:
+Does not own:
 
-- HU-01 Crear usuario con rol inicial.
-- HU-02 Consultar y editar datos generales de usuario.
+- partida or game configuration;
+- live runtime, answer/QR validation, clues, geolocation;
+- scoring or ranking.
 
-## Team Service
+DB: `umbral_identity`.
 
-Owns:
-
-- teams;
-- team members;
-- access codes;
-- leadership;
-- transfer of leadership;
-- team leave/delete rules;
-- team status.
-
-## Trivia Game Service
+## Partidas
 
 Owns:
 
-- Trivia forms;
-- Trivia publication/listing;
-- Trivia joining;
-- Trivia lobby;
-- Trivia answers;
-- Trivia scoring;
-- Trivia ranking;
-- Trivia real-time updates.
+- creation and configuration of a `Partida` and its `Juego`s, including sequential order, modality, min/max participation, start mode and time;
+- Trivia `Pregunta` content — options, correct answer, `PuntajeAsignado` and time limit — created **with** the game (no question bank, no reuse);
+- BDT `EtapaBDT` content — expected QR **text**, per-stage `Puntaje` and time limit.
 
-## BDT Game Service
+Does not own:
+
+- running the live session;
+- scoring or ranking;
+- identity, teams or governance;
+- inscriptions and convocatorias.
+
+DB: `umbral_partidas`.
+
+## Operaciones de Sesion
 
 Owns:
 
-- BDT publication/listing;
-- BDT stages;
-- expected textual QR;
-- treasure uploads;
-- QR validation;
-- clues;
-- BDT lobby;
-- BDT ranking by stages won and accumulated time across won stages;
-- BDT real-time updates.
+- the live experience: publishing a partida (→ `Lobby`), manual/automatic start, question/stage synchronization, answer and QR validation, sequential advance of games and stages, clue delivery, geolocation, reconnection, real-time session communication;
+- inscriptions (`InscripcionPartida`) and team convocatorias (`Convocatoria`) — partida-level;
+- only **transient** session state; emits domain events via RabbitMQ;
+- materialization of its own audit/history.
+
+Does not own:
+
+- partida/game configuration (Partidas);
+- scoring or ranking (Puntuaciones);
+- identity, teams or governance.
+
+DB: `umbral_operaciones_sesion`.
+
+## Puntuaciones
+
+Owns:
+
+- scores and won stages;
+- each game's native ranking during and at end of play;
+- the consolidated partida ranking;
+- team-performance queries;
+- materialization of audit/history.
+
+It is a **read/projection model** fed by RabbitMQ domain events, broadcasting updates via SignalR.
+
+Does not own:
+
+- partida/game configuration;
+- the live runtime;
+- identity, teams or governance.
+
+DB: `umbral_puntuaciones`.
+
+## Gateway (YARP)
+
+Owns:
+
+- routing of all client ↔ backend traffic, including real-time (WebSockets/SignalR);
+- Keycloak JWT validation;
+- coarse, route-level authorization by base role (`Administrador`/`Operador`/`Participante`) using token claims, without querying Identity per request;
+- extensibility to edge concerns (rate limiting, load balancing, TLS termination).
+
+Does not own:
+
+- any domain logic, scores, rankings or database;
+- fine-grained functional-permission authorization, which stays inside each service.
+
+## Ranking ownership note
+
+Ranking computation is owned by **Puntuaciones** at both levels:
+
+- **Trivia native**: `PuntajeAcumulado` descending; tie-break lowest accumulated answer time.
+- **BDT native**: accumulated points = sum of `Puntaje` of won stages; tie-break lowest accumulated time of won stages only; stages-won count is informative only. The old "rank by number of stages won" rule is obsolete.
+- **Consolidated** (on finish): games won, then total points, then lowest total time.
+
+Partidas configures the points (`PuntajeAsignado` for Trivia questions, `Puntaje` for BDT stages); Operaciones de Sesion emits the runtime events that carry them; Puntuaciones projects scores and rankings.

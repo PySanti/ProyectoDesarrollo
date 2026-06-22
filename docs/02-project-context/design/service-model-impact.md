@@ -1,147 +1,81 @@
 # Service Model Impact
 
-The UML/domain model is global, but implementation uses four physical backend microservices.
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
+
+The UML/domain model is global, but implementation uses four physical backend microservices behind a mandatory YARP gateway.
 
 ## Active physical services
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
 
 ## Explicit non-services
 
-The following are not physical backend microservices in the current topology:
-
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
-- Notification Service
+> Obsolete (superseded): the following are not physical backend microservices in the target topology — `Team Service`, `Trivia Game Service`, `BDT/Treasure Hunt Service`, `Audit Service`, `Scoring Service` (separate from Puntuaciones), `Notification Service`. Teams live inside Identity; Trivia/BDT split across Partidas/Operaciones de Sesion/Puntuaciones; audit/history is cross-cutting.
 
 ## Resolved domain decisions
 
 ### Team cardinality
 
-Team cardinality is owned by Team Service.
+Owned by Identity.
 
 ```txt
 1 <= members <= 5
 ```
 
-A team can validly exist with one member.
+A team can validly exist with one member; the creator is the first member and leader. Members join only via `InvitacionEquipo` (no access code).
 
 ### Trivia scoring
 
-Trivia scoring is owned by Trivia Game Service.
+Owned by Puntuaciones (fed by Operaciones de Sesion runtime events).
 
 ```txt
-scoreEarned = question.assignedScore
+scoreEarned = question.PuntajeAsignado
 ```
 
-Time does not modify score.
+Time does not modify score. Trivia native ranking: `PuntajeAcumulado` desc, tie-break lowest accumulated answer time.
+
+### BDT ranking
+
+Owned by Puntuaciones. Order by accumulated points = sum of the `Puntaje` of won stages; tie-break by lowest accumulated time of won stages only. `EtapasGanadas` is informative, not the sort key.
 
 ## Rules
 
 - Do not implement all UML classes in a single backend.
-- Do not create one global database.
-- Do not create one global DbContext.
-- Do not directly access another service database.
-- Use HTTP only for direct service queries justified by SDD.
-- Use RabbitMQ only for asynchronous facts/events justified by SDD.
-- Use SignalR/WebSockets only for user-visible real-time updates.
+- Do not create one global database or one global DbContext.
+- A service must never read or write another service's database.
+- Use HTTP only for direct service queries justified by an SDD.
+- Use RabbitMQ for asynchronous cross-service facts/events.
+- Use SignalR/WebSockets for user-visible real-time updates, routed through the gateway.
 
 ## Impact by service
 
-### Identity Service
+### Identity
 
-Implements:
+Implements: local user references and Keycloak mapping; roles, permissions, governance per role; role modification propagated to Keycloak; temporary-credential state and async email; teams, membership, leadership/transfer, `InvitacionEquipo`, team-name history.
 
-- user local references;
-- Keycloak mapping;
-- user role reference;
-- user status.
+Does not implement: partida configuration, live session, scoring/ranking.
 
-Does not implement:
+### Partidas
 
-- teams;
-- game sessions;
-- Trivia logic;
-- BDT logic;
-- game ranking;
-- game history.
+Implements: `Partida` and sequential `Juego` configuration (order, modality, min/max, start mode/time); Trivia `Pregunta`s (created with the game; no bank, no reuse); BDT `EtapaBDT`s (expected QR text, per-stage `Puntaje`, time limit), `AreaBusqueda`.
 
-### Team Service
+Does not implement: running the live session, computing scores/ranking, inscriptions/convocatorias.
 
-Implements:
+### Operaciones de Sesion
 
-- teams;
-- team members;
-- access codes;
-- leadership;
-- team status;
-- team membership rules;
-- 1-to-5 member cardinality.
+Implements: publish→Lobby; manual/automatic start; question/stage synchronization; answer & QR validation; sequential advance of games and stages; clue delivery; geolocation (mandatory in active BDT, every 2s); reconnection; real-time session communication; inscriptions and convocatorias (partida-level). Stores only transient state; emits RabbitMQ events.
 
-Does not implement:
+Does not implement: configuration (Partidas) or scoring/ranking (Puntuaciones).
 
-- Trivia forms;
-- Trivia games;
-- BDT games;
-- QR validation;
-- game ranking;
-- game scoring;
-- game history.
+### Puntuaciones
 
-### Trivia Game Service
+Implements: scores and won stages; native Trivia and BDT rankings (during and at end); consolidated partida ranking; team-performance queries; audit/history materialization. Read/projection model fed by RabbitMQ; broadcasts via SignalR.
 
-Implements:
-
-- Trivia forms;
-- questions;
-- options;
-- Trivia games;
-- Trivia lobby;
-- Trivia participants;
-- Trivia answers;
-- direct score accumulation without time weighting;
-- Trivia ranking;
-- Trivia history;
-- Trivia real-time updates.
-
-Does not implement:
-
-- team master data;
-- BDT stages;
-- QR validation;
-- BDT clues;
-- BDT geolocation.
-
-### BDT Game Service
-
-Implements:
-
-- BDT games;
-- search area;
-- stages;
-- expected QR codes;
-- treasure/QR uploads;
-- QR validation;
-- clues;
-- BDT participants;
-- BDT scoring;
-- BDT ranking;
-- BDT history;
-- BDT geolocation;
-- BDT real-time updates.
-
-Does not implement:
-
-- Trivia forms;
-- Trivia questions;
-- Trivia answers;
-- team master data.
+Does not implement: configuration or runtime.
 
 ## Gateway
 
-The gateway, if present, does not own domain logic. It may route or compose calls, but it must not implement business rules.
+The YARP gateway is mandatory and the single entry point for all client↔backend traffic, including real-time. It validates the Keycloak JWT and applies route-level role authorization from token claims. It does not own domain logic, scores, rankings, or DB access; fine-grained functional-permission authorization stays inside each service.

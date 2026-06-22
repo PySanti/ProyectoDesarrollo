@@ -1,37 +1,31 @@
 # Source Priority — UMBRAL
 
-Este archivo define cómo resolver prioridades documentales cuando OpenCode encuentre diferencias entre los documentos fuente.
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-## Fuentes originales esperadas
+This file defines how to resolve documentation priority when the source documents differ.
 
-| Fuente | Uso |
-|---|---|
-| `docs/01-project-source/enunciado-proyecto.md` | Marco académico, tecnologías base y expectativas generales del curso. |
-| `docs/01-project-source/srs.md` | Fuente principal de requisitos funcionales, no funcionales, reglas de negocio, actores y alcance. |
-| `docs/01-project-source/modelo-de-dominio.puml` o `.md` | Fuente principal de conceptos de dominio, subdominios, contextos y agregados. |
-| `docs/01-project-source/diagrama-de-clases.puml` o `.md` | Fuente principal de clases, métodos, relaciones, enums y value objects. |
-| `docs/01-project-source/lista-microservicios.md` | Fuente inicial para ownership y separación de servicios. |
-| `docs/01-project-source/historias-de-usuario-primera-entrega.md` | Fuente para alcance de primera entrega. |
+## Recommended priority
 
-## Prioridad recomendada
+1. `CLAUDE.md` for operational target doctrine and repository rules.
+2. `docs/01-project-source/srs.md` for requirements, rules, actors, and scope.
+3. `docs/01-project-source/modelo-de-dominio.md` for domain concepts and invariants.
+4. `docs/01-project-source/diagrama-de-clases.md` for tactical classes and relationships.
+5. `docs/01-project-source/microservicios.md` for target service ownership.
+6. Derived docs under `docs/02-project-context/`.
+7. Accepted ADRs under `docs/05-decisions/` refine the above when present.
 
-1. **SRS**: requisitos, reglas, actores, alcance y criterios de aceptación.
-2. **Historias de usuario de primera entrega**: selección real de trabajo para la entrega.
-3. **Modelo de dominio**: lenguaje ubicuo, contextos, agregados y reglas internas.
-4. **Diagrama de clases**: estructura táctica de clases, relaciones y métodos.
-5. **Lista de microservicios**: ownership operativo inicial.
-6. **Enunciado académico**: restricciones tecnológicas y expectativas de evaluación.
+The target service boundaries are **Identity**, **Partidas**, **Operaciones de Sesion**, and **Puntuaciones** behind a mandatory YARP gateway. Where a source still uses the older `Equipos` / `Trivia` / `BDT` bounded-context naming, those are **logical** contexts that materialize onto the four target services (teams inside Identity; Trivia/BDT split across Partidas configuration, Operaciones de Sesion runtime, and Puntuaciones scoring).
 
-## Regla ante contradicción
+## Rule on contradiction
 
-Cuando una regla funcional del SRS contradiga un diseño del modelo o diagrama:
+When a functional rule of the SRS contradicts a design in the domain model or class diagram:
 
-1. No escribir código todavía.
-2. Registrar el conflicto en el SDD de la historia.
-3. Consultar `known-ambiguities-and-decisions.md`.
-4. Elegir una decisión explícita antes de implementar.
-5. Si se toma una decisión, actualizar SRS, modelo o ADR según corresponda.
+1. Do not write code yet.
+2. Record the conflict in the SDD of the story.
+3. Consult `known-ambiguities-and-decisions.md`.
+4. Choose an explicit decision before implementing.
+5. If a decision is taken, update the SRS, the domain model, or an ADR as appropriate.
 
-## Regla de fuente derivada
+## Derived-source rule
 
-Los archivos de `docs/02-project-context` no son fuente primaria. Son guías operativas. Si se detecta que un archivo de contexto contradice al project-source, debe corregirse el contexto.
+Files under `docs/02-project-context/` are not primary sources. They are operational guides. If a context file is found to contradict the project source or `CLAUDE.md`, the context file must be corrected.

@@ -9,7 +9,7 @@ It supports administration and operation flows for the only two approved game mo
 - Trivia
 - Búsqueda del Tesoro / BDT
 
-The React web frontend is **not** the participant gameplay client. Participant gameplay belongs to the React Native mobile app.
+The React web frontend is **not** the participant gameplay client. Participant gameplay belongs to the React Native mobile app. The web frontend calls backend capabilities only through the mandatory YARP gateway.
 
 Do not implement generic "missions", "sessions" or "evidence" screens from the academic base statement unless they are explicitly mapped to the current SRS vocabulary.
 
@@ -17,7 +17,7 @@ Use the current project vocabulary:
 
 - partida
 - lobby
-- formulario de Trivia
+- pregunta de Trivia en JuegoTrivia
 - pregunta
 - respuesta
 - ranking
@@ -39,14 +39,18 @@ Use the current project vocabulary:
 | Líder de equipo | React Native mobile when acting as participant |
 | Sistema | Backend |
 
-## Active backend services
+## Active backend services and gateway
 
-The frontend may interact, directly or through the gateway, only with these backend services:
+The frontend may interact only through the YARP gateway. It must not call microservices directly.
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+Current target services behind the gateway are:
+
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
+
+The previous `Team Service`, `Trivia Game Service` and `BDT Game Service` names are legacy implementation-folder names, not active service boundaries.
 
 Do not reference these as active services:
 
@@ -111,10 +115,9 @@ Allowed UI areas depend on the active SDD, but may include:
 
 Allowed UI areas include:
 
-- creating and managing Trivia forms;
-- creating and publishing Trivia games;
-- creating and publishing BDT games;
-- configuring BDT stages;
+- creating partidas with sequential Trivia or BDT games;
+- configuring Trivia questions directly in `JuegoTrivia`;
+- configuring BDT stages directly in `JuegoBDT`;
 - viewing lobbies;
 - starting games;
 - supervising Trivia ranking;
@@ -122,7 +125,7 @@ Allowed UI areas include:
 - sending BDT clues;
 - viewing uploaded treasures and QR validation results;
 - viewing BDT geolocation map;
-- viewing relevant history/traces exposed by the owning game service;
+- viewing relevant history/traces exposed by the owning target service or projection context;
 - cancelling games when allowed by the SRS/SDD.
 
 ### Participante
@@ -150,76 +153,70 @@ Participant-owned mobile flows include:
 - allowing geolocation for BDT when required;
 - receiving participant notifications.
 
-## Core frontend web flows by service
+## Core frontend web flows by target service
 
-### Identity Service
+### Identity
 
 Web flows:
 
 - login / authenticated access through Keycloak;
 - user profile display where applicable;
 - administrator user-management screens when active SDD requires them.
+- administrator team-management screens when active SDD requires them.
 
 Contracts:
 
 - `contracts/http/identity-api.md`
 
-### Team Service
+### Partidas
 
 Web flows:
 
-- administrator team management when active SDD requires it;
-- read-only team consultation for administrator/operator when active SDD requires it.
+- create and configure partidas;
+- configure sequential Trivia and BDT games;
+- configure Trivia questions and BDT stages.
 
-Participant team management belongs to React Native mobile.
+Participant gameplay still belongs to React Native mobile.
 
 Contracts:
 
-- `contracts/http/team-api.md`
-- `contracts/events/team-events.md` when asynchronous or real-time behavior is approved by SDD.
+- `contracts/http/partidas-api.md`
+- `contracts/events/partidas-events.md` when asynchronous behavior is approved by SDD.
 
-### Trivia Game Service
+### Operaciones de Sesion
 
 Web flows:
 
-- create Trivia forms;
-- create and publish Trivia games;
 - view Trivia operator lobby;
 - view participants/equipes in lobby;
 - start Trivia as operator;
-- supervise Trivia ranking;
+- publish and start partidas when active SDD requires it;
+- send BDT clues;
+- supervise uploaded treasures and QR validation results;
+- view BDT geolocation map;
 - cancel Trivia when allowed;
-- view Trivia details/history when exposed by SDD.
+- cancel BDT when allowed.
 
-Participant Trivia listing, joining, answering and result views belong to React Native mobile.
+Participant listing, joining, answering, active-stage and upload views belong to React Native mobile.
 
 Contracts:
 
-- `contracts/http/trivia-game-api.md`
-- `contracts/events/trivia-game-events.md`
+- `contracts/http/operaciones-sesion-api.md`
+- `contracts/events/operaciones-sesion-events.md`
 
-### BDT Game Service
+### Puntuaciones
 
 Web flows:
 
-- create BDT game;
-- configure BDT stages;
-- view BDT operator lobby participants;
-- start BDT as operator;
-- send clues to participants/equipes;
-- supervise uploaded treasures;
-- supervise QR validation results;
+- supervise Trivia ranking;
 - view BDT ranking;
-- view BDT geolocation map;
-- cancel BDT when allowed;
-- view BDT details/history when exposed by SDD.
-
-Participant BDT listing, joining, active stage, QR treasure upload, clue receipt and geolocation sharing belong to React Native mobile.
+- view consolidated ranking;
+- view history/audit details exposed by an approved SDD.
 
 Contracts:
 
-- `contracts/http/bdt-game-api.md`
-- `contracts/events/bdt-game-events.md`
+- `contracts/http/puntuaciones-api.md`
+- `contracts/events/puntuaciones-events.md`
 
 ## Real-time behavior
 
@@ -270,5 +267,5 @@ Never implement a React web flow unless:
 2. its SDD folder exists;
 3. `spec.md`, `design.md`, `tasks.md` and `acceptance.md` contain no unresolved TODO;
 4. the required HTTP/event contracts are documented;
-5. the owning service is one of the four approved services;
+5. the owning service is one of the four approved target services;
 6. the target client is React web according to the SDD and actor/client routing rule.

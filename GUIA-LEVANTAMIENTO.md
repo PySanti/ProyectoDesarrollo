@@ -1,5 +1,11 @@
 ## Levantamiento de infraestructura
 
+## Estado de migracion documental
+
+La doctrina documental cambio antes de la migracion completa del codigo. Lee `docs/02-project-context/documentation-migration-status.md` antes de interpretar esta guia, los contextos de clientes o las carpetas bajo `services/`.
+
+Doctrina actual: los servicios objetivo son `Identity`, `Partidas`, `Operaciones de Sesion` y `Puntuaciones`, detras del gateway YARP obligatorio. Las carpetas de implementacion con nombres anteriores pueden seguir existiendo como deuda de migracion; no son prueba de limites de servicio activos.
+
 Desde la raiz del repo:
 
 ```powershell

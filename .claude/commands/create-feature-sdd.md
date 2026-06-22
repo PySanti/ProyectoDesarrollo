@@ -16,14 +16,14 @@ Use this command when a user story does not yet have a complete SDD folder.
 4. Confirm the HU appears in the active specs list.
 5. If the HU does not appear in `SPECS-LIST.md`, stop and report that it is outside the active delivery scope.
 6. Confirm the owning service is one of:
-   - Identity Service
-   - Team Service
-   - Trivia Game Service
-   - BDT Game Service.
+   - Identity
+   - Partidas
+   - Operaciones de Sesion
+   - Puntuaciones.
 
 ## Process
 
-1. Locate the HU in `docs/01-project-source/historias de usuario.md` or `docs/01-project-source/srs.md`.
+1. Locate the HU in `docs/01-project-source/srs.md`.
 2. Identify related RF/RB/RNF requirements.
 3. Identify the owning service using:
    - `docs/04-sdd/SPECS-LIST.md`

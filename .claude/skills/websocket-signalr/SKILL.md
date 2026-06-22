@@ -52,20 +52,13 @@ Avoid generic academic-base vocabulary unless explicitly mapped by the SDD:
 
 ## Valid services
 
-SignalR/WebSocket updates must be owned by one of:
+SignalR/WebSocket updates are routed through the mandatory YARP gateway and owned by:
 
-- Trivia Game Service
-- BDT Game Service
-- Team Service, only when team membership updates are explicitly real-time in the SDD
-- Identity Service, only when explicitly required by SDD
+- Operaciones de Sesion — live session/lobby/runtime updates (states, timers, questions/stages, clues, geolocation, reconnection).
+- Puntuaciones — score and ranking updates.
+- Identity — only when explicitly required by the SDD (e.g. real-time team membership).
 
-Do not create real-time responsibilities for:
-
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
-- Notification Service
+Do not create real-time responsibilities for the obsolete / superseded services: Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service, Notification Service.
 
 ## Rules
 

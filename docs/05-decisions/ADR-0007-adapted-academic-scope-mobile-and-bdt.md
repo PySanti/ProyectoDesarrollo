@@ -1,5 +1,7 @@
 # ADR-0007 — Adapted Academic Scope: Trivia, BDT, Mobile Participant App and BDT Geolocation
 
+> Partially superseded by `ADR-0008-documentation-doctrine-replacement.md` for service topology, BDT ranking, and the academic-brief vocabulary mapping below. Under current doctrine the mapping is: Mission → `Partida`; mission nodes/stages → `Juego` (`JuegoTrivia` / `JuegoBDT`) with `Pregunta` / `EtapaBDT` as inner steps; LiveSession → the live session managed by Operaciones de Sesion. There is no generic "Trivia form", and the former `PartidaTrivia` / `PartidaBDT` aggregates are decomposed into `Partida` + `Juego`. The Mapping table further below is retained as historical decision context only. The client split remains valid where consistent with current source documents.
+
 ## Status
 
 Accepted

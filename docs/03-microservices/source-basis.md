@@ -1,43 +1,35 @@
 # Source Basis
 
-> **Regla de generación:** este contenido fue generado exclusivamente a partir de los archivos `diagrama de clases(2).md`, `enunciado-proyecto(1).md`, `historias de usuario(2).md`, `microservicios(2).md`, `modelo de dominio(2).md` y `srs(2).md`.
->
-> **No se agregan microservicios, endpoints, colas, eventos, bases de datos, rutas HTTP ni contratos que no estén indicados explícitamente en esas fuentes.** Cuando una responsabilidad aparece en el SRS/modelo pero no está asignada a un microservicio en `microservicios(2).md`, queda marcada como **no asignada / pendiente de decisión**.
+> **Authority:** the current service topology is defined by `CLAUDE.md` and `docs/01-project-source/microservicios.md`. Where this folder and the derived context layer differ, those two sources win.
 
+## Sources considered
 
-## Fuentes consideradas
-
-| Fuente | Uso en esta carpeta |
+| Source | Use in this folder |
 |---|---|
-| `microservicios(2).md` | Fuente principal para definir microservicios, responsabilidades, contexto DDD, historias cubiertas y persistencia. |
-| `srs(2).md` | Fuente principal para requerimientos funcionales, no funcionales, reglas de negocio, tiempo real, RabbitMQ, Keycloak y alcance. |
-| `modelo de dominio(2).md` | Fuente para contextos acotados, subdominios, conceptos, comandos, eventos y servicios de dominio/aplicación nombrados. |
-| `diagrama de clases(2).md` | Fuente para agregados, entidades, value objects, relaciones, clases transversales y contexto de auditoría. |
-| `historias de usuario(2).md` | Fuente para alcance de primera entrega y asignación de historias por responsable. |
-| `enunciado-proyecto(1).md` | Fuente para lineamientos técnicos generales: React, WebSockets, .NET Core, EF Core, MediatR, CQRS, PostgreSQL y RabbitMQ. |
+| `CLAUDE.md` (repo root) | Operational summary of the target architecture: four services, mandatory gateway, hard boundaries, ranking doctrine, roles/permissions, teams in Identity. |
+| `docs/01-project-source/microservicios.md` | Authoritative ownership table: Partidas, Operaciones de Sesion, Puntuaciones, Identity — responsibilities, DDD contexts, covered HUs and persistence. |
+| `docs/01-project-source/srs.md` | Functional and non-functional requirements, business rules, real-time, RabbitMQ, Keycloak and scope. |
+| `docs/01-project-source/modelo-de-dominio.md` | Bounded contexts, concepts, commands, canonical domain events and domain/application services. |
+| `docs/01-project-source/diagrama-de-clases.md` | Aggregates, entities, value objects, relationships and the audit/history context. |
+| `docs/01-project-source/historias-de-usuario.md` | HU scope and assignment by owning service. |
+| `docs/02-project-context/` | Derived operational summaries; consistent with this folder but not authoritative over it. |
 
-## Reglas de no-asunción aplicadas
+## No-assumption rules applied
 
-- No se agregan microservicios no detallados en `microservicios(2).md`.
-- No se inventan endpoints HTTP.
-- No se inventan nombres de colas, exchanges, topics o routing keys.
-- No se asigna ownership a responsabilidades transversales cuando el project-source no lo especifica.
-- No se decide si `RegistroAuditoria`, `Ranking Final`, `InscripcionPartida` o `Convocatoria` pertenecen a un servicio concreto si las fuentes no lo asignan de forma explícita.
-- No se define gateway ni API Gateway porque el contexto anexado no lo especifica como microservicio.
-- No se define una política de base de datos por servicio más allá de la persistencia indicada por `microservicios(2).md`.
-- No se resuelven inconsistencias internas del project-source; se documentan en `unresolved-decisions.md`.
+- No new physical services beyond the four target services and the gateway are introduced.
+- No HTTP endpoints, routes, methods, request/response payloads, status codes or pagination formats are invented.
+- No queue names, exchange names, topics or routing keys are invented.
+- No SignalR hub names or message shapes are invented.
+- Only canonical event names already named in `CLAUDE.md` and `docs/01-project-source/modelo-de-dominio.md` are referenced.
+- Concrete route/payload/event definitions are produced per HU during SDD and recorded under `contracts/`.
 
-## Jerarquía usada para esta carpeta
+## Hierarchy used for this folder
 
-1. Para nombres y cantidad de microservicios: `microservicios(2).md`.
-2. Para reglas funcionales y restricciones técnicas: `srs(2).md`.
-3. Para conceptos, agregados y eventos de dominio: `modelo de dominio(2).md` y `diagrama de clases(2).md`.
-4. Para alcance de primera entrega: `historias de usuario(2).md`.
+1. For service names, count and ownership: `CLAUDE.md` and `docs/01-project-source/microservicios.md`.
+2. For functional rules and technical constraints: `docs/01-project-source/srs.md`.
+3. For concepts, aggregates and domain events: `docs/01-project-source/modelo-de-dominio.md` and `docs/01-project-source/diagrama-de-clases.md`.
+4. For HU scope and assignment: `docs/01-project-source/historias-de-usuario.md`.
 
-## Criterio ante contradicciones
+## Criterion on contradictions
 
-Si una fuente menciona una responsabilidad del dominio pero `microservicios(2).md` no la asigna a un microservicio, se marca como:
-
-```txt
-No asignado en microservicios(2).md / pendiente de decisión
-```
+If older on-disk material (code folders, ports, DB names) or an older spec still reflects the previous layout (`Team Service`, `Trivia Game Service`, `BDT Game Service`, BDT ranking by stages won), it is treated as **migration debt / legacy evidence**, not as the target. The target doctrine in `CLAUDE.md` and `microservicios.md` always supersedes it.

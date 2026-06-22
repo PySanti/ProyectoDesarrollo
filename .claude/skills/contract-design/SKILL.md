@@ -18,17 +18,18 @@ Use this skill whenever a feature creates or changes an endpoint, event, DTO, or
 
 ## Valid HTTP contract files
 
+- `contracts/http/gateway-api.md`
 - `contracts/http/identity-api.md`
-- `contracts/http/team-api.md`
-- `contracts/http/trivia-game-api.md`
-- `contracts/http/bdt-game-api.md`
+- `contracts/http/partidas-api.md`
+- `contracts/http/operaciones-sesion-api.md`
+- `contracts/http/puntuaciones-api.md`
 
 ## Valid event contract files
 
 - `contracts/events/identity-events.md`
-- `contracts/events/team-events.md`
-- `contracts/events/trivia-game-events.md`
-- `contracts/events/bdt-game-events.md`
+- `contracts/events/partidas-events.md`
+- `contracts/events/operaciones-sesion-events.md`
+- `contracts/events/puntuaciones-events.md`
 
 ## Rules
 
@@ -40,7 +41,7 @@ Use this skill whenever a feature creates or changes an endpoint, event, DTO, or
 - Event payloads must include versioning.
 - Breaking changes must be called out in the SDD design.
 - Contracts must be traceable to the user story and owning service.
-- Do not create contracts for Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service.
+- Do not create contracts for the obsolete / superseded services: Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service or Notification Service. Active contracts cover only Identity, Partidas, Operaciones de Sesion, Puntuaciones and the gateway.
 
 ## Required contract fields
 

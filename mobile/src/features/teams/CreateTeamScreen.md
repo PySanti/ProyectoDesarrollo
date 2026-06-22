@@ -1,23 +1,23 @@
-# CreateTeamScreen (HU-03)
+# CreateTeamScreen Legacy Notes
 
-This screen represents the participant flow for team creation in React Native.
+This document is **legacy implementation evidence / migration debt**, not active current-doctrine
+guidance for a new HU-03 implementation.
 
-## Form fields
+The screen notes below describe how the previous React Native team-creation slice behaved before the
+documentation doctrine replacement. Do not use them to infer current endpoints, response shapes, or
+service boundaries.
 
-- `nombreEquipo` (required)
+## Legacy implementation behavior
 
-## Submit behavior
+- Field: `nombreEquipo`.
+- The old slice called the legacy team endpoint `POST /api/teams` through `createTeamApi`.
+- The old success response rendered `equipoId`, `codigoAcceso`, `liderUserId`, and `integrantes`.
+- The old `409` participant message was `Ya perteneces a un equipo activo. No puedes crear otro equipo.`
 
-1. Validate `nombreEquipo` locally.
-2. Call `POST /api/teams` through `createTeamApi`.
-3. On `201`, render created team data (`equipoId`, `codigoAcceso`, `liderUserId`, `integrantes`).
-4. On `409`, show participant message:
-   - `Ya perteneces a un equipo activo. No puedes crear otro equipo.`
+## Current doctrine note
 
-## Backend ownership
-
-- Team Service (`HU-03`)
-
-## Contract reference
-
-- `contracts/http/team-api.md`
+- Team creation belongs to the `Identity` target service behind the mandatory YARP gateway.
+- Team membership now uses `InvitacionEquipo`; `codigoAcceso` is a legacy concept and must not be
+  treated as current guidance.
+- Do not introduce or implement a current endpoint from this file. A current-doctrine SDD must first
+  register the feature and its contract under `contracts/http/identity-api.md`.

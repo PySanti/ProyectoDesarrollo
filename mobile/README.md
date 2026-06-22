@@ -2,11 +2,15 @@
 
 React Native mobile client for participant flows.
 
+## Migration State
+
+The documentation doctrine has changed before full code migration. Current target services are `Identity`, `Partidas`, `Operaciones de Sesion` and `Puntuaciones`, behind the mandatory YARP gateway. This README may describe legacy implementation wiring where explicitly noted; use `docs/02-project-context/documentation-migration-status.md`, `mobile/mobile-context.md`, `docs/03-microservices/` and `contracts/` before planning new work.
+
 Current scope includes:
 
 - real Keycloak login (OIDC + PKCE);
 - authenticated navigation shell;
-- HU-03 Create Team flow against Team Service (`POST /api/teams`).
+- Legacy HU-03 create-team flow against the previous implementation layout (`POST /api/teams`). Team ownership is now Identity in the target doctrine.
 
 ## 1) Prerequisites
 
@@ -41,9 +45,9 @@ Create a public client in Keycloak:
 
 Assign realm role `Participante` to the test user.
 
-## 4) Team Service authentication
+## 4) Legacy team implementation authentication
 
-Team Service now supports real Keycloak JWT validation using:
+The previous team implementation folder supports real Keycloak JWT validation using these values. This is legacy implementation wiring, not active service-boundary doctrine:
 
 - `KEYCLOAK_BASE_URL`
 - `KEYCLOAK_REALM`

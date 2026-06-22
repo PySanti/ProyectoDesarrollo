@@ -1,59 +1,33 @@
-# Identity Service Context
+# Identity Service
+
+## Status
+
+Current target service.
 
 ## Responsibility
 
-Identity Service owns identity-related application behavior inside UMBRAL.
-
-It integrates with Keycloak and stores only local references needed by the UMBRAL domain.
+Identity materializes the Identidad (Generic) and Equipos (Support) bounded contexts plus permission/role governance. It manages users and their Keycloak mapping, the per-role permission/governance matrix, role modification, temporary-credential state, and the full team lifecycle (membership, leadership, invitations, history). It absorbs the former Team Service entirely. It also sends the temporary-password email asynchronously over RabbitMQ. It owns no game configuration, runtime or scoring. DB: `umbral_identity`.
 
 ## Owns
 
-- Usuario local.
-- KeycloakId reference.
-- Initial role assignment during user creation.
-- User consultation.
-- Editing general user data.
-- User deactivation when required by SDD.
-- Role read model for authorization decisions.
-- Temporary password generation for new users (random, per-user, never persisted).
-- Welcome/credential email notification via SMTP: welcome email on user creation (HU-01) and credential re-send on email change while a temporary password is still pending (HU-02).
+- Users, local user references and Keycloak mapping (UMBRAL stores no passwords).
+- Roles, functional permissions and governance privileges **per role** (never per user), managed from the governance panel.
+- Role modification for operators/participants — including promotion to admin — propagated to Keycloak (the Administrador role and its governance privileges are protected; no new roles are ever created).
+- Temporary-credential state (temporary pending vs. definitive); mandatory first-login change is handled by Keycloak.
+- Teams (1–5 members), membership, leadership and transfer.
+- Team invitations (`InvitacionEquipo`) from a dynamic participant list (excludes anyone already in a team; blocked when the team is full; no access code).
+- Per-participant team-name history.
+- Async email notification of the temporary password over RabbitMQ (welcome on creation; re-issue on email change while the credential is still temporary).
 
-## Does not own
+## Does Not Own
 
-- Team leadership.
-- Team membership.
-- Trivia gameplay.
-- BDT gameplay.
-- QR validation.
-- Game ranking.
-- Keycloak internal password storage.
+- Partida or game configuration (Partidas).
+- Live runtime, answer/QR validation, clues, geolocation, inscriptions/convocatorias (Operaciones de Sesion).
+- Scoring or ranking (Puntuaciones).
+- Keycloak's internal password storage.
 
-## Active first-sprint stories
+## Communication
 
-| HU | Feature | Client |
-|---|---|---|
-| HU-01 | Crear usuario con rol inicial | React web |
-| HU-02 | Consultar y editar datos generales de usuario | React web |
-
-## Business rules
-
-- UMBRAL must not store passwords or sensitive credentials.
-- Role is assigned during user creation.
-- Role cannot be modified later from UMBRAL unless a future SDD explicitly changes this rule.
-- General user data can be edited by administrator according to SRS.
-- Identity Service may coordinate with Keycloak through an infrastructure adapter.
-- On user creation, a welcome email with a per-user temporary password is sent synchronously; the password is never persisted (lives only in memory during the request — RB-U03).
-- On editing a user's email, if the user still has a pending temporary password (`UPDATE_PASSWORD` action in Keycloak, i.e. has not completed first login), a new temporary password is generated/reset, the email is synced in Keycloak, and the credentials are re-sent to the new email.
-- If the email cannot be delivered, the operation fails (`502`) and is compensated/reverted (no orphan or inconsistent state).
-- These notifications are synchronous (no RabbitMQ); the `UsuarioCreado` integration event remains unused for this flow.
-
-> Extensión 2026-06-15 documentada en `docs/04-sdd/specs/HU-01-...` y `HU-02-...` (spec/design/tasks/acceptance) y en `contracts/http/identity-api.md`. SMTP se configura por env (`SMTP_*`, ver `.env.example` / `GUIA-LEVANTAMIENTO.md`).
-
-## Expected SDD ownership
-
-HU-01 and HU-02 must create SDD folders before implementation:
-
-```txt
-docs/04-sdd/specs/HU-01-crear-usuario-con-rol-inicial/
-docs/04-sdd/specs/HU-02-consultar-y-editar-datos-generales-de-usuario/
-```
+- HTTP through the YARP gateway.
+- RabbitMQ for cross-service domain events where required (e.g. `UsuarioCreado`, `CredencialTemporalEmitida` driving the async email).
+- SignalR/WebSockets through the gateway for user-visible updates where required.

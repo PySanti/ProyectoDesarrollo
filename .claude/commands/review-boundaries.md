@@ -20,14 +20,14 @@ Use this command when a feature appears to touch more than one microservice.
 
 ## Valid owning services
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
 
 ## Rules
 
 - Do not code.
 - Do not allow direct database access across services.
 - Do not move another service's business rule into the current service.
-- Do not create Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service.
+- Do not create Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service or Notification Service as physical services (obsolete / superseded).

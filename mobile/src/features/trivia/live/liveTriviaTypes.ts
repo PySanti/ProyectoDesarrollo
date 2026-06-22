@@ -12,9 +12,9 @@ import { TriviaAnswerResponse, TriviaQuestionResultResponse, TriviaScoreResponse
  * Estado del contrato por pieza (qué ya existe vs. qué falta en backend):
  *
  *   • `onQuestion` (pregunta activa empujada en tiempo real)  → **FALTA**. Es el contrato pendiente:
- *       SignalR (Trivia Game Service) debe empujar la pregunta activa + su ventana de tiempo al
- *       participante cuando el operador la abre, y empujar `null`/evento de cierre al terminar.
- *       Ver `contracts/events/*trivia*` y `services/trivia-game-service` (SignalR hub). El timer es
+ *       SignalR del runtime de Trivia en **Operaciones de Sesion** (a través del gateway) debe empujar la
+ *       pregunta activa + su ventana de tiempo al participante cuando el operador la abre, y empujar
+ *       `null`/evento de cierre al terminar. Ver `contracts/events/` (eventos de Trivia). El timer es
  *       **autoritativo del servidor**: el cliente sincroniza su cuenta regresiva a la deadline del server.
  *
  *   • `submit(preguntaId, opcionIndex)`  → **YA EXISTE**: `answerTriviaQuestion()` en `api/triviaApi.ts`
@@ -26,7 +26,7 @@ import { TriviaAnswerResponse, TriviaQuestionResultResponse, TriviaScoreResponse
  *   • `finalScore()`  → puntaje propio **YA EXISTE**: `getTriviaScore()` (HU-29) → `TriviaScoreResponse`.
  *       El **ranking** se alimenta del endpoint/evento de ranking de Trivia (`PuntajeAcumulado`,
  *       `RankingTriviaActualizado`). NOTA: esto es **Trivia** (puntaje); NO confundir con el ranking de
- *       BDT, que ordena por `EtapasGanadas` + `TiempoAcumuladoEtapasGanadas`, no por puntaje.
+ *       BDT, que ordena por puntaje acumulado de etapas ganadas (desempate por tiempo acumulado).
  *
  *   • `advance()`  → en la implementación real es probablemente un **no-op** (el servidor empuja la
  *       siguiente pregunta por su cuenta, dirigido por el operador). En el mock avanza el guion para

@@ -1,101 +1,73 @@
 # Events Catalog
 
-> **Regla de generación:** este contenido fue generado exclusivamente a partir de los archivos `diagrama de clases(2).md`, `enunciado-proyecto(1).md`, `historias de usuario(2).md`, `microservicios(2).md`, `modelo de dominio(2).md` y `srs(2).md`.
->
-> **No se agregan microservicios, endpoints, colas, eventos, bases de datos, rutas HTTP ni contratos que no estén indicados explícitamente en esas fuentes.** Cuando una responsabilidad aparece en el SRS/modelo pero no está asignada a un microservicio en `microservicios(2).md`, queda marcada como **no asignada / pendiente de decisión**.
+> **Authority:** derived from `CLAUDE.md`, `docs/01-project-source/modelo-de-dominio.md` and `docs/01-project-source/diagrama-de-clases.md`. Only **canonical** event names already present in those sources are listed here. Exchange/queue/routing-key names, payload schemas, versions, idempotency and outbox policy are **not** invented; they are defined per HU during SDD and recorded under `contracts/events/`.
 
+## Messaging model
 
-## Estado del project-source
+Domain events flow over **RabbitMQ** between services; user-facing real-time updates flow over **SignalR/WebSockets** through the gateway. Events feed **Puntuaciones** (scoring/ranking/audit) and audit materialization in **Operaciones de Sesion**. No service reads another service's database — cross-context state is carried by events.
 
-El SRS exige eventos relevantes del dominio para auditoría, historial, notificaciones internas, actualización de ranking, trazabilidad de puntajes y comunicación en tiempo real.
+## Canonical domain events by producing service
 
-El modelo de dominio nombra algunos eventos concretos.
+These names are taken verbatim from the source domain model. Their concrete payloads and routing keys are defined per HU in SDD.
 
-El diagrama de clases define tipos de evento histórico.
+### Identity
 
-El project-source no especifica:
-
-- formato exacto de payload;
-- exchange;
-- queue;
-- routing key;
-- versión;
-- esquema JSON;
-- publicador técnico;
-- consumidor técnico.
-
-Por tanto, este catálogo no inventa contratos de mensajería completos.
-
-## Eventos de dominio nombrados explícitamente en `modelo de dominio(2).md`
-
-| Evento | Contexto | Descripción derivada de fuente |
-|---|---|---|
-| `RespuestaTriviaValidada` | Trivia | Lleva `ParticipanteId`, si la respuesta fue correcta o incorrecta, y el tiempo empleado. |
-| `PuntajeTriviaIncrementado` | Trivia | Se dispara cuando el participante suma puntos. |
-| `HitoBDTEncontrado` | BDT | Lleva el `ParticipanteId` que escaneó exitosamente el QR. |
-| `PuntajeBDTIncrementado` | BDT | Notifica que un competidor sumó los puntos de la etapa. |
-| `PartidaTriviaFinalizada` | Trivia | Lleva el estado final de participantes con puntajes consolidados. |
-| `PartidaBDTFinalizada` | BDT | Lleva el estado final de participantes con puntajes consolidados. |
-
-## Tipos de evento histórico nombrados en `diagrama de clases(2).md`
-
-| TipoEventoHistorial |
-|---|
-| `CambioEstado` |
-| `Inscripcion` |
-| `Convocatoria` |
-| `RespuestaTrivia` |
-| `TesoroSubido` |
-| `ValidacionQR` |
-| `PistaEnviada` |
-| `Ubicacion` |
-| `Puntaje` |
-| `Cancelacion` |
-| `Resultado` |
-
-## Categorías de eventos exigidas por el SRS
-
-| Categoría | Fuente funcional |
+| Event | Description |
 |---|---|
-| Cambios de estado | RF-12, RF-37, reglas generales de partida. |
-| Inscripciones | RF-10, RF-12, RF-37. |
-| Convocatorias | RF-10, RF-12, RF-37. |
-| Respuestas de Trivia | RF-12, RF-20, RF-21, RF-37. |
-| Tesoros subidos | RF-12, RF-28, RF-30, RF-37. |
-| Validaciones de QR | RF-12, RF-29, RF-30, RF-37. |
-| Pistas enviadas | RF-12, RF-33, RF-37. |
-| Ubicaciones relevantes | RF-12, RF-34, RF-37. |
-| Variaciones de puntaje | RF-12, RF-22, RF-37. |
-| Cancelaciones | RF-12, RF-23, RF-37. |
-| Resultados de partida | RF-12, RF-31, RF-32, RF-37. |
-| Ranking | RF-13, RF-22, RF-37. |
+| `UsuarioCreado` | A user was created (drives the async temporary-credential email). |
+| `CredencialTemporalEmitida` | A temporary credential was issued / re-issued. |
 
-## Publicadores explícitos o deducidos sin crear servicios nuevos
+Team, invitation and convocatoria-adjacent membership events also originate here; their canonical names are defined alongside the team SDDs.
 
-| Evento / categoría | Publicador según contexto | Estado |
-|---|---|---|
-| `RespuestaTriviaValidada` | Trivia Game Service. | Confirmado por contexto de Trivia. |
-| `PuntajeTriviaIncrementado` | Trivia Game Service. | Confirmado por modelo. |
-| `HitoBDTEncontrado` | BDT Game Service. | Confirmado por contexto BDT. |
-| `PuntajeBDTIncrementado` | BDT Game Service. | Confirmado por modelo. |
-| `PartidaTriviaFinalizada` | Trivia Game Service. | Confirmado por nombre/contexto. |
-| `PartidaBDTFinalizada` | BDT Game Service. | Confirmado por nombre/contexto. |
-| Eventos históricos de auditoría | No asignado a microservicio explícito. | Pendiente. |
-| Notificaciones internas | No asignado a microservicio explícito. | Pendiente. |
-| Actualización de ranking global | No asignado a microservicio explícito; el modelo ubica `ClasificadorRankingService` dentro de Trivia y BDT. | Pendiente para cada HU. |
+### Partidas
 
-## Regla para contratos de eventos
+Configuration is owned here; runtime publication/activation events are emitted by Operaciones de Sesion. Partidas exposes its configuration via gateway-routed queries rather than runtime events.
 
-Antes de implementar un evento en una HU, el SDD debe completar:
+### Operaciones de Sesion
+
+| Event | Description |
+|---|---|
+| `PartidaPublicadaEnLobby` | A partida was published and moved to `Lobby`. |
+| `PartidaIniciada` | A partida started (manual/automatic). |
+| `JuegoActivado` | The next `Juego` in sequence became `Activo`. |
+| `RespuestaTriviaValidada` | A Trivia answer was validated. |
+| `TesoroQRValidado` | An uploaded QR was decoded and validated against the expected text. |
+| `EtapaBDTGanada` | A BDT stage was won; **carries the stage `Puntaje`**. |
+| `PartidaFinalizada` | A partida finished. |
+
+### Puntuaciones
+
+| Event | Description |
+|---|---|
+| `PuntajeTriviaIncrementado` | A participant's Trivia accumulated points increased. |
+| `RankingTriviaActualizado` | The Trivia native ranking changed. |
+| `RankingBDTActualizado` | The BDT native ranking changed (by accumulated points of won stages). |
+| `RankingConsolidadoCalculado` | The consolidated partida ranking was computed on finish. |
+
+## Audit/history event types
+
+`RegistroAuditoria` aggregates `EventoHistorial` entries per partida; audit/history is a cross-cutting capability materialized in **Puntuaciones** and **Operaciones de Sesion**. The `TipoEventoHistorial` enum (from `diagrama-de-clases.md`) classifies historical events:
+
+`CambioEstado`, `Inscripcion`, `Convocatoria`, `InvitacionEquipo`, `JuegoActivado`, `JuegoFinalizado`, `RespuestaTrivia`, `TesoroSubido`, `ValidacionQR`, `PistaEnviada`, `Ubicacion`, `Ranking`, `RankingConsolidado`, `Puntaje`, `Cancelacion`, `Resultado`, `EquipoEliminado`, `CambioRol`, `PermisosRol`.
+
+## Ranking event doctrine
+
+- **Trivia native**: `PuntajeTriviaIncrementado` (points up; time never modifies points) → `RankingTriviaActualizado`.
+- **BDT native**: `EtapaBDTGanada` carries the won stage `Puntaje` → `RankingBDTActualizado`. Ranking is by accumulated points; stages-won count is informative only. The old "rank by stages won" rule is obsolete.
+- **Consolidated**: `RankingConsolidadoCalculado` on finish (games won → total points → lowest total time).
+
+## Rule for event contracts
+
+Before implementing an event in an HU, the SDD must complete:
 
 ```md
-| Campo | Valor |
+| Field | Value |
 |---|---|
-| Evento | <nombre> |
-| Productor | <microservicio> |
-| Consumidor | No especificado / especificar en SDD |
-| Motivo | <RF/RB/HU> |
-| Payload | Pendiente de definir |
-| Efecto en tiempo real | Sí / No |
-| Se registra en historial | Sí / No |
+| Event | <canonical name> |
+| Producer | Identity / Operaciones de Sesion / Puntuaciones |
+| Consumer | Defined in SDD |
+| Reason | <RF/RB/HU> |
+| Payload | Defined in SDD |
+| Real-time effect | Yes / No |
+| Recorded in history | Yes / No |
 ```

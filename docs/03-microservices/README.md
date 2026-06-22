@@ -1,57 +1,58 @@
 # 03-microservices — UMBRAL
 
-> **Regla de generación:** este contenido fue generado exclusivamente a partir de los archivos `diagrama de clases(2).md`, `enunciado-proyecto(1).md`, `historias de usuario(2).md`, `microservicios(2).md`, `modelo de dominio(2).md` y `srs(2).md`.
->
-> **No se agregan microservicios, endpoints, colas, eventos, bases de datos, rutas HTTP ni contratos que no estén indicados explícitamente en esas fuentes.** Cuando una responsabilidad aparece en el SRS/modelo pero no está asignada a un microservicio en `microservicios(2).md`, queda marcada como **no asignada / pendiente de decisión**.
+> **Authority:** this folder describes the **current target topology**. It is derived from `CLAUDE.md` and `docs/01-project-source/microservicios.md`, which are authoritative for service ownership and communication. Where on-disk folders, ports, or DB names still reflect the old layout, that is migration debt, not the target.
 
+## Purpose
 
-## Propósito
+This folder defines the operational microservices context for UMBRAL so that the SDD workflow can identify:
 
-Esta carpeta define el contexto operativo de microservicios de UMBRAL para que OpenCode y el flujo SDD puedan identificar:
+- which physical services exist;
+- what each service owns and explicitly does not own;
+- which DDD bounded contexts each service materializes;
+- how the services communicate (gateway, RabbitMQ, SignalR/WebSockets);
+- where ranking, scoring, audit and notification responsibilities actually live.
 
-- qué microservicios están explícitamente definidos;
-- qué responsabilidades tiene cada uno;
-- qué historias de usuario cubre cada servicio según el documento de microservicios;
-- qué conceptos del dominio pertenecen a cada contexto;
-- qué comunicaciones están exigidas por el SRS;
-- qué responsabilidades transversales aún no tienen ownership explícito en el project-source.
+## Current topology
 
-## Archivos
+UMBRAL is **four independent .NET 8 microservices** behind a **mandatory YARP gateway**:
 
-| Archivo | Propósito |
+1. **Identity** — users, Keycloak mapping, roles/permissions/governance, teams (absorbs the former Team Service), temporary-credential notification.
+2. **Partidas** — partida and game configuration (Trivia questions + BDT stages), modality, participation limits, start configuration.
+3. **Operaciones de Sesion** — live runtime, inscriptions and convocatorias, transient session state, session SignalR.
+4. **Puntuaciones** — scoring, native and consolidated rankings, audit/history projections, ranking SignalR.
+
+The YARP gateway is the single entry point for all client traffic (including real time) and owns no domain state.
+
+## Files
+
+| File | Purpose |
 |---|---|
-| `source-basis.md` | Resume las fuentes usadas y las reglas de no-asunción. |
-| `microservices-map.md` | Mapa de microservicios explícitamente definidos. |
-| `service-ownership.md` | Ownership de entidades, conceptos e historias. |
-| `communication-map.md` | Comunicación síncrona/asíncrona/tiempo real sin inventar contratos concretos. |
-| `api-contracts.md` | Guía para documentar contratos HTTP sin inventar endpoints. |
-| `events-catalog.md` | Eventos y categorías de eventos presentes en el project-source. |
-| `unresolved-decisions.md` | Inconsistencias o datos no especificados que no deben ser asumidos por OpenCode. |
-| `services/identity-service.md` | Contexto operativo del Identity Service. |
-| `services/team-service.md` | Contexto operativo del Team Service. |
-| `services/trivia-game-service.md` | Contexto operativo del Trivia Game Service. |
-| `services/bdt-game-service.md` | Contexto operativo del BDT Game Service. |
+| `source-basis.md` | Sources used and the no-assumption rules. |
+| `microservices-map.md` | The four target services and the gateway note. |
+| `service-ownership.md` | Owns / Does not own for each service; old services declared obsolete. |
+| `communication-map.md` | Gateway, RabbitMQ and SignalR communication rules. |
+| `api-contracts.md` | HTTP guidance organized around the four services (no invented endpoints). |
+| `events-catalog.md` | Event guidance organized around the four services (canonical names only). |
+| `unresolved-decisions.md` | Items that still require SDD/ADR resolution. |
+| `services/identity-service.md` | Identity service context. |
+| `services/partidas-service.md` | Partidas service context. |
+| `services/operaciones-sesion-service.md` | Operaciones de Sesion service context. |
+| `services/puntuaciones-service.md` | Puntuaciones service context. |
+| `services/team-service.md` | Legacy pointer (obsolete path, redirects to current services). |
+| `services/trivia-game-service.md` | Legacy pointer (obsolete path, redirects to current services). |
+| `services/bdt-game-service.md` | Legacy pointer (obsolete path, redirects to current services). |
 
-## Regla central
+## Obsolete decomposition
 
-El archivo `microservicios(2).md` titula la sección como **"Los 4 Microservicios de Negocio"**, pero solo detalla cuatro microservicios:
+The previous layout (`Team Service`, `Trivia Game Service`, `BDT Game Service`, plus a non-enforced gateway) is **superseded**. Those names must not be reintroduced as active physical services. Teams live inside Identity; Trivia/BDT configuration lives inside Partidas; Trivia/BDT runtime lives inside Operaciones de Sesion; scoring, ranking and audit/history live inside Puntuaciones (and Operaciones de Sesion materializes its own audit). The old "BDT ranks by stages won, not points" rule is also superseded — see `service-ownership.md` and `microservices-map.md`.
 
-1. Identity Service.
-2. Team Service.
-3. Trivia Game Service.
-4. BDT Game Service.
+## How to use this folder with SDD
 
-Por lo tanto, esta carpeta **solo crea contexto operativo para esos cuatro microservicios explícitamente descritos**.
+Before creating or implementing a user story:
 
-No se crea `Scoring Service`, `Audit Service`, `Notification Service`, `Gateway` ni otro servicio adicional porque en el contexto anexado actual no aparecen definidos como microservicios con responsabilidad, historias y base de datos propias.
-
-## Cómo usar esta carpeta con SDD
-
-Antes de crear o implementar una historia de usuario:
-
-1. Leer `microservices-map.md`.
-2. Leer `service-ownership.md`.
-3. Leer el archivo correspondiente en `services/`.
-4. Si la HU requiere eventos, leer `events-catalog.md`.
-5. Si la HU requiere API, completar contratos en `contracts/http/` solo después de que el `spec.md` y `design.md` de la HU lo justifiquen.
-6. Si la HU toca una responsabilidad marcada como no asignada, resolver primero `unresolved-decisions.md`.
+1. Read `microservices-map.md`.
+2. Read `service-ownership.md`.
+3. Read the corresponding file in `services/`.
+4. If the HU requires events, read `events-catalog.md`.
+5. If the HU requires HTTP, complete contracts in `contracts/http/` only after the HU `spec.md` and `design.md` justify them.
+6. If the HU touches an item flagged in `unresolved-decisions.md`, resolve it first.

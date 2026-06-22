@@ -385,7 +385,7 @@ tbody tr:last-child td {
   border-bottom: none;
 }
 
-/* Question editor cards (Trivia form) */
+/* Question editor cards (Trivia question editor — questions belong to JuegoTrivia) */
 .question-list {
   display: grid;
   gap: var(--sp-md);

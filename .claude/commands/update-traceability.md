@@ -19,10 +19,10 @@ docs/04-sdd/traceability-matrix.md
 1. Confirm the HU appears in `docs/04-sdd/SPECS-LIST.md`.
 2. Confirm the SDD folder is not deprecated.
 3. Confirm the owning service is one of:
-   - Identity Service
-   - Team Service
-   - Trivia Game Service
-   - BDT Game Service.
+   - Identity
+   - Partidas
+   - Operaciones de Sesion
+   - Puntuaciones.
 4. Confirm acceptance evidence exists before marking a feature Done.
 5. Confirm tests exist before marking implemented business rules Done.
 

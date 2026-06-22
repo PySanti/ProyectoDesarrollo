@@ -1,38 +1,7 @@
-# Team Service Context
+# Legacy Implementation Folder Context
 
-## Responsibility
+This folder belongs to the previous implementation layout. It may contain useful code and tests, but it is not a current target service boundary.
 
-Manages teams, team members, access codes, team status and leadership.
+Current target services are `Identity`, `Partidas`, `Operaciones de Sesion`, and `Puntuaciones`, behind the mandatory YARP gateway.
 
-## Owns
-
-- Equipo
-- Equipos.Participante
-- CodigoAcceso
-- EstadoEquipo
-- team membership rules
-- team leadership rules
-
-## Related stories
-
-- HU-03
-- HU-04
-- HU-05
-- HU-06
-- HU-07
-- HU-08
-
-## Does not own
-
-- Users as identity records
-- Trivia content
-- Trivia sessions
-- BDT sessions
-- QR validation
-- Game scoring
-- Game ranking
-- Game history
-
-## Notes
-
-Game services may query Team Service to validate leadership, membership or active team status through explicit HTTP contracts.
+Use current documentation under `docs/02-project-context/`, `docs/03-microservices/`, and `contracts/` before planning new work.

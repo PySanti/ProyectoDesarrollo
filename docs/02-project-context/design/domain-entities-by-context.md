@@ -1,47 +1,30 @@
 # Domain Entities by Context
 
-## Active physical service topology
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-UMBRAL uses four physical backend microservices:
+## Target service topology
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+The backend is exactly four physical microservices behind a mandatory YARP gateway:
 
-## Identity Service
+- **Identity**
+- **Partidas**
+- **Operaciones de Sesion**
+- **Puntuaciones**
 
-Owns:
+> Obsolete (superseded): the earlier split into `Team Service`, `Trivia Game Service`, and `BDT Game Service` is no longer a valid topology and must not be used. Teams live inside Identity; Trivia/BDT split across Partidas (config), Operaciones de Sesion (runtime), and Puntuaciones (scoring). Audit/history is cross-cutting; there is no separate Audit, Scoring, or Notification service.
 
-- Usuario
-- KeycloakId
-- RolUsuario
-- EstadoUsuario
-- local user references
-
-Does not own:
-
-- teams
-- Trivia games
-- BDT games
-- game scoring
-- game ranking
-- game history
-
-## Team Service
+## Identity
 
 Owns:
 
-- Equipo
-- Equipos.Participante
-- EquipoId
-- NombreEquipo
-- CodigoAcceso
-- EstadoEquipo
-- team membership
-- leadership
+- Usuario; UsuarioId, KeycloakId, Correo; RolUsuario, EstadoUsuario, EstadoCredencial; local user references.
+- Rol; RolId, NombreRol; Privilegio, PermisoFuncional (per-role permissions/governance).
+- Equipo, ParticipanteEquipo; EquipoId, NombreEquipo, EstadoEquipo; team membership and leadership.
+- InvitacionEquipo; InvitacionEquipoId, EstadoInvitacion (members join only via invitation — no access code).
+- HistorialEquipoUsuario (per-participant team-name history).
+- Async email of temporary credentials (RabbitMQ).
 
-Main invariant:
+Main team invariant:
 
 ```txt
 1 <= Equipo.Participantes.Count <= 5
@@ -49,124 +32,56 @@ Main invariant:
 
 The creator of a team is the first participant and leader.
 
-Team Service does not own:
+Does not own: partida configuration, live session/runtime, scoring/ranking.
 
-- Trivia forms
-- Trivia games
-- BDT games
-- game scoring
-- game ranking
-- game answers
-- QR validation
-
-## Trivia Game Service
+## Partidas
 
 Owns:
 
-- FormularioTrivia
-- Pregunta
-- Opcion
-- PuntajeAsignado
-- TiempoLimite
-- PartidaTrivia
-- Trivias.Participante
-- RespuestaTrivia
-- Trivia inscriptions
-- Trivia convocations
-- Trivia score
-- Trivia ranking
-- Trivia history/event records
-- Trivia real-time updates
+- Partida; PartidaId, NombrePartida, TiempoInicio, MinimosParticipacion, MaximosParticipacion; EstadoPartida, Modalidad, ModoInicioPartida.
+- Juego (base) and its specializations' **configuration**; JuegoId, Orden, TipoJuego, EstadoJuego.
+- Trivia configuration: Pregunta, Opcion, PuntajeAsignado, TiempoLimite (questions created with the `JuegoTrivia`; no bank, no reuse).
+- BDT configuration: EtapaBDT with CodigoQREsperado (expected QR text), per-stage Puntaje, TiempoLimite, AreaBusqueda (descriptive text).
 
-Scoring rule:
+Does not own: running the live session, computing scores or ranking, inscriptions/convocatorias.
 
-```txt
-if respuesta.EsCorrecta:
-    participante.PuntajeAcumulado += pregunta.PuntajeAsignado
-```
-
-Time rule:
-
-- `TiempoLimite` determines availability and late-answer validation.
-- Time does not modify score.
-- Time must not be used in the score formula.
-
-Optional auxiliary data:
-
-- `TiempoRespuestaAcumulado` may be recorded for history, telemetry or UI.
-- `TiempoRespuestaAcumulado` must not affect score unless a future ADR changes this decision.
-
-Trivia Game Service does not own:
-
-- team master data;
-- BDT games;
-- QR validation;
-- BDT clues;
-- BDT geolocation.
-
-## BDT Game Service
+## Operaciones de Sesion
 
 Owns:
 
-- PartidaBDT
-- EtapaBDT
-- Bdt.Participante
-- TesoroQR
-- Pista
-- AreaBusqueda
-- UbicacionGeografica
-- CodigoQREsperado
-- PuntajeEtapa
-- EstadoEtapa
-- ResultadoValidacionQR
-- BDT inscriptions
-- BDT convocations
-- BDT score
-- BDT ranking
-- BDT history/event records
-- BDT real-time updates
+- The live experience: publishing (→ `Lobby`), manual/automatic start, question/stage synchronization, answer & QR validation, sequential advance of games and stages, clue delivery (`Pista`), geolocation (`UbicacionGeografica`), reconnection, real-time session communication.
+- Runtime competing units: ParticipanteTrivia, RespuestaTrivia (transient); ParticipanteBDT, TesoroQR (transient).
+- Participación: InscripcionPartida and child Convocatoria; InscripcionId, ConvocatoriaId, EstadoInscripcion, EstadoConvocatoria (partida-level, once per partida).
 
-BDT Game Service does not own:
+Stores only transient session state; emits domain events via RabbitMQ; materializes part of audit/history.
 
-- team master data;
-- Trivia forms;
-- Trivia questions;
-- Trivia answers.
+Does not own: partida/game configuration (Partidas) or scoring/ranking (Puntuaciones).
+
+## Puntuaciones
+
+Owns:
+
+- Scores and won stages; native rankings during and at end of play: RankingTrivia (by `PuntajeAcumulado` desc, tie-break lowest accumulated answer time) and RankingBDT (by accumulated won-stage `Puntaje`, tie-break lowest accumulated time of won stages only; `EtapasGanadas` informative).
+- RankingConsolidado (on finish): games won → total accumulated points → lowest total time.
+- Team-performance queries.
+- Audit/history materialization: RegistroAuditoria, EventoHistorial, TipoEventoHistorial.
+
+Read/projection model fed by RabbitMQ domain events; broadcasts updates via SignalR (through the gateway). Owns neither configuration nor runtime.
 
 ## Transversal concepts
 
-### InscripcionPartida
+### InscripcionPartida / Convocatoria
 
-Ownership depends on game mode:
-
-- Trivia inscription belongs to Trivia Game Service.
-- BDT inscription belongs to BDT Game Service.
-
-### Convocatoria
-
-Ownership depends on game mode:
-
-- Trivia team convocation belongs to Trivia Game Service.
-- BDT team convocation belongs to BDT Game Service.
-
-Team Service remains the owner of team membership and leadership validation.
+Partida-level (not per game). Owned by **Operaciones de Sesion**.
 
 ### RegistroAuditoria / EventoHistorial
 
-There is no physical Audit Service in the current topology.
-
-History is owned by the service that owns the business flow:
-
-- Trivia history belongs to Trivia Game Service.
-- BDT history belongs to BDT Game Service.
-- Team history belongs to Team Service.
-- Identity/user history belongs to Identity Service.
+Cross-cutting. No physical Audit Service. Materialized in **Puntuaciones** and **Operaciones de Sesion**.
 
 ### Puntaje / Ranking
 
-There is no physical Scoring Service in the current topology.
+No physical Scoring Service separate from Puntuaciones. All scoring and ranking (native and consolidated) belong to **Puntuaciones**.
 
-Scoring and ranking are owned by the service that owns the game flow:
+## Gateway
 
-- Trivia scoring/ranking belongs to Trivia Game Service.
-- BDT scoring/ranking belongs to BDT Game Service.
+The YARP gateway is the single entry point and a routing/entry-point concern only. It validates the Keycloak JWT and authorizes by base role at the route level; it owns no entities, domain logic, scores, rankings, or DB access.

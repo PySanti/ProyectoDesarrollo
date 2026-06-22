@@ -8,8 +8,8 @@ type Props = NativeStackScreenProps<AppStackParamList, "BdtRanking">;
 
 export function BdtRankingScreenContainer({ navigation }: Props) {
   // TODO(backend): reemplazar el mock por una `BackendBdtRankingSource(apiBaseUrl, token, partidaId)` que
-  // cumpla `BdtRankingSource` (endpoint/evento de ranking del BDT Game Service, orden por etapas/tiempo).
-  // Ver `bdtRankingTypes.ts`. La pantalla NO cambia: solo se cambia esta fuente.
+  // cumpla `BdtRankingSource` (endpoint/evento de ranking de Puntuaciones, orden por puntaje acumulado de
+  // etapas ganadas; desempate por tiempo). Ver `bdtRankingTypes.ts`. La pantalla NO cambia: solo la fuente.
   const source = useMemo(() => createMockBdtRankingSource(), []);
 
   return <BdtRankingScreen source={source} onExit={() => navigation.goBack()} />;

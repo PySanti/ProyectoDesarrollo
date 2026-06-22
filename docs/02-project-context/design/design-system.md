@@ -124,8 +124,9 @@ alternativa estática** (`shared/useReducedMotion.ts`); color/forma siguen comun
   segundos; no posee reloj) normal→ámbar→rojo + pulso de urgencia.
 - **`Reaction`** (`correct`): veredicto ✓/✕ verde/rojo con pop sobrio (sin confeti).
 - **`Podium`** (`entries: PodiumEntry[]`): top-3 por **altura** + "Tú" resaltado + deltas. **Agnóstico
-  del criterio**: muestra `valor` ya formateado (Trivia: "300 pts"; BDT: "3 etapas · 4:12") — **no asume
-  puntaje**, por eso sirve también al ranking BDT (etapas/tiempo).
+  del criterio**: muestra `valor` ya formateado (Trivia: "300 pts"; BDT: "420 pts · 4:12") y no calcula
+  el orden por si mismo. En BDT, el ranking lo provee backend/Puntuaciones por puntos acumulados de etapas
+  ganadas, con desempate por menor tiempo acumulado de esas etapas.
 - **`shared/useCountUp.ts`**: anima un entero 0→target (count-up), reduce-motion salta al valor.
 
 **AA en superficies de color:** texto blanco/`onStage` solo sobre `primary-fill #982f93` / `accent
@@ -135,8 +136,8 @@ al **80%** (no 74%) para que el texto atenuado pequeño pase AA aun sobre la sup
 **Maquetas (datos mock + plantilla de integración)**, para ver/probar el juego sin backend en vivo:
 `features/trivia/live/` (interfaz `LiveTriviaSource` + mock + `TriviaLivePlayScreen`: pregunta→Countdown→
 Reaction→Score count-up→Podium) y `features/bdt/ranking/` (`BdtRankingSource` + mock + Podium por
-etapas/tiempo). Cada carpeta documenta cómo cablear el backend (cambiar **una** fuente; la pantalla no
-cambia). Accesos "(demo)" auto-removibles en estados vacíos/lobby.
+puntos acumulados/tiempo de desempate). Cada carpeta documenta cómo cablear el backend (cambiar **una**
+fuente; la pantalla no cambia). Accesos "(demo)" auto-removibles en estados vacíos/lobby.
 
 ## Convenciones aprendidas (mobile)
 
@@ -162,4 +163,3 @@ npx tsc --noEmit              # tipos
 node --test tests/*.test.js   # 81 tests (lógica/flujos/hooks)
 npm start                     # pase visual manual en Expo
 ```
-

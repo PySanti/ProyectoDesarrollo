@@ -19,12 +19,12 @@ Do not implement participant gameplay screens in the React web frontend unless a
 Do not implement administrator/operator screens in the React Native mobile app unless an SDD explicitly says so.
 ```
 
-## BDT service wording replacement
+## BDT ranking wording replacement
 
 Replace active BDT scoring wording with:
 
 ```md
-BDT ranking is based on stages won and accumulated time for won stages. The BDT Game Service must not calculate ranking from numeric accumulated score unless a future ADR changes this decision.
+BDT native ranking is based on accumulated points from won stages. Puntuaciones orders by accumulated won-stage `Puntaje` descending and breaks ties by lower accumulated time across won stages only. `EtapasGanadas` is informative data, not the sort key.
 ```
 
 ## opencode.json additional instructions

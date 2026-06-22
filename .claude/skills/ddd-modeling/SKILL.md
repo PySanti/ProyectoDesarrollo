@@ -46,7 +46,7 @@ Trivia score uses direct accumulation.
 
 ```txt
 scoreEarned = pregunta.PuntajeAsignado
-competidor.PuntajeAcumulado += scoreEarned
+participante.PuntajeAcumulado += scoreEarned
 ```
 
 Do not use remaining time, elapsed time, response time or accumulated response time to calculate score.
@@ -60,28 +60,26 @@ Trivia ranking uses:
 
 ### BDT ranking
 
-BDT ranking does not use numeric accumulated score.
+BDT native ranking uses accumulated points from won stages (current doctrine; see `docs/02-project-context/bdt-ranking-clarification.md`).
 
 BDT ranking uses:
 
 ```txt
-rankingKey = (EtapasGanadas DESC, TiempoAcumuladoEtapasGanadas ASC)
+rankingKey = (accumulated BDT points DESC, accumulated time of won stages ASC)
 ```
+
+where accumulated BDT points = sum of the `Puntaje` of the won stages.
 
 Use these concepts for BDT:
 
-- `EtapasGanadas`
-- `TiempoAcumuladoEtapasGanadas`
-- `TiempoResolucionEtapa`
+- `Puntaje` (operator-set, per `EtapaBDT`)
+- accumulated BDT points (sum of won-stage `Puntaje`)
+- `TiempoAcumuladoEtapasGanadas` (tie-break: accumulated time of won stages only)
 - `RankingBDT`
 
-Do not model active BDT ranking through:
+`EtapasGanadas` (count of stages won) is kept as informative data only — never the primary sort key.
 
-- `PuntajeEtapa`
-- `PuntajeAcumulado`
-- `PuntajeBDTIncrementado`
-
-The BDT service may still record events for traceability, but ranking must be derived from stages won and accumulated time for won stages.
+Events: `EtapaBDTGanada` (carries `Puntaje`) and `RankingBDTActualizado`.
 
 ### BDT QR
 
@@ -103,25 +101,28 @@ Do not model advanced geospatial validation, route history or polygon-based area
 
 ## Core concepts
 
+- Partida (aggregate root)
+- Juego
+- JuegoTrivia
+- JuegoBDT
 - Usuario
 - Equipo
-- CodigoAcceso
+- InvitacionEquipo
 - InscripcionPartida
 - Convocatoria
-- FormularioTrivia
 - Pregunta
 - Opcion
 - PuntajeAsignado
-- PartidaTrivia
-- CompetidorTrivia
+- ParticipanteTrivia
 - RespuestaTrivia
 - RankingTrivia
-- PartidaBDT
 - EtapaBDT
-- ExploradorBDT
+- Puntaje (per EtapaBDT)
+- ParticipanteBDT
 - TesoroQR
 - CodigoQREsperado
 - AreaBusqueda
+- TiempoResolucionEtapa
 - UbicacionGeografica
 - Pista
 - RankingBDT
@@ -132,8 +133,8 @@ Do not model advanced geospatial validation, route history or polygon-based area
 
 Use separate concepts per context:
 
-- `ParticipanteEquipo` in Team context.
-- `CompetidorTrivia` in Trivia context.
-- `ExploradorBDT` in BDT context.
+- `ParticipanteEquipo` in the Equipos context (inside Identity).
+- `ParticipanteTrivia` in the Trivia context.
+- `ParticipanteBDT` in the BDT context.
 
 Do not share one generic participant entity across all contexts.

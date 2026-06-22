@@ -147,9 +147,10 @@ a sangre completa no cabe** en esa estructura sin tocar el controller. Decisión
   de posición opcional (chevron ▲/▼). **Sin colores nuevos**: el rango lo dan altura + número, no
   oro/plata/bronce.
 - **Agnóstico del criterio (clave para G4/BDT):** recibe `PodiumEntry.valor` **ya formateado** por quien
-  llama (p. ej. `"300 pts"` en Trivia; mañana `"3 etapas · 4:12"` en BDT) — **no asume puntaje**. Así el
-  mismo componente sirve para el ranking de BDT (ordenado por `EtapasGanadas` + `TiempoAcumulado`), que
-  **no** es por puntaje.
+  llama (p. ej. `"300 pts"` en Trivia; mañana `"420 pts · 4:12"` en BDT) — no calcula el criterio por si
+  mismo. Así el mismo componente sirve para el ranking de BDT actual: puntos acumulados de etapas ganadas,
+  con desempate por menor tiempo acumulado de esas etapas. `EtapasGanadas` puede mostrarse solo como dato
+  informativo.
 - **Aplicado a Trivia:** el `FinalBlock` de la maqueta en vivo reemplaza el ranking teaser por `<Podium>`
   (mapeando el ranking mock → `PodiumEntry`). El mock ajusta los puntajes rivales (250/150/50) para que
   el puesto refleje tu desempeño (3/3 = 1.º).
@@ -181,15 +182,16 @@ a sangre completa no cabe** en esa estructura sin tocar el controller. Decisión
 - **Maqueta de ranking BDT (decisión del usuario: construirla).** Mismo patrón que Trivia en vivo, en
   `src/features/bdt/ranking/`:
   - `bdtRankingTypes.ts` — interfaz **`BdtRankingSource`** + formas + helpers de formato = **plantilla**.
-    Documenta la **regla BDT**: orden por `EtapasGanadas` y desempate por `TiempoAcumuladoEtapasGanadas`
-    (**no** puntaje); mapeo al evento/endpoint real `RankingBDTActualizado`.
-  - `mockBdtRankingSource.ts` — guion que ilustra el **desempate** (Ana y Tú con 3 etapas; Ana gana por
-    menos tiempo → 1.ª; Tú 2.º).
-  - `BdtRankingScreen` (+container) — aplica el **`Podium`** con `valor = "N etapas · m:ss"`. Banner
+    Documenta la **regla BDT**: orden por puntos acumulados de etapas ganadas y desempate por
+    `TiempoAcumuladoEtapasGanadas`; `EtapasGanadas` es informativo. Mapeo al evento/endpoint real
+    `RankingBDTActualizado`.
+  - `mockBdtRankingSource.ts` — guion que ilustra el **desempate** entre participantes con igual puntaje;
+    gana quien tenga menor tiempo acumulado de etapas ganadas.
+  - `BdtRankingScreen` (+container) — aplica el **`Podium`** con `valor = "N pts · m:ss"`. Banner
     "Maqueta · datos de ejemplo". Acceso: botón **"Ver ranking BDT (demo)"** en `PublishedGames`.
 - **Pendiente (usuario):** recorrer BDT → lista oscura, etapa activa con **cuenta regresiva** corriendo,
   subir una foto para ver la **reacción** del QR, y abrir **"Ver ranking BDT (demo)"** para ver el podio
-  ordenado por etapas/tiempo (no puntaje).
+  ordenado por puntos acumulados y desempate por tiempo.
 
 ### Fase G5 — Pulido, accesibilidad y documentación · ✅ código (pase Expo pendiente)
 

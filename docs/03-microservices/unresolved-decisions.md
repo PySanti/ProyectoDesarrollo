@@ -1,51 +1,36 @@
 # Unresolved Decisions
 
-## Resolved microservice decision
+## Resolved: microservice topology
 
-The microservice topology is no longer unresolved.
+The topology is settled. UMBRAL uses **four** physical backend microservices behind a **mandatory YARP gateway**:
 
-UMBRAL uses four physical backend microservices:
+- Identity
+- Partidas
+- Operaciones de Sesion
+- Puntuaciones
 
-- Identity Service
-- Team Service
-- Trivia Game Service
-- BDT Game Service
+The previous decomposition (`Team Service`, `Trivia Game Service`, `BDT Game Service`, non-enforced gateway) is **obsolete** and must not be reintroduced. Teams live inside Identity; Trivia/BDT configuration inside Partidas; Trivia/BDT runtime inside Operaciones de Sesion; scoring/ranking/audit inside Puntuaciones.
 
-This decision is formalized in:
+The decomposition and renaming are governed by the four-service migration ADR under `docs/05-decisions/`.
 
-```txt
-docs/05-decisions/ADR-0006-four-service-topology.md
-```
+## Resolved: BDT ranking
+
+BDT native ranking is by **accumulated points** = sum of the `Puntaje` of the won stages, tie-broken by lowest accumulated time of the won stages only. The count of stages won is informative data only. The old "rank by number of stages won" rule is obsolete.
 
 ## Explicit non-services
 
-The following are not active physical backend microservices:
+The following must never be created as separate physical services:
 
-- Audit Service
-- Scoring Service
-- Trivia Service
-- Treasure Hunt Service
-- Notification Service
+- `Scoring Service` — scoring/ranking is **Puntuaciones**.
+- `Audit Service` — audit/history is materialized in **Puntuaciones** and **Operaciones de Sesion**.
+- `Notification Service` — async email notification lives inside **Identity**.
 
-Scoring, ranking, history and audit-style traces are responsibilities inside the owning service of the corresponding business flow.
+## Remaining items for SDD/contracts
 
-## Remaining non-microservice decisions
+These are not topology issues; they are resolved per HU during SDD before implementation:
 
-The following issues are not microservice topology issues. They must be resolved in the relevant SDD before implementation.
-
-### Trivia scoring formula
-
-There is a conflict between:
-
-- the SRS formula for Trivia score calculation; and
-- the domain/class model description of direct accumulation of assigned points.
-
-This must be resolved before implementing Trivia scoring features, especially HU-29.
-
-### Minimum team size
-
-The sources include team creation by a single participant and also mention team cardinality/invariants. The exact minimum team size must be confirmed before implementing team invariant enforcement.
-
-### SDD regeneration
-
-Some existing SDD folders appear to come from an older mission/session model. They must not be used for implementation until regenerated or reviewed against the current four-service topology.
+- **Concrete HTTP contracts.** Routes, methods and payloads per HU live in `contracts/http/`.
+- **Concrete event contracts.** Exchange/queue/routing-key names, payload schemas, idempotency and outbox policy per event live in `contracts/events/`.
+- **Concrete SignalR contracts.** Hub names and message shapes per real-time feature.
+- **On-disk migration debt.** Folder slugs, host ports, `run-local` scripts and `.sln` names for the four services are finalized in the migration ADR; existing folders/ports that still reflect the old layout are debt, not the target.
+- **Legacy SDD folders.** Specs from the older mission/session or four-old-service model must be regenerated/reviewed against the current topology before use.

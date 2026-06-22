@@ -1,44 +1,53 @@
-# UMBRAL — Project Context
+# UMBRAL Project Context
 
-Este directorio contiene el contexto operativo del proyecto UMBRAL derivado de `docs/01-project-source`.
+This directory contains current derived context for the target UMBRAL doctrine.
 
-Su propósito es permitir que OpenCode trabaje con una versión resumida, normalizada y accionable del SRS, el enunciado, el modelo de dominio, el diagrama de clases, la lista de microservicios y las historias de usuario.
+## Authority
 
-## Regla de uso
+The source of truth is `docs/01-project-source/` plus `CLAUDE.md`. Files here are derived and must be corrected when they contradict the source files.
 
-- `docs/01-project-source/` conserva la fuente original.
-- `docs/02-project-context/` contiene contexto derivado para planificación, diseño e implementación.
-- Si hay contradicción entre documentos fuente, no se debe improvisar: revisar `known-ambiguities-and-decisions.md`.
-- Ninguna historia debe implementarse directamente desde un prompt: siempre debe existir SDD en `docs/04-sdd/specs/<HU>/`.
+## Target Architecture
 
-## Archivos principales
+- `Identity`
+- `Partidas`
+- `Operaciones de Sesion`
+- `Puntuaciones`
+- Mandatory YARP gateway
 
-| Archivo | Propósito |
+## Current Files
+
+| File | Purpose |
 |---|---|
-| `project-brief.md` | Resumen ejecutivo del producto, problema, actores, modos y arquitectura. |
-| `srs-summary.md` | Resumen funcional y no funcional del SRS. |
-| `business-rules.md` | Reglas de negocio normalizadas por área. |
-| `first-delivery-scope.md` | Historias de usuario seleccionadas para la primera entrega. |
-| `glossary.md` | Vocabulario ubicuo del dominio. |
-| `domain-model-summary.md` | Subdominios, contextos, agregados, eventos y servicios de dominio. |
-| `class-design-summary.md` | Resumen del diagrama de clases por contexto. |
-| `source-priority.md` | Prioridad documental y reglas ante contradicciones. |
-| `known-ambiguities-and-decisions.md` | Decisiones pendientes o contradicciones detectadas. |
+| `project-brief.md` | Product and architecture summary |
+| `srs-summary.md` | SRS-derived requirements summary |
+| `business-rules.md` | Normalized business rules |
+| `first-delivery-scope.md` | Current implementation-scope summary if defined by the source docs |
+| `glossary.md` | Ubiquitous language |
+| `domain-model-summary.md` | Aggregates, entities, events, and services |
+| `class-design-summary.md` | Class design summary |
+| `source-priority.md` | Source priority and contradiction rules |
+| `known-ambiguities-and-decisions.md` | Current decisions and open questions |
+| `documentation-migration-status.md` | Migration checklist |
+| `adaptation-to-academic-brief.md` | Academic-brief vocabulary mapping (Mission → Partida, etc.) |
+| `bdt-ranking-clarification.md` | Point-based BDT ranking clarification (supersedes stages-won rule) |
+| `mobile-participant-context.md` | Mobile client ownership and participant-scope boundaries |
+| `patch-snippets.md` | Historical meta migration artifact — not active planning input |
+| `SETUP-PERTINENCE-PATCH-SUMMARY.md` | Historical pre-migration setup-patch summary — not active planning input |
 
-## Archivos de diseño
+## Design Files
 
-| Archivo | Propósito |
+| File | Purpose |
 |---|---|
-| `design/design-index.md` | Índice de diseño para OpenCode. |
-| `design/domain-business-rules.md` | Reglas ubicadas dentro de agregados y servicios de dominio. |
-| `design/domain-entities-by-context.md` | Entidades, agregados, value objects y enums por contexto. |
-| `design/class-design-by-layer.md` | Traducción del diseño a Clean/Hexagonal Architecture. |
-| `design/service-model-impact.md` | Impacto del modelo de dominio sobre microservicios. |
-| `design/design-patterns-catalog.md` | Política de patrones de diseño para las features. |
+| `design/design-index.md` | Design index for SDD work |
+| `design/domain-business-rules.md` | Rules placed inside aggregates and domain services |
+| `design/domain-entities-by-context.md` | Entities, aggregates, value objects, and enums per bounded context, mapped to the target services |
+| `design/class-design-by-layer.md` | Class design translated to Clean/Hexagonal layers per service |
+| `design/service-model-impact.md` | Impact of the domain model on the four target services |
+| `design/design-patterns-catalog.md` | Design-pattern policy for features |
 
-## Regla para OpenCode
+## Reading Rule
 
-Antes de crear o modificar código, OpenCode debe leer como mínimo:
+Before creating or modifying code, read at minimum:
 
 1. `project-brief.md`
 2. `srs-summary.md`
@@ -49,3 +58,5 @@ Antes de crear o modificar código, OpenCode debe leer como mínimo:
 7. `design/class-design-by-layer.md`
 8. `design/service-model-impact.md`
 9. `known-ambiguities-and-decisions.md`
+
+No user story may be implemented directly from a prompt: an SDD must exist under `docs/04-sdd/specs/<HU>/` first.

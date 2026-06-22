@@ -1,5 +1,7 @@
 # ADR-0006 - Four Physical Backend Services
 
+> Superseded by `ADR-0008-documentation-doctrine-replacement.md`. This ADR is retained as historical decision context for the previous service topology.
+
 ## Status
 
 Accepted

@@ -168,7 +168,7 @@ Una superficie casi-neutra con un magenta inconfundible como única voz de marca
 **Body Font:** Inter (con Segoe UI / system-ui)
 **Label/Mono Font:** JetBrains Mono (con ui-monospace)
 
-**Character:** Una grotesca de carácter (Space Grotesk) para títulos da personalidad y energía sin gritar; Inter humanista mantiene legible el cuerpo denso de formularios y tablas. Se emparejan en un eje de contraste real (grotesca geométrica vs. humanista neutra), no dos sans gemelas. El mono no es decorativo: porta identificadores, códigos de acceso y QR, donde el ancho fijo y la distinción 0/O, 1/l importan.
+**Character:** Una grotesca de carácter (Space Grotesk) para títulos da personalidad y energía sin gritar; Inter humanista mantiene legible el cuerpo denso de formularios y tablas. Se emparejan en un eje de contraste real (grotesca geométrica vs. humanista neutra), no dos sans gemelas. El mono no es decorativo: porta identificadores, `InvitacionEquipoId`, `ConvocatoriaId` y contenido QR esperado, donde el ancho fijo y la distinción 0/O, 1/l importan.
 
 ### Hierarchy
 - **Display** (600, `clamp(1.75rem, 1.2rem + 2vw, 2.5rem)`, 1.1): título de página / cabecera de sección principal. Techo modesto: es una herramienta, no un héroe de landing.
@@ -176,7 +176,7 @@ Una superficie casi-neutra con un magenta inconfundible como única voz de marca
 - **Title** (600, 1.125rem/18px, 1.3): títulos de tarjeta, tabla o panel.
 - **Body** (400, 0.9375rem/15px, 1.5): texto general; prosa acotada a 65–75ch.
 - **Label** (600, 0.8125rem/13px, +0.005em): etiquetas de formulario, cabeceras de tabla, chips. **Sentence case**, no mayúsculas.
-- **Mono** (500, 0.8125rem/13px): IDs, `codigoAcceso`, QR decodificado, timestamps técnicos.
+- **Mono** (500, 0.8125rem/13px): IDs, `InvitacionEquipoId`, `ConvocatoriaId`, contenido QR esperado, timestamps técnicos.
 
 ### Named Rules
 **The No-Eyebrow Rule.** Prohibido el kicker en mayúsculas con tracking ancho sobre cada sección (el "PANEL WEB" actual). La jerarquía se construye con escala y peso (ratio ≥1.25 entre pasos), no con mayúsculas. El único uso de mayúsculas permitido es algún chip de estado corto, y aun así con su forma e ícono.
@@ -232,7 +232,7 @@ La tabla de supervisión es el componente firma de la consola. Cabecera sticky e
 - **Do** mantener el fondo en blanco puro (`#ffffff`) y dejar que el Magenta Umbral cargue la energía.
 - **Do** reservar el magenta para acción primaria, foco, nav activa y el estado En vivo (la regla One Live Voice, ≤10% de la pantalla).
 - **Do** codificar cada estado con color + texto + forma (la regla State Is Never Color Alone).
-- **Do** renderizar todo UUID, código de acceso y QR en JetBrains Mono, truncado y con copiar.
+- **Do** renderizar todo UUID, contenido QR e identificador técnico en JetBrains Mono, truncado y con copiar. La antigua idea de código de acceso de equipo es deuda legacy; la membresía actual ocurre por `InvitacionEquipo`.
 - **Do** construir jerarquía con escala y peso (ratio ≥1.25); etiquetas en sentence case.
 - **Do** mantener superficies planas en reposo; sombras solo en overlays y hover.
 - **Do** verificar AA: cuerpo ≥4.5:1, texto grande ≥3:1, foco visible, `prefers-reduced-motion` con alternativa.

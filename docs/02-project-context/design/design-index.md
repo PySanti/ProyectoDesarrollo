@@ -1,25 +1,27 @@
 # Design Context Index — UMBRAL
 
-Este directorio contiene los documentos de diseño derivados del project-source.
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-## Archivos
+This directory contains design documents derived from the project source, mapped to the four target services: **Identity**, **Partidas**, **Operaciones de Sesion**, **Puntuaciones** (behind the mandatory YARP gateway). The central structure is a **`Partida`** of **sequential `Juego`s**, each a **`JuegoTrivia`** or **`JuegoBDT`**.
 
-| Archivo | Uso |
+## Files
+
+| File | Use |
 |---|---|
-| `domain-business-rules.md` | Ubicar reglas dentro de agregados, entidades y servicios de dominio. |
-| `domain-entities-by-context.md` | Consultar entidades, agregados, value objects y enums por contexto. |
-| `class-design-by-layer.md` | Traducir clases a Clean Architecture / Hexagonal Architecture. |
-| `service-model-impact.md` | Determinar qué microservicio toca cada feature. |
-| `design-patterns-catalog.md` | Elegir patrones de diseño de forma justificada. |
+| `domain-business-rules.md` | Place rules inside aggregates, entities, and domain services. |
+| `domain-entities-by-context.md` | Look up entities, aggregates, value objects, and enums by context, mapped to the target services. |
+| `class-design-by-layer.md` | Translate classes to Clean / Hexagonal layers per service. |
+| `service-model-impact.md` | Determine which target service owns each feature. |
+| `design-patterns-catalog.md` | Choose design patterns in a justified way. |
 
-## Uso dentro de SDD
+## Use within SDD
 
-Al crear `docs/04-sdd/specs/<HU>/design.md`, OpenCode debe consultar estos documentos y responder:
+When creating `docs/04-sdd/specs/<HU>/design.md`, consult these documents and answer:
 
-1. ¿Qué contexto acotado toca la HU?
-2. ¿Qué agregado protege las reglas?
-3. ¿Qué servicio o microservicio es dueño?
-4. ¿Qué comandos/queries se necesitan?
-5. ¿Qué eventos deben publicarse?
-6. ¿Qué reglas requieren pruebas?
-7. ¿Qué patrón de diseño se justifica y dónde?
+1. Which bounded context does the HU touch?
+2. Which aggregate protects the rules?
+3. Which target service owns it (Identity / Partidas / Operaciones de Sesion / Puntuaciones)?
+4. Which commands/queries are needed?
+5. Which events must be published (RabbitMQ) and which real-time updates broadcast (SignalR through the gateway)?
+6. Which rules require tests?
+7. Which design pattern is justified and where?

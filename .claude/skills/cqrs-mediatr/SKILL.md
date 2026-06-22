@@ -36,7 +36,7 @@ Each command/query should include, when applicable:
 ## Naming examples
 
 - `CreateTeamCommand`
-- `JoinTeamByCodeCommand`
-- `GetPublishedTriviaSessionsQuery`
+- `AcceptTeamInvitationCommand`
+- `GetPublishedPartidasQuery`
 - `SubmitTriviaAnswerCommand`
 - `ValidateTreasureQrCommand`

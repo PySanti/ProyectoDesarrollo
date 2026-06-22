@@ -1,126 +1,94 @@
 # SRS Summary — UMBRAL
 
-## Alcance funcional general
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-UMBRAL debe permitir operar partidas interactivas en tiempo real bajo dos modos: Trivia y Búsqueda del Tesoro.
+## General functional scope
 
-El sistema cubre:
+UMBRAL operates real-time interactive **`Partida`s** built from **one or more `Juego`s in sequential order**, each exactly a **`JuegoTrivia`** or a **`JuegoBDT`**. The system covers: authentication and roles via Keycloak; user management; per-role permission/governance; team management with invitations; partida creation and configuration; publishing to lobby; individual or team inscription; team convocatorias; live execution; Trivia answer validation; BDT QR-treasure validation; score accumulation; native and consolidated ranking in real time; history/audit; operational BDT geolocation; and separation of commands from queries.
 
-- autenticación y roles mediante Keycloak;
-- gestión de usuarios;
-- gestión de equipos;
-- publicación de partidas;
-- inscripción individual o por equipo;
-- convocatoria a integrantes;
-- lobbies;
-- ejecución de partidas;
-- validación de respuestas de Trivia;
-- validación de tesoros QR en BDT;
-- cálculo y acumulación de puntaje;
-- ranking en tiempo real;
-- historial y auditoría;
-- geolocalización operativa en BDT;
-- consultas separadas de comandos.
+These capabilities materialize across four services behind a **mandatory YARP gateway**: **Identity**, **Partidas** (configuration), **Operaciones de Sesion** (runtime + inscriptions/convocatorias), and **Puntuaciones** (scoring/ranking/audit).
 
-## Requisitos funcionales por grupo
+## Functional requirements by group
 
-### Identidad y acceso
+### Identity and access
 
-- Integración con Keycloak.
-- Roles base: Administrador, Operador y Participante.
-- El rol se asigna inicialmente durante creación.
-- UMBRAL no almacena contraseñas.
-- UMBRAL conserva referencia local al usuario autenticado.
-- Los usuarios desactivados no deben operar dentro del sistema.
-- El liderazgo no es rol de Keycloak; es una condición de negocio dentro de equipos.
+- Integration with Keycloak; base roles `Administrador`, `Operador`, `Participante` (no new roles ever).
+- Initial role assigned at user creation; the admin may later change the role of operators/participants (including promotion to admin) but never an admin's role, propagating the change to Keycloak.
+- UMBRAL stores no passwords; it keeps a local reference keyed by the Keycloak identifier.
+- A temporary password is generated at creation and emailed asynchronously (RabbitMQ); first-login change is enforced by Keycloak. Changing the email while the credential is still temporary re-issues a new temporary password.
+- Deactivated users cannot operate in the system.
+- Two authorization levels managed **per role** from the governance panel: governance privileges and functional permissions (`GestionarPartidas`, `GestionarEquipos`, `ParticiparEnPartidas`). Admin governance privileges are protected.
+- `Líder de equipo` is a business attribute, not a Keycloak role.
 
-### Modos de juego
+### Game modes
 
-- Solo existen Trivia y Búsqueda del Tesoro.
-- Toda partida pertenece exactamente a uno de esos modos.
-- No se permiten modos adicionales.
-- Todas las partidas usan estados comunes: `lobby`, `iniciada`, `cancelada`, `terminada`.
+- Only `Trivia` and `Búsqueda del Tesoro` exist; each `Juego` of a `Partida` is exactly one of them. No additional modes.
+- `Partida` states: `Lobby`, `Iniciada`, `Cancelada`, `Terminada`. Each `Juego` has its own sub-state `Pendiente` / `Activo` / `Finalizado`.
+- A `Partida` has a single `Modalidad` (`Individual` / `Equipo`) fixed once for all its games, a `ModoInicioPartida` (`Manual` / `Automatico` / `ManualYAutomatico`), and min/max participation. Games activate sequentially when the partida starts; when the last game finishes, the partida becomes `Terminada`.
 
-### Equipos
+### Teams (inside Identity)
 
-- Un participante puede crear equipo solo si no pertenece a otro.
-- El creador queda como líder.
-- El sistema genera un código único de equipo.
-- Un participante puede unirse mediante código válido.
-- Un participante solo puede pertenecer a un equipo a la vez.
-- Cada equipo puede tener máximo cinco jugadores.
-- Los equipos son globales y pueden usarse tanto en Trivia como en BDT.
-- El líder puede eliminar el equipo, con notificación a integrantes.
-- El líder debe transferir liderazgo antes de salir si hay otros integrantes.
-- Si el líder está solo y sale, el equipo se elimina.
-- Equipos desactivados no pueden inscribirse en nuevas partidas.
+- A participant may create a team only if not already in one; the creator is the first member and leader.
+- 1 to 5 members; a participant belongs to only one active team at a time.
+- Members join **only via `InvitacionEquipo`** sent by the leader from a dynamic participant list that excludes anyone already in a team and is blocked when the team is full. There is **no team access code**.
+- Invitations do not expire; deleting a team deletes its pending invitations but preserves history.
+- Leadership is transferable; a leader leaving with no other members deletes the team.
+- Per-participant team-name history is preserved. Teams are global and usable in both Trivia and BDT.
 
-### Listado, filtros y acceso
+### Listing, filters and access (mobile)
 
-- Cada participante ve paneles separados para Trivia y BDT.
-- Cada panel muestra partidas publicadas.
-- Cada panel permite filtrar por modalidad individual o equipo.
-- Un participante puede jugar partidas individuales aunque pertenezca a un equipo.
-- Un participante no líder no puede inscribir un equipo en una partida por equipo.
-- Mensaje obligatorio: “Debes ser líder de un equipo para entrar en este evento”.
+- A single `Partidas` panel lists all published partidas regardless of game type, with a filter by modality (`Individual` / `Equipo`).
+- A participant may play individual partidas even while belonging to a team.
+- Only a leader can inscribe a team in a team partida; a non-leader is shown "Debes ser líder de un equipo para entrar en esta partida".
+- Only one active participation at a time (active individual inscription or accepted team convocatoria while the partida is in `Lobby`/`Iniciada`).
 
-### Trivia
+### Partidas and Trivia configuration (Partidas)
 
-- El operador crea formularios con preguntas, opciones, respuesta correcta, puntaje y tiempo límite.
-- Un formulario incompleto no puede usarse para crear partida.
-- El operador crea partida asociada a un formulario válido.
-- La partida puede ser individual o por equipos.
-- Se definen mínimos y máximos según modalidad.
-- En lobby se habilitan inscripciones.
-- La partida inicia manualmente o al cumplirse el tiempo configurado.
-- Todos reciben la misma pregunta y opciones al mismo tiempo.
-- En individual se acepta una respuesta por jugador por pregunta.
-- En equipo se acepta una respuesta por equipo; la primera enviada por cualquier integrante fija la respuesta.
-- Se rechazan respuestas repetidas, tardías o fuera del estado válido.
-- Al cerrar pregunta se valida respuesta, se actualiza ranking y se avanza o finaliza.
-- El operador ve ranking y opción de cancelar; no interviene respuestas.
+- The operator creates a `Partida` as a sequence of `Juego`s (Juego 1, Juego 2, …), fixing a single modality, min/max participation, start mode and time.
+- For `JuegoTrivia`, the operator creates the `Pregunta`s at game-creation time (options, correct answer, `PuntajeAsignado`, time limit). No question bank, no reuse; a game without at least one complete question cannot be published.
+- For `JuegoBDT`, the operator defines the `AreaBusqueda` (descriptive text) and one or more `EtapaBDT`, each with expected QR text, a `Puntaje`, and a time limit; the partida cannot be published without valid stages.
 
-### Búsqueda del Tesoro
+### Live runtime (Operaciones de Sesion)
 
-- El operador crea BDT con nombre, área de búsqueda, modalidad y mínimos/máximos.
-- La BDT debe tener una o más etapas válidas.
-- Cada etapa tiene QR esperado y tiempo límite.
-- La partida se publica en lobby.
-- La partida inicia cuando cumple mínimos.
-- Al iniciar se activa la primera etapa.
-- El participante ve etapa activa, temporizador y opción de subir tesoro.
-- El sistema procesa imagen, intenta decodificar QR y compara con QR esperado.
-- Cada envío queda registrado con participante/equipo, partida, etapa, fecha, QR decodificado y resultado.
-- La etapa se cierra por QR válido o por agotamiento de tiempo.
-- Si hay ganador, se muestra quién encontró el tesoro y tiempo usado.
-- Si no hay ganador, se muestra “nadie consiguió el tesoro”.
-- El operador puede enviar pistas durante una partida iniciada.
-- La geolocalización requiere autorización y se actualiza cada 2 segundos durante BDT iniciada.
+- Publishing a partida moves it to `Lobby` and enables a single inscription per participant (individual) or per team (team).
+- Manual/automatic start, requiring the configured minimums; if the start time is reached without minimums, the partida is cancelled automatically.
+- Trivia: synchronized question and timer for all; one answer per participant (individual) or per team (first option from any active member); a question closes on first correct answer or timeout, then advances or finishes.
+- BDT: first stage activates with the game; participants upload QR photos; the backend decodes and compares to the expected text; a stage closes on first correct validation or timeout; in team modality any active member's correct upload wins for the team.
+- Operator sends clues, sees uploaded treasures, and views the geolocation map; reconnection is supported while the partida is `Iniciada`.
 
-### Historial, auditoría y tiempo real
+### Scoring, ranking, history (Puntuaciones)
 
-- Se registran cambios de estado, inscripciones, convocatorias, respuestas, tesoros, validaciones, pistas, puntajes, ubicaciones, cancelaciones y resultados.
-- El sistema debe publicar eventos relevantes para auditoría, historial, notificaciones internas, ranking, trazabilidad y tiempo real.
-- El canal de tiempo real actualiza lobby, preguntas, ranking, etapas, pistas, geolocalización, resultados y estados.
+- Trivia native ranking: order by `PuntajeAcumulado` descending (a correct answer adds the question's `PuntajeAsignado` directly; time never modifies points), tie-break by lowest accumulated answer time.
+- BDT native ranking: order by accumulated points = sum of the `Puntaje` of won stages; tie-break by lowest accumulated time of the won stages only. Count of stages won is informative, not the sort key.
+- Consolidated partida ranking (on finish): by number of games won, then total accumulated points across all games, then lowest total time. A game's winner is whoever has the most points in it (tie-break lowest time; if still tied, no winner).
+- History/audit records relevant facts (state changes, inscriptions, convocatorias, invitations, game activation/finish, answers, treasures, validations, clues, locations, score/ranking changes, cancellations, results) and is materialized in Puntuaciones and Operaciones de Sesion.
+- Real-time updates cover lobby, states, games, questions, ranking, stages, timers, clues, geolocation, results.
 
-## Requisitos no funcionales
+## Non-functional requirements
 
-| ID | Resumen |
+| ID | Summary |
 |---|---|
-| RNF-01 | Frontend React y backend .NET Core. |
+| RNF-01 | React web, React Native mobile, .NET Core backend. |
 | RNF-02 | PostgreSQL + Entity Framework Core. |
-| RNF-03 | WebSockets para tiempo real. |
-| RNF-04 | MediatR y CQRS. |
-| RNF-05 | RabbitMQ para procesos asíncronos. |
-| RNF-06 | Arquitectura hexagonal / limpia. |
-| RNF-07 | Dominio independiente de infraestructura y framework web. |
-| RNF-08 | Logging, excepciones y validaciones consistentes. |
-| RNF-09 | Meta de cobertura backend mínima de 90%. |
-| RNF-10 | Ejecución local con Docker Compose. |
-| RNF-11 | CI para compilación y pruebas. |
-| RNF-12 | Interfaz clara, usable y coherente. |
-| RNF-13 | Keycloak con tokens seguros. |
-| RNF-14 | No almacenar contraseñas ni credenciales sensibles. |
-| RNF-15 | Geolocalización BDT cada 2 segundos sin bloquear. |
-| RNF-16 | Decodificación de QR desde imágenes en web responsive. |
-| RNF-17 | Tiempo real para lobby, preguntas, ranking, etapas, pistas, geolocalización y estados. |
+| RNF-03 | Real-time over WebSockets. |
+| RNF-04 | MediatR and CQRS. |
+| RNF-05 | RabbitMQ for async processes. |
+| RNF-06 | Hexagonal / clean architecture. |
+| RNF-07 | Domain independent of infrastructure and web framework. |
+| RNF-08 | Logging, exception handling, validations. |
+| RNF-09 | Backend test coverage goal ≥ 90%. |
+| RNF-10 | Local execution via Docker Compose. |
+| RNF-11 | CI pipeline for build and tests. |
+| RNF-12 | Clear, usable, coherent interfaces; admin/operation vs participation flows differentiated. |
+| RNF-13 | Keycloak with secure tokens. |
+| RNF-14 | Store no passwords or sensitive credentials. |
+| RNF-15 | BDT geolocation every 2 seconds without blocking. |
+| RNF-16 | Decode QR codes from images captured/uploaded on mobile. |
+| RNF-17 | Real-time channel for lobby, questions, ranking, stages, clues, geolocation, states. |
+| RNF-18 | Mobile camera/image use for QR treasure upload, with permissions. |
+| RNF-19 | Mobile geolocation permission before sharing during active BDT. |
+| RNF-20 | Mobile consumes only backend HTTP/real-time contracts; no direct DB, no authoritative rule duplication. |
+| RNF-21 | Mandatory YARP gateway as single entry point; validates the Keycloak JWT and routes all traffic, including real-time. |
+| RNF-22 | Gateway applies coarse role authorization by route from token claims, without querying Identity per request; fine-grained functional-permission authorization stays in the services. |
+| RNF-23 | Async email capability (RabbitMQ) for temporary passwords; no fixed mail provider. |
+| RNF-24 | Time-based Keycloak token refresh between client and Keycloak only (not via gateway/backend), with inactivity control. |

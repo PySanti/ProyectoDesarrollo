@@ -1,76 +1,42 @@
-# Adaptación del enunciado académico
+# Adaptation of the Academic Brief
 
-## Propósito
+> Status: Current derived documentation. Source: `docs/01-project-source/` and `CLAUDE.md`.
 
-Este documento explica cómo el SRS de UMBRAL adapta el enunciado académico original sin perder los objetivos técnicos del proyecto integrador.
+## Purpose
 
-## Enunciado original
+This document explains how UMBRAL maps the generic vocabulary of the original academic brief onto its own ubiquitous language, without losing the technical objectives of the integrating project.
 
-El enunciado describe una plataforma web para experiencias de investigación inmersiva con:
+## Original academic brief
 
-- misiones;
-- sesiones en vivo;
-- equipos;
-- pistas;
-- respuestas/evidencias;
-- ranking;
-- trazabilidad;
-- WebSockets;
-- RabbitMQ;
-- CQRS;
-- PostgreSQL;
-- .NET Core;
-- React;
-- arquitectura limpia/hexagonal.
+The brief describes a platform for immersive live experiences with generic missions, live sessions, teams, clues, answers/evidence, ranking, traceability, WebSockets, RabbitMQ, CQRS, PostgreSQL, .NET, React, and clean/hexagonal architecture.
 
-## Adaptación del equipo
+## Team adaptation
 
-El equipo concreta el dominio en dos modos de juego:
+The team concretizes the domain into exactly two game modes — **Trivia** and **Búsqueda del Tesoro (BDT)** — organized as `Juego`s inside a `Partida`. The generic terms map as follows:
 
-1. Trivia.
-2. Búsqueda del Tesoro / BDT.
-
-Esta adaptación conserva la esencia del enunciado:
-
-| Enunciado académico | SRS UMBRAL |
+| Academic brief | UMBRAL ubiquitous language |
 |---|---|
-| Misión | FormularioTrivia / Configuración BDT |
-| Etapas o nodos | Preguntas de Trivia / Etapas BDT |
-| Sesión en vivo | PartidaTrivia / PartidaBDT |
-| Equipo participante | Equipo |
-| Evidencia o respuesta | RespuestaTrivia / TesoroQR |
-| Pista | Pista BDT |
-| Ranking | Ranking Trivia / Ranking BDT |
-| Historial | RegistroAuditoria / EventoHistorial |
-| Panel operador | Web React |
-| Panel equipo | Mobile React Native |
+| Mission | `Partida` |
+| Mission stages | `Juego` (sequential `JuegoTrivia` / `JuegoBDT`), with Trivia `Pregunta`s and BDT `EtapaBDT`s as inner steps |
+| Live session | The live session managed by **Operaciones de Sesion** |
+| Team | `Equipo` (inside **Identity**) |
+| Evidence / answer | `RespuestaTrivia` / `TesoroQR` |
+| Clue | `Pista` (BDT) |
+| Ranking | Native `RankingTrivia` / `RankingBDT` plus the consolidated partida ranking (**Puntuaciones**) |
+| Session event | `EventoHistorial` / `RegistroAuditoria` (materialized in **Puntuaciones** and **Operaciones de Sesion**) |
+| Operator panel | React web |
+| Participant panel | React Native mobile |
 
-## Aplicación móvil
+There is **no** generic "Trivia form" anymore: questions belong directly to the `JuegoTrivia` and are created with it. Do not implement generic mission/session/evidence/form modules.
 
-El SRS incorpora una app móvil React Native para participantes.
+## Mobile application
 
-Esta decisión se justifica porque:
+The SRS adds a React Native mobile app for participants because participation flows require immediate interaction, BDT requires camera/image, BDT requires operational geolocation, and Trivia requires a synchronized answer experience. The web app is reserved for administration and operation (Administrador / Operador).
 
-- los flujos de participación requieren interacción inmediata;
-- BDT requiere cámara/imagen;
-- BDT requiere geolocalización operativa;
-- Trivia requiere experiencia sincronizada de respuesta;
-- la web se conserva para administración y operación.
+## BDT geolocation
 
-## Geolocalización BDT
+Geolocation is limited to operational supervision during an active BDT game, mandatory for participation, sent ~every 2 seconds. It does not include complex historical routes, advanced geospatial analytics, predictive maps, complex geofencing, or AI.
 
-La geolocalización se limita a supervisión operativa durante BDT iniciada.
+## Rule
 
-No incluye:
-
-- rutas históricas complejas;
-- analítica geoespacial avanzada;
-- mapas predictivos;
-- geofencing complejo;
-- inteligencia artificial.
-
-## Regla para OpenCode
-
-OpenCode debe tratar esta adaptación como una decisión aceptada del proyecto.
-
-No debe intentar volver al modelo genérico de misiones/sesiones si el SRS, modelo de dominio y diagrama de clases ya definen Trivia y BDT como modos concretos.
+Treat this adaptation as an accepted project decision. Do not revert to the generic missions/sessions/evidence model: the SRS, domain model, and class diagram define `Partida`, sequential `Juego`, `JuegoTrivia`, and `JuegoBDT` as the concrete model, materialized across the four target services (Identity, Partidas, Operaciones de Sesion, Puntuaciones).

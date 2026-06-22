@@ -1,5 +1,7 @@
 # Setup Pertinence Patch Summary
 
+> Status: Historical pre-migration setup-patch summary. Superseded by `documentation-migration-status.md`. Retained as historical context only — not active planning input.
+
 ## Current goal
 
 Improve the OpenCode setup so it can generate UMBRAL according to:

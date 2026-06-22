@@ -29,9 +29,8 @@ Use this skill before planning, SDD writing, implementation or review.
 Use the actual filenames present in `docs/01-project-source/`:
 
 - `docs/01-project-source/srs.md`
-- `docs/01-project-source/historias de usuario.md`
-- `docs/01-project-source/modelo de dominio.md`
-- `docs/01-project-source/diagrama de clases.md`
+- `docs/01-project-source/modelo-de-dominio.md`
+- `docs/01-project-source/diagrama-de-clases.md`
 - `docs/01-project-source/microservicios.md`
 - `docs/01-project-source/enunciado-proyecto.md`
 
@@ -39,8 +38,8 @@ Use the actual filenames present in `docs/01-project-source/`:
 
 - Only Trivia and Búsqueda del Tesoro exist.
 - Physical microservices are mandatory in this setup.
-- The only valid backend services are Identity Service, Team Service, Trivia Game Service and BDT Game Service.
-- Do not create Audit Service, Scoring Service, Trivia Service or Treasure Hunt Service as physical services.
+- The only valid backend physical services are Identity, Partidas, Operaciones de Sesion and Puntuaciones, behind the mandatory YARP gateway.
+- Do not create Team Service, Trivia Game Service, BDT Game Service, Treasure Hunt Service, Audit Service, Scoring Service or Notification Service as physical services (obsolete / superseded).
 - SDD is mandatory.
 - The first delivery is limited to the selected user stories.
 - Keycloak handles authentication and base roles.
