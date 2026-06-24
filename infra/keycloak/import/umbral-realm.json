@@ -54,16 +54,6 @@
       "serviceAccountsEnabled": true
     },
     {
-      "clientId": "team-service",
-      "name": "Team Service (backend)",
-      "enabled": true,
-      "publicClient": false,
-      "secret": "umbral-team-secret",
-      "standardFlowEnabled": false,
-      "directAccessGrantsEnabled": true,
-      "serviceAccountsEnabled": true
-    },
-    {
       "clientId": "bdt-game-service",
       "name": "BDT Game Service (backend)",
       "enabled": true,

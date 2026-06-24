@@ -1,4 +1,4 @@
-using Umbral.IdentityService.Infrastructure.Security;
+using Umbral.IdentityService.Infrastructure.Services.Security;
 
 namespace Umbral.IdentityService.UnitTests;
 

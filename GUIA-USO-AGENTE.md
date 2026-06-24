@@ -70,6 +70,88 @@ Si lo anterior no ocurre, aca esta el resto de skills del plugin junto con una d
 /finishing-a-development-branch - Activates when tasks complete. Verifies tests, presents options (merge/PR/keep/discard), cleans up worktree.
 ```
 
+# Consideraciones de uso de agente
+
+## 1. Reduccion de consumo de tokens
+
+A menor consumo de tokens, mas avances en el proyecto
+
+
+### 1.1 Caveman
+
+Es una skill que comprime prompts a claude, indicandole lo mismo pero en muchisimas menos palabras.
+
+**Instalacion**
+
+```bash
+claude plugin marketplace add JuliusBrussee/caveman
+claude plugin install caveman@caveman
+```
+
+**Uso**
+
+Al activarlo una vez en una sesion, queda activo para el resto de la sesion...
+
+
+```
+/caveman [lite|full|ultra]
+```
+
+Si se quiere detener ...
+
+```
+stop caveman
+```
+
+No se recomienda usar full o ultra por que podemos perder info importante.
+
+
+### 1.2 code-review-graph
+
+Crea un grafo de archivos del proyecto y hace que claude code consuma menos tokens por revision de codigo.
+
+**Instalacion**
+
+```bash
+pipx install code-review-graph
+code-review-graph instal --platform claude-code
+code-review-graph build # construccion de grafo
+code-review-graph status # revision de grafo
+```
+
+Para revisar cambios en el grafo con respecto al repo ...
+
+
+**Actualizacion**
+
+```bash
+code-review-graph detect-changes --brief
+```
+
+Para actualizar grafo con respecto al repo ...
+
+```bash
+code-review-graph update --brief
+```
+
+**Uso**
+
+Luego para hacer que claude code utilice el grafo en lugar de consumir directamente el codebase, se lo debemos pedir.
+
+```
+Antes de leer archivos directamente, usa code-review-graph para obtener el contexto mínimo afectado.
+```
+
+
+## 2. Continuacion de sesiones
+
+
+Cuando se termine la ventana de 5h durante la ejecucion de superpowers, usar la skill
+
+```
+/resume-superpowers-workflow
+```
+
 # Git después de implementar la funcionalidad nueva
 
 ```bash

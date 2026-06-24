@@ -5,7 +5,8 @@ export type AuthStackParamList = {
 export type AppStackParamList = {
   Home: undefined;
   CreateTeam: undefined;
-  JoinTeam: undefined;
+  Invitations: undefined;
+  InviteMember: undefined;
   TransferLeadership: undefined;
   LeaveTeam: undefined;
   TriviaGamesList: undefined;

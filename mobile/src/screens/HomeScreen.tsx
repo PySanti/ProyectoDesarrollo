@@ -44,7 +44,8 @@ export function HomeScreen({ navigation }: Props) {
       </AppText>
       <View style={styles.group}>
         <NavCard icon="plus-circle" label="Crear equipo" onPress={() => navigation.navigate("CreateTeam")} />
-        <NavCard icon="log-in" label="Unirse con código" onPress={() => navigation.navigate("JoinTeam")} />
+        <NavCard icon="mail" label="Invitaciones" onPress={() => navigation.navigate("Invitations")} />
+        <NavCard icon="user-plus" label="Invitar miembro" onPress={() => navigation.navigate("InviteMember")} />
         <NavCard icon="repeat" label="Transferir liderazgo" onPress={() => navigation.navigate("TransferLeadership")} />
         <NavCard icon="log-out" label="Salir del equipo" onPress={() => navigation.navigate("LeaveTeam")} />
       </View>

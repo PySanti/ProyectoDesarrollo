@@ -1,6 +1,7 @@
-using Umbral.IdentityService.Application.Users.DeactivateUser;
-using Umbral.IdentityService.Application.Users.UpdateUserGeneralData;
+using Umbral.IdentityService.Application.Commands;
+using Umbral.IdentityService.Application.DTOs;
 
+using Umbral.IdentityService.Application.Validators;
 namespace Umbral.IdentityService.UnitTests;
 
 public sealed class Hu02ValidatorsTests

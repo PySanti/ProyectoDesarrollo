@@ -1,7 +1,7 @@
 using System.Net;
 using Microsoft.Extensions.Options;
 using Umbral.IdentityService.Application.Exceptions;
-using Umbral.IdentityService.Infrastructure.Identity;
+using Umbral.IdentityService.Infrastructure.Services.Identity;
 
 namespace Umbral.IdentityService.UnitTests;
 

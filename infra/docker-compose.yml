@@ -1,13 +1,7 @@
-# Docker Compose placeholder for the four-service UMBRAL topology.
-#
-# This file intentionally defines only the approved backend services:
-# - identity-service
-# - team-service
-# - trivia-game-service
-# - bdt-game-service
-#
-# Do not add audit-service, scoring-service, trivia-service or treasure-hunt-service
-# unless a future ADR changes the topology.
+# Docker Compose for the four-service UMBRAL topology, behind the YARP gateway.
+# Target services: gateway, identity-service, partidas, operaciones-sesion, puntuaciones.
+# Legacy (in transit, dismantled in SP-3/SP-4): trivia-game-service, bdt-game-service.
+# Do not add audit-service, scoring-service, or treasure-hunt-service.
 
 services:
   postgres:
@@ -58,54 +52,86 @@ services:
   identity-service:
     build:
       context: ../services/identity-service
+    ports:
+      - "5001:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__IdentityDatabase: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_CLIENT_ID: identity-service
-      KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,account
+      KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
     depends_on:
       - postgres
       - rabbitmq
       - keycloak
 
-  team-service:
+  gateway:
     build:
-      context: ../services/team-service
+      context: ../gateway
     ports:
-      - "5099:8080"
+      - "5080:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
-      ConnectionStrings__TeamDatabase: Host=postgres;Port=5432;Database=umbral_team;Username=umbral;Password=16102005
-      RabbitMq__Host: rabbitmq
-      IdentityService__BaseUrl: http://identity-service
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
-      KEYCLOAK_CLIENT_ID: team-service
-      KEYCLOAK_VALID_AUDIENCES: team-service,umbral-mobile,account
+      KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile,account
+      ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity-service:8080/
+      ReverseProxy__Clusters__partidas__Destinations__d1__Address: http://partidas:8080/
+      ReverseProxy__Clusters__operaciones-sesion__Destinations__d1__Address: http://operaciones-sesion:8080/
+      ReverseProxy__Clusters__puntuaciones__Destinations__d1__Address: http://puntuaciones:8080/
+    depends_on:
+      - identity-service
+      - partidas
+      - operaciones-sesion
+      - puntuaciones
+      - keycloak
+
+  partidas:
+    build:
+      context: ../services/partidas
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PartidasDatabase: Host=postgres;Port=5432;Database=umbral_partidas;Username=umbral;Password=16102005
     depends_on:
       - postgres
-      - rabbitmq
-      - identity-service
-      - keycloak
+
+  operaciones-sesion:
+    build:
+      context: ../services/operaciones-sesion
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__OperacionesSesionDatabase: Host=postgres;Port=5432;Database=umbral_operaciones_sesion;Username=umbral;Password=16102005
+    depends_on:
+      - postgres
+
+  puntuaciones:
+    build:
+      context: ../services/puntuaciones
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      ASPNETCORE_URLS: http://+:8080
+      ConnectionStrings__PuntuacionesDatabase: Host=postgres;Port=5432;Database=umbral_puntuaciones;Username=umbral;Password=16102005
+    depends_on:
+      - postgres
 
   trivia-game-service:
     build:
       context: ../services/trivia-game-service
     environment:
       ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_trivia_game;Username=umbral;Password=umbral
+      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_trivia_game;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
-      TeamService__BaseUrl: http://team-service
       IdentityService__BaseUrl: http://identity-service
     depends_on:
       - postgres
       - rabbitmq
       - identity-service
-      - team-service
 
   bdt-game-service:
     build:
@@ -114,7 +140,6 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ConnectionStrings__BdtDatabase: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=16102005
       RabbitMq__Host: rabbitmq
-      TeamService__BaseUrl: http://team-service
       IdentityService__BaseUrl: http://identity-service
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
@@ -124,7 +149,6 @@ services:
       - postgres
       - rabbitmq
       - identity-service
-      - team-service
 
 volumes:
   umbral-postgres-data:

@@ -1,7 +1,9 @@
-using Umbral.IdentityService.Application.Users.CreateUser;
+using Umbral.IdentityService.Application.Commands;
+using Umbral.IdentityService.Application.DTOs;
 using Umbral.IdentityService.Domain.Entities;
 using Umbral.IdentityService.Domain.Enums;
 
+using Umbral.IdentityService.Application.Validators;
 namespace Umbral.IdentityService.UnitTests;
 
 public sealed class CreateUserValidatorAndDomainTests

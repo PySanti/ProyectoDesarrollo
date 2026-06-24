@@ -1,5 +1,5 @@
 using Microsoft.EntityFrameworkCore;
-using Umbral.IdentityService.Application.Abstractions.Persistence;
+using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Domain.Entities;
 

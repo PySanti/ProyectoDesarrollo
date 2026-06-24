@@ -1,6 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
-using Umbral.IdentityService.Application.Abstractions.Identity;
+using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Application.Exceptions;
 
 namespace Umbral.IdentityService.IntegrationTests;

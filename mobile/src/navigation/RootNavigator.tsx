@@ -6,7 +6,8 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { RoleRestrictedScreen } from "../screens/RoleRestrictedScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
-import { JoinTeamScreenContainer } from "../features/teams/JoinTeamScreenContainer";
+import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenContainer";
+import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
 import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
@@ -72,9 +73,14 @@ export function RootNavigator() {
         options={{ title: "Crear equipo" }}
       />
       <AppStack.Screen
-        name="JoinTeam"
-        component={JoinTeamScreenContainer}
-        options={{ title: "Unirse a equipo" }}
+        name="Invitations"
+        component={InvitationsScreenContainer}
+        options={{ title: "Invitaciones" }}
+      />
+      <AppStack.Screen
+        name="InviteMember"
+        component={InviteMemberScreenContainer}
+        options={{ title: "Invitar miembro" }}
       />
       <AppStack.Screen
         name="TransferLeadership"

@@ -1,14 +1,16 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
-using Umbral.IdentityService.Application.Abstractions.Identity;
-using Umbral.IdentityService.Application.Abstractions.Notifications;
-using Umbral.IdentityService.Application.Abstractions.Persistence;
-using Umbral.IdentityService.Application.Abstractions.Security;
-using Umbral.IdentityService.Infrastructure.Identity;
-using Umbral.IdentityService.Infrastructure.Notifications;
+using Umbral.IdentityService.Application.Interfaces;
+
+
+
+using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Infrastructure.Persistence;
-using Umbral.IdentityService.Infrastructure.Security;
+using Umbral.IdentityService.Infrastructure.Services.Events;
+using Umbral.IdentityService.Infrastructure.Services.Identity;
+using Umbral.IdentityService.Infrastructure.Services.Notifications;
+using Umbral.IdentityService.Infrastructure.Services.Security;
 
 namespace Umbral.IdentityService.Infrastructure;
 
@@ -49,6 +51,9 @@ public static class DependencyInjection
         });
         services.AddHttpClient<IKeycloakIdentityPort, KeycloakIdentityAdapter>();
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
+        services.AddScoped<IEquipoRepository, EquipoRepository>();
+        services.AddScoped<IInvitacionEquipoRepository, InvitacionEquipoRepository>();
+        services.AddScoped<IEquipoEventsPublisher, NoOpEquipoEventsPublisher>();
 
         services.AddSingleton<ITemporaryPasswordGenerator, CryptoTemporaryPasswordGenerator>();
 

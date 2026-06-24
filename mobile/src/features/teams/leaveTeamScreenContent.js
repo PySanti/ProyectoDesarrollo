@@ -5,5 +5,5 @@ export function getLeaveTeamSuccessMessage() {
 }
 
 export function getLeaveTeamNoActiveTeamDescription() {
-  return "Puedes crear un equipo nuevo o unirte a otro usando un codigo de acceso.";
+  return "Puedes crear un equipo nuevo o esperar a que un lider de equipo te invite.";
 }

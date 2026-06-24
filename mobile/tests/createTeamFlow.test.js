@@ -31,7 +31,6 @@ test("submitCreateTeam should return created payload on success", async () => {
   const payload = {
     equipoId: "00000000-0000-0000-0000-000000000001",
     nombreEquipo: "Exploradores",
-    codigoAcceso: "ABCD1234",
     estado: "Activo",
     liderUserId: "00000000-0000-0000-0000-000000000001",
     integrantes: [{ userId: "00000000-0000-0000-0000-000000000001", esLider: true }],

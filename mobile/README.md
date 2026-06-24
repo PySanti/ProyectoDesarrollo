@@ -10,7 +10,9 @@ Current scope includes:
 
 - real Keycloak login (OIDC + PKCE);
 - authenticated navigation shell;
-- Legacy HU-03 create-team flow against the previous implementation layout (`POST /api/teams`). Team ownership is now Identity in the target doctrine.
+- HU-03 create-team flow against Identity (`POST /api/teams`);
+- HU-XX invitations inbox: participants receive, accept, and reject team invitations (`GET/POST /api/teams/invitations`);
+- HU-XX invite-member flow for team leaders: load eligible participants and send invitations (`GET /api/teams/eligible-participants`, `POST /api/teams/invitations`).
 
 ## 1) Prerequisites
 
@@ -26,13 +28,14 @@ Copy `.env.example` into `.env` and set LAN URLs:
 - `EXPO_PUBLIC_KEYCLOAK_URL`
 - `EXPO_PUBLIC_KEYCLOAK_REALM`
 - `EXPO_PUBLIC_KEYCLOAK_CLIENT_ID`
-- `EXPO_PUBLIC_TEAM_API_BASE_URL`
+- `EXPO_PUBLIC_IDENTITY_API_BASE_URL` — Identity service base URL (teams, invitations, users)
 - `EXPO_PUBLIC_APP_SCHEME`
 
 Important:
 
 - Do not use `localhost` for phone testing.
-- Use host LAN IP (for example `http://192.168.1.20:5099`).
+- Use host LAN IP (for example `http://192.168.1.20:5000`).
+- `EXPO_PUBLIC_TEAM_API_BASE_URL` has been removed; all team and invitation endpoints are now served by Identity.
 
 ## 3) Keycloak client (`umbral-mobile`)
 
@@ -45,24 +48,6 @@ Create a public client in Keycloak:
 
 Assign realm role `Participante` to the test user.
 
-## 4) Legacy team implementation authentication
-
-The previous team implementation folder supports real Keycloak JWT validation using these values. This is legacy implementation wiring, not active service-boundary doctrine:
-
-- `KEYCLOAK_BASE_URL`
-- `KEYCLOAK_REALM`
-- `KEYCLOAK_CLIENT_ID`
-- `KEYCLOAK_VALID_AUDIENCES` (comma-separated, optional)
-
-Example for mobile compatibility:
-
-```env
-KEYCLOAK_BASE_URL=http://localhost:8080
-KEYCLOAK_REALM=UMBRAL-UCAB
-KEYCLOAK_CLIENT_ID=team-service
-KEYCLOAK_VALID_AUDIENCES=team-service,umbral-mobile
-```
-
 ## 5) Run app
 
 ```bash
@@ -72,10 +57,24 @@ npm run start
 
 Open the QR in Expo Go on your phone.
 
-## 6) Validate HU-03 on phone
+## 6) Validate team flows on phone
 
-1. Login with Keycloak.
-2. Open `HU-03 Crear equipo` from Home.
+### HU-03 Crear equipo
+1. Login with Keycloak as `Participante`.
+2. Open `Crear equipo` from Home.
 3. Submit team name.
-4. Verify success includes `equipoId`, `codigoAcceso`, `estado`, `liderUserId`.
+4. Verify success includes `equipoId`, `nombreEquipo`, `estado`, `liderUserId`.
 5. Submit a second team with the same participant and verify `409` conflict.
+
+### Invitations inbox
+1. Login as a `Participante` who has received an invitation.
+2. Navigate to `Invitaciones`.
+3. Verify pending invitations appear with team name.
+4. Accept or reject — confirm the list updates and a success message appears.
+
+### Invite member (leader only)
+1. Login as a `Participante` who is team leader.
+2. Navigate to `Invitar miembro`.
+3. Verify eligible participants (not already in a team) are listed.
+4. Select one and press `Enviar invitacion`.
+5. Verify the invitation is sent and a success message appears.

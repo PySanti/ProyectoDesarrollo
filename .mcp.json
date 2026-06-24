@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "code-review-graph": {
+      "type": "stdio",
+      "command": "code-review-graph",
+      "args": [
+        "serve",
+        "--repo",
+        "/home/santiago/Escritorio/ProyectoDesarrollo"
+      ],
+      "env": {}
+    }
+  }
+}

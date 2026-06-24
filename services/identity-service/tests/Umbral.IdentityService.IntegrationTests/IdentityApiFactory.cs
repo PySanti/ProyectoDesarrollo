@@ -5,8 +5,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Umbral.IdentityService.Application.Abstractions.Identity;
-using Umbral.IdentityService.Application.Abstractions.Notifications;
+using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Infrastructure.Persistence;
 
 namespace Umbral.IdentityService.IntegrationTests;

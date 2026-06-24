@@ -118,17 +118,18 @@ These come from the course directives and are **non-negotiable**; they apply to 
 
 ### `Api/` and controllers
 - `Program.cs` must **not** build/register controllers inline. A dedicated `Controllers/` folder lives inside `Api/`.
-- Each controller defines its own route/endpoint and **inherits from `BaseController`**.
+- Each controller defines its own route/endpoint and **inherits from the framework `ControllerBase`** (the native ASP.NET Core base class — no custom base type is required).
 - Controllers dispatch through MediatR (`_mediator.Send(...)`) and contain **no** business logic.
 - **Every controller has unit tests.**
 
 ### `Application/`
-Must contain strictly these folders: `Commands/`, `Queries/`, `Interfaces/`, `Validators/`, `Handlers/`, `Handlers/Commands/`, `Handlers/Queries/`.
+Must contain exactly these top-level folders (no per-feature slice folders): `Commands/`, `Queries/`, `Interfaces/`, `Validators/`, `DTOs/`, `Handlers/`, `Handlers/Commands/`, `Handlers/Queries/`, and `Exceptions/`.
 - `Handlers/Commands/` holds the `XCommandHandler` classes; `Handlers/Queries/` holds the `XQueryHandler` classes.
+- `DTOs/` holds request/response models; `Interfaces/` holds application-layer ports (repository interfaces stay in `Domain/`); `Exceptions/` holds application-layer exceptions.
 
 ### `Domain/` and `Infrastructure/`
 - `Domain/` holds entities, enums, exceptions, **and the infrastructure interfaces** (e.g. repository interfaces) so infrastructure depends on the domain, never the reverse.
-- `Infrastructure/` must contain `persistence/` and `services/`.
+- `Infrastructure/` must contain `Persistence/` and `Services/` (PascalCase, matching the `identity-service` reference and the rest of the codebase).
 - Repository **implementations** live in `Infrastructure/` (or `Domain/` only if pure), implementing the Domain-defined interfaces.
 
 ### Cross-cutting

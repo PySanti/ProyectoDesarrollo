@@ -4,8 +4,7 @@ using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.DependencyInjection.Extensions;
-using Umbral.IdentityService.Application.Abstractions.Identity;
-using Umbral.IdentityService.Application.Abstractions.Notifications;
+using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Infrastructure.Persistence;
 
 namespace Umbral.IdentityService.ContractTests;
@@ -52,6 +51,14 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
 
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
             => Task.CompletedTask;
+    }
+
+    public HttpClient CreateClientAs(string role, Guid userId)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Role", role);
+        client.DefaultRequestHeaders.Add("X-Test-UserId", userId.ToString());
+        return client;
     }
 
     private sealed class NoOpWelcomeEmailSender : IUserWelcomeEmailSender

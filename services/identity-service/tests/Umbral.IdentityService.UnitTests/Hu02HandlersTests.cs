@@ -1,15 +1,14 @@
-using Umbral.IdentityService.Application.Abstractions.Identity;
-using Umbral.IdentityService.Application.Abstractions.Notifications;
-using Umbral.IdentityService.Application.Abstractions.Persistence;
-using Umbral.IdentityService.Application.Abstractions.Security;
+using Umbral.IdentityService.Application.Interfaces;
+using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
-using Umbral.IdentityService.Application.Users.DeactivateUser;
-using Umbral.IdentityService.Application.Users.GetUserById;
-using Umbral.IdentityService.Application.Users.GetUsers;
-using Umbral.IdentityService.Application.Users.UpdateUserGeneralData;
+using Umbral.IdentityService.Application.Commands;
+using Umbral.IdentityService.Application.DTOs;
+using Umbral.IdentityService.Application.Queries;
 using Umbral.IdentityService.Domain.Entities;
 using Umbral.IdentityService.Domain.Enums;
 
+using Umbral.IdentityService.Application.Handlers.Commands;
+using Umbral.IdentityService.Application.Handlers.Queries;
 namespace Umbral.IdentityService.UnitTests;
 
 public sealed class Hu02HandlersTests

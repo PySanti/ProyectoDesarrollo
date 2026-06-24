@@ -13,7 +13,7 @@ export function CreateTeamScreenContainer() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <CreateTeamScreen apiBaseUrl={mobileEnv.teamApiBaseUrl} token={session.token} />
+      <CreateTeamScreen apiBaseUrl={mobileEnv.identityApiBaseUrl} token={session.token} />
     </ScrollView>
   );
 }
