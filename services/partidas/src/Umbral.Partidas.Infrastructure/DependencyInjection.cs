@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Umbral.Partidas.Domain.Abstractions.Persistence;
 using Umbral.Partidas.Infrastructure.Persistence;
 
 namespace Umbral.Partidas.Infrastructure;
@@ -22,6 +23,11 @@ public static class DependencyInjection
                 options.UseNpgsql(connectionString);
             }
         });
+
+        services.AddScoped<IPartidaRepository, PartidaRepository>();
+        services.AddScoped<IJuegoTriviaRepository, JuegoTriviaRepository>();
+        services.AddScoped<IJuegoBDTRepository, JuegoBDTRepository>();
+        services.AddScoped<IPartidasUnitOfWork, PartidasUnitOfWork>();
 
         return services;
     }

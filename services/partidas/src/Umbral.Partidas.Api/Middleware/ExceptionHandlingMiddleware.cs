@@ -1,9 +1,12 @@
 using System.Net;
 using System.Text.Json;
+using FluentValidation;
+using Umbral.Partidas.Application.Exceptions;
+using Umbral.Partidas.Domain.Exceptions;
 
 namespace Umbral.Partidas.Api.Middleware;
 
-// Centralized exception handling. SP-2 adds domain/application exception → status mappings.
+// Centralized exception handling with domain/application exception → status mapping (SP-2).
 public sealed class ExceptionHandlingMiddleware
 {
     private readonly RequestDelegate _next;
@@ -23,10 +26,31 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception.");
+            var status = MapStatus(ex);
+            if (status == HttpStatusCode.InternalServerError)
+            {
+                _logger.LogError(ex, "Unhandled exception.");
+            }
+
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            context.Response.StatusCode = (int)status;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = ex.Message }));
         }
     }
+
+    private static HttpStatusCode MapStatus(Exception ex) => ex switch
+    {
+        PartidaNoEncontradaException => HttpStatusCode.NotFound,
+        JuegoDuplicadoException or OrdenJuegoDuplicadoException => HttpStatusCode.Conflict,
+        ValidationException
+            or PreguntaInvalidaException
+            or JuegoTriviaSinPreguntasException
+            or EtapaBDTInvalidaException
+            or JuegoBDTSinEtapasException
+            or AreaBusquedaRequeridaException
+            or PartidaSinJuegosException
+            or OrdenJuegosNoContiguoException
+            or ArgumentException => HttpStatusCode.BadRequest,
+        _ => HttpStatusCode.InternalServerError
+    };
 }

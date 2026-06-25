@@ -1,7 +1,7 @@
 using Microsoft.AspNetCore.Mvc;
 using Umbral.Partidas.Api.Controllers;
 
-namespace Umbral.Partidas.UnitTests;
+namespace Umbral.Partidas.UnitTests.Api;
 
 public class HealthControllerTests
 {

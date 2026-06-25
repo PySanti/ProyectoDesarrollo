@@ -1,0 +1,71 @@
+using MediatR;
+using Microsoft.AspNetCore.Mvc;
+using Umbral.Partidas.Api.Contracts;
+using Umbral.Partidas.Application.Commands;
+using Umbral.Partidas.Application.Queries;
+
+namespace Umbral.Partidas.Api.Controllers;
+
+[ApiController]
+[Route("partidas")]
+public sealed class PartidasController : ControllerBase
+{
+    private readonly ISender _mediator;
+
+    public PartidasController(ISender mediator) => _mediator = mediator;
+
+    [HttpPost]
+    public async Task<IActionResult> CrearPartida(
+        [FromBody] CrearPartidaRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new CrearPartidaCommand(
+            request.NombrePartida,
+            request.Modalidad,
+            request.ModoInicioPartida,
+            request.TiempoInicio,
+            request.MinimosParticipacion,
+            request.MaximosParticipacion);
+
+        var response = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetPartida), new { partidaId = response.PartidaId }, response);
+    }
+
+    [HttpPost("{partidaId:guid}/juegos/trivia")]
+    public async Task<IActionResult> AgregarJuegoTrivia(
+        Guid partidaId,
+        [FromBody] AgregarJuegoTriviaRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new AgregarJuegoTriviaCommand(partidaId, request.Orden, request.Preguntas);
+
+        var response = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetPartida), new { partidaId }, response);
+    }
+
+    [HttpPost("{partidaId:guid}/juegos/bdt")]
+    public async Task<IActionResult> AgregarJuegoBDT(
+        Guid partidaId,
+        [FromBody] AgregarJuegoBDTRequest request,
+        CancellationToken cancellationToken)
+    {
+        var command = new AgregarJuegoBDTCommand(partidaId, request.Orden, request.AreaBusqueda, request.Etapas);
+
+        var response = await _mediator.Send(command, cancellationToken);
+        return CreatedAtAction(nameof(GetPartida), new { partidaId }, response);
+    }
+
+    [HttpGet("{partidaId:guid}")]
+    public async Task<IActionResult> GetPartida(Guid partidaId, CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new GetPartidaByIdQuery(partidaId), cancellationToken);
+        return Ok(result);
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> ListPartidas(CancellationToken cancellationToken)
+    {
+        var result = await _mediator.Send(new ListPartidasQuery(), cancellationToken);
+        return Ok(result);
+    }
+}

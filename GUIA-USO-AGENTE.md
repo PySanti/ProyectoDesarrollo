@@ -142,11 +142,16 @@ Luego para hacer que claude code utilice el grafo en lugar de consumir directame
 Antes de leer archivos directamente, usa code-review-graph para obtener el contexto mínimo afectado.
 ```
 
+## 1.3 No dejar que las sesiones se expandan tanto
+
+Por cada vez que se manda un mensaje, claude vuelve a leer toda la sesion, es bueno cambiar de sesion y no dejar que se alargen tanto.
+
+Por cada vez que se quiera cambiar de sesion, pide un resumen a claude y copialo en la otra sesion.
 
 ## 2. Continuacion de sesiones
 
 
-Cuando se termine la ventana de 5h durante la ejecucion de superpowers, usar la skill
+Cuando se termine la ventana de 5h durante la ejecucion de superpowers, usar la skill para continuar el workflow.
 
 ```
 /resume-superpowers-workflow
