@@ -1,0 +1,130 @@
+using Microsoft.EntityFrameworkCore;
+using Umbral.OperacionesSesion.Domain.Abstractions.Persistence;
+using Umbral.OperacionesSesion.Domain.Entities;
+using Umbral.OperacionesSesion.Domain.Enums;
+using Umbral.OperacionesSesion.Domain.ValueObjects;
+
+namespace Umbral.OperacionesSesion.Infrastructure.Persistence;
+
+public sealed class SesionPartidaRepository : ISesionPartidaRepository
+{
+    private readonly OperacionesSesionDbContext _dbContext;
+
+    public SesionPartidaRepository(OperacionesSesionDbContext dbContext) => _dbContext = dbContext;
+
+    public void Add(SesionPartida sesion) => _dbContext.Sesiones.Add(sesion);
+
+    public Task<SesionPartida?> GetByPartidaIdAsync(Guid partidaId, CancellationToken cancellationToken)
+        => _dbContext.Sesiones
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Opciones)
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Respuestas)
+            .Include(s => s.Juegos).ThenInclude(j => j.Etapas).ThenInclude(e => e.Tesoros)
+            .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
+            .FirstOrDefaultAsync(s => s.PartidaId == partidaId, cancellationToken);
+
+    public Task<bool> ExistsForPartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => _dbContext.Sesiones.AnyAsync(s => s.PartidaId == partidaId, cancellationToken);
+
+    public Task<bool> ParticipanteTieneParticipacionActivaAsync(
+        Guid participanteId, Guid exceptPartidaId, CancellationToken cancellationToken)
+        => _dbContext.Sesiones
+            .Where(s => s.PartidaId != exceptPartidaId
+                && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
+            .SelectMany(s => s.Inscripciones)
+            .AnyAsync(i => i.Estado == EstadoInscripcion.Activa
+                && (i.ParticipanteId == participanteId
+                    || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)),
+                cancellationToken);
+
+    public Task<SesionPartida?> GetByParticipanteActivoAsync(Guid participanteId, CancellationToken cancellationToken)
+        => _dbContext.Sesiones
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Opciones)
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Respuestas)
+            .Include(s => s.Juegos).ThenInclude(j => j.Etapas).ThenInclude(e => e.Tesoros)
+            .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
+            .Where(s => s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada)
+            .OrderBy(s => s.PartidaId)
+            .FirstOrDefaultAsync(
+                s => s.Inscripciones.Any(i => i.Estado == EstadoInscripcion.Activa
+                    && (i.ParticipanteId == participanteId
+                        || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada))),
+                cancellationToken);
+
+    public async Task<IReadOnlyList<SesionPartida>> GetSesionesConActividadVencidaAsync(
+        DateTime now, CancellationToken cancellationToken)
+    {
+        var iniciadas = await _dbContext.Sesiones
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas)
+            .Include(s => s.Juegos).ThenInclude(j => j.Etapas)
+            .Where(s => s.Estado == EstadoSesion.Iniciada)
+            .ToListAsync(cancellationToken);
+
+        return iniciadas
+            .Where(s => TienePasoVencido(s, now))
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<SesionPartida>> GetSesionesAutoInicioPendienteAsync(
+        DateTime now, CancellationToken cancellationToken)
+        => await _dbContext.Sesiones
+            .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
+            // Convocatorias es obligatorio: AplicarInicio calcula el quorum de Equipo contando
+            // ConvocatoriasAceptadas (campo respaldado por _convocatorias); sin Include quedaría
+            // vacía → quorum 0 → cancelación automática incorrecta de partidas Equipo con cupo.
+            // Preguntas/Etapas son obligatorias: AplicarInicio activa el primer paso del primer
+            // juego iterando _preguntas/_etapas; sin Include quedarían vacías en Npgsql (sin lazy
+            // loading) → juego Activo SIN paso activo → partida atascada (mismo grafo que GetByPartidaIdAsync).
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas)
+            .Include(s => s.Juegos).ThenInclude(j => j.Etapas)
+            .Where(s => s.Estado == EstadoSesion.Lobby
+                && (s.ModoInicioPartida == ModoInicioPartida.Automatico
+                    || s.ModoInicioPartida == ModoInicioPartida.ManualYAutomatico)
+                && s.TiempoInicio != null
+                && s.TiempoInicio <= now)
+            .ToListAsync(cancellationToken);
+
+    public Task<bool> EquipoTieneParticipacionActivaAsync(
+        Guid equipoId, Guid exceptPartidaId, CancellationToken cancellationToken)
+        => _dbContext.Sesiones
+            .Where(s => s.PartidaId != exceptPartidaId
+                && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
+            .SelectMany(s => s.Inscripciones)
+            .AnyAsync(i => i.EquipoId == equipoId && i.Estado == EstadoInscripcion.Activa, cancellationToken);
+
+    public Task<SesionPartida?> GetByConvocatoriaIdAsync(Guid convocatoriaId, CancellationToken cancellationToken)
+    {
+        var id = ConvocatoriaId.From(convocatoriaId);
+        return _dbContext.Sesiones
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Opciones)
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Respuestas)
+            .Include(s => s.Juegos).ThenInclude(j => j.Etapas).ThenInclude(e => e.Tesoros)
+            .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
+            .FirstOrDefaultAsync(
+                s => s.Inscripciones.Any(i => i.Convocatorias.Any(c => c.Id == id)),
+                cancellationToken);
+    }
+
+    public async Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
+        Guid usuarioId, CancellationToken cancellationToken)
+        => await _dbContext.Sesiones
+            .Where(s => s.Estado == EstadoSesion.Lobby)
+            .SelectMany(s => s.Inscripciones)
+            .Where(i => i.Estado == EstadoInscripcion.Activa)
+            .SelectMany(i => i.Convocatorias)
+            .Where(c => c.UsuarioId == usuarioId && c.Estado == EstadoConvocatoria.Pendiente)
+            .OrderBy(c => c.FechaEnvio)
+            .ToListAsync(cancellationToken);
+
+    private static bool TienePasoVencido(SesionPartida sesion, DateTime now)
+    {
+        var juego = sesion.Juegos.FirstOrDefault(j => j.Estado == EstadoJuego.Activo);
+        if (juego is null) return false;
+        var pregunta = juego.PreguntaActiva;
+        if (pregunta is not null)
+            return now >= pregunta.FechaActivacion!.Value.AddSeconds(pregunta.TiempoLimiteSegundos);
+        var etapa = juego.EtapaActiva;
+        if (etapa is not null)
+            return now >= etapa.FechaActivacion!.Value.AddSeconds(etapa.TiempoLimiteSegundos);
+        return false;
+    }
+}

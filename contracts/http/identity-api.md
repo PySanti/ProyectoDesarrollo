@@ -44,3 +44,4 @@ Requests enter through the YARP gateway.
 | Accept invitation | POST | `/api/teams/invitations/{invitacionId}/acceptance` | Registered | 200; 409 if already in a team or team is full |
 | Reject invitation | POST | `/api/teams/invitations/{invitacionId}/rejection` | Registered | 200 |
 | Get eligible participants (leader) | GET | `/api/teams/eligible-participants` | Registered | 200; dynamic list excluding participants already in a team; blocked when team is full |
+| Get my active team | GET | `/api/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, esLider }] }`; 404 if caller has no active team |

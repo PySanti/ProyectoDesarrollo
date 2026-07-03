@@ -47,6 +47,16 @@ public static class KeycloakJwtExtensions
                 };
                 options.Events = new JwtBearerEvents
                 {
+                    OnMessageReceived = ctx =>
+                    {
+                        var accessToken = ctx.Request.Query["access_token"];
+                        var path = ctx.HttpContext.Request.Path;
+                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/operaciones-sesion/hubs"))
+                        {
+                            ctx.Token = accessToken;
+                        }
+                        return Task.CompletedTask;
+                    },
                     OnTokenValidated = ctx =>
                     {
                         if (ctx.Principal?.Identity is ClaimsIdentity identity)

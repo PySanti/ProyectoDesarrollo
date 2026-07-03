@@ -5,6 +5,7 @@ using Microsoft.AspNetCore.Mvc;
 using Umbral.IdentityService.Api.Contracts;
 using Umbral.IdentityService.Api.Utils;
 using Umbral.IdentityService.Application.Commands;
+using Umbral.IdentityService.Application.Queries;
 
 namespace Umbral.IdentityService.Api.Controllers;
 
@@ -32,6 +33,16 @@ public sealed class TeamsController : ControllerBase
 
         var response = await _sender.Send(command, cancellationToken);
         return Created($"/api/teams/{response.EquipoId}", response);
+    }
+
+    [HttpGet("mine")]
+    public async Task<IActionResult> MiEquipo(CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserClaims.TryGetUserId(User, out var actorUserId))
+            return Unauthorized();
+
+        var equipo = await _sender.Send(new ObtenerMiEquipoQuery(actorUserId), cancellationToken);
+        return equipo is null ? NotFound() : Ok(equipo);
     }
 
     [HttpDelete("membership")]

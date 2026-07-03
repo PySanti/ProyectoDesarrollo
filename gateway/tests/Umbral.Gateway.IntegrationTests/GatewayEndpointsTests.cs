@@ -49,6 +49,16 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
+    public async Task Hub_de_operaciones_requiere_autenticacion()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+
+        var response = await client.GetAsync("/operaciones-sesion/hubs/sesion");
+
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
     public async Task Fallback_policy_is_fail_secure()
     {
         // Directly proves the fail-secure FLOOR: any route LACKING an explicit AuthorizationPolicy
