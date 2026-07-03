@@ -167,3 +167,16 @@ Una vez levantadas ambas imágenes y los dos servicios:
 3. Navega a **Exchanges** y busca `umbral.operaciones-sesion` (type: topic, durable)
 4. Opera una partida con ambos servicios corriendo (publícala, inicia, responde preguntas o valida QRs)
 5. La cola debe mostrar mensajes entrando: click en el nombre de la cola para ver los detalles
+
+## Autenticación JWT (Partidas)
+
+Desde SP-5a, Partidas valida JWT y exige el permiso `GestionarPartidas` en mutaciones; sin estas
+vars el servicio arranca sin validación JWT real (solo apto para tests). Configura estas variables
+en `services/partidas/.env`:
+
+```
+KEYCLOAK_BASE_URL=http://localhost:8080
+KEYCLOAK_REALM=UMBRAL-UCAB
+KEYCLOAK_VALID_AUDIENCES=umbral-web,umbral-mobile,account
+KEYCLOAK_VALID_ISSUERS=http://localhost:8080/realms/UMBRAL-UCAB
+```

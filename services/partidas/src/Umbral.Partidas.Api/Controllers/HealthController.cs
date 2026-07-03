@@ -1,9 +1,11 @@
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 
 namespace Umbral.Partidas.Api.Controllers;
 
 [ApiController]
 [Route("health")]
+[AllowAnonymous]
 public sealed class HealthController : ControllerBase
 {
     [HttpGet]
