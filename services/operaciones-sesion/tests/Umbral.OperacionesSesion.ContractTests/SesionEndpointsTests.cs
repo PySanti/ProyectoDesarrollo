@@ -4,6 +4,9 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.AspNetCore.Authorization.Infrastructure;
+using Microsoft.Extensions.DependencyInjection;
 using Umbral.OperacionesSesion.Application.DTOs;
 
 namespace Umbral.OperacionesSesion.ContractTests;
@@ -16,7 +19,12 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
     public SesionEndpointsTests(OperacionesSesionWebFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
+        // Cliente por defecto autenticado (identidad de test arbitraria): con el fallback
+        // fail-secure de Program.cs, todo endpoint sin [AllowAnonymous] exige un usuario
+        // autenticado, aunque este task todavía no aplica [Authorize] por policy a los
+        // controllers (eso es la tarea 4). Los tests que verifican comportamiento
+        // genuinamente anónimo crean su propio cliente sin X-Test-Sub explícitamente.
+        _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
     private static ConfiguracionPartidaDto Config(string modalidad = "Individual", int max = 10, int juegos = 1) =>
@@ -74,16 +82,19 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         _factory.Stub.Respuestas[partidaId] = Config(modalidad: "Equipo");
         Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
 
-        // No X-Test-Sub header → TestAuthHandler fails → no sub claim → ObtenerParticipanteId throws → 401.
-        var inscribe = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        // Cliente sin X-Test-Sub (anónimo): el fallback fail-secure exige usuario autenticado → 401.
+        var anonimo = _factory.CreateClient();
+        var inscribe = await anonimo.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
         Assert.Equal(HttpStatusCode.Unauthorized, inscribe.StatusCode);
     }
 
     [Fact]
     public async Task Inscribe_unpublished_without_identity_returns_401()
     {
-        // No session published for this id; without a principal the controller fails identity first (401).
-        var inscribe = await _client.PostAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/inscripciones", null);
+        // No session published for this id; cliente sin X-Test-Sub (anónimo) → el fallback
+        // fail-secure rechaza la petición antes de llegar al controller (401).
+        var anonimo = _factory.CreateClient();
+        var inscribe = await anonimo.PostAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/inscripciones", null);
         Assert.Equal(HttpStatusCode.Unauthorized, inscribe.StatusCode);
     }
 
@@ -276,5 +287,34 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
     {
         var response = await _client.GetAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/estado");
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Politicas_de_permisos_funcionales_estan_registradas()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var provider = scope.ServiceProvider.GetRequiredService<IAuthorizationPolicyProvider>();
+
+        var gestionar = await provider.GetPolicyAsync("GestionarPartidas");
+        var participar = await provider.GetPolicyAsync("ParticiparEnPartidas");
+
+        Assert.NotNull(gestionar);
+        Assert.Contains(gestionar!.Requirements, r =>
+            r is RolesAuthorizationRequirement roles && roles.AllowedRoles.Contains("GestionarPartidas"));
+        Assert.NotNull(participar);
+        Assert.Contains(participar!.Requirements, r =>
+            r is RolesAuthorizationRequirement roles && roles.AllowedRoles.Contains("ParticiparEnPartidas"));
+    }
+
+    [Fact]
+    public async Task Fallback_policy_es_fail_secure()
+    {
+        using var scope = _factory.Services.CreateScope();
+        var provider = scope.ServiceProvider.GetRequiredService<IAuthorizationPolicyProvider>();
+
+        var fallback = await provider.GetFallbackPolicyAsync();
+
+        Assert.NotNull(fallback);
+        Assert.Contains(fallback!.Requirements, r => r is DenyAnonymousAuthorizationRequirement);
     }
 }

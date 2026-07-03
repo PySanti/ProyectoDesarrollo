@@ -17,14 +17,16 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
 {
     private readonly OperacionesSesionWebFactory _factory;
 
-    // Unauthenticated client – used for operator endpoints (publicacion, inicio, finalizacion, avance)
-    // that do not require a participant identity claim.
+    // Client authenticated with an arbitrary test identity – used for operator endpoints
+    // (publicacion, inicio, finalizacion, avance). Program.cs' fail-secure fallback requires an
+    // authenticated user on every endpoint without [AllowAnonymous]; operator-specific
+    // role/policy restriction is applied by task 4.
     private readonly HttpClient _client;
 
     public TriviaRuntimeEndpointsTests(OperacionesSesionWebFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
+        _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
     // Builds a ConfiguracionPartidaDto with one Trivia game whose questions are specified as

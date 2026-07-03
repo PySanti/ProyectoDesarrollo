@@ -64,4 +64,11 @@ public sealed class OperacionesSesionWebFactory : WebApplicationFactory<Program>
         client.DefaultRequestHeaders.Add("X-Test-Sub", participanteId.ToString());
         return client;
     }
+
+    public HttpClient CreateClientAs(Guid participanteId, string roles)
+    {
+        var client = CreateClientAs(participanteId);
+        client.DefaultRequestHeaders.Add("X-Test-Roles", roles);
+        return client;
+    }
 }

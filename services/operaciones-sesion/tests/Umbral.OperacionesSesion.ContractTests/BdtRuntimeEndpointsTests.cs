@@ -18,14 +18,16 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 {
     private readonly OperacionesSesionWebFactory _factory;
 
-    // Cliente sin X-Test-Sub: usado para endpoints de operador (publicacion, inicio, avance, finalizacion)
-    // que no requieren identity de participante.
+    // Cliente autenticado con una identidad de test arbitraria: usado para endpoints de operador
+    // (publicacion, inicio, avance, finalizacion). El fallback fail-secure de Program.cs exige un
+    // usuario autenticado en todo endpoint sin [AllowAnonymous]; la restricción por rol/policy
+    // específica de operador la aplica la tarea 4.
     private readonly HttpClient _client;
 
     public BdtRuntimeEndpointsTests(OperacionesSesionWebFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClient();
+        _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
     // Codifica el texto del QR como base64 de sus bytes UTF-8 — lo mismo que haría la app móvil

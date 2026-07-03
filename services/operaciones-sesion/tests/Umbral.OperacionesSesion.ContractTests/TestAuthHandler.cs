@@ -28,11 +28,21 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 
         var sub = subValue.ToString();
 
-        var claims = new[]
+        // Roles simulados: por defecto ambos permisos funcionales (como un token que los
+        // trae por composites); los tests de 403 mandan "X-Test-Roles" explícito y acotado.
+        var roles = Request.Headers.TryGetValue("X-Test-Roles", out var rolesValue)
+            ? rolesValue.ToString()
+            : "GestionarPartidas,ParticiparEnPartidas";
+
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, sub),
-            new Claim("sub", sub)
+            new(ClaimTypes.NameIdentifier, sub),
+            new("sub", sub)
         };
+        foreach (var role in roles.Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries))
+        {
+            claims.Add(new Claim(ClaimTypes.Role, role));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);
