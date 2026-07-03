@@ -124,11 +124,13 @@ YARP en el plan y fijar `Order` explícito si hace falta.
   `ParticipantOnly` a policy `GestionarEquipos` (`RequireRole("GestionarEquipos")` — BR-R02
   literal: el permiso, no el rol, autoriza gestión de equipos).
 
-### 5.4 Mobile
+### 5.4 Clientes (mobile + frontend web)
 
-- Update mecánico de paths teams/invitations al nuevo prefijo (`identity/teams...`). La base
-  URL directa se mantiene (el servicio hostea bajo su prefijo, el acceso directo sigue
-  funcionando); el cambio a base URL gateway es un slice posterior (D6).
+- **Mobile:** update mecánico de paths teams/invitations al nuevo prefijo (`identity/teams...`).
+- **Frontend web:** `src/api/identityApi.ts` pega a `api/identity/users` directo — update
+  mecánico a `identity/users` (hallazgo de planificación; el spec original solo listaba mobile).
+- La base URL directa se mantiene en ambos (el servicio hostea bajo su prefijo, el acceso
+  directo sigue funcionando); el cambio a base URL gateway es un slice posterior (D6).
 
 ### 5.5 Puntuaciones
 
