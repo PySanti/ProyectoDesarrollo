@@ -56,4 +56,5 @@ public sealed class CompositeSesionEventsPublisher : ISesionEventsPublisher
     public Task PublicarPistaEnviadaAsync(PistaEnviadaEvent evento, CancellationToken cancellationToken) => FanOut(p => p.PublicarPistaEnviadaAsync(evento, cancellationToken));
     public Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent evento, CancellationToken cancellationToken) => FanOut(p => p.PublicarConvocatoriaCreadaAsync(evento, cancellationToken));
     public Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken) => FanOut(p => p.PublicarConvocatoriaRespondidaAsync(evento, cancellationToken));
+    public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken) => FanOut(p => p.PublicarUbicacionActualizadaAsync(evento, cancellationToken));
 }

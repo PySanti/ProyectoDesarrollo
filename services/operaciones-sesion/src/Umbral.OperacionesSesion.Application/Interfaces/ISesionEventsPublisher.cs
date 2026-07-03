@@ -18,4 +18,5 @@ public interface ISesionEventsPublisher
     Task PublicarPistaEnviadaAsync(PistaEnviadaEvent evento, CancellationToken cancellationToken);
     Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent evento, CancellationToken cancellationToken);
     Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken);
+    Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken);
 }

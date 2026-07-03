@@ -3,8 +3,11 @@ using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging.Abstractions;
 using Umbral.OperacionesSesion.Api.Realtime;
+using Umbral.OperacionesSesion.Application.DTOs;
 using Umbral.OperacionesSesion.Domain.Entities;
 using Umbral.OperacionesSesion.Domain.Enums;
 using Umbral.OperacionesSesion.Domain.ValueObjects;
@@ -35,9 +38,12 @@ public class SesionHubTests
     private static readonly DateTime T0 = new(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc);
 
     private static SesionHub Construir(ISesionPartidaRepositorioFake repo, ClaimsPrincipal user,
-        FakeGroupManager groups, FakeClients? clients = null, string connId = "c1")
+        FakeGroupManager groups, FakeClients? clients = null, string connId = "c1",
+        FakeSesionEventsPublisher? eventos = null, ISender? sender = null)
     {
-        var hub = new SesionHub(repo.Repo, new FakeTimeProvider(T0))
+        var hub = new SesionHub(repo.Repo, new FakeTimeProvider(T0), eventos ?? new FakeSesionEventsPublisher(),
+            sender ?? new SenderDeConvocatorias(Array.Empty<ConvocatoriaPendienteDto>()),
+            NullLogger<SesionHub>.Instance)
         {
             Context = new FakeHubCallerContext(user, connId),
             Groups = groups,
@@ -192,6 +198,28 @@ public class SesionHubTests
         Assert.Equal(new DateTime(2026, 7, 1, 10, 0, 0, DateTimeKind.Utc), payload.TimestampUtc);
     }
 
+    [Fact]
+    public async Task EnviarUbicacion_dispara_el_seam_de_eventos_ademas_del_relay()
+    {
+        var partidaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake();
+        repo.Inner.Add(SesionDe(partidaId, participanteId));
+        var groups = new FakeGroupManager();
+        var eventos = new FakeSesionEventsPublisher();
+        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups, eventos: eventos);
+        await hub.SuscribirAPartida(partidaId);
+
+        await hub.EnviarUbicacion(10.5, -66.9);
+
+        var evento = Assert.Single(eventos.UbicacionesActualizadas);
+        Assert.Equal(partidaId, evento.PartidaId);
+        Assert.Equal(participanteId, evento.ParticipanteId);
+        Assert.Equal(10.5, evento.Latitud);
+        Assert.Equal(-66.9, evento.Longitud);
+        Assert.Equal(T0, evento.Instante);
+    }
+
     [Theory]
     [InlineData(91, 0)]
     [InlineData(-91, 0)]
@@ -328,7 +356,94 @@ public class SesionHubTests
         Assert.DoesNotContain(groups.Added, g => g.Group.StartsWith("equipo:"));
     }
 
+    [Fact]
+    public async Task Al_conectar_reemite_las_convocatorias_pendientes_al_caller()
+    {
+        var usuario = Guid.NewGuid();
+        var primeraConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
+        var segundaConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
+        var pendientes = new[] { primeraConvocatoria, segundaConvocatoria };
+        var clients = new FakeClients();
+        var sender = new SenderDeConvocatorias(pendientes);
+        var hub = Construir(new ISesionPartidaRepositorioFake(), Usuario(sub: usuario.ToString(), rol: "Participante"),
+            new FakeGroupManager(), clients, sender: sender);
+
+        await hub.OnConnectedAsync();
+
+        Assert.Equal(2, clients.MensajesAlCaller.Count(m => m.Metodo == SesionRealtimeMessages.ConvocatoriaCreada));
+        Assert.Equal(1, sender.Invocaciones);
+
+        var primerMensaje = clients.MensajesAlCaller.First(m => m.Metodo == SesionRealtimeMessages.ConvocatoriaCreada);
+        var primerPayload = Assert.IsType<ConvocatoriaCreadaPayload>(primerMensaje.Args[0]);
+        Assert.Equal(primeraConvocatoria.PartidaId, primerPayload.PartidaId);
+        Assert.Equal(primeraConvocatoria.EquipoId, primerPayload.EquipoId);
+        Assert.Equal(primeraConvocatoria.ConvocatoriaId, primerPayload.ConvocatoriaId);
+        Assert.Equal(usuario, primerPayload.UsuarioId);
+    }
+
+    [Fact]
+    public async Task Al_conectar_sin_pendientes_no_emite_nada()
+    {
+        var clients = new FakeClients();
+        var hub = Construir(new ISesionPartidaRepositorioFake(), Usuario(sub: Guid.NewGuid().ToString(), rol: "Participante"),
+            new FakeGroupManager(), clients, sender: new SenderDeConvocatorias(Array.Empty<ConvocatoriaPendienteDto>()));
+
+        await hub.OnConnectedAsync();
+
+        Assert.Empty(clients.MensajesAlCaller);
+    }
+
+    [Fact]
+    public async Task Operador_al_conectar_no_dispara_query_ni_mensajes()
+    {
+        var clients = new FakeClients();
+        var sender = new SenderDeConvocatorias(Array.Empty<ConvocatoriaPendienteDto>()) { Lanza = true };
+        var hub = Construir(new ISesionPartidaRepositorioFake(), Usuario(sub: Guid.NewGuid().ToString(), rol: "Operador"),
+            new FakeGroupManager(), clients, sender: sender);
+
+        await hub.OnConnectedAsync(); // si consultara, SenderDeConvocatorias lanzaría
+
+        Assert.Empty(clients.MensajesAlCaller);
+        Assert.Equal(0, sender.Invocaciones);
+    }
+
+    [Fact]
+    public async Task Fallo_de_la_query_no_tumba_la_conexion()
+    {
+        var sender = new SenderDeConvocatorias(Array.Empty<ConvocatoriaPendienteDto>()) { Lanza = true };
+        var hub = Construir(new ISesionPartidaRepositorioFake(), Usuario(sub: Guid.NewGuid().ToString(), rol: "Participante"),
+            new FakeGroupManager(), new FakeClients(), sender: sender);
+
+        var ex = await Record.ExceptionAsync(() => hub.OnConnectedAsync());
+
+        Assert.Null(ex);
+    }
+
     // ---- Fakes locales ----
+
+    private sealed class SenderDeConvocatorias : ISender
+    {
+        private readonly IReadOnlyList<ConvocatoriaPendienteDto> _pendientes;
+        public bool Lanza { get; init; }
+        public int Invocaciones { get; private set; }
+        public SenderDeConvocatorias(IReadOnlyList<ConvocatoriaPendienteDto> pendientes)
+            => _pendientes = pendientes;
+
+        public Task<TResponse> Send<TResponse>(IRequest<TResponse> request, CancellationToken cancellationToken = default)
+        {
+            Invocaciones++;
+            if (Lanza) throw new InvalidOperationException("query rota");
+            return Task.FromResult((TResponse)(object)_pendientes);
+        }
+        public Task Send<TRequest>(TRequest request, CancellationToken cancellationToken = default) where TRequest : IRequest
+            => throw new NotSupportedException();
+        public Task<object?> Send(object request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+        public IAsyncEnumerable<TResponse> CreateStream<TResponse>(IStreamRequest<TResponse> request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+        public IAsyncEnumerable<object?> CreateStream(object request, CancellationToken cancellationToken = default)
+            => throw new NotSupportedException();
+    }
 
     private sealed class ISesionPartidaRepositorioFake
     {
@@ -371,6 +486,7 @@ public class SesionHubTests
     private sealed class FakeClients : IHubCallerClients
     {
         public Dictionary<string, FakeClientProxy> Grupos { get; } = new();
+        public List<(string Metodo, object?[] Args)> MensajesAlCaller { get; } = new();
         public IClientProxy Group(string groupName)
         {
             if (!Grupos.TryGetValue(groupName, out var p)) { p = new FakeClientProxy(); Grupos[groupName] = p; }
@@ -385,7 +501,15 @@ public class SesionHubTests
         public IClientProxy OthersInGroup(string groupName) => throw new NotImplementedException();
         public IClientProxy User(string userId) => throw new NotImplementedException();
         public IClientProxy Users(IReadOnlyList<string> userIds) => throw new NotImplementedException();
-        public IClientProxy Caller => throw new NotImplementedException();
+        public IClientProxy Caller => new FakeCallerProxy(MensajesAlCaller);
         public IClientProxy Others => throw new NotImplementedException();
+
+        private sealed class FakeCallerProxy : IClientProxy
+        {
+            private readonly List<(string Metodo, object?[] Args)> _mensajes;
+            public FakeCallerProxy(List<(string Metodo, object?[] Args)> mensajes) => _mensajes = mensajes;
+            public Task SendCoreAsync(string method, object?[] args, CancellationToken cancellationToken = default)
+            { _mensajes.Add((method, args)); return Task.CompletedTask; }
+        }
     }
 }

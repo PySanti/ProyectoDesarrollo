@@ -200,6 +200,18 @@ public class SignalRSesionEventsPublisherTests
         Assert.Null(clients.LastGroup); // sin difusión
     }
 
+    [Fact]
+    public async Task Ubicacion_no_difunde()
+    {
+        var (pub, clients) = Build();
+
+        await pub.PublicarUbicacionActualizadaAsync(
+            new UbicacionActualizadaEvent(Guid.NewGuid(), Guid.NewGuid(), 10.5, -66.9, T0),
+            CancellationToken.None);
+
+        Assert.Null(clients.LastGroup); // sin difusión
+    }
+
     // ---- Fakes locales ----
 
     private sealed class FakeHubContext : IHubContext<SesionHub>

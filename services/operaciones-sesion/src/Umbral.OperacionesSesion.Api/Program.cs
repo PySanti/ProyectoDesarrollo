@@ -16,14 +16,35 @@ builder.Services.AddHostedService<Umbral.OperacionesSesion.Api.Workers.Mantenimi
 builder.Services.AddSignalR();
 builder.Services.AddScoped<Umbral.OperacionesSesion.Infrastructure.Services.NoOpSesionEventsPublisher>();
 builder.Services.AddScoped<Umbral.OperacionesSesion.Api.Realtime.SignalRSesionEventsPublisher>();
+
+var rabbitOptions = builder.Configuration
+    .GetSection(Umbral.OperacionesSesion.Infrastructure.Services.Messaging.RabbitMqOptions.SectionName)
+    .Get<Umbral.OperacionesSesion.Infrastructure.Services.Messaging.RabbitMqOptions>()
+    ?? new Umbral.OperacionesSesion.Infrastructure.Services.Messaging.RabbitMqOptions();
+var rabbitHabilitado = rabbitOptions.Enabled && !string.IsNullOrWhiteSpace(rabbitOptions.Host);
+if (rabbitHabilitado)
+{
+    builder.Services.AddSingleton(rabbitOptions);
+    builder.Services.AddSingleton<Umbral.OperacionesSesion.Infrastructure.Services.Messaging.IRabbitMqPublishChannel,
+        Umbral.OperacionesSesion.Infrastructure.Services.Messaging.RabbitMqPublishChannel>();
+    builder.Services.AddScoped<Umbral.OperacionesSesion.Infrastructure.Services.RabbitMqSesionEventsPublisher>();
+}
+
 builder.Services.AddScoped<ISesionEventsPublisher>(sp =>
-    new Umbral.OperacionesSesion.Infrastructure.Services.CompositeSesionEventsPublisher(
-        new ISesionEventsPublisher[]
-        {
-            sp.GetRequiredService<Umbral.OperacionesSesion.Infrastructure.Services.NoOpSesionEventsPublisher>(),
-            sp.GetRequiredService<Umbral.OperacionesSesion.Api.Realtime.SignalRSesionEventsPublisher>(),
-        },
-        sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Umbral.OperacionesSesion.Infrastructure.Services.CompositeSesionEventsPublisher>>()));
+{
+    var publishers = new List<ISesionEventsPublisher>
+    {
+        sp.GetRequiredService<Umbral.OperacionesSesion.Infrastructure.Services.NoOpSesionEventsPublisher>(),
+        sp.GetRequiredService<Umbral.OperacionesSesion.Api.Realtime.SignalRSesionEventsPublisher>(),
+    };
+    if (rabbitHabilitado)
+    {
+        publishers.Add(sp.GetRequiredService<Umbral.OperacionesSesion.Infrastructure.Services.RabbitMqSesionEventsPublisher>());
+    }
+    return new Umbral.OperacionesSesion.Infrastructure.Services.CompositeSesionEventsPublisher(
+        publishers,
+        sp.GetRequiredService<Microsoft.Extensions.Logging.ILogger<Umbral.OperacionesSesion.Infrastructure.Services.CompositeSesionEventsPublisher>>());
+});
 
 builder.Services.AddControllers()
     .AddJsonOptions(options =>

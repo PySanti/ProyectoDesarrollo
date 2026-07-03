@@ -28,16 +28,42 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `PistaEnviada` (SP-3f-4, SP-3e-4) | El operador envía una pista a un participante o equipo durante un juego BDT activo. | Defined by SDD | Payload registered (SP-3f-4 / SP-3e-4) |
 | `ConvocatoriaCreada` (SP-3e-1) | Se preinscribe un equipo: cada miembro del snapshot recibe una convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
+| `UbicacionActualizada` (SP-3i) | Un participante BDT envía su ubicación (~cada 2 s) durante un juego activo. | Defined by SDD | Payload registered (SP-3i) |
 
-## Rule
+## Transport (SP-3i)
 
-Concrete exchange names, queue names, routing keys, payloads, versions and idempotency rules are documented only after a current-doctrine SDD defines them.
+Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012) **and** to SignalR where a realtime payload is documented. Delivery to the broker is enabled per environment via `RabbitMq__Enabled`.
+
+- **Exchange:** `umbral.operaciones-sesion` — type `topic`, durable. Convention: one exchange per producing service.
+- **Routing key:** `operaciones-sesion.<event-kebab>.v1` (explicit map, table below). Incompatible payload changes bump to `.v2` (new key; `v1` consumers keep working).
+- **Envelope** (JSON camelCase, `content_type: application/json`): `{ "eventId": "guid", "eventType": "PascalCase name", "version": 1, "occurredAt": "datetime (UTC)", "payload": { …documented shape… } }`. Producers do not guarantee exactly-once; **consumers deduplicate by `eventId`**.
+- **Smoke queue (SP-3i):** `puntuaciones.operaciones-sesion.all`, durable, binding `operaciones-sesion.#` (Puntuaciones; replaced by finer queues in SP-4).
+
+| Event | Routing key |
+|---|---|
+| `PartidaPublicadaEnLobby` | `operaciones-sesion.partida-publicada-en-lobby.v1` |
+| `PartidaIniciada` | `operaciones-sesion.partida-iniciada.v1` |
+| `JuegoActivado` | `operaciones-sesion.juego-activado.v1` |
+| `PartidaCancelada` | `operaciones-sesion.partida-cancelada.v1` |
+| `PartidaFinalizada` | `operaciones-sesion.partida-finalizada.v1` |
+| `RespuestaTriviaValidada` | `operaciones-sesion.respuesta-trivia-validada.v1` |
+| `PuntajeTriviaIncrementado` | `operaciones-sesion.puntaje-trivia-incrementado.v1` |
+| `PreguntaTriviaActivada` | `operaciones-sesion.pregunta-trivia-activada.v1` |
+| `PreguntaTriviaCerrada` | `operaciones-sesion.pregunta-trivia-cerrada.v1` |
+| `TesoroQRValidado` | `operaciones-sesion.tesoro-qr-validado.v1` |
+| `EtapaBDTGanada` | `operaciones-sesion.etapa-bdt-ganada.v1` |
+| `EtapaBDTCerrada` | `operaciones-sesion.etapa-bdt-cerrada.v1` |
+| `EtapaBDTActivada` | `operaciones-sesion.etapa-bdt-activada.v1` |
+| `PistaEnviada` | `operaciones-sesion.pista-enviada.v1` |
+| `ConvocatoriaCreada` | `operaciones-sesion.convocatoria-creada.v1` |
+| `ConvocatoriaRespondida` | `operaciones-sesion.convocatoria-respondida.v1` |
+| `UbicacionActualizada` | `operaciones-sesion.ubicacion-actualizada.v1` |
 
 ## Payloads (registered)
 
 ### `PartidaPublicadaEnLobby` (SP-3a)
 
-Emitted after a partida is published to Lobby. In SP-3a it is published through a **No-Op** port (no broker delivery yet); the exchange/queue/routing-key/idempotency are defined by the RabbitMQ backbone slice.
+Emitted after a partida is published to Lobby. Published to the broker since SP-3i (best-effort, ADR-0012); the exchange/queue/routing-key/idempotency are defined in the Transport section.
 
 ```json
 {
@@ -51,7 +77,7 @@ Emitted after a partida is published to Lobby. In SP-3a it is published through 
 
 ### `PartidaIniciada` (SP-3b)
 
-Emitted after a partida starts (manual or automatic). No-Op port in SP-3b.
+Emitted after a partida starts (manual or automatic). Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 { "partidaId": "guid", "sesionPartidaId": "guid", "fechaInicio": "datetime", "primerJuegoId": "guid", "primerJuegoOrden": 1 }
@@ -83,7 +109,7 @@ Emitted when a partida is auto-cancelled at start because participation minimums
 
 ### `RespuestaTriviaValidada` (SP-3c)
 
-Emitted for every registered answer in a Trivia game. Emitted via **No-Op** port (no broker delivery yet); the exchange/queue/routing-key/idempotency are defined by the RabbitMQ backbone slice.
+Emitted for every registered answer in a Trivia game. Published to the broker since SP-3i (best-effort, ADR-0012); the exchange/queue/routing-key/idempotency are defined in the Transport section.
 
 ```json
 {
@@ -101,7 +127,7 @@ Emitted for every registered answer in a Trivia game. Emitted via **No-Op** port
 
 ### `PuntajeTriviaIncrementado` (SP-3c)
 
-Emitted only on the first correct answer for a Trivia question (the one that closes it). No-Op port in SP-3c.
+Emitted only on the first correct answer for a Trivia question (the one that closes it). Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -118,7 +144,7 @@ Emitted only on the first correct answer for a Trivia question (the one that clo
 
 ### `PreguntaTriviaActivada` (SP-3c)
 
-Emitted when a Trivia question becomes active: at game start (first question), on operator advance, or on auto-advance after the previous question closed by correct answer (RF-22). No-Op port in SP-3c.
+Emitted when a Trivia question becomes active: at game start (first question), on operator advance, or on auto-advance after the previous question closed by correct answer (RF-22). Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -134,7 +160,7 @@ Emitted when a Trivia question becomes active: at game start (first question), o
 
 ### `PreguntaTriviaCerrada` (SP-3c)
 
-Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId` is present only when the question closed by a correct answer. No-Op port in SP-3c.
+Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId` is present only when the question closed by a correct answer. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -149,11 +175,11 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
 }
 ```
 
-> **SP-3c note:** all four events above are emitted via `NoOpSesionEventsPublisher` (no broker delivery in this slice). `RankingTriviaActualizado` is deferred to Puntuaciones (SP-4).
+> **SP-3c note:** all four events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingTriviaActualizado` is deferred to Puntuaciones (SP-4).
 
 ### `TesoroQRValidado` (SP-3d)
 
-Emitted for every QR treasure validation attempt in a BDT game, regardless of result. Emitted via **No-Op** port (no broker delivery in this slice).
+Emitted for every QR treasure validation attempt in a BDT game, regardless of result. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -170,7 +196,7 @@ Emitted for every QR treasure validation attempt in a BDT game, regardless of re
 
 ### `EtapaBDTGanada` (SP-3d)
 
-Emitted only when a QR validation is correct and within the active stage window (the validation that closes the stage by winner). Carries the configured stage score. No-Op port in SP-3d.
+Emitted only when a QR validation is correct and within the active stage window (the validation that closes the stage by winner). Carries the configured stage score. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -187,7 +213,7 @@ Emitted only when a QR validation is correct and within the active stage window 
 
 ### `EtapaBDTCerrada` (SP-3d)
 
-Emitted when a BDT stage closes, regardless of reason. `ganadorParticipanteId` is present only when `motivo` is `Ganador`. No-Op port in SP-3d.
+Emitted when a BDT stage closes, regardless of reason. `ganadorParticipanteId` is present only when `motivo` is `Ganador`. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -204,7 +230,7 @@ Emitted when a BDT stage closes, regardless of reason. `ganadorParticipanteId` i
 
 ### `EtapaBDTActivada` (SP-3d)
 
-Emitted when a BDT stage becomes active: at BDT game start (first stage), on operator advance, or on auto-advance after the previous stage closed. No-Op port in SP-3d.
+Emitted when a BDT stage becomes active: at BDT game start (first stage), on operator advance, or on auto-advance after the previous stage closed. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -220,7 +246,7 @@ Emitted when a BDT stage becomes active: at BDT game start (first stage), on ope
 
 > **Slice-E note (SP-3e-1..4):** `equipoId`/`ganadorEquipoId` son la identidad dual de la modalidad Equipo: `null` ⇔ partida `Individual`. En `Equipo`, `participanteId`/`ganadorParticipanteId` siguen llevando el **autor real** de la acción y `equipoId`/`ganadorEquipoId` el equipo al que se acredita.
 
-> **SP-3d note:** all four BDT events above are emitted via `NoOpSesionEventsPublisher` (no broker delivery in this slice). `RankingBDTActualizado` is deferred to Puntuaciones (SP-4). `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
+> **SP-3d note:** all four BDT events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingBDTActualizado` is deferred to Puntuaciones (SP-4). `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
 
 ### `PistaEnviada` (SP-3f-4 / SP-3e-4)
 
@@ -240,7 +266,7 @@ Emitted when the operator sends a clue during an active BDT stage. Event-only (n
 
 ### `ConvocatoriaCreada` (SP-3e-1)
 
-Emitted once per team-member snapshot entry when a team is pre-inscribed. Real-time delivery via SignalR to group `participante:{usuarioId}`; broker delivery deferred to the RabbitMQ backbone slice.
+Emitted once per team-member snapshot entry when a team is pre-inscribed. Real-time delivery via SignalR to group `participante:{usuarioId}`; published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -254,7 +280,7 @@ Emitted once per team-member snapshot entry when a team is pre-inscribed. Real-t
 
 ### `ConvocatoriaRespondida` (SP-3e-1)
 
-Emitted when a summoned member accepts or rejects their convocatoria. Currently **No-Op** on the SignalR side (deliberate — the operator lobby view polls; see SP-3f-2 no-broadcast list); broker delivery deferred.
+Emitted when a summoned member accepts or rejects their convocatoria. Currently **No-Op** on the SignalR side (deliberate — the operator lobby view polls; see SP-3f-2 no-broadcast list); published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -263,5 +289,19 @@ Emitted when a summoned member accepts or rejects their convocatoria. Currently 
   "convocatoriaId": "guid",
   "usuarioId": "guid",
   "estadoConvocatoria": "Aceptada | Rechazada"
+}
+```
+
+### `UbicacionActualizada` (SP-3i)
+
+Emitted to the broker for deferred audit each time a participant sends their location during an active BDT game. The live relay to the operator group stays in SignalR (`SesionHub.EnviarUbicacion`, BR-B07) — this event is transport for audit only. **No `sesionPartidaId`** (deliberate: the hub does not hold it per-connection and no query is made per location ping; consumers resolve by `partidaId`).
+
+```json
+{
+  "partidaId": "guid",
+  "participanteId": "guid",
+  "latitud": 10.5,
+  "longitud": -66.9,
+  "instante": "datetime"
 }
 ```

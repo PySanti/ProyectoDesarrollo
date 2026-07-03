@@ -139,3 +139,31 @@ SMTP_PASSWORD=tu-app-password-de-16-caracteres
 SMTP_FROM_ADDRESS=tu-cuenta@gmail.com
 SMTP_FROM_NAME=UMBRAL
 ```
+
+## Event Broker (RabbitMQ)
+
+`operaciones-sesion` y `puntuaciones` publican eventos a RabbitMQ para materializar auditoría y 
+scoring sin bloquear el flujo principal (best-effort, ADR-0012). Configura estas variables en 
+`.env` de ambos servicios (`services/operaciones-sesion/.env` y `services/puntuaciones/.env`):
+
+```
+RabbitMq__Enabled=true
+RabbitMq__Host=localhost
+RabbitMq__Port=5672
+RabbitMq__User=guest
+RabbitMq__Password=guest
+```
+
+Si `RabbitMq__Enabled=false` (default), el broker no se usa y los eventos no se publican (útil 
+para tests). Los valores por defecto (usuario y contraseña `guest`, puerto `5672`) funcionan 
+con la imagen de RabbitMQ del `docker-compose.yml` de desarrollo.
+
+### Verificación manual (smoke test)
+
+Una vez levantadas ambas imágenes y los dos servicios:
+
+1. Abre RabbitMQ Management: `http://localhost:15672` (guest/guest)
+2. Navega a **Queues and Streams** y busca `puntuaciones.operaciones-sesion.all` (debe estar visible)
+3. Navega a **Exchanges** y busca `umbral.operaciones-sesion` (type: topic, durable)
+4. Opera una partida con ambos servicios corriendo (publícala, inicia, responde preguntas o valida QRs)
+5. La cola debe mostrar mensajes entrando: click en el nombre de la cola para ver los detalles

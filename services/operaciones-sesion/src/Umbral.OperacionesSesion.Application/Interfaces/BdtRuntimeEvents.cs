@@ -19,3 +19,8 @@ public sealed record EtapaBDTActivadaEvent(
 public sealed record PistaEnviadaEvent(
     Guid PartidaId, Guid SesionPartidaId, Guid JuegoId, Guid? ParticipanteDestinoId,
     string Texto, DateTime Instante, Guid? EquipoDestinoId = null);
+
+// Sin SesionPartidaId (deliberado): el hub no lo tiene por conexión y no se consulta
+// la sesión por cada ubicación (~2 s); Puntuaciones resuelve por PartidaId.
+public sealed record UbicacionActualizadaEvent(
+    Guid PartidaId, Guid ParticipanteId, double Latitud, double Longitud, DateTime Instante);

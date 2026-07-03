@@ -2,8 +2,12 @@ using System;
 using System.Linq;
 using System.Security.Claims;
 using System.Threading.Tasks;
+using MediatR;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.SignalR;
+using Microsoft.Extensions.Logging;
+using Umbral.OperacionesSesion.Application.Interfaces;
+using Umbral.OperacionesSesion.Application.Queries;
 using Umbral.OperacionesSesion.Domain.Abstractions.Persistence;
 
 namespace Umbral.OperacionesSesion.Api.Realtime;
@@ -17,11 +21,44 @@ public sealed class SesionHub : Hub
 
     private readonly ISesionPartidaRepository _repo;
     private readonly TimeProvider _timeProvider;
+    private readonly ISesionEventsPublisher _events;
+    private readonly ISender _sender;
+    private readonly ILogger<SesionHub> _logger;
 
-    public SesionHub(ISesionPartidaRepository repo, TimeProvider timeProvider)
+    public SesionHub(ISesionPartidaRepository repo, TimeProvider timeProvider, ISesionEventsPublisher events,
+        ISender sender, ILogger<SesionHub> logger)
     {
         _repo = repo;
         _timeProvider = timeProvider;
+        _events = events;
+        _sender = sender;
+        _logger = logger;
+    }
+
+    // Re-push de cortesía (SP-3i): el convocado offline recibe sus convocatorias pendientes al volver.
+    // Datos → MediatR (ADR-0011 reserva el repositorio del hub para membresía de grupos).
+    public override async Task OnConnectedAsync()
+    {
+        var user = Context.User;
+        var sub = user?.FindFirst("sub")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
+        if (!(user?.IsInRole("Operador") ?? false) && sub is not null && Guid.TryParse(sub, out var usuarioId))
+        {
+            try
+            {
+                var pendientes = await _sender.Send(new ObtenerMisConvocatoriasPendientesQuery(usuarioId), Context.ConnectionAborted);
+                foreach (var c in pendientes)
+                {
+                    await Clients.Caller.SendAsync(SesionRealtimeMessages.ConvocatoriaCreada,
+                        new ConvocatoriaCreadaPayload(c.PartidaId, c.EquipoId, c.ConvocatoriaId, usuarioId),
+                        Context.ConnectionAborted);
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex, "Fallo el re-push de convocatorias pendientes para {UsuarioId}; la conexión continúa", usuarioId);
+            }
+        }
+        await base.OnConnectedAsync();
     }
 
     public async Task SuscribirAPartida(Guid partidaId)
@@ -91,6 +128,10 @@ public sealed class SesionHub : Hub
 
         await Clients.Group(SesionRealtimeMessages.GrupoOperadorPartida(partidaId))
             .SendAsync(SesionRealtimeMessages.UbicacionActualizada, payload, Context.ConnectionAborted);
+
+        await _events.PublicarUbicacionActualizadaAsync(
+            new UbicacionActualizadaEvent(partidaId, participanteId, latitud, longitud, payload.TimestampUtc),
+            Context.ConnectionAborted);
     }
 
     private bool TryObtenerSuscripcion(out Guid partidaId, out Guid participanteId)

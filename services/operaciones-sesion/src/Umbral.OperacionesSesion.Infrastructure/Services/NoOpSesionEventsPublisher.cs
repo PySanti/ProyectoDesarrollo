@@ -53,4 +53,7 @@ public sealed class NoOpSesionEventsPublisher : ISesionEventsPublisher
 
     public Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken)
         => Task.CompletedTask;
+
+    public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken)
+        => Task.CompletedTask;
 }

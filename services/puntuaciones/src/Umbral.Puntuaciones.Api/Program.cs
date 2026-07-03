@@ -8,6 +8,13 @@ builder.Services.AddPuntuacionesApplication();
 builder.Services.AddPuntuacionesInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
 
+var rabbitOptions = builder.Configuration
+    .GetSection(Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions.SectionName)
+    .Get<Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions>()
+    ?? new Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions();
+builder.Services.AddSingleton(rabbitOptions);
+builder.Services.AddHostedService<Umbral.Puntuaciones.Api.Workers.OperacionesSesionEventsConsumer>();
+
 var app = builder.Build();
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();

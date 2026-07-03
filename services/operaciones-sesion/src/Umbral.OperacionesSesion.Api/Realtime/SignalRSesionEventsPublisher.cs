@@ -93,4 +93,8 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
 
     public Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;
+
+    // No difunde: el relay vivo al grupo operador lo hace SesionHub.EnviarUbicacion directamente (BR-B07).
+    public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }
