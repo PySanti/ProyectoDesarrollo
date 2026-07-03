@@ -10,9 +10,34 @@
   "registrationAllowed": false,
   "roles": {
     "realm": [
-      { "name": "Administrador", "description": "Administra usuarios y configuración de la plataforma." },
-      { "name": "Operador", "description": "Crea y supervisa partidas de Trivia y BDT." },
-      { "name": "Participante", "description": "Juega Trivia y BDT desde la app móvil." }
+      {
+        "name": "Administrador",
+        "description": "Administra usuarios y configuración de la plataforma."
+      },
+      {
+        "name": "Operador",
+        "description": "Crea y supervisa partidas de Trivia y BDT.",
+        "composite": true,
+        "composites": { "realm": ["GestionarPartidas"] }
+      },
+      {
+        "name": "Participante",
+        "description": "Juega Trivia y BDT desde la app móvil.",
+        "composite": true,
+        "composites": { "realm": ["GestionarEquipos", "ParticiparEnPartidas"] }
+      },
+      {
+        "name": "GestionarPartidas",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): gestionar y operar partidas."
+      },
+      {
+        "name": "GestionarEquipos",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): gestionar equipos."
+      },
+      {
+        "name": "ParticiparEnPartidas",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): participar en partidas."
+      }
     ]
   },
   "clients": [
