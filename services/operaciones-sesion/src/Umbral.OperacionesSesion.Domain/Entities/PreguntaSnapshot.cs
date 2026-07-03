@@ -66,7 +66,7 @@ public sealed class PreguntaSnapshot
             : _respuestas.Any(r => r.EquipoId == equipoId);
         if (duplicada)
             throw new RespuestaDuplicadaException(participanteId);
-        if (now > FechaActivacion!.Value.AddSeconds(TiempoLimiteSegundos))
+        if (now >= FechaActivacion!.Value.AddSeconds(TiempoLimiteSegundos))
             throw new PreguntaFueraDeTiempoException(PreguntaId);
 
         var esCorrecta = _opciones.Any(o => o.OpcionId == opcionId && o.EsCorrecta);

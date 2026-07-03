@@ -112,4 +112,31 @@ public class ProyeccionesEquipoTests
         Assert.True(deMiembroA!.YaRespondioPreguntaActual);
         Assert.False(deLiderB!.YaRespondioPreguntaActual);
     }
+
+    [Fact]
+    public async Task MiSesion_prefiere_la_convocatoria_aceptada_sobre_la_pendiente()
+    {
+        var partidaId = Guid.NewGuid();
+        var usuario = Guid.NewGuid();
+        var equipoA = Guid.NewGuid();
+        var equipoB = Guid.NewGuid();
+        var sesion = PartidaEquipo(partidaId);
+
+        // Equipo A convoca al usuario (queda Pendiente; inscripción A es la primera de la lista)
+        sesion.PreinscribirEquipo(equipoA, true, new[] { usuario, Guid.NewGuid() }, false, 0, T0);
+
+        // Equipo B convoca al usuario y este acepta
+        var inscB = sesion.PreinscribirEquipo(equipoB, true, new[] { usuario }, false, 1, T0);
+        sesion.ResponderConvocatoria(inscB.Convocatorias[0].Id.Valor, usuario, true, false, T0);
+
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(sesion);
+        var handler = new ObtenerMiSesionQueryHandler(repo);
+
+        var dto = await handler.Handle(new ObtenerMiSesionQuery(usuario), default);
+
+        Assert.NotNull(dto!.Convocatoria);
+        Assert.Equal("Aceptada", dto.Convocatoria!.Estado);
+        Assert.Equal(equipoB, dto.Convocatoria.EquipoId);
+    }
 }

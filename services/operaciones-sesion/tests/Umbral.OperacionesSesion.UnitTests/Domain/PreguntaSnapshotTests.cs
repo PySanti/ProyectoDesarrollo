@@ -79,6 +79,15 @@ public class PreguntaSnapshotTests
     }
 
     [Fact]
+    public void Answer_at_exact_deadline_throws()
+    {
+        var p = Pregunta(limite: 30);
+        p.Activar(T0);
+        Assert.Throws<PreguntaFueraDeTiempoException>(
+            () => p.RegistrarRespuesta(Guid.NewGuid(), null, CorrectaId(p), T0.AddSeconds(30)));
+    }
+
+    [Fact]
     public void Operator_close_sets_motivo_without_winner()
     {
         var p = Pregunta();

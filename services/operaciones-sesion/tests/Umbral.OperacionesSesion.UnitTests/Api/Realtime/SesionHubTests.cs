@@ -325,7 +325,7 @@ public class SesionHubTests
 
         await hub.SuscribirAPartida(partidaId);
 
-        Assert.DoesNotContain(groups.Added, g => g.Item2.StartsWith("equipo:"));
+        Assert.DoesNotContain(groups.Added, g => g.Group.StartsWith("equipo:"));
     }
 
     // ---- Fakes locales ----

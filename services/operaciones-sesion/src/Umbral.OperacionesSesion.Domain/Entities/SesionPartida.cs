@@ -136,7 +136,7 @@ public sealed class SesionPartida
         if (!callerEsLider)
             throw new NoEsLiderEquipoException(equipoId);
         var inscripcion = _inscripciones.FirstOrDefault(i => i.EquipoId == equipoId && i.EsActiva)
-            ?? throw new InscripcionNoEncontradaException(equipoId);
+            ?? throw InscripcionNoEncontradaException.ParaEquipo(equipoId);
         inscripcion.Cancelar();
     }
 

@@ -1,5 +1,7 @@
 # SP-3e-1 — Participación Equipo (fundación) — Design
 
+> **Desambiguación:** los slices **SP-3e-1..SP-3e-4** (modalidad Equipo) son independientes del slice "SP-3e" de reconexión/mi-sesión (`2026-06-29-sp3e-reconexion-design.md`), anterior y sin relación con Equipo.
+
 - **Fecha:** 2026-07-01
 - **Rama:** feature/code-migration-SP-3
 - **Servicios:** Operaciones de Sesión (principal) + Identity (endpoint read de membresía)

@@ -2,7 +2,7 @@
 
 ## Status
 
-SP-3a endpoints registered. Remaining capabilities require a current-doctrine SDD before implementation.
+Endpoints SP-3a..SP-3e-4 registered (21). Trivia and BDT runtime operational in `Individual` and `Equipo` modality; clue delivery, geolocation relay and realtime push via SignalR. RabbitMQ broker delivery and clue persistence remain deferred (see SDD specs).
 
 ## Access Path
 

@@ -71,4 +71,21 @@ public class SesionesControllerBdtTests
         Assert.Equal(destino, cmd.ParticipanteDestinoId);
         Assert.Equal("Mira el faro", cmd.Texto);
     }
+
+    [Fact]
+    public async Task Obtener_etapa_actual_dispatches_query()
+    {
+        var partidaId = Guid.NewGuid();
+        var sender = new FakeSender(new EtapaActualDto(
+            partidaId, Guid.NewGuid(), Guid.NewGuid(), 1, "Plaza central", 60,
+            new DateTime(2026, 6, 28, 10, 0, 0, DateTimeKind.Utc)));
+        var controller = WithUser(sender, Guid.NewGuid());
+
+        var result = await controller.ObtenerEtapaActual(partidaId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<EtapaActualDto>(ok.Value);
+        var query = Assert.IsType<ObtenerEtapaActualQuery>(sender.LastRequest);
+        Assert.Equal(partidaId, query.PartidaId);
+    }
 }

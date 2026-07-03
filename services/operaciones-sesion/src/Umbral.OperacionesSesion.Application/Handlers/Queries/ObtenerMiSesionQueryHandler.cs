@@ -23,7 +23,9 @@ public sealed class ObtenerMiSesionQueryHandler : IRequestHandler<ObtenerMiSesio
         var convocatoria = sesion.Inscripciones
             .Where(i => i.EsActiva)
             .SelectMany(i => i.Convocatorias)
-            .FirstOrDefault(c => c.UsuarioId == request.ParticipanteId);
+            .Where(c => c.UsuarioId == request.ParticipanteId)
+            .OrderByDescending(c => c.EstaAceptada)
+            .FirstOrDefault();
 
         var inscId = inscripcion?.Id.Valor ?? Guid.Empty;
         var inscEstado = inscripcion?.Estado.ToString() ?? "Equipo";

@@ -17,14 +17,17 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `JuegoActivado` | The next sequential game becomes active. | Defined by SDD | Payload registered (SP-3b) |
 | `PartidaCancelada` | A partida is auto-cancelled when minimums are not met at start. | Defined by SDD | Payload registered (SP-3b) |
 | `RespuestaTriviaValidada` | Cada respuesta registrada. | Defined by SDD | Payload registered (SP-3c) |
-| `TesoroQRValidado` (SP-3d) | Cada intento de tesoro registrado | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, participanteId, resultado, instante } |
-| `EtapaBDTGanada` (SP-3d) | Validación correcta dentro de ventana | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, participanteId, puntaje, tiempoResolucionMs } |
-| `EtapaBDTCerrada` (SP-3d) | Cierre de etapa (ganador / tiempo / avance operador) | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, motivo, fechaCierre, ganadorParticipanteId? } |
+| `TesoroQRValidado` (SP-3d, SP-3e-3) | Cada intento de tesoro registrado | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, participanteId, resultado, instante, equipoId? } |
+| `EtapaBDTGanada` (SP-3d, SP-3e-3) | Validación correcta dentro de ventana | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, participanteId, puntaje, tiempoResolucionMs, equipoId? } |
+| `EtapaBDTCerrada` (SP-3d, SP-3e-3) | Cierre de etapa (ganador / tiempo / avance operador) | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, motivo, fechaCierre, ganadorParticipanteId?, ganadorEquipoId? } |
 | `EtapaBDTActivada` (SP-3d) | Se activa una etapa: inicio del juego BDT, avance del operador, o auto-avance al cerrarse la anterior | Registered | { partidaId, sesionPartidaId, juegoId, etapaId, orden, tiempoLimiteSegundos, fechaActivacion } |
 | `PuntajeTriviaIncrementado` | Primera respuesta correcta en una pregunta Trivia. | Defined by SDD | Payload registered (SP-3c) |
 | `PreguntaTriviaActivada` | Se activa una pregunta: al iniciar el juego, por avance del operador, o al auto-avanzar tras cerrarse la anterior por respuesta correcta (RF-22). | Defined by SDD | Payload registered (SP-3c) |
 | `PreguntaTriviaCerrada` | Se cierra una pregunta Trivia. | Defined by SDD | Payload registered (SP-3c) |
 | `PartidaFinalizada` | A partida finishes. | Defined by SDD | Payload registered (SP-3b) |
+| `PistaEnviada` (SP-3f-4, SP-3e-4) | El operador envía una pista a un participante o equipo durante un juego BDT activo. | Defined by SDD | Payload registered (SP-3f-4 / SP-3e-4) |
+| `ConvocatoriaCreada` (SP-3e-1) | Se preinscribe un equipo: cada miembro del snapshot recibe una convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
+| `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 
 ## Rule
 
@@ -91,7 +94,8 @@ Emitted for every registered answer in a Trivia game. Emitted via **No-Op** port
   "participanteId": "guid",
   "opcionId": "guid",
   "esCorrecta": true,
-  "instante": "datetime"
+  "instante": "datetime",
+  "equipoId": "guid | null"
 }
 ```
 
@@ -107,7 +111,8 @@ Emitted only on the first correct answer for a Trivia question (the one that clo
   "preguntaId": "guid",
   "participanteId": "guid",
   "puntaje": 10,
-  "tiempoRespuestaMs": 1234
+  "tiempoRespuestaMs": 1234,
+  "equipoId": "guid | null"
 }
 ```
 
@@ -139,7 +144,8 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
   "preguntaId": "guid",
   "motivo": "RespuestaCorrecta | AvanceOperador | Tiempo",
   "fechaCierre": "datetime",
-  "ganadorParticipanteId": "guid?"
+  "ganadorParticipanteId": "guid?",
+  "ganadorEquipoId": "guid?"
 }
 ```
 
@@ -157,7 +163,8 @@ Emitted for every QR treasure validation attempt in a BDT game, regardless of re
   "etapaId": "guid",
   "participanteId": "guid",
   "resultado": "Valido | Invalido | NoLegible | NoCorrespondeEtapaActiva",
-  "instante": "datetime"
+  "instante": "datetime",
+  "equipoId": "guid | null"
 }
 ```
 
@@ -173,7 +180,8 @@ Emitted only when a QR validation is correct and within the active stage window 
   "etapaId": "guid",
   "participanteId": "guid",
   "puntaje": 10,
-  "tiempoResolucionMs": 1234
+  "tiempoResolucionMs": 1234,
+  "equipoId": "guid | null"
 }
 ```
 
@@ -189,7 +197,8 @@ Emitted when a BDT stage closes, regardless of reason. `ganadorParticipanteId` i
   "etapaId": "guid",
   "motivo": "Ganador | Tiempo | AvanceOperador",
   "fechaCierre": "datetime",
-  "ganadorParticipanteId": "guid?"
+  "ganadorParticipanteId": "guid?",
+  "ganadorEquipoId": "guid?"
 }
 ```
 
@@ -209,4 +218,50 @@ Emitted when a BDT stage becomes active: at BDT game start (first stage), on ope
 }
 ```
 
+> **Slice-E note (SP-3e-1..4):** `equipoId`/`ganadorEquipoId` son la identidad dual de la modalidad Equipo: `null` ⇔ partida `Individual`. En `Equipo`, `participanteId`/`ganadorParticipanteId` siguen llevando el **autor real** de la acción y `equipoId`/`ganadorEquipoId` el equipo al que se acredita.
+
 > **SP-3d note:** all four BDT events above are emitted via `NoOpSesionEventsPublisher` (no broker delivery in this slice). `RankingBDTActualizado` is deferred to Puntuaciones (SP-4). `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
+
+### `PistaEnviada` (SP-3f-4 / SP-3e-4)
+
+Emitted when the operator sends a clue during an active BDT stage. Event-only (no persistence — BR-B06 "recorded" deferred). Real-time delivery via SignalR: group `participante:{participanteDestinoId}` **xor** `equipo:{equipoDestinoId}` (exactly one destination per event).
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "juegoId": "guid",
+  "participanteDestinoId": "guid | null",
+  "texto": "string",
+  "instante": "datetime",
+  "equipoDestinoId": "guid | null"
+}
+```
+
+### `ConvocatoriaCreada` (SP-3e-1)
+
+Emitted once per team-member snapshot entry when a team is pre-inscribed. Real-time delivery via SignalR to group `participante:{usuarioId}`; broker delivery deferred to the RabbitMQ backbone slice.
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "convocatoriaId": "guid",
+  "equipoId": "guid",
+  "usuarioId": "guid"
+}
+```
+
+### `ConvocatoriaRespondida` (SP-3e-1)
+
+Emitted when a summoned member accepts or rejects their convocatoria. Currently **No-Op** on the SignalR side (deliberate — the operator lobby view polls; see SP-3f-2 no-broadcast list); broker delivery deferred.
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "convocatoriaId": "guid",
+  "usuarioId": "guid",
+  "estadoConvocatoria": "Aceptada | Rechazada"
+}
+```

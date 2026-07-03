@@ -185,6 +185,18 @@ public class SesionPartidaEquipoTests
     }
 
     [Fact]
+    public void CancelarInscripcionEquipo_equipo_no_inscrito_lanza_mensaje_de_equipo()
+    {
+        var sesion = PartidaEquipoEnLobby();
+        var equipoId = Guid.NewGuid();
+
+        var ex = Assert.Throws<InscripcionNoEncontradaException>(
+            () => sesion.CancelarInscripcionEquipo(equipoId, callerEsLider: true));
+
+        Assert.Contains("equipo", ex.Message, StringComparison.OrdinalIgnoreCase);
+    }
+
+    [Fact]
     public void Iniciar_equipo_sin_aceptados_cancela_por_minimos()
     {
         var sesion = PartidaEquipoEnLobby(minimos: 1);

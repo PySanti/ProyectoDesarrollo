@@ -1,5 +1,7 @@
 # SP-3e — Reconexión / recuperación de estado transitorio (modalidad Individual) — Design
 
+> **Desambiguación:** "SP-3e" en este documento = slice de **reconexión/mi-sesión** (2026-06-29). No confundir con **SP-3e-1..SP-3e-4** (modalidad Equipo, 2026-07-01/02), que son slices independientes posteriores.
+
 **Fecha:** 2026-06-29
 **Servicio:** Operaciones de Sesión
 **Slice:** SP-3e (continúa la migración SP-3; sucede a SP-3d runtime BDT)
