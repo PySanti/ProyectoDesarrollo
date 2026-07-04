@@ -1,18 +1,25 @@
+using MediatR;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
 namespace Umbral.Puntuaciones.Api.Workers;
 
-// Consumidor de humo (SP-3i): declara la infraestructura para SP-4 y loguea cada evento.
-// Sin DB, sin proyecciones. SP-4 lo reemplaza por el consumidor real.
+// Consumidor real de proyecciones (SP-4a): mapea cada evento a su comando MediatR y lo despacha
+// con un scope por mensaje. Best-effort (ADR-0012): ack-siempre, sin poison-loop; la proyección
+// es reconstruible. Reemplaza al consumidor de humo de SP-3i.
 public sealed class OperacionesSesionEventsConsumer : BackgroundService
 {
     private readonly RabbitMqConsumerOptions _options;
+    private readonly IServiceScopeFactory _scopeFactory;
     private readonly ILogger<OperacionesSesionEventsConsumer> _logger;
 
-    public OperacionesSesionEventsConsumer(RabbitMqConsumerOptions options, ILogger<OperacionesSesionEventsConsumer> logger)
+    public OperacionesSesionEventsConsumer(
+        RabbitMqConsumerOptions options,
+        IServiceScopeFactory scopeFactory,
+        ILogger<OperacionesSesionEventsConsumer> logger)
     {
         _options = options;
+        _scopeFactory = scopeFactory;
         _logger = logger;
     }
 
@@ -20,7 +27,7 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
     {
         if (!_options.Enabled || string.IsNullOrWhiteSpace(_options.Host))
         {
-            _logger.LogWarning("RabbitMQ deshabilitado o sin host: el consumidor de eventos no arranca.");
+            _logger.LogWarning("RabbitMQ deshabilitado o sin host: el consumidor de proyecciones no arranca.");
             return;
         }
 
@@ -34,29 +41,21 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
                     Port = _options.Port,
                     UserName = _options.User,
                     Password = _options.Password,
-                    DispatchConsumersAsync = false
+                    DispatchConsumersAsync = true
                 };
                 using var connection = factory.CreateConnection("umbral-puntuaciones-consumer");
+                EliminarColaDeHumoLegacy(connection);
+
                 using var channel = connection.CreateModel();
                 channel.ExchangeDeclare(_options.Exchange, ExchangeType.Topic, durable: true, autoDelete: false);
                 channel.QueueDeclare(_options.Queue, durable: true, exclusive: false, autoDelete: false);
-                channel.QueueBind(_options.Queue, _options.Exchange, _options.Binding);
-
-                var consumer = new EventingBasicConsumer(channel);
-                consumer.Received += (_, ea) =>
+                foreach (var binding in _options.Bindings)
                 {
-                    if (EnvelopeReader.TryRead(ea.Body.Span, out var envelope))
-                    {
-                        _logger.LogInformation(
-                            "Evento recibido {EventType} {EventId} v{Version} (rk {RoutingKey}, occurredAt {OccurredAt:O})",
-                            envelope!.EventType, envelope.EventId, envelope.Version, ea.RoutingKey, envelope.OccurredAt);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Envelope malformado en {RoutingKey}; se descarta (ack).", ea.RoutingKey);
-                    }
-                    channel.BasicAck(ea.DeliveryTag, multiple: false);
-                };
+                    channel.QueueBind(_options.Queue, _options.Exchange, binding);
+                }
+
+                var consumer = new AsyncEventingBasicConsumer(channel);
+                consumer.Received += (_, ea) => ProcesarMensajeAsync(channel, ea, stoppingToken);
                 channel.BasicConsume(_options.Queue, autoAck: false, consumer);
 
                 await Task.Delay(Timeout.Infinite, stoppingToken);
@@ -71,6 +70,60 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
                 try { await Task.Delay(TimeSpan.FromSeconds(30), stoppingToken); }
                 catch (OperationCanceledException) { return; }
             }
+        }
+    }
+
+    private async Task ProcesarMensajeAsync(IModel channel, BasicDeliverEventArgs ea, CancellationToken ct)
+    {
+        if (!EnvelopeReader.TryRead(ea.Body.Span, out var envelope))
+        {
+            _logger.LogWarning("Envelope malformado en {RoutingKey}; se descarta (ack).", ea.RoutingKey);
+            channel.BasicAck(ea.DeliveryTag, multiple: false);
+            return;
+        }
+
+        var command = ProyeccionEventMapper.Map(envelope!);
+        if (command is null)
+        {
+            _logger.LogWarning(
+                "Evento {EventType} {EventId} sin proyección en SP-4a; se descarta (ack).",
+                envelope!.EventType, envelope.EventId);
+            channel.BasicAck(ea.DeliveryTag, multiple: false);
+            return;
+        }
+
+        try
+        {
+            using var scope = _scopeFactory.CreateScope();
+            var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+            await sender.Send(command, ct);
+            _logger.LogInformation(
+                "Evento proyectado {EventType} {EventId} (rk {RoutingKey}).",
+                envelope!.EventType, envelope.EventId, ea.RoutingKey);
+        }
+        catch (Exception ex)
+        {
+            // Best-effort (ADR-0012): la proyección es reconstruible; sin requeue para evitar poison-loop.
+            _logger.LogError(ex, "Fallo proyectando {EventType} {EventId}; se descarta (ack).",
+                envelope!.EventType, envelope.EventId);
+        }
+        finally
+        {
+            channel.BasicAck(ea.DeliveryTag, multiple: false);
+        }
+    }
+
+    private void EliminarColaDeHumoLegacy(IConnection connection)
+    {
+        // Canal desechable propio: si la operación falla, no tumba el canal de consumo.
+        try
+        {
+            using var channel = connection.CreateModel();
+            channel.QueueDelete(RabbitMqConsumerOptions.ColaDeHumoLegacy, ifUnused: false, ifEmpty: false);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogWarning(ex, "No se pudo eliminar la cola de humo legacy {Queue}.", RabbitMqConsumerOptions.ColaDeHumoLegacy);
         }
     }
 }
