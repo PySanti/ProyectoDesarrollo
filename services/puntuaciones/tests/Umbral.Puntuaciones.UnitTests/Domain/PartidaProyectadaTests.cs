@@ -68,4 +68,17 @@ public class PartidaProyectadaTests
 
         Assert.Equal(EstadoPartidaProyectada.Cancelada, p.Estado);
     }
+
+    [Fact]
+    public void El_primer_estado_terminal_gana_terminada_no_es_pisada_por_cancelada()
+    {
+        var p = PartidaProyectada.DesdePublicacion(Guid.NewGuid(), Guid.NewGuid(), Modalidad.Individual);
+        var t = new DateTime(2026, 7, 4, 12, 0, 0, DateTimeKind.Utc);
+
+        p.MarcarTerminada(t);
+        p.MarcarCancelada(t.AddMinutes(1));
+
+        Assert.Equal(EstadoPartidaProyectada.Terminada, p.Estado);
+        Assert.Equal(t, p.FechaFin);
+    }
 }

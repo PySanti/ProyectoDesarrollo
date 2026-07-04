@@ -30,7 +30,7 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `UbicacionActualizada` (SP-3i) | Un participante BDT envía su ubicación (~cada 2 s) durante un juego activo. | Defined by SDD | Payload registered (SP-3i) |
 
-## Transport (SP-3i)
+## Transport (SP-3i · SP-4a)
 
 Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012) **and** to SignalR where a realtime payload is documented. Delivery to the broker is enabled per environment via `RabbitMq__Enabled`.
 

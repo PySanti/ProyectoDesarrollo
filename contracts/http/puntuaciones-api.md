@@ -68,6 +68,8 @@ Marcador propio de un competidor con su posición actual (misma regla de orden/e
 
 ## Autorización
 
-JWT validado (gateway + servicio, defensa en profundidad). Lectura para cualquier rol
-autenticado — el ranking es visible para operador y participantes; sin permiso funcional
-específico (queries de lectura).
+La autenticación se exige en el gateway (policy `Default` sobre `/puntuaciones/*`). El servicio
+valida el JWT cuando se presenta (configuración Keycloak condicional), pero estos endpoints de
+lectura no llevan `[Authorize]` (paridad con los servicios hermanos; hardening del servicio →
+SP-4c). Lectura para cualquier rol — el ranking es visible para operador y participantes; sin
+permiso funcional específico.

@@ -10,3 +10,8 @@ Status: SP-4a — real projection consumer (queue `puntuaciones.operaciones-sesi
 per-game ranking and own-marcador HTTP queries (points DESC, time ASC; `unidadesGanadas`
 informative only). Pending: consolidated ranking + team performance (SP-4b), live ranking
 SignalR (SP-4c), audit/history projection (SP-4d).
+
+Deuda anotada (review final SP-4a): `marcadores` sin token de concurrencia (asunción consumidor
+single-instance; `xmin` → SP-4b); `ArgumentException`→400 sin log en el middleware; retención e
+índice temporal de `eventos_procesados` → SP-4d; ramas warn+ack del worker sin unit tests
+(cubiertas por el round-trip opt-in); `[Authorize]`/hardening del servicio → SP-4c.
