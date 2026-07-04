@@ -164,3 +164,71 @@ export async function deactivateIdentityUser(
   throwIfNotOk(response, body as { message?: string });
   return body as DeactivateUserResponse;
 }
+
+export type PermisoFuncional = "GestionarPartidas" | "GestionarEquipos" | "ParticiparEnPartidas";
+
+export interface RolePermissions {
+  rol: "Administrador" | "Operador" | "Participante";
+  permisos: PermisoFuncional[];
+  privilegiosGobernanza: boolean;
+}
+
+export interface GovernanceRolesResponse {
+  roles: RolePermissions[];
+}
+
+export interface ChangeUserRoleResponse {
+  usuarioId: string;
+  rol: "Administrador" | "Operador" | "Participante";
+}
+
+export async function getGovernanceRoles(
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<GovernanceRolesResponse> {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/governance/roles`, {
+    method: "GET",
+    headers: buildAuthHeaders(accessToken)
+  });
+
+  const body = await parseJsonBody<GovernanceRolesResponse>(response);
+  throwIfNotOk(response, body as { message?: string });
+  return body as GovernanceRolesResponse;
+}
+
+export async function updateRolePermissions(
+  rol: string,
+  permisos: PermisoFuncional[],
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<RolePermissions> {
+  const response = await fetchImpl(
+    `${resolveBaseUrl()}/identity/governance/roles/${rol}/permisos`,
+    {
+      method: "PUT",
+      headers: buildAuthHeaders(accessToken),
+      body: JSON.stringify({ permisos })
+    }
+  );
+
+  const body = await parseJsonBody<RolePermissions>(response);
+  throwIfNotOk(response, body as { message?: string });
+  return body as RolePermissions;
+}
+
+export async function changeUserRole(
+  userId: string,
+  rol: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<ChangeUserRoleResponse> {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/users/${userId}/role`, {
+    method: "PATCH",
+    headers: buildAuthHeaders(accessToken),
+    body: JSON.stringify({ rol })
+  });
+
+  const body = await parseJsonBody<ChangeUserRoleResponse>(response);
+  throwIfNotOk(response, body as { message?: string });
+  return body as ChangeUserRoleResponse;
+}
