@@ -1,5 +1,7 @@
 using System.Net;
 using System.Text.Json;
+using FluentValidation;
+using Umbral.Puntuaciones.Application.Exceptions;
 
 namespace Umbral.Puntuaciones.Api.Middleware;
 
@@ -23,10 +25,22 @@ public sealed class ExceptionHandlingMiddleware
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Unhandled exception.");
+            var status = MapStatus(ex);
+            if (status == HttpStatusCode.InternalServerError)
+            {
+                _logger.LogError(ex, "Unhandled exception.");
+            }
+
             context.Response.ContentType = "application/json";
-            context.Response.StatusCode = (int)HttpStatusCode.InternalServerError;
+            context.Response.StatusCode = (int)status;
             await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = ex.Message }));
         }
     }
+
+    private static HttpStatusCode MapStatus(Exception ex) => ex switch
+    {
+        JuegoNoEncontradoException or MarcadorNoEncontradoException => HttpStatusCode.NotFound,
+        ValidationException or ArgumentException => HttpStatusCode.BadRequest,
+        _ => HttpStatusCode.InternalServerError
+    };
 }
