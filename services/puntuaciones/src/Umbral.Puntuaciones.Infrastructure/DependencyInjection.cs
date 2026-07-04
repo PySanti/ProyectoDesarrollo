@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Umbral.Puntuaciones.Domain.Abstractions.Persistence;
 using Umbral.Puntuaciones.Infrastructure.Persistence;
 
 namespace Umbral.Puntuaciones.Infrastructure;
@@ -22,6 +23,9 @@ public static class DependencyInjection
                 options.UseNpgsql(connectionString);
             }
         });
+
+        services.AddScoped<IProyeccionesRepository, ProyeccionesRepository>();
+        services.AddScoped<IPuntuacionesUnitOfWork, PuntuacionesUnitOfWork>();
 
         return services;
     }
