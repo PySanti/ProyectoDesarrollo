@@ -170,4 +170,28 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
         var response = await client.GetAsync("/partidas/anything");
         AssertPolicyPassed(response);
     }
+
+    [Fact]
+    public async Task IdentityGovernance_sin_token_es_401()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/identity/governance/roles");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityGovernance_con_Participante_es_403()
+    {
+        var client = CreateClientWithRoles("Participante");
+        var response = await client.GetAsync("/identity/governance/roles");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityGovernance_con_Administrador_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/identity/governance/roles");
+        AssertPolicyPassed(response);
+    }
 }
