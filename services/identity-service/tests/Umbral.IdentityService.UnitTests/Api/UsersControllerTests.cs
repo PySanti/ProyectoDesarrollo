@@ -36,7 +36,7 @@ public sealed class UsersControllerTests
         var result = await controller.Create(command, new InlineValidator<CreateUserWithInitialRoleCommand>(), CancellationToken.None);
 
         var created = Assert.IsType<CreatedResult>(result);
-        Assert.Equal($"/api/identity/users/{userId}", created.Location);
+        Assert.Equal($"/identity/users/{userId}", created.Location);
         Assert.IsType<CreateUserWithInitialRoleCommand>(sender.LastRequest);
     }
 

@@ -105,7 +105,7 @@ else
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
-    options.AddPolicy("ParticipantOnly", policy => policy.RequireRole("Participante"));
+    options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
 });
 
 var app = builder.Build();

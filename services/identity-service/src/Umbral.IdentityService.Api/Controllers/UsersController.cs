@@ -9,7 +9,7 @@ using Umbral.IdentityService.Application.Queries;
 namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
-[Route("api/identity/users")]
+[Route("identity/users")]
 [Authorize(Policy = "AdminOnly")]
 public sealed class UsersController : ControllerBase
 {
@@ -27,7 +27,7 @@ public sealed class UsersController : ControllerBase
             return problem;
 
         var response = await _sender.Send(command, cancellationToken);
-        return Created($"/api/identity/users/{response.UserId}", response);
+        return Created($"/identity/users/{response.UserId}", response);
     }
 
     [HttpGet]

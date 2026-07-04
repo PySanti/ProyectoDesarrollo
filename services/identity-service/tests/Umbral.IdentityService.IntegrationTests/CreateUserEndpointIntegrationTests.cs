@@ -24,7 +24,7 @@ public sealed class CreateUserEndpointIntegrationTests : IClassFixture<IdentityA
             initialRole = "Administrador"
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(request)
         };
@@ -45,7 +45,7 @@ public sealed class CreateUserEndpointIntegrationTests : IClassFixture<IdentityA
             initialRole = "Operador"
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(request)
         };
@@ -98,7 +98,7 @@ public sealed class CreateUserEndpointIntegrationTests : IClassFixture<IdentityA
     [Fact]
     public async Task Post_CreateUser_Should_Return_Unauthorized_When_Request_Has_No_Authentication()
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(new
             {
@@ -115,7 +115,7 @@ public sealed class CreateUserEndpointIntegrationTests : IClassFixture<IdentityA
 
     private static HttpRequestMessage BuildAdminCreateUserRequest(object body)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(body)
         };

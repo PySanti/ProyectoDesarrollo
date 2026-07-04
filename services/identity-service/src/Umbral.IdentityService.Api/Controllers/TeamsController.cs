@@ -10,8 +10,8 @@ using Umbral.IdentityService.Application.Queries;
 namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
-[Route("api/teams")]
-[Authorize(Policy = "ParticipantOnly")]
+[Route("identity/teams")]
+[Authorize(Policy = "GestionarEquipos")]
 public sealed class TeamsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -32,7 +32,7 @@ public sealed class TeamsController : ControllerBase
             return problem;
 
         var response = await _sender.Send(command, cancellationToken);
-        return Created($"/api/teams/{response.EquipoId}", response);
+        return Created($"/identity/teams/{response.EquipoId}", response);
     }
 
     [HttpGet("mine")]
