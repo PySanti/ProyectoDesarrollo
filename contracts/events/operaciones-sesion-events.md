@@ -37,7 +37,7 @@ Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012
 - **Exchange:** `umbral.operaciones-sesion` — type `topic`, durable. Convention: one exchange per producing service.
 - **Routing key:** `operaciones-sesion.<event-kebab>.v1` (explicit map, table below). Incompatible payload changes bump to `.v2` (new key; `v1` consumers keep working).
 - **Envelope** (JSON camelCase, `content_type: application/json`): `{ "eventId": "guid", "eventType": "PascalCase name", "version": 1, "occurredAt": "datetime (UTC)", "payload": { …documented shape… } }`. Producers do not guarantee exactly-once; **consumers deduplicate by `eventId`**.
-- **Smoke queue (SP-3i):** `puntuaciones.operaciones-sesion.all`, durable, binding `operaciones-sesion.#` (Puntuaciones; replaced by finer queues in SP-4).
+- **Projection queue (SP-4a):** `puntuaciones.operaciones-sesion.proyecciones`, durable, bound to the 7 routing keys consumed by the SP-4a projections (`partida-publicada-en-lobby`, `partida-iniciada`, `juego-activado`, `partida-cancelada`, `partida-finalizada`, `puntaje-trivia-incrementado`, `etapa-bdt-ganada`, all `.v1`). Consumed by the real Puntuaciones projection consumer (dedup by `eventId`, ack-always best-effort per ADR-0012). The SP-3i smoke queue `puntuaciones.operaciones-sesion.all` is deleted at consumer startup. Remaining events have no Puntuaciones consumer until SP-4b/4d.
 
 | Event | Routing key |
 |---|---|
