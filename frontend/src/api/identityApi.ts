@@ -59,7 +59,7 @@ export async function createIdentityUser(
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<CreateUserResponse> {
-  const response = await fetchImpl(`${resolveBaseUrl()}/api/identity/users`, {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/users`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json",
@@ -104,7 +104,7 @@ export async function getIdentityUsers(
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<IdentityUserSummary[]> {
-  const response = await fetchImpl(`${resolveBaseUrl()}/api/identity/users`, {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/users`, {
     method: "GET",
     headers: buildAuthHeaders(accessToken)
   });
@@ -119,7 +119,7 @@ export async function getIdentityUserById(
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<IdentityUserDetail> {
-  const response = await fetchImpl(`${resolveBaseUrl()}/api/identity/users/${userId}`, {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/users/${userId}`, {
     method: "GET",
     headers: buildAuthHeaders(accessToken)
   });
@@ -135,7 +135,7 @@ export async function updateIdentityUserGeneralData(
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<IdentityUserDetail> {
-  const response = await fetchImpl(`${resolveBaseUrl()}/api/identity/users/${userId}`, {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/users/${userId}`, {
     method: "PATCH",
     headers: buildAuthHeaders(accessToken),
     body: JSON.stringify(payload)
@@ -152,7 +152,7 @@ export async function deactivateIdentityUser(
   fetchImpl: typeof fetch = fetch
 ): Promise<DeactivateUserResponse> {
   const response = await fetchImpl(
-    `${resolveBaseUrl()}/api/identity/users/${userId}/deactivation`,
+    `${resolveBaseUrl()}/identity/users/${userId}/deactivation`,
     {
       method: "PATCH",
       headers: buildAuthHeaders(accessToken),

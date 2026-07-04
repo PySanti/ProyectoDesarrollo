@@ -1,7 +1,7 @@
 export async function leaveTeamMembership(apiBaseUrl, token, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/membership`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/membership`, {
       method: "DELETE",
       headers: {
         Authorization: `Bearer ${token}`,

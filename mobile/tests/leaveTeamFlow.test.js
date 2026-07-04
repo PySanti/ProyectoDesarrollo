@@ -22,7 +22,7 @@ test("submitLeaveTeam should call DELETE membership endpoint and return payload 
     },
   });
 
-  assert.equal(calledUrl, "http://localhost:5001/api/teams/membership");
+  assert.equal(calledUrl, "http://localhost:5001/identity/teams/membership");
   assert.equal(calledOptions.method, "DELETE");
   assert.equal(calledOptions.headers.Authorization, "Bearer token");
   assert.equal(result.ok, true);

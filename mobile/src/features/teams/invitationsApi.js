@@ -1,7 +1,7 @@
 export async function loadInvitations(apiBaseUrl, token, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/invitations`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/invitations`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -34,7 +34,7 @@ export async function loadInvitations(apiBaseUrl, token, fetchImpl = fetch) {
 export async function acceptInvitation(apiBaseUrl, token, invitacionId, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/invitations/${invitacionId}/acceptance`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/invitations/${invitacionId}/acceptance`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -79,7 +79,7 @@ export async function acceptInvitation(apiBaseUrl, token, invitacionId, fetchImp
 export async function rejectInvitation(apiBaseUrl, token, invitacionId, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/invitations/${invitacionId}/rejection`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/invitations/${invitacionId}/rejection`, {
       method: "POST",
       headers: {
         Authorization: `Bearer ${token}`,

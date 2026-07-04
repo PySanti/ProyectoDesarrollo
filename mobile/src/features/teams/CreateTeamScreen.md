@@ -10,7 +10,7 @@ service boundaries.
 ## Legacy implementation behavior
 
 - Field: `nombreEquipo`.
-- The old slice called the legacy team endpoint `POST /api/teams` through `createTeamApi`.
+- The old slice called the legacy team endpoint `POST /identity/teams` through `createTeamApi`.
 - The old success response rendered `equipoId`, `codigoAcceso`, `liderUserId`, and `integrantes`.
 - The old `409` participant message was `Ya perteneces a un equipo activo. No puedes crear otro equipo.`
 
