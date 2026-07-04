@@ -1,4 +1,5 @@
 using Umbral.IdentityService.Domain.Enums;
+using Umbral.IdentityService.Domain.Exceptions;
 
 namespace Umbral.IdentityService.Domain.Entities;
 
@@ -37,6 +38,16 @@ public sealed class Usuario
 
         Nombre = nombre.Trim();
         Correo = correo.Trim().ToLowerInvariant();
+    }
+
+    public void CambiarRol(RolUsuario nuevoRol)
+    {
+        if (Rol == RolUsuario.Administrador)
+        {
+            throw new RolDeAdministradorInmutableException();
+        }
+
+        Rol = nuevoRol;
     }
 
     public void Desactivar()
