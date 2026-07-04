@@ -13,6 +13,7 @@ import {
 import { CreateBdtGamePage } from "../features/bdt/CreateBdtGamePage";
 import { PublishedBdtGamesPage } from "../features/bdt/PublishedBdtGamesPage";
 import { CreateUserPage } from "../features/identity/CreateUserPage";
+import { GovernancePage } from "../features/identity/GovernancePage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
 import { CreateTriviaFormPage } from "../features/trivia/CreateTriviaFormPage";
 import { CreateTriviaGamePage } from "../features/trivia/CreateTriviaGamePage";
@@ -103,6 +104,14 @@ export function App() {
             element: (
               <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <CreateUserPage accessToken={token} />
+              </RequireRole>
+            )
+          },
+          {
+            path: "identidad/gobernanza",
+            element: (
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
+                <GovernancePage accessToken={token} />
               </RequireRole>
             )
           },
