@@ -66,6 +66,9 @@ Artefactos de marca (fuente de verdad visual): `PRODUCT.md`, `DESIGN.md`, `.impe
      **empty state que enseña** (`.empty-panel` + icono Users), ID en `.mono`, y cabeceras de card
      generalizadas a `.card-head` (antes reusaban `.question-card-header`). Labels/testids intactos.
      Verificado: tsc + build + 52 tests.
+  6. **Gobernanza (`/identidad/gobernanza`) · ✅ construida sobre design system (SP-5c).** `GovernancePage`
+     (matriz de permisos por rol, guardado por card) + modal de cambio de rol en `UserManagementPage`.
+     Solo `Administrador`. Verificado: tsc + build + 67 tests (11 archivos).
 
 ### Fase 2 — Mobile (React Native) · ✅ código COMPLETO (pase Expo pendiente)
 - `impeccable` es web-only (su tooling no corre en RN). Se reusan los tokens de `DESIGN.md` vía un
