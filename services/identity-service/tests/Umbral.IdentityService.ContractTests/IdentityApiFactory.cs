@@ -51,6 +51,15 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
 
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task AddCompositeToRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task RemoveCompositeFromRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task ChangeUserRealmRoleAsync(string keycloakId, string oldRoleName, string newRoleName, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     public HttpClient CreateClientAs(string role, Guid userId)
