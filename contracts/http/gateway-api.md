@@ -23,6 +23,7 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 
 | Ruta YARP (Match.Path) | Order | Política | Servicio destino |
 |---|---|---|---|
+| `/identity/governance/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/users/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/teams/{**catch-all}` | 1 | `Participante` | Identity |
 | `/identity/{**catch-all}` (resto) | 2 | Default (autenticado) | Identity |
@@ -32,8 +33,9 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 | `/health` | — | Anónimo (endpoint propio del gateway) | Gateway |
 
 Notas:
-- `/identity/users` (Administrador) y `/identity/teams` (Participante) son sub-rutas más
-  específicas que ganan sobre `/identity/{**catch-all}` (Default) por `Order` explícito (1 < 2).
+- `/identity/governance` (Administrador, SP-5b), `/identity/users` (Administrador) y
+  `/identity/teams` (Participante) son sub-rutas más específicas que ganan sobre
+  `/identity/{**catch-all}` (Default) por `Order` explícito (1 < 2).
 - Autorización por **rol base** en el gateway (coarse); la autorización por **permiso
   funcional** (`GestionarPartidas`/`GestionarEquipos`/`ParticiparEnPartidas`) vive dentro de
   cada servicio (ver `identity-api.md`, `partidas-config.md`, `operaciones-sesion-api.md`) —

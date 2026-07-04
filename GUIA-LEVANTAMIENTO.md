@@ -168,6 +168,34 @@ Una vez levantadas ambas imágenes y los dos servicios:
 4. Opera una partida con ambos servicios corriendo (publícala, inicia, responde preguntas o valida QRs)
 5. La cola debe mostrar mensajes entrando: click en el nombre de la cola para ver los detalles
 
+## Broker RabbitMQ (Identity)
+
+Desde SP-5b, `identity-service` también publica eventos (equipos + gobernanza de rol/permisos) a
+RabbitMQ, best-effort (ADR-0012) — mismo patrón que `operaciones-sesion`/`puntuaciones` de la
+sección anterior. Configura estas variables en `services/identity-service/.env`:
+
+```
+RabbitMq__Enabled=true
+RabbitMq__Host=localhost
+RabbitMq__Port=5672
+RabbitMq__User=guest
+RabbitMq__Password=guest
+RabbitMq__Exchange=umbral.identity
+```
+
+Si `RabbitMq__Enabled=false` (default), el servicio arranca igual y los eventos simplemente no se
+publican (best-effort: la ausencia de broker nunca rompe el flujo HTTP). Los valores por defecto
+(usuario y contraseña `guest`, puerto `5672`) funcionan con la imagen de RabbitMQ del
+`docker-compose.yml` de desarrollo, igual que en Operaciones/Puntuaciones.
+
+Smoke test opt-in con el broker vivo:
+
+```
+RABBITMQ_TEST_HOST=localhost dotnet test services/identity-service/tests/Umbral.IdentityService.IntegrationTests --filter RabbitMqRoundTripTests
+```
+
+Sin `RABBITMQ_TEST_HOST` el test retorna vacío (no falla) — mismo patrón opt-in que SP-3i.
+
 ## Autenticación JWT (Partidas)
 
 Desde SP-5a, Partidas valida JWT y exige el permiso `GestionarPartidas` en mutaciones; sin estas
