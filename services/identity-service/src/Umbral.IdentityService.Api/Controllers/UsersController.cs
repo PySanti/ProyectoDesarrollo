@@ -59,6 +59,21 @@ public sealed class UsersController : ControllerBase
         return Ok(response);
     }
 
+    [HttpPatch("{userId:guid}/role")]
+    public async Task<IActionResult> ChangeRole(
+        Guid userId,
+        [FromBody] ChangeUserRoleRequest request,
+        [FromServices] IValidator<CambiarRolUsuarioCommand> validator,
+        CancellationToken cancellationToken)
+    {
+        var command = new CambiarRolUsuarioCommand(userId, request.Rol);
+        if (await ValidateAsync(validator, command, cancellationToken) is { } problem)
+            return problem;
+
+        var response = await _sender.Send(command, cancellationToken);
+        return Ok(response);
+    }
+
     [HttpPatch("{userId:guid}/deactivation")]
     public async Task<IActionResult> Deactivate(
         Guid userId,
