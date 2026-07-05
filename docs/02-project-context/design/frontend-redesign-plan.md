@@ -66,9 +66,15 @@ Artefactos de marca (fuente de verdad visual): `PRODUCT.md`, `DESIGN.md`, `.impe
      **empty state que enseña** (`.empty-panel` + icono Users), ID en `.mono`, y cabeceras de card
      generalizadas a `.card-head` (antes reusaban `.question-card-header`). Labels/testids intactos.
      Verificado: tsc + build + 52 tests.
-  6. **Gobernanza (`/identidad/gobernanza`) · ✅ construida sobre design system (SP-5c).** `GovernancePage`
+  6. **Gobernanza (`/identidad/gobernanza`) · ✅ construida + pase visual en navegador (2026-07-05).** `GovernancePage`
      (matriz de permisos por rol, guardado por card) + modal de cambio de rol en `UserManagementPage`.
-     Solo `Administrador`. Verificado: tsc + build + 67 tests (11 archivos).
+     Solo `Administrador`. Pase visual con datos reales (Keycloak + identity-service + login `admin`)
+     detectó y corrigió 3 defectos: (a) los checkboxes de permisos usaban `.row` (grid 2-col) que separaba
+     checkbox y label —peor en móvil, el check flotaba y el texto caía debajo— → nuevo primitivo `.check-row`
+     (flex inline, `accent-color: var(--primary)` = check magenta on-brand); (b) el wrapper del botón Guardar
+     usaba `.row` (media columna) → `.actions` (ancho-auto); (c) el aviso de promoción-a-admin irreversible
+     usaba `.notice` sin variante (borde transparente = texto plano) → `.notice info` (wash indigo, peso visual).
+     testids/labels/roles intactos. Verificado: tsc + vite build + 67 tests (11 archivos).
 
 ### Fase 2 — Mobile (React Native) · ✅ código COMPLETO (pase Expo pendiente)
 - `impeccable` es web-only (su tooling no corre en RN). Se reusan los tokens de `DESIGN.md` vía un
@@ -105,6 +111,9 @@ Artefactos de marca (fuente de verdad visual): `PRODUCT.md`, `DESIGN.md`, `.impe
 - `tsc --noEmit`: limpio · `vite build`: OK · `vitest`: 52 tests pasando.
 - Tests del shell cubren render + routing + filtrado por rol. Tests de HU-02 actualizados a la tabla/sin-rol.
 - Pase visual en navegador con datos reales: ✅ realizado (2026-06-14) — 5 superficies verificadas con Keycloak + servicios levantados.
+- **Gobernanza (SP-5c) — pase visual en navegador: ✅ realizado (2026-07-05)** con Keycloak + identity-service + login `admin`,
+  vía harness headless `frontend/scripts/gov-visual-pass.mjs` (Playwright, system chrome). Corrigió 3 defectos visuales
+  (checkboxes `.row`→`.check-row`, Guardar `.row`→`.actions`, aviso admin `.notice`→`.notice info`). tsc + build + 67 tests verdes.
 - Commit del rediseño completo + infra Keycloak en `feature/design-improve`: ✅ realizado (commit `6132c5e`).
 
 ## Impacto en SDD

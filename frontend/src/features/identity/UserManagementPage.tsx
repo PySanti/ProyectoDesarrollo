@@ -474,7 +474,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
             </label>
 
             {roleTarget === "Administrador" ? (
-              <div className="notice" role="alert" data-testid="role-change-warning">
+              <div className="notice info" role="alert" data-testid="role-change-warning">
                 Promover a Administrador es irreversible: el rol de un administrador no puede
                 volver a cambiarse.
               </div>

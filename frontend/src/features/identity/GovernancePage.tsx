@@ -162,7 +162,7 @@ export function GovernancePage({ accessToken }: GovernancePageProps) {
             </div>
 
             {PERMISOS.map((permiso) => (
-              <label key={permiso.key} className="row">
+              <label key={permiso.key} className="check-row">
                 <input
                   type="checkbox"
                   data-testid={`gov-check-${card.info.rol}-${permiso.key}`}
@@ -186,7 +186,7 @@ export function GovernancePage({ accessToken }: GovernancePageProps) {
               </p>
             ) : null}
 
-            <div className="row">
+            <div className="actions">
               <button
                 type="button"
                 data-testid={`gov-save-${card.info.rol}`}
