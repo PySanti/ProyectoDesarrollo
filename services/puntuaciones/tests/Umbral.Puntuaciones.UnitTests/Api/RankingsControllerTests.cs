@@ -45,4 +45,20 @@ public class RankingsControllerTests
         Assert.Equal(juegoId, query.JuegoId);
         Assert.Equal(competidorId, query.CompetidorId);
     }
+
+    [Fact]
+    public async Task ObtenerRankingConsolidado_despacha_query_y_devuelve_ok()
+    {
+        var partidaId = Guid.NewGuid();
+        var respuesta = new RankingConsolidadoResponse(partidaId, DateTime.UtcNow, Array.Empty<EntradaRankingConsolidadoDto>());
+        var sender = new FakeSender(respuesta);
+        var controller = new RankingsController(sender);
+
+        var result = await controller.ObtenerRankingConsolidado(partidaId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(respuesta, ok.Value);
+        var query = Assert.IsType<ObtenerRankingConsolidadoQuery>(sender.LastRequest);
+        Assert.Equal(partidaId, query.PartidaId);
+    }
 }

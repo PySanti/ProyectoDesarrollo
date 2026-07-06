@@ -25,4 +25,11 @@ public sealed class RankingsController : ControllerBase
         var response = await _mediator.Send(new ObtenerMarcadorQuery(partidaId, juegoId, competidorId), cancellationToken);
         return Ok(response);
     }
+
+    [HttpGet("partidas/{partidaId:guid}/ranking-consolidado")]
+    public async Task<IActionResult> ObtenerRankingConsolidado(Guid partidaId, CancellationToken cancellationToken)
+    {
+        var response = await _mediator.Send(new ObtenerRankingConsolidadoQuery(partidaId), cancellationToken);
+        return Ok(response);
+    }
 }

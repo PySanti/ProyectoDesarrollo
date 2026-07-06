@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
 using Umbral.Puntuaciones.Api.Middleware;
 using Umbral.Puntuaciones.Application.Exceptions;
+using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.UnitTests.Api;
 
@@ -29,4 +30,14 @@ public class ExceptionHandlingMiddlewareTests
     [Fact]
     public async Task Excepcion_generica_mapea_500()
         => Assert.Equal(StatusCodes.Status500InternalServerError, await StatusDe(new InvalidOperationException("x")));
+
+    [Fact]
+    public async Task PartidaNoEncontrada_mapea_404()
+        => Assert.Equal(StatusCodes.Status404NotFound,
+            await StatusDe(new PartidaNoEncontradaException(Guid.NewGuid())));
+
+    [Fact]
+    public async Task PartidaNoTerminada_mapea_409()
+        => Assert.Equal(StatusCodes.Status409Conflict,
+            await StatusDe(new PartidaNoTerminadaException(Guid.NewGuid(), EstadoPartidaProyectada.Iniciada)));
 }

@@ -39,7 +39,8 @@ public sealed class ExceptionHandlingMiddleware
 
     private static HttpStatusCode MapStatus(Exception ex) => ex switch
     {
-        JuegoNoEncontradoException or MarcadorNoEncontradoException => HttpStatusCode.NotFound,
+        JuegoNoEncontradoException or MarcadorNoEncontradoException or PartidaNoEncontradaException => HttpStatusCode.NotFound,
+        PartidaNoTerminadaException => HttpStatusCode.Conflict,
         ValidationException or ArgumentException => HttpStatusCode.BadRequest,
         _ => HttpStatusCode.InternalServerError
     };
