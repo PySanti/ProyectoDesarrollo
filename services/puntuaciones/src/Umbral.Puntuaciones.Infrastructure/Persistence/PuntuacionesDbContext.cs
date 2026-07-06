@@ -67,7 +67,7 @@ public sealed class PuntuacionesDbContext : DbContext
         // Solo aplica con Npgsql; el proveedor InMemory (dev/tests) no la tiene.
         if (Database.IsNpgsql())
         {
-            modelBuilder.Entity<Marcador>().UseXminAsConcurrencyToken();
+            modelBuilder.Entity<Marcador>().Property<uint>("xmin").IsRowVersion();
         }
     }
 }

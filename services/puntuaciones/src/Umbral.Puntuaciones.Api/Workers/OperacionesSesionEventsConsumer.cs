@@ -100,22 +100,23 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
                 "Evento proyectado {EventType} {EventId} (rk {RoutingKey}).",
                 envelope!.EventType, envelope.EventId, ea.RoutingKey);
         }
-        catch (DbUpdateConcurrencyException)
+        catch (DbUpdateException)
         {
-            // xmin (SP-4b): otro upsert pisó la fila entre lectura y SaveChanges. Un único
-            // reintento con scope fresco relee el estado actual; el dedup transaccional
-            // garantiza que el intento fallido no dejó rastro.
+            // Conflicto de escritura concurrente (SP-4b): xmin en UPDATE o clave única en INSERT
+            // cuando otro consumidor pisó/creó la misma fila. Un único reintento con scope fresco
+            // relee el estado actual; el dedup transaccional garantiza que el intento fallido no
+            // dejó rastro.
             try
             {
                 await DespacharAsync(command, ct);
                 _logger.LogInformation(
-                    "Evento proyectado tras reintento por concurrencia {EventType} {EventId}.",
+                    "Evento proyectado tras reintento por conflicto de escritura {EventType} {EventId}.",
                     envelope!.EventType, envelope.EventId);
             }
             catch (Exception ex)
             {
                 _logger.LogWarning(ex,
-                    "Conflicto de concurrencia persistente proyectando {EventType} {EventId}; se descarta (ack).",
+                    "Fallo persistente tras reintento proyectando {EventType} {EventId}; se descarta (ack).",
                     envelope!.EventType, envelope.EventId);
             }
         }
