@@ -62,5 +62,12 @@ public sealed class PuntuacionesDbContext : DbContext
             entity.Property(x => x.OccurredAt).HasColumnName("occurredat").IsRequired();
             entity.Property(x => x.ProcesadoAt).HasColumnName("procesadoat").IsRequired();
         });
+
+        // SP-4b: token de concurrencia optimista sobre la columna de sistema xmin de PostgreSQL.
+        // Solo aplica con Npgsql; el proveedor InMemory (dev/tests) no la tiene.
+        if (Database.IsNpgsql())
+        {
+            modelBuilder.Entity<Marcador>().UseXminAsConcurrencyToken();
+        }
     }
 }

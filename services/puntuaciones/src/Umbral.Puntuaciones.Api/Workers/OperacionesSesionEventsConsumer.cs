@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
 
@@ -94,12 +95,29 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
 
         try
         {
-            using var scope = _scopeFactory.CreateScope();
-            var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-            await sender.Send(command, ct);
+            await DespacharAsync(command, ct);
             _logger.LogInformation(
                 "Evento proyectado {EventType} {EventId} (rk {RoutingKey}).",
                 envelope!.EventType, envelope.EventId, ea.RoutingKey);
+        }
+        catch (DbUpdateConcurrencyException)
+        {
+            // xmin (SP-4b): otro upsert pisó la fila entre lectura y SaveChanges. Un único
+            // reintento con scope fresco relee el estado actual; el dedup transaccional
+            // garantiza que el intento fallido no dejó rastro.
+            try
+            {
+                await DespacharAsync(command, ct);
+                _logger.LogInformation(
+                    "Evento proyectado tras reintento por concurrencia {EventType} {EventId}.",
+                    envelope!.EventType, envelope.EventId);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogWarning(ex,
+                    "Conflicto de concurrencia persistente proyectando {EventType} {EventId}; se descarta (ack).",
+                    envelope!.EventType, envelope.EventId);
+            }
         }
         catch (Exception ex)
         {
@@ -111,6 +129,13 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
         {
             channel.BasicAck(ea.DeliveryTag, multiple: false);
         }
+    }
+
+    private async Task DespacharAsync(object command, CancellationToken ct)
+    {
+        using var scope = _scopeFactory.CreateScope();
+        var sender = scope.ServiceProvider.GetRequiredService<ISender>();
+        await sender.Send(command, ct);
     }
 
     private void EliminarColaDeHumoLegacy(IConnection connection)
