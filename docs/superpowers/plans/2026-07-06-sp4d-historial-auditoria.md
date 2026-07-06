@@ -116,22 +116,18 @@ public class HistorialRepositoryTests
     }
 
     [Fact]
-    public async Task EventId_duplicado_viola_el_indice_unico()
+    public void El_modelo_define_indice_unico_por_EventId()
     {
-        var opciones = Opciones($"historial-{Guid.NewGuid()}");
-        var eventId = Guid.NewGuid();
-        var partidaId = Guid.NewGuid();
-        await using (var db = new PuntuacionesDbContext(opciones))
-        {
-            db.EventosHistorial.Add(EventoHistorial.Registrar(
-                eventId, partidaId, null, "PartidaIniciada", Ahora, null, null, "{}"));
-            await db.SaveChangesAsync();
-        }
+        // El proveedor InMemory no aplica índices únicos no-PK entre contextos: la aplicación real
+        // la garantiza PostgreSQL con el DDL de la migración (misma doctrina que xmin, solo-Npgsql).
+        // Aquí se protege la configuración del modelo contra regresiones.
+        using var db = new PuntuacionesDbContext(Opciones($"historial-{Guid.NewGuid()}"));
 
-        await using var db2 = new PuntuacionesDbContext(opciones);
-        db2.EventosHistorial.Add(EventoHistorial.Registrar(
-            eventId, partidaId, null, "PartidaIniciada", Ahora, null, null, "{}"));
-        await Assert.ThrowsAsync<DbUpdateException>(() => db2.SaveChangesAsync());
+        var indice = db.Model.FindEntityType(typeof(EventoHistorial))!
+            .GetIndexes()
+            .Single(i => i.Properties.Single().Name == nameof(EventoHistorial.EventId));
+
+        Assert.True(indice.IsUnique);
     }
 
     [Fact]

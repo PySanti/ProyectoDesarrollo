@@ -13,6 +13,7 @@ public sealed class PuntuacionesDbContext : DbContext
     public DbSet<JuegoProyectado> Juegos => Set<JuegoProyectado>();
     public DbSet<Marcador> Marcadores => Set<Marcador>();
     public DbSet<EventoProcesado> EventosProcesados => Set<EventoProcesado>();
+    public DbSet<EventoHistorial> EventosHistorial => Set<EventoHistorial>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -61,6 +62,25 @@ public sealed class PuntuacionesDbContext : DbContext
             entity.Property(x => x.EventType).HasColumnName("eventtype").IsRequired();
             entity.Property(x => x.OccurredAt).HasColumnName("occurredat").IsRequired();
             entity.Property(x => x.ProcesadoAt).HasColumnName("procesadoat").IsRequired();
+            entity.HasIndex(x => x.ProcesadoAt).HasDatabaseName("ix_eventos_procesados_procesadoat");
+        });
+
+        modelBuilder.Entity<EventoHistorial>(entity =>
+        {
+            entity.ToTable("eventos_historial");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id").ValueGeneratedOnAdd();
+            entity.Property(x => x.EventId).HasColumnName("eventid").IsRequired();
+            entity.Property(x => x.PartidaId).HasColumnName("partidaid").IsRequired();
+            entity.Property(x => x.JuegoId).HasColumnName("juegoid");
+            entity.Property(x => x.TipoEvento).HasColumnName("tipoevento").HasMaxLength(64).IsRequired();
+            entity.Property(x => x.OccurredAt).HasColumnName("occurredat").IsRequired();
+            entity.Property(x => x.ParticipanteId).HasColumnName("participanteid");
+            entity.Property(x => x.EquipoId).HasColumnName("equipoid");
+            // jsonb es anotación relacional: Npgsql la aplica, InMemory la ignora.
+            entity.Property(x => x.DetalleJson).HasColumnName("detalle").HasColumnType("jsonb").IsRequired();
+            entity.HasIndex(x => x.EventId).IsUnique().HasDatabaseName("ix_eventos_historial_eventid");
+            entity.HasIndex(x => new { x.PartidaId, x.OccurredAt }).HasDatabaseName("ix_eventos_historial_partidaid_occurredat");
         });
 
         // SP-4b: token de concurrencia optimista sobre la columna de sistema xmin de PostgreSQL.

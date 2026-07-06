@@ -25,6 +25,7 @@ public static class DependencyInjection
         });
 
         services.AddScoped<IProyeccionesRepository, ProyeccionesRepository>();
+        services.AddScoped<IHistorialRepository, HistorialRepository>();
         services.AddScoped<IPuntuacionesUnitOfWork, PuntuacionesUnitOfWork>();
 
         return services;
