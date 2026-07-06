@@ -4,8 +4,8 @@
 
 Endpoints registrados (4): ranking nativo por juego + marcador propio (SP-4a) y ranking
 consolidado de partida + rendimiento de equipo (SP-4b), servidos por las proyecciones
-alimentadas por RabbitMQ (best-effort, ADR-0012). SignalR de ranking (SP-4c) y
-auditoría/historial (SP-4d) pendientes.
+alimentadas por RabbitMQ (best-effort, ADR-0012), más el hub SignalR de ranking en vivo (SP-4c).
+Pendiente **solo** auditoría/historial (SP-4d).
 
 ## Access Path
 
@@ -120,10 +120,35 @@ descendente. Reusa el mismo cálculo del consolidado (RF-44: sin duplicar el cá
 
 - Equipo sin participaciones (o desconocido) → `200` con `partidas: []`.
 
+## SignalR — ranking en vivo (SP-4c)
+
+Hub: `puntuaciones/hubs/ranking` (vía gateway, ruta `/puntuaciones/*`; el token JWT viaja en el
+query string `access_token` durante la negociación WebSocket — el gateway no reescribe paths).
+
+Métodos del cliente:
+
+| Método | Parámetros | Comportamiento |
+|---|---|---|
+| `SuscribirAPartida` | `partidaId: guid` | Une la conexión al grupo de la partida. `HubException("Partida no proyectada.")` si la partida no existe en las proyecciones (el cliente reintenta al recibir `PartidaEnLobby` de Operaciones de Sesión). |
+| `DesuscribirDePartida` | `partidaId: guid` | Remueve la conexión del grupo. |
+
+Mensajes servidor→cliente (payloads = shapes HTTP ya documentados en este contrato; enums como
+string, camelCase):
+
+| Mensaje | Disparador (evento proyectado) | Payload |
+|---|---|---|
+| `RankingTriviaActualizado` | `PuntajeTriviaIncrementado` | El shape de `GET .../juegos/{juegoId}/ranking` |
+| `RankingBDTActualizado` | `EtapaBDTGanada` | El shape de `GET .../juegos/{juegoId}/ranking` |
+| `RankingConsolidadoCalculado` | `PartidaFinalizada` | El shape de `GET .../ranking-consolidado` |
+
+La difusión es best-effort (ADR-0012): un push perdido no se reintenta; los GET HTTP son la fuente
+recuperable. Scoring tardío tras `PartidaFinalizada` re-difunde el ranking nativo del juego, no el
+consolidado (la relectura HTTP lo incorpora).
+
 ## Autorización
 
-La autenticación se exige en el gateway (policy `Default` sobre `/puntuaciones/*`). El servicio
-valida el JWT cuando se presenta (configuración Keycloak condicional), pero estos endpoints de
-lectura no llevan `[Authorize]` (paridad con los servicios hermanos; hardening del servicio →
-SP-4c). Lectura para cualquier rol — el ranking es visible para operador y participantes; sin
-permiso funcional específico.
+La autenticación se exige en el gateway (policy `Default` sobre `/puntuaciones/*`) **y** en el
+servicio (defensa en profundidad): `[Authorize]` a nivel de clase en `RankingsController` y
+`EquiposController`, y en el hub `RankingHub`. `/health` es anónimo (health check). Lectura para
+cualquier rol autenticado — el ranking es visible para operador y participantes; sin permiso
+funcional específico.

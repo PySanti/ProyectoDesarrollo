@@ -175,7 +175,7 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
 }
 ```
 
-> **SP-3c note:** all four events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingTriviaActualizado` is deferred to Puntuaciones (SP-4).
+> **SP-3c note:** all four events above are published to the broker since SP-3i (best-effort, ADR-0012). Since SP-4c, `RankingTriviaActualizado` is broadcast as a SignalR message by Puntuaciones on projection of `PuntajeTriviaIncrementado` — see the "SignalR — ranking en vivo (SP-4c)" section of `contracts/http/puntuaciones-api.md`.
 
 ### `TesoroQRValidado` (SP-3d)
 
@@ -246,7 +246,7 @@ Emitted when a BDT stage becomes active: at BDT game start (first stage), on ope
 
 > **Slice-E note (SP-3e-1..4):** `equipoId`/`ganadorEquipoId` son la identidad dual de la modalidad Equipo: `null` ⇔ partida `Individual`. En `Equipo`, `participanteId`/`ganadorParticipanteId` siguen llevando el **autor real** de la acción y `equipoId`/`ganadorEquipoId` el equipo al que se acredita.
 
-> **SP-3d note:** all four BDT events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingBDTActualizado` is deferred to Puntuaciones (SP-4). `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
+> **SP-3d note:** all four BDT events above are published to the broker since SP-3i (best-effort, ADR-0012). Since SP-4c, `RankingBDTActualizado` is broadcast as a SignalR message by Puntuaciones on projection of `EtapaBDTGanada` — see the "SignalR — ranking en vivo (SP-4c)" section of `contracts/http/puntuaciones-api.md`. `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
 
 ### `PistaEnviada` (SP-3f-4 / SP-3e-4)
 
