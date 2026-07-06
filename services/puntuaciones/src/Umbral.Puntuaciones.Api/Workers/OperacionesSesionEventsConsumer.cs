@@ -1,4 +1,3 @@
-using MediatR;
 using Microsoft.EntityFrameworkCore;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
@@ -11,16 +10,16 @@ namespace Umbral.Puntuaciones.Api.Workers;
 public sealed class OperacionesSesionEventsConsumer : BackgroundService
 {
     private readonly RabbitMqConsumerOptions _options;
-    private readonly IServiceScopeFactory _scopeFactory;
+    private readonly ProyeccionPipeline _pipeline;
     private readonly ILogger<OperacionesSesionEventsConsumer> _logger;
 
     public OperacionesSesionEventsConsumer(
         RabbitMqConsumerOptions options,
-        IServiceScopeFactory scopeFactory,
+        ProyeccionPipeline pipeline,
         ILogger<OperacionesSesionEventsConsumer> logger)
     {
         _options = options;
-        _scopeFactory = scopeFactory;
+        _pipeline = pipeline;
         _logger = logger;
     }
 
@@ -95,7 +94,7 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
 
         try
         {
-            await DespacharAsync(command, ct);
+            await _pipeline.EjecutarAsync(command, ct);
             _logger.LogInformation(
                 "Evento proyectado {EventType} {EventId} (rk {RoutingKey}).",
                 envelope!.EventType, envelope.EventId, ea.RoutingKey);
@@ -108,7 +107,7 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
             // dejó rastro.
             try
             {
-                await DespacharAsync(command, ct);
+                await _pipeline.EjecutarAsync(command, ct);
                 _logger.LogInformation(
                     "Evento proyectado tras reintento por conflicto de escritura {EventType} {EventId}.",
                     envelope!.EventType, envelope.EventId);
@@ -130,13 +129,6 @@ public sealed class OperacionesSesionEventsConsumer : BackgroundService
         {
             channel.BasicAck(ea.DeliveryTag, multiple: false);
         }
-    }
-
-    private async Task DespacharAsync(object command, CancellationToken ct)
-    {
-        using var scope = _scopeFactory.CreateScope();
-        var sender = scope.ServiceProvider.GetRequiredService<ISender>();
-        await sender.Send(command, ct);
     }
 
     private void EliminarColaDeHumoLegacy(IConnection connection)

@@ -24,6 +24,7 @@ var rabbitOptions = builder.Configuration
     ?? new Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions();
 builder.Services.AddSingleton(rabbitOptions);
 builder.Services.AddScoped<Umbral.Puntuaciones.Api.Workers.RankingBroadcastDispatcher>();
+builder.Services.AddSingleton<Umbral.Puntuaciones.Api.Workers.ProyeccionPipeline>();
 builder.Services.AddHostedService<Umbral.Puntuaciones.Api.Workers.OperacionesSesionEventsConsumer>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
