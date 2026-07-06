@@ -15,6 +15,9 @@ builder.Services.AddControllers()
 builder.Services.AddSignalR().AddJsonProtocol(options =>
     options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
+builder.Services.AddSingleton<Umbral.Puntuaciones.Application.Interfaces.IRankingRealtimePublisher,
+    Umbral.Puntuaciones.Api.Realtime.SignalRRankingRealtimePublisher>();
+
 var rabbitOptions = builder.Configuration
     .GetSection(Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions.SectionName)
     .Get<Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions>()
