@@ -1,18 +1,17 @@
 using System.Net;
 using System.Text.Json;
 using MediatR;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Umbral.Puntuaciones.Application.Commands;
 using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.ContractTests;
 
-public class RankingContractTests : IClassFixture<WebApplicationFactory<Program>>
+public class RankingContractTests : IClassFixture<PuntuacionesWebFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly PuntuacionesWebFactory _factory;
 
-    public RankingContractTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public RankingContractTests(PuntuacionesWebFactory factory) => _factory = factory;
 
     private async Task<(Guid partidaId, Guid juegoId, Guid competidorId)> Sembrar()
     {
@@ -31,7 +30,7 @@ public class RankingContractTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Ranking_body_matches_contract()
     {
         var (partidaId, juegoId, _) = await Sembrar();
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/ranking");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -54,7 +53,7 @@ public class RankingContractTests : IClassFixture<WebApplicationFactory<Program>
     public async Task Marcador_body_matches_contract()
     {
         var (partidaId, juegoId, competidorId) = await Sembrar();
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/marcadores/{competidorId}");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -72,7 +71,7 @@ public class RankingContractTests : IClassFixture<WebApplicationFactory<Program>
     [Fact]
     public async Task Errores_404_devuelven_message_json()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/juegos/{Guid.NewGuid()}/ranking");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

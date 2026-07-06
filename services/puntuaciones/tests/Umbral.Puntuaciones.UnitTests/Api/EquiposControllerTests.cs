@@ -22,4 +22,12 @@ public class EquiposControllerTests
         var query = Assert.IsType<ObtenerRendimientoEquipoQuery>(sender.LastRequest);
         Assert.Equal(equipoId, query.EquipoId);
     }
+
+    [Fact]
+    public void Exige_autenticacion_a_nivel_de_clase()
+    {
+        var atributos = typeof(EquiposController)
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), inherit: true);
+        Assert.NotEmpty(atributos);
+    }
 }

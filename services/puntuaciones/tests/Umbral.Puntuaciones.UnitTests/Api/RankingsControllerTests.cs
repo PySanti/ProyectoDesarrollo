@@ -61,4 +61,12 @@ public class RankingsControllerTests
         var query = Assert.IsType<ObtenerRankingConsolidadoQuery>(sender.LastRequest);
         Assert.Equal(partidaId, query.PartidaId);
     }
+
+    [Fact]
+    public void Exige_autenticacion_a_nivel_de_clase()
+    {
+        var atributos = typeof(RankingsController)
+            .GetCustomAttributes(typeof(Microsoft.AspNetCore.Authorization.AuthorizeAttribute), inherit: true);
+        Assert.NotEmpty(atributos);
+    }
 }

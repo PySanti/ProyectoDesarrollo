@@ -1,19 +1,18 @@
 using System.Net;
 using System.Text.Json;
 using MediatR;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Umbral.Puntuaciones.Application.Commands;
 using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.IntegrationTests;
 
-public class ProyeccionYRankingE2ETests : IClassFixture<WebApplicationFactory<Program>>
+public class ProyeccionYRankingE2ETests : IClassFixture<PuntuacionesWebFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly PuntuacionesWebFactory _factory;
     private static readonly DateTime Ahora = DateTime.UtcNow;
 
-    public ProyeccionYRankingE2ETests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public ProyeccionYRankingE2ETests(PuntuacionesWebFactory factory) => _factory = factory;
 
     private async Task Proyectar(IBaseRequest comando)
     {
@@ -37,7 +36,7 @@ public class ProyeccionYRankingE2ETests : IClassFixture<WebApplicationFactory<Pr
         await Proyectar(new ProyectarPuntajeTriviaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), ganador, 20, 1000, null));
         await Proyectar(new ProyectarPuntajeTriviaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), segundo, 10, 2000, null));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/ranking");
         var body = await response.Content.ReadAsStringAsync();
         using var json = JsonDocument.Parse(body);
@@ -62,7 +61,7 @@ public class ProyeccionYRankingE2ETests : IClassFixture<WebApplicationFactory<Pr
         await Proyectar(new ProyectarJuegoActivadoCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, 1, TipoJuego.BusquedaDelTesoro));
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), Guid.NewGuid(), 25, 4000, equipoId));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var ok = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/marcadores/{equipoId}");
         var notFound = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/marcadores/{Guid.NewGuid()}");
         using var json = JsonDocument.Parse(await ok.Content.ReadAsStringAsync());
@@ -77,7 +76,7 @@ public class ProyeccionYRankingE2ETests : IClassFixture<WebApplicationFactory<Pr
     [Fact]
     public async Task Ranking_de_juego_desconocido_devuelve_404()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/juegos/{Guid.NewGuid()}/ranking");
 
@@ -98,7 +97,7 @@ public class ProyeccionYRankingE2ETests : IClassFixture<WebApplicationFactory<Pr
         await Proyectar(duplicado);
         await Proyectar(duplicado);
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/marcadores/{participanteId}");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 

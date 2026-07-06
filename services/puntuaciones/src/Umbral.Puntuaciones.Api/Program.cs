@@ -83,6 +83,21 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
                 ValidateIssuerSigningKey = true,
                 RoleClaimType = "roles"
             };
+            options.Events = new JwtBearerEvents
+            {
+                OnMessageReceived = context =>
+                {
+                    // SignalR no puede mandar el header Authorization por WebSocket: el token viaja
+                    // en el query string solo para la ruta del hub (patrón de Operaciones de Sesión).
+                    var accessToken = context.Request.Query["access_token"];
+                    var path = context.HttpContext.Request.Path;
+                    if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/puntuaciones/hubs/ranking"))
+                    {
+                        context.Token = accessToken;
+                    }
+                    return Task.CompletedTask;
+                }
+            };
         });
 }
 else

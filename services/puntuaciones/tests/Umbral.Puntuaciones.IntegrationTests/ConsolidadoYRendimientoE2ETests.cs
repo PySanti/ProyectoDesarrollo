@@ -1,19 +1,18 @@
 using System.Net;
 using System.Text.Json;
 using MediatR;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Umbral.Puntuaciones.Application.Commands;
 using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.IntegrationTests;
 
-public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFactory<Program>>
+public class ConsolidadoYRendimientoE2ETests : IClassFixture<PuntuacionesWebFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly PuntuacionesWebFactory _factory;
     private static readonly DateTime Ahora = DateTime.UtcNow;
 
-    public ConsolidadoYRendimientoE2ETests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public ConsolidadoYRendimientoE2ETests(PuntuacionesWebFactory factory) => _factory = factory;
 
     private async Task Proyectar(IBaseRequest comando)
     {
@@ -54,7 +53,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juego3, Guid.NewGuid(), goleador, 50, 800, null));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, Ahora));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/ranking-consolidado");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -75,7 +74,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
         var partidaId = Guid.NewGuid();
         await Proyectar(new ProyectarPartidaPublicadaCommand(Guid.NewGuid(), Ahora, partidaId, Guid.NewGuid(), Modalidad.Individual));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/ranking-consolidado");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -86,7 +85,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
     [Fact]
     public async Task Consolidado_de_partida_desconocida_devuelve_404()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/ranking-consolidado");
 
@@ -105,7 +104,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
         await Proyectar(new ProyectarPuntajeTriviaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), competidor, 10, 1000, null));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, Ahora));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var antes = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/ranking-consolidado");
         using var jsonAntes = JsonDocument.Parse(await antes.Content.ReadAsStringAsync());
         var puntosAntes = jsonAntes.RootElement.GetProperty("entradas")[0].GetProperty("puntosTotales").GetInt32();
@@ -130,7 +129,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
         await SembrarPartidaEquipoTerminada(ganada, equipo, rival, 20, 10, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
         await SembrarPartidaEquipoTerminada(perdida, rival, equipo, 30, 5, new DateTime(2026, 7, 4, 12, 0, 0, DateTimeKind.Utc));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/equipos/{equipo}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -149,7 +148,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<WebApplicationFacto
     [Fact]
     public async Task Rendimiento_de_equipo_sin_participaciones_devuelve_lista_vacia()
     {
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
 
         var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

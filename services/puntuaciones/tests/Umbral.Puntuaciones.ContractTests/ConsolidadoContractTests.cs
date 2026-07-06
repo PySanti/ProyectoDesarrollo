@@ -1,18 +1,17 @@
 using System.Net;
 using System.Text.Json;
 using MediatR;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Microsoft.Extensions.DependencyInjection;
 using Umbral.Puntuaciones.Application.Commands;
 using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.ContractTests;
 
-public class ConsolidadoContractTests : IClassFixture<WebApplicationFactory<Program>>
+public class ConsolidadoContractTests : IClassFixture<PuntuacionesWebFactory>
 {
-    private readonly WebApplicationFactory<Program> _factory;
+    private readonly PuntuacionesWebFactory _factory;
 
-    public ConsolidadoContractTests(WebApplicationFactory<Program> factory) => _factory = factory;
+    public ConsolidadoContractTests(PuntuacionesWebFactory factory) => _factory = factory;
 
     private async Task Proyectar(IBaseRequest comando)
     {
@@ -33,7 +32,7 @@ public class ConsolidadoContractTests : IClassFixture<WebApplicationFactory<Prog
         await Proyectar(new ProyectarPuntajeTriviaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, juegoId, Guid.NewGuid(), competidorId, 10, 1500, null));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, DateTime.UtcNow));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/ranking-consolidado");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -56,7 +55,7 @@ public class ConsolidadoContractTests : IClassFixture<WebApplicationFactory<Prog
         var partidaId = Guid.NewGuid();
         await Proyectar(new ProyectarPartidaPublicadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, Guid.NewGuid(), Modalidad.Individual));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/ranking-consolidado");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -76,7 +75,7 @@ public class ConsolidadoContractTests : IClassFixture<WebApplicationFactory<Prog
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, juegoId, Guid.NewGuid(), Guid.NewGuid(), 25, 4000, equipoId));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, DateTime.UtcNow));
 
-        var client = _factory.CreateClient();
+        var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/equipos/{equipoId}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
