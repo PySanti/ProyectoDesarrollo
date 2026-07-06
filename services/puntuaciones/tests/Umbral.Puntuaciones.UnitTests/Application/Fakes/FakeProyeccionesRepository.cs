@@ -1,5 +1,6 @@
 using Umbral.Puntuaciones.Domain.Abstractions.Persistence;
 using Umbral.Puntuaciones.Domain.Entities;
+using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.UnitTests.Application.Fakes;
 
@@ -32,4 +33,17 @@ public sealed class FakeProyeccionesRepository : IProyeccionesRepository
 
     public Task<IReadOnlyList<Marcador>> GetMarcadoresDeJuegoAsync(Guid juegoId, CancellationToken cancellationToken)
         => Task.FromResult<IReadOnlyList<Marcador>>(Marcadores.Where(m => m.JuegoId == juegoId).ToList());
+
+    public Task<IReadOnlyList<Marcador>> GetMarcadoresDePartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<Marcador>>(Marcadores.Where(m => m.PartidaId == partidaId).ToList());
+
+    public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
+                && p.Modalidad == Modalidad.Equipo
+                && Marcadores.Any(m => m.PartidaId == p.PartidaId
+                    && m.CompetidorId == equipoId
+                    && m.TipoCompetidor == TipoCompetidor.Equipo))
+            .OrderByDescending(p => p.FechaFin)
+            .ToList());
 }

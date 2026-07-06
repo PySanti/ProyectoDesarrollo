@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Umbral.Puntuaciones.Domain.Abstractions.Persistence;
 using Umbral.Puntuaciones.Domain.Entities;
+using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.Infrastructure.Persistence;
 
@@ -34,5 +35,22 @@ public sealed class ProyeccionesRepository : IProyeccionesRepository
     public async Task<IReadOnlyList<Marcador>> GetMarcadoresDeJuegoAsync(Guid juegoId, CancellationToken cancellationToken)
         => await _db.Marcadores.AsNoTracking()
             .Where(m => m.JuegoId == juegoId)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<Marcador>> GetMarcadoresDePartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => await _db.Marcadores.AsNoTracking()
+            .Where(m => m.PartidaId == partidaId)
+            .ToListAsync(cancellationToken);
+
+    // Participación = tener ≥1 marcador (decisión SP-4b): partidas por equipos terminadas
+    // donde el equipo anotó al menos una vez, más reciente primero.
+    public async Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken)
+        => await _db.Partidas.AsNoTracking()
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
+                && p.Modalidad == Modalidad.Equipo
+                && _db.Marcadores.Any(m => m.PartidaId == p.PartidaId
+                    && m.CompetidorId == equipoId
+                    && m.TipoCompetidor == TipoCompetidor.Equipo))
+            .OrderByDescending(p => p.FechaFin)
             .ToListAsync(cancellationToken);
 }
