@@ -27,6 +27,13 @@ builder.Services.AddScoped<Umbral.Puntuaciones.Api.Workers.RankingBroadcastDispa
 builder.Services.AddSingleton<Umbral.Puntuaciones.Api.Workers.ProyeccionPipeline>();
 builder.Services.AddHostedService<Umbral.Puntuaciones.Api.Workers.OperacionesSesionEventsConsumer>();
 
+var rabbitHistorialOptions = builder.Configuration
+    .GetSection(Umbral.Puntuaciones.Api.Workers.RabbitMqHistorialOptions.SectionName)
+    .Get<Umbral.Puntuaciones.Api.Workers.RabbitMqHistorialOptions>()
+    ?? new Umbral.Puntuaciones.Api.Workers.RabbitMqHistorialOptions();
+builder.Services.AddSingleton(rabbitHistorialOptions);
+builder.Services.AddHostedService<Umbral.Puntuaciones.Api.Workers.HistorialEventsConsumer>();
+
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
     var configuredValue = configuration[key];
