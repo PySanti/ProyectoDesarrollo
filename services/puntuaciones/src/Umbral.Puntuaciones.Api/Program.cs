@@ -12,6 +12,9 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
+builder.Services.AddSignalR().AddJsonProtocol(options =>
+    options.PayloadSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
+
 var rabbitOptions = builder.Configuration
     .GetSection(Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions.SectionName)
     .Get<Umbral.Puntuaciones.Api.Workers.RabbitMqConsumerOptions>()
@@ -90,6 +93,7 @@ app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();
 app.MapControllers();
+app.MapHub<Umbral.Puntuaciones.Api.Realtime.RankingHub>("puntuaciones/hubs/ranking");
 
 app.Run();
 
