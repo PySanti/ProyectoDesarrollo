@@ -1,6 +1,7 @@
 using System.Net;
 using System.Text;
 using System.Text.Json;
+using Microsoft.AspNetCore.Hosting;
 using RabbitMQ.Client;
 
 namespace Umbral.Puntuaciones.IntegrationTests;
@@ -32,75 +33,69 @@ public class RabbitMqProyeccionRoundTripTests
         }
 
         var testQueue = $"puntuaciones.proyecciones.it-{Guid.NewGuid():N}";
-        // PuntuacionesWebFactory es sealed y WithWebHostBuilder() de WebApplicationFactory<T> devuelve el
-        // tipo base (perdiendo CreateClientAutenticado); la config de RabbitMq para este test puntual se
-        // aplica por variables de entorno, que IConfiguration lee igual que appsettings.
-        Environment.SetEnvironmentVariable("RabbitMq__Enabled", "true");
-        Environment.SetEnvironmentVariable("RabbitMq__Host", host);
-        Environment.SetEnvironmentVariable("RabbitMq__Queue", testQueue);
-        try
+        // WithWebHostBuilder() de WebApplicationFactory<T> devuelve el tipo base (perdiendo
+        // CreateClientAutenticado), pero permite configurar RabbitMq por instancia en vez de variables de
+        // entorno de proceso, evitando que otra clase de test bajo xUnit paralelo herede este consumidor.
+        await using var factory = new PuntuacionesWebFactory().WithWebHostBuilder(b =>
         {
-            await using var factory = new PuntuacionesWebFactory();
-            var client = factory.CreateClientAutenticado(); // arranca el host y el consumidor
+            b.UseSetting("RabbitMq:Enabled", "true");
+            b.UseSetting("RabbitMq:Host", host);
+            b.UseSetting("RabbitMq:Queue", testQueue);
+        });
+        var client = factory.CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Sub", Guid.NewGuid().ToString());
 
-            var connectionFactory = new ConnectionFactory { HostName = host };
-            using var connection = connectionFactory.CreateConnection("umbral-puntuaciones-it");
-            using var channel = connection.CreateModel();
-            channel.ExchangeDeclare(Exchange, ExchangeType.Topic, durable: true, autoDelete: false);
+        var connectionFactory = new ConnectionFactory { HostName = host };
+        using var connection = connectionFactory.CreateConnection("umbral-puntuaciones-it");
+        using var channel = connection.CreateModel();
+        channel.ExchangeDeclare(Exchange, ExchangeType.Topic, durable: true, autoDelete: false);
 
-            // Esperar a que el consumidor haya declarado su cola (arranque asíncrono del BackgroundService).
-            var declarada = false;
-            for (var i = 0; i < 50 && !declarada; i++)
-            {
-                try
-                {
-                    using var probe = connection.CreateModel();
-                    probe.QueueDeclarePassive(testQueue);
-                    declarada = true;
-                }
-                catch (Exception)
-                {
-                    await Task.Delay(200);
-                }
-            }
-            Assert.True(declarada, "El consumidor no declaró su cola a tiempo.");
-
-            var partidaId = Guid.NewGuid();
-            var sesionId = Guid.NewGuid();
-            var juegoId = Guid.NewGuid();
-            var participanteId = Guid.NewGuid();
-
-            void Publicar(string routingKey, string json)
-                => channel.BasicPublish(Exchange, routingKey, basicProperties: null, body: Encoding.UTF8.GetBytes(json));
-
-            Publicar("operaciones-sesion.juego-activado.v1", EnvelopeJson("JuegoActivado",
-                new { partidaId, sesionPartidaId = sesionId, juegoId, orden = 1, tipoJuego = "Trivia" }));
-            Publicar("operaciones-sesion.puntaje-trivia-incrementado.v1", EnvelopeJson("PuntajeTriviaIncrementado",
-                new { partidaId, sesionPartidaId = sesionId, juegoId, preguntaId = Guid.NewGuid(), participanteId, puntaje = 10, tiempoRespuestaMs = 1234, equipoId = (Guid?)null }));
-
-            var proyectado = false;
-            for (var i = 0; i < 50 && !proyectado; i++)
-            {
-                var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/ranking");
-                if (response.StatusCode == HttpStatusCode.OK)
-                {
-                    using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
-                    proyectado = json.RootElement.GetProperty("entradas").GetArrayLength() == 1;
-                }
-                if (!proyectado)
-                {
-                    await Task.Delay(200);
-                }
-            }
-
-            channel.QueueDelete(testQueue, ifUnused: false, ifEmpty: false);
-            Assert.True(proyectado, "El evento publicado al broker no llegó al ranking en 10 s.");
-        }
-        finally
+        // Esperar a que el consumidor haya declarado su cola (arranque asíncrono del BackgroundService).
+        var declarada = false;
+        for (var i = 0; i < 50 && !declarada; i++)
         {
-            Environment.SetEnvironmentVariable("RabbitMq__Enabled", null);
-            Environment.SetEnvironmentVariable("RabbitMq__Host", null);
-            Environment.SetEnvironmentVariable("RabbitMq__Queue", null);
+            try
+            {
+                using var probe = connection.CreateModel();
+                probe.QueueDeclarePassive(testQueue);
+                declarada = true;
+            }
+            catch (Exception)
+            {
+                await Task.Delay(200);
+            }
         }
+        Assert.True(declarada, "El consumidor no declaró su cola a tiempo.");
+
+        var partidaId = Guid.NewGuid();
+        var sesionId = Guid.NewGuid();
+        var juegoId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+
+        void Publicar(string routingKey, string json)
+            => channel.BasicPublish(Exchange, routingKey, basicProperties: null, body: Encoding.UTF8.GetBytes(json));
+
+        Publicar("operaciones-sesion.juego-activado.v1", EnvelopeJson("JuegoActivado",
+            new { partidaId, sesionPartidaId = sesionId, juegoId, orden = 1, tipoJuego = "Trivia" }));
+        Publicar("operaciones-sesion.puntaje-trivia-incrementado.v1", EnvelopeJson("PuntajeTriviaIncrementado",
+            new { partidaId, sesionPartidaId = sesionId, juegoId, preguntaId = Guid.NewGuid(), participanteId, puntaje = 10, tiempoRespuestaMs = 1234, equipoId = (Guid?)null }));
+
+        var proyectado = false;
+        for (var i = 0; i < 50 && !proyectado; i++)
+        {
+            var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/juegos/{juegoId}/ranking");
+            if (response.StatusCode == HttpStatusCode.OK)
+            {
+                using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
+                proyectado = json.RootElement.GetProperty("entradas").GetArrayLength() == 1;
+            }
+            if (!proyectado)
+            {
+                await Task.Delay(200);
+            }
+        }
+
+        channel.QueueDelete(testQueue, ifUnused: false, ifEmpty: false);
+        Assert.True(proyectado, "El evento publicado al broker no llegó al ranking en 10 s.");
     }
 }
