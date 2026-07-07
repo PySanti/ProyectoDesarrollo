@@ -125,7 +125,7 @@ public class HistorialRepositoryTests
 
         var indice = db.Model.FindEntityType(typeof(EventoHistorial))!
             .GetIndexes()
-            .Single(i => i.Properties.Single().Name == nameof(EventoHistorial.EventId));
+            .Single(i => i.Properties.Count == 1 && i.Properties[0].Name == nameof(EventoHistorial.EventId));
 
         Assert.True(indice.IsUnique);
     }
