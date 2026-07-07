@@ -1,12 +1,14 @@
 using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.OperacionesSesion.Api.Middleware;
 using Umbral.OperacionesSesion.Api.Utils;
 using Umbral.OperacionesSesion.Application;
 using Umbral.OperacionesSesion.Application.Interfaces;
 using Umbral.OperacionesSesion.Infrastructure;
+using Umbral.OperacionesSesion.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -143,6 +145,14 @@ builder.Services.AddAuthorizationBuilder()
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 var app = builder.Build();
+
+// RNF-10: el compose activa EF_MIGRATE_ON_STARTUP=true para aplicar el esquema
+// contra una base fresca. Default off: dotnet run local y tests quedan idénticos.
+if (Environment.GetEnvironmentVariable("EF_MIGRATE_ON_STARTUP") == "true")
+{
+    using var migrationScope = app.Services.CreateScope();
+    migrationScope.ServiceProvider.GetRequiredService<OperacionesSesionDbContext>().Database.Migrate();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
