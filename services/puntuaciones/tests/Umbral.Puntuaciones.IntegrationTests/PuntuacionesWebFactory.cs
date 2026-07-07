@@ -28,4 +28,11 @@ public sealed class PuntuacionesWebFactory : WebApplicationFactory<Program>
         client.DefaultRequestHeaders.Add("X-Test-Sub", Guid.NewGuid().ToString());
         return client;
     }
+
+    public HttpClient CreateClientConRoles(params string[] roles)
+    {
+        var client = CreateClientAutenticado();
+        client.DefaultRequestHeaders.Add("X-Test-Roles", string.Join(",", roles));
+        return client;
+    }
 }
