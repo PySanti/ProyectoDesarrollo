@@ -9,7 +9,7 @@ using Umbral.IdentityService.Application.Queries;
 namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
-[Route("api/identity/users")]
+[Route("identity/users")]
 [Authorize(Policy = "AdminOnly")]
 public sealed class UsersController : ControllerBase
 {
@@ -27,7 +27,7 @@ public sealed class UsersController : ControllerBase
             return problem;
 
         var response = await _sender.Send(command, cancellationToken);
-        return Created($"/api/identity/users/{response.UserId}", response);
+        return Created($"/identity/users/{response.UserId}", response);
     }
 
     [HttpGet]
@@ -52,6 +52,21 @@ public sealed class UsersController : ControllerBase
         CancellationToken cancellationToken)
     {
         var command = new UpdateUserGeneralDataCommand(userId, request.Name, request.Email);
+        if (await ValidateAsync(validator, command, cancellationToken) is { } problem)
+            return problem;
+
+        var response = await _sender.Send(command, cancellationToken);
+        return Ok(response);
+    }
+
+    [HttpPatch("{userId:guid}/role")]
+    public async Task<IActionResult> ChangeRole(
+        Guid userId,
+        [FromBody] ChangeUserRoleRequest request,
+        [FromServices] IValidator<CambiarRolUsuarioCommand> validator,
+        CancellationToken cancellationToken)
+    {
+        var command = new CambiarRolUsuarioCommand(userId, request.Rol);
         if (await ValidateAsync(validator, command, cancellationToken) is { } problem)
             return problem;
 

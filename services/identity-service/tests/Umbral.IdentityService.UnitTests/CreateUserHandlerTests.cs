@@ -149,6 +149,10 @@ public sealed class CreateUserHandlerTests
 
         public string? LastTemporaryPassword { get; private set; }
         public List<string> DeletedIds { get; } = [];
+        public List<(string RoleName, string CompositeRoleName)> CompositesAgregados { get; } = [];
+        public List<(string RoleName, string CompositeRoleName)> CompositesQuitados { get; } = [];
+        public List<(string KeycloakId, string OldRoleName, string NewRoleName)> CambiosDeRol { get; } = [];
+        public Exception? Lanzar { get; set; }
 
         public FakeKeycloakIdentityPort(string keycloakId = "kc-default", Exception? exception = null)
         {
@@ -181,6 +185,39 @@ public sealed class CreateUserHandlerTests
 
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task AddCompositeToRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+        {
+            if (Lanzar is not null)
+            {
+                throw Lanzar;
+            }
+
+            CompositesAgregados.Add((roleName, compositeRoleName));
+            return Task.CompletedTask;
+        }
+
+        public Task RemoveCompositeFromRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+        {
+            if (Lanzar is not null)
+            {
+                throw Lanzar;
+            }
+
+            CompositesQuitados.Add((roleName, compositeRoleName));
+            return Task.CompletedTask;
+        }
+
+        public Task ChangeUserRealmRoleAsync(string keycloakId, string oldRoleName, string newRoleName, CancellationToken cancellationToken)
+        {
+            if (Lanzar is not null)
+            {
+                throw Lanzar;
+            }
+
+            CambiosDeRol.Add((keycloakId, oldRoleName, newRoleName));
+            return Task.CompletedTask;
+        }
     }
 
     private sealed class FakeTemporaryPasswordGenerator : ITemporaryPasswordGenerator

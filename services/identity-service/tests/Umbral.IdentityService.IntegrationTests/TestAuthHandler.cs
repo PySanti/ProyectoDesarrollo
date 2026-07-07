@@ -1,3 +1,4 @@
+using System.Linq;
 using System.Security.Claims;
 using System.Text.Encodings.Web;
 using Microsoft.AspNetCore.Authentication;
@@ -9,6 +10,12 @@ namespace Umbral.IdentityService.IntegrationTests;
 public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationSchemeOptions>
 {
     public const string SchemeName = "Test";
+
+    private static readonly Dictionary<string, string[]> ComposedPermissions = new(StringComparer.OrdinalIgnoreCase)
+    {
+        ["Operador"] = ["GestionarPartidas"],
+        ["Participante"] = ["GestionarEquipos", "ParticiparEnPartidas"]
+    };
 
     public TestAuthHandler(
         IOptionsMonitor<AuthenticationSchemeOptions> options,
@@ -25,11 +32,17 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
             return Task.FromResult(AuthenticateResult.Fail("Missing X-Test-Role header"));
         }
 
-        var claims = new[]
+        var claims = new List<Claim>
         {
-            new Claim(ClaimTypes.NameIdentifier, "test-user"),
-            new Claim(ClaimTypes.Role, roleValue.ToString())
+            new(ClaimTypes.NameIdentifier, "test-user"),
+            new(ClaimTypes.Role, roleValue.ToString())
         };
+        // Simula la expansión composite de Keycloak (SP-5a): el token de un rol base
+        // trae también sus permisos funcionales.
+        if (ComposedPermissions.TryGetValue(roleValue.ToString(), out var permisos))
+        {
+            claims.AddRange(permisos.Select(p => new Claim(ClaimTypes.Role, p)));
+        }
 
         var identity = new ClaimsIdentity(claims, SchemeName);
         var principal = new ClaimsPrincipal(identity);

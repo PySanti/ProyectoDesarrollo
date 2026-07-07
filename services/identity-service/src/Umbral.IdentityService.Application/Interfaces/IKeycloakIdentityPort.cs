@@ -34,4 +34,25 @@ public interface IKeycloakIdentityPort
     /// lo que vuelve a exigir el cambio en el siguiente inicio de sesión.
     /// </summary>
     Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Agrega un rol compuesto (composite) a otro rol. Se usa para construir jerarquías de
+    /// permisos funcionales (ej: agregar <c>GestionarPartidas</c> al rol <c>Operador</c>).
+    /// Lanza <see cref="KeycloakIntegrationException"/> en fallo (502).
+    /// </summary>
+    Task AddCompositeToRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Quita un rol compuesto (composite) de otro rol. Tolerante a 404 (idempotencia del
+    /// camino de reparación tras fallo parcial). Lanza <see cref="KeycloakIntegrationException"/>
+    /// en otros fallos (502).
+    /// </summary>
+    Task RemoveCompositeFromRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken);
+
+    /// <summary>
+    /// Cambia el rol realm de un usuario: quita el rol viejo y asigna el nuevo. Tolerante a 404
+    /// en la remoción del rol viejo (reintento tras fallo parcial). Lanza
+    /// <see cref="KeycloakIntegrationException"/> en fallo (502).
+    /// </summary>
+    Task ChangeUserRealmRoleAsync(string keycloakId, string oldRoleName, string newRoleName, CancellationToken cancellationToken);
 }

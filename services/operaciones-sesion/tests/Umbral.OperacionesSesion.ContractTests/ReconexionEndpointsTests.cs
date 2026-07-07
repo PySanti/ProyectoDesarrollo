@@ -29,7 +29,10 @@ public class ReconexionEndpointsTests : IClassFixture<OperacionesSesionWebFactor
     public ReconexionEndpointsTests(OperacionesSesionWebFactory factory)
     {
         _factory = factory;
-        _operador = factory.CreateClient();
+        // Autenticado con identidad de test arbitraria: el fallback fail-secure de Program.cs
+        // exige usuario autenticado en todo endpoint sin [AllowAnonymous] (la restricción por
+        // rol/policy de operador la aplica la tarea 4).
+        _operador = factory.CreateClientAs(Guid.NewGuid());
     }
 
     // ─────────────────────────────────────────────────────────────────────────

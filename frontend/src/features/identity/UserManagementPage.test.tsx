@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { UserManagementPage } from "./UserManagementPage";
 import * as identityApi from "../../api/identityApi";
@@ -196,5 +196,111 @@ describe("UserManagementPage", () => {
     expect(await screen.findByRole("alert")).toHaveTextContent(
       "Error inesperado en Identity Service."
     );
+  });
+
+  function mockListWith(users: identityApi.IdentityUserSummary[]) {
+    vi.spyOn(identityApi, "getIdentityUsers").mockResolvedValue(users);
+  }
+
+  const ANA: identityApi.IdentityUserSummary = {
+    userId: "u1",
+    keycloakId: "k1",
+    name: "Ana",
+    email: "ana@demo.com",
+    role: "Participante",
+    status: "Activo"
+  };
+
+  const ROOT: identityApi.IdentityUserSummary = {
+    userId: "u2",
+    keycloakId: "k2",
+    name: "Root",
+    email: "root@demo.com",
+    role: "Administrador",
+    status: "Activo"
+  };
+
+  it("deshabilita Cambiar rol para un Administrador con title explicativo", async () => {
+    mockListWith([ROOT]);
+
+    render(<UserManagementPage accessToken="token" />);
+
+    const button = await screen.findByTestId("role-change-open-u2");
+    expect(button).toBeDisabled();
+    expect(button).toHaveAttribute("title", "El rol de un Administrador es inmutable.");
+  });
+
+  it("cambio a rol no-admin en un click: llama API, actualiza fila y cierra modal", async () => {
+    mockListWith([ANA]);
+    const changeSpy = vi.spyOn(identityApi, "changeUserRole").mockResolvedValue({
+      usuarioId: "u1",
+      rol: "Operador"
+    });
+
+    render(<UserManagementPage accessToken="token" />);
+
+    await userEvent.click(await screen.findByTestId("role-change-open-u1"));
+    const select = screen.getByTestId("role-change-select");
+    // El rol actual no es opción.
+    expect(within(select).queryByRole("option", { name: "Participante" })).toBeNull();
+    await userEvent.selectOptions(select, "Operador");
+    await userEvent.click(screen.getByTestId("role-change-confirm"));
+
+    expect(changeSpy).toHaveBeenCalledWith("u1", "Operador", "token");
+    await waitFor(() => expect(screen.queryByTestId("role-change-modal")).toBeNull());
+    expect(screen.getByRole("cell", { name: "Operador" })).toBeInTheDocument();
+  });
+
+  it("promover a Administrador exige segundo click y no llama a la API en el primero", async () => {
+    mockListWith([ANA]);
+    const changeSpy = vi.spyOn(identityApi, "changeUserRole").mockResolvedValue({
+      usuarioId: "u1",
+      rol: "Administrador"
+    });
+
+    render(<UserManagementPage accessToken="token" />);
+
+    await userEvent.click(await screen.findByTestId("role-change-open-u1"));
+    await userEvent.selectOptions(screen.getByTestId("role-change-select"), "Administrador");
+
+    expect(screen.getByTestId("role-change-warning")).toHaveTextContent(/irreversible/i);
+
+    await userEvent.click(screen.getByTestId("role-change-confirm"));
+    expect(changeSpy).not.toHaveBeenCalled();
+    expect(screen.getByTestId("role-change-confirm")).toHaveTextContent("Entiendo, promover");
+
+    await userEvent.click(screen.getByTestId("role-change-confirm"));
+    expect(changeSpy).toHaveBeenCalledWith("u1", "Administrador", "token");
+  });
+
+  it("409 del backend queda inline en el modal sin cerrarlo", async () => {
+    mockListWith([ANA]);
+    vi.spyOn(identityApi, "changeUserRole").mockRejectedValue(
+      new identityApi.IdentityApiError("El usuario u1 tiene un equipo activo", 409)
+    );
+
+    render(<UserManagementPage accessToken="token" />);
+
+    await userEvent.click(await screen.findByTestId("role-change-open-u1"));
+    await userEvent.selectOptions(screen.getByTestId("role-change-select"), "Operador");
+    await userEvent.click(screen.getByTestId("role-change-confirm"));
+
+    expect(await screen.findByTestId("role-change-error")).toHaveTextContent(/equipo activo/i);
+    expect(screen.getByTestId("role-change-modal")).toBeInTheDocument();
+  });
+
+  it("502 muestra mensaje de Keycloak inline", async () => {
+    mockListWith([ANA]);
+    vi.spyOn(identityApi, "changeUserRole").mockRejectedValue(
+      new identityApi.IdentityApiError("bad gateway", 502)
+    );
+
+    render(<UserManagementPage accessToken="token" />);
+
+    await userEvent.click(await screen.findByTestId("role-change-open-u1"));
+    await userEvent.selectOptions(screen.getByTestId("role-change-select"), "Operador");
+    await userEvent.click(screen.getByTestId("role-change-confirm"));
+
+    expect(await screen.findByTestId("role-change-error")).toHaveTextContent(/keycloak no disponible/i);
   });
 });

@@ -4,7 +4,7 @@ using System.Text.Json;
 
 namespace Umbral.IdentityService.ContractTests.Teams;
 
-/// <summary>Contract tests for GET /api/teams/mine (read del equipo activo del caller).</summary>
+/// <summary>Contract tests for GET /identity/teams/mine (read del equipo activo del caller).</summary>
 public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
 {
     private readonly IdentityApiFactory _factory;
@@ -18,7 +18,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
         await CreateTeamAsync(leaderId, "Mine Test Team");
 
         var client = _factory.CreateClientAs("Participante", leaderId);
-        var response = await client.GetAsync("/api/teams/mine");
+        var response = await client.GetAsync("/identity/teams/mine");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -39,7 +39,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
         var userId = Guid.NewGuid();
         var client = _factory.CreateClientAs("Participante", userId);
 
-        var response = await client.GetAsync("/api/teams/mine");
+        var response = await client.GetAsync("/identity/teams/mine");
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -54,7 +54,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
         await AcceptInvitationAsync(memberId, invId);
 
         var client = _factory.CreateClientAs("Participante", memberId);
-        var response = await client.GetAsync("/api/teams/mine");
+        var response = await client.GetAsync("/identity/teams/mine");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -68,7 +68,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> CreateTeamAsync(Guid leaderId, string name)
     {
         var client = _factory.CreateClientAs("Participante", leaderId);
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = name });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = name });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
@@ -78,7 +78,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> InviteParticipantAsync(Guid leaderId, Guid invitadoId)
     {
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations", new { invitadoUserId = invitadoId });
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations", new { invitadoUserId = invitadoId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
@@ -88,7 +88,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
     private async Task AcceptInvitationAsync(Guid invitadoId, Guid invitacionId)
     {
         var client = _factory.CreateClientAs("Participante", invitadoId);
-        var response = await client.PostAsJsonAsync($"/api/teams/invitations/{invitacionId}/acceptance", new { });
+        var response = await client.PostAsJsonAsync($"/identity/teams/invitations/{invitacionId}/acceptance", new { });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

@@ -45,7 +45,7 @@ public sealed class TeamInvitationsControllerTests
             CancellationToken.None);
 
         var created = Assert.IsType<CreatedResult>(result);
-        Assert.Equal($"/api/teams/invitations/{invitacionId}", created.Location);
+        Assert.Equal($"/identity/teams/invitations/{invitacionId}", created.Location);
         var command = Assert.IsType<EnviarInvitacionEquipoCommand>(sender.LastRequest);
         Assert.Equal(actor, command.ActorUserId);
         Assert.Equal(invitado, command.InvitadoUserId);

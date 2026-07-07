@@ -16,14 +16,25 @@ public class IdentityEquipoHttpClientTests
     {
         private readonly HttpStatusCode _status;
         private readonly string _body;
+        public string? CapturedPath { get; private set; }
         public StubHandler(HttpStatusCode status, string body = "") { _status = status; _body = body; }
         protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken)
-            => Task.FromResult(new HttpResponseMessage(_status)
+        {
+            CapturedPath = request.RequestUri?.PathAndQuery;
+            return Task.FromResult(new HttpResponseMessage(_status)
             { Content = new StringContent(_body, Encoding.UTF8, "application/json") });
+        }
+    }
+
+    private static (IdentityEquipoHttpClient, StubHandler) BuildWithHandler(HttpStatusCode status, string body = "")
+    {
+        var handler = new StubHandler(status, body);
+        var client = new IdentityEquipoHttpClient(new HttpClient(handler) { BaseAddress = new Uri("http://identity.test") });
+        return (client, handler);
     }
 
     private static IdentityEquipoHttpClient Build(HttpStatusCode status, string body = "")
-        => new(new HttpClient(new StubHandler(status, body)) { BaseAddress = new Uri("http://identity.test") });
+        => BuildWithHandler(status, body).Item1;
 
     [Fact]
     public async Task Ok_mapea_snapshot()
@@ -34,7 +45,7 @@ public class IdentityEquipoHttpClientTests
         {"equipoId":"{{equipoId}}","nombreEquipo":"Halcones","estado":"Activo",
          "participantes":[{"usuarioId":"{{lider}}","esLider":true}]}
         """;
-        var client = Build(HttpStatusCode.OK, body);
+        var (client, handler) = BuildWithHandler(HttpStatusCode.OK, body);
 
         var r = await client.ObtenerMiEquipoAsync("Bearer x", CancellationToken.None);
 
@@ -43,6 +54,7 @@ public class IdentityEquipoHttpClientTests
         Assert.Equal("Halcones", r.NombreEquipo);
         Assert.True(r.Miembros[0].EsLider);
         Assert.Equal(lider, r.Miembros[0].UsuarioId);
+        Assert.Equal("/identity/teams/mine", handler.CapturedPath);
     }
 
     [Fact]

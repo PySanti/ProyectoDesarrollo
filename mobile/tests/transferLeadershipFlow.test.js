@@ -50,7 +50,7 @@ test("submitTransferLeadership should call PATCH leadership endpoint", async () 
     },
   });
 
-  assert.equal(requestedUrl, "https://api.test/api/teams/leadership");
+  assert.equal(requestedUrl, "https://api.test/identity/teams/leadership");
   assert.deepEqual(JSON.parse(requestedBody), { nuevoLiderUserId: targetUserId });
   assert.equal(result.ok, true);
   assert.equal(result.data.nuevoLiderUserId, targetUserId);

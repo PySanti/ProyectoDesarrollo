@@ -361,5 +361,67 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         return role;
     }
 
+    public async Task AddCompositeToRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+    {
+        var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+        var composite = await GetRealmRoleAsync(accessToken, compositeRoleName, cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Post,
+            $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/roles/{roleName}/composites")
+        {
+            Content = JsonContent.Create(new[] { new { id = composite.Id, name = composite.Name } })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        if (!response.IsSuccessStatusCode)
+        {
+            throw new KeycloakIntegrationException($"Failed to add composite '{compositeRoleName}' to role '{roleName}'. StatusCode={(int)response.StatusCode}");
+        }
+    }
+
+    public async Task RemoveCompositeFromRoleAsync(string roleName, string compositeRoleName, CancellationToken cancellationToken)
+    {
+        var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+        var composite = await GetRealmRoleAsync(accessToken, compositeRoleName, cancellationToken);
+
+        using var request = new HttpRequestMessage(HttpMethod.Delete,
+            $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/roles/{roleName}/composites")
+        {
+            Content = JsonContent.Create(new[] { new { id = composite.Id, name = composite.Name } })
+        };
+        request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+
+        using var response = await _httpClient.SendAsync(request, cancellationToken);
+        // 404 tolerado: quitar algo ya ausente es idempotente (camino de reparación tras 502 parcial).
+        if (!response.IsSuccessStatusCode && response.StatusCode != HttpStatusCode.NotFound)
+        {
+            throw new KeycloakIntegrationException($"Failed to remove composite '{compositeRoleName}' from role '{roleName}'. StatusCode={(int)response.StatusCode}");
+        }
+    }
+
+    public async Task ChangeUserRealmRoleAsync(string keycloakId, string oldRoleName, string newRoleName, CancellationToken cancellationToken)
+    {
+        var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
+
+        var oldRole = await GetRealmRoleAsync(accessToken, oldRoleName, cancellationToken);
+        using (var removeRequest = new HttpRequestMessage(HttpMethod.Delete,
+            $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}/role-mappings/realm")
+        {
+            Content = JsonContent.Create(new[] { new { id = oldRole.Id, name = oldRole.Name } })
+        })
+        {
+            removeRequest.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+            using var removeResponse = await _httpClient.SendAsync(removeRequest, cancellationToken);
+            // 404 tolerado: el mapping viejo puede no existir (reintento tras fallo parcial).
+            if (!removeResponse.IsSuccessStatusCode && removeResponse.StatusCode != HttpStatusCode.NotFound)
+            {
+                throw new KeycloakIntegrationException($"Failed to remove realm role '{oldRoleName}' from user. StatusCode={(int)removeResponse.StatusCode}");
+            }
+        }
+
+        await AssignRealmRoleAsync(accessToken, keycloakId, newRoleName, cancellationToken);
+    }
+
     private sealed record KeycloakRole(string Id, string Name);
 }

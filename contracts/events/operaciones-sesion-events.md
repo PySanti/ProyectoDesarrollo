@@ -30,14 +30,15 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `UbicacionActualizada` (SP-3i) | Un participante BDT envía su ubicación (~cada 2 s) durante un juego activo. | Defined by SDD | Payload registered (SP-3i) |
 
-## Transport (SP-3i)
+## Transport (SP-3i · SP-4a)
 
 Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012) **and** to SignalR where a realtime payload is documented. Delivery to the broker is enabled per environment via `RabbitMq__Enabled`.
 
 - **Exchange:** `umbral.operaciones-sesion` — type `topic`, durable. Convention: one exchange per producing service.
 - **Routing key:** `operaciones-sesion.<event-kebab>.v1` (explicit map, table below). Incompatible payload changes bump to `.v2` (new key; `v1` consumers keep working).
 - **Envelope** (JSON camelCase, `content_type: application/json`): `{ "eventId": "guid", "eventType": "PascalCase name", "version": 1, "occurredAt": "datetime (UTC)", "payload": { …documented shape… } }`. Producers do not guarantee exactly-once; **consumers deduplicate by `eventId`**.
-- **Smoke queue (SP-3i):** `puntuaciones.operaciones-sesion.all`, durable, binding `operaciones-sesion.#` (Puntuaciones; replaced by finer queues in SP-4).
+- **Projection queue (SP-4a):** `puntuaciones.operaciones-sesion.proyecciones`, durable, bound to the 7 routing keys consumed by the SP-4a projections (`partida-publicada-en-lobby`, `partida-iniciada`, `juego-activado`, `partida-cancelada`, `partida-finalizada`, `puntaje-trivia-incrementado`, `etapa-bdt-ganada`, all `.v1`). Consumed by the real Puntuaciones projection consumer (dedup by `eventId`, ack-always best-effort per ADR-0012). The SP-3i smoke queue `puntuaciones.operaciones-sesion.all` is deleted at consumer startup.
+- **Historial queue (SP-4d):** `puntuaciones.operaciones-sesion.historial`, durable, bound to `operaciones-sesion.#` (todos los eventos del registro). Consumed by the Puntuaciones history consumer (`eventos_historial`): dedup por índice único de `eventId` en la propia tabla, `UbicacionActualizada` muestreada al escribir (máx. 1 por participante por minuto), best-effort ack-siempre per ADR-0012. Payloads intactos.
 
 | Event | Routing key |
 |---|---|
@@ -175,7 +176,7 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
 }
 ```
 
-> **SP-3c note:** all four events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingTriviaActualizado` is deferred to Puntuaciones (SP-4).
+> **SP-3c note:** all four events above are published to the broker since SP-3i (best-effort, ADR-0012). Since SP-4c, `RankingTriviaActualizado` is broadcast as a SignalR message by Puntuaciones on projection of `PuntajeTriviaIncrementado` — see the "SignalR — ranking en vivo (SP-4c)" section of `contracts/http/puntuaciones-api.md`.
 
 ### `TesoroQRValidado` (SP-3d)
 
@@ -246,7 +247,7 @@ Emitted when a BDT stage becomes active: at BDT game start (first stage), on ope
 
 > **Slice-E note (SP-3e-1..4):** `equipoId`/`ganadorEquipoId` son la identidad dual de la modalidad Equipo: `null` ⇔ partida `Individual`. En `Equipo`, `participanteId`/`ganadorParticipanteId` siguen llevando el **autor real** de la acción y `equipoId`/`ganadorEquipoId` el equipo al que se acredita.
 
-> **SP-3d note:** all four BDT events above are published to the broker since SP-3i (best-effort, ADR-0012). `RankingBDTActualizado` is deferred to Puntuaciones (SP-4). `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
+> **SP-3d note:** all four BDT events above are published to the broker since SP-3i (best-effort, ADR-0012). Since SP-4c, `RankingBDTActualizado` is broadcast as a SignalR message by Puntuaciones on projection of `EtapaBDTGanada` — see the "SignalR — ranking en vivo (SP-4c)" section of `contracts/http/puntuaciones-api.md`. `motivo` values are the `ToString()` of the `MotivoCierreEtapa` enum.
 
 ### `PistaEnviada` (SP-3f-4 / SP-3e-4)
 

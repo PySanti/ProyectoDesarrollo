@@ -40,6 +40,8 @@ public sealed class ExceptionHandlingMiddleware
             EquipoLlenoException                 => HttpStatusCode.Conflict,
             InvitacionPendienteYaExisteException => HttpStatusCode.Conflict,
             DuplicateEmailException              => HttpStatusCode.Conflict,
+            RolDeAdministradorInmutableException => HttpStatusCode.Conflict,
+            UsuarioConEquipoActivoException       => HttpStatusCode.Conflict,
             NoActiveTeamForParticipantException  => HttpStatusCode.NotFound,
             InvitacionNoEncontradaException      => HttpStatusCode.NotFound,
             UserNotFoundException                => HttpStatusCode.NotFound,

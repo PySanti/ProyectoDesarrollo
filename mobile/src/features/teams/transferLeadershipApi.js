@@ -1,7 +1,7 @@
 export async function transferTeamLeadership(apiBaseUrl, token, nuevoLiderUserId, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/leadership`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/leadership`, {
       method: "PATCH",
       headers: {
         Authorization: `Bearer ${token}`,

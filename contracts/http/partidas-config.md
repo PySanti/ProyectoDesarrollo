@@ -4,6 +4,21 @@ Service: **Partidas** (`umbral_partidas`). Base path: `/partidas` (through the Y
 
 Enums are serialized as their string name. `estado` is `null` until the partida is published (SP-3).
 
+## Autorización (SP-5a)
+
+JWT Keycloak wireado (authority/audiences/issuers por env, mismo patrón que Operaciones de
+Sesión) + normalizador `KeycloakRoleClaims`. `FallbackPolicy = RequireAuthenticatedUser`
+(fail-secure): cualquier endpoint sin policy explícita exige solo un JWT válido.
+
+| Endpoint | Auth | Notas |
+|---|---|---|
+| `POST /partidas` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
+| `POST /partidas/{partidaId}/juegos/trivia` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
+| `POST /partidas/{partidaId}/juegos/bdt` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
+| `GET /partidas/{partidaId}` | Autenticado (cualquier rol) | 401 sin token; sin requisito de permiso — Operaciones de Sesión reenvía el bearer del **participante** llamante en el handoff de config interno (SP-3a §12); debe seguir pasando con ese token |
+| `GET /partidas` | Autenticado (cualquier rol) | 401 sin token |
+| `GET /health` | Anónimo | sin auth |
+
 ## POST /partidas
 Create a partida header (no games yet).
 

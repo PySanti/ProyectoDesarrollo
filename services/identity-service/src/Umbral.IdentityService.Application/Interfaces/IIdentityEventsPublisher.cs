@@ -1,11 +1,13 @@
 namespace Umbral.IdentityService.Application.Interfaces;
 
-public interface IEquipoEventsPublisher
+public interface IIdentityEventsPublisher
 {
     Task PublishEquipoCreadoAsync(EquipoCreadoIntegrationEvent integrationEvent, CancellationToken cancellationToken);
     Task PublishInvitacionEquipoCreadaAsync(InvitacionEquipoCreadaIntegrationEvent integrationEvent, CancellationToken cancellationToken);
     Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent integrationEvent, CancellationToken cancellationToken);
     Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent integrationEvent, CancellationToken cancellationToken);
+    Task PublishRolUsuarioModificadoAsync(RolUsuarioModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken);
+    Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken);
 }
 
 public sealed record EquipoCreadoIntegrationEvent(
@@ -31,4 +33,15 @@ public sealed record InvitacionEquipoRechazadaIntegrationEvent(
     Guid InvitacionEquipoId,
     Guid EquipoId,
     Guid InvitadoUserId,
+    DateTime OccurredOnUtc);
+
+public sealed record RolUsuarioModificadoIntegrationEvent(
+    Guid UsuarioId,
+    string RolAnterior,
+    string RolNuevo,
+    DateTime OccurredOnUtc);
+
+public sealed record PermisosRolActualizadosIntegrationEvent(
+    string Rol,
+    IReadOnlyList<string> Permisos,
     DateTime OccurredOnUtc);

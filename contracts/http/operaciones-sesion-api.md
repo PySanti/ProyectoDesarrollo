@@ -2,7 +2,7 @@
 
 ## Status
 
-Endpoints SP-3a..SP-3e-4 registered (21). Trivia and BDT runtime operational in `Individual` and `Equipo` modality; clue delivery, geolocation relay and realtime push via SignalR. RabbitMQ broker delivery and clue persistence remain deferred (see SDD specs).
+Endpoints SP-3a..SP-3e-4 registered (21). Trivia and BDT runtime operational in `Individual` and `Equipo` modality; clue delivery, geolocation relay and realtime push via SignalR. RabbitMQ broker delivery and clue persistence remain deferred (see SDD specs). Functional-permission authorization enforced per endpoint since SP-5a (see "Autorización (SP-5a)" below).
 
 ## Access Path
 
@@ -22,29 +22,29 @@ Requests enter through the YARP gateway.
 
 ## Endpoint Registry
 
-| Capability | Method | Gateway path | Auth (coarse) | Success | Errors |
+| Capability | Method | Gateway path | Auth (SP-5a) | Success | Errors |
 |---|---|---|---|---|---|
-| Publish a partida to lobby | POST | `/operaciones-sesion/partidas/{partidaId}/publicacion` | Operador | 201 + LobbyDto (Location → lobby) | 404 config no existe · 502 Partidas inaccesible · 409 ya publicada / no publicable |
-| Inscribe (Individual) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones` | Participante | 201 + InscripcionResponse | 401 sin identidad · 404 sesión no existe · 409 ya inscrito / participación activa / cupo lleno / modalidad no soportada |
-| Cancel own inscription | DELETE | `/operaciones-sesion/partidas/{partidaId}/inscripciones/mia` | Participante | 204 | 401 · 404 sesión / inscripción no existe |
-| Preinscribir equipo (líder) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones-equipo` | Participante (líder) | 201 + PreinscripcionEquipoResponse | 404 sesión no existe · 403 no es líder · 409 equipo ya inscrito / participación activa en otra / cupo lleno / sin equipo activo · 502 Identity inaccesible |
-| Cancelar preinscripción de equipo (líder) | DELETE | `/operaciones-sesion/partidas/{partidaId}/inscripciones-equipo/mia` | Participante (líder) | 204 | 404 sesión/inscripción no existe · 403 no es líder · 409 no en lobby / sin equipo activo · 502 Identity inaccesible |
-| Aceptar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/aceptacion` | Participante (convocado) | 200 + ConvocatoriaResponse | 404 convocatoria no encontrada · 409 no en lobby / participación activa en otra |
-| Rechazar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/rechazo` | Participante (convocado) | 200 + ConvocatoriaResponse | 404 convocatoria no encontrada · 409 no en lobby |
-| Lobby state | GET | `/operaciones-sesion/partidas/{partidaId}/lobby` | Operador/Participante | 200 + LobbyDto | 404 sesión no existe |
-| Start a partida (manual) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio` | Operador | 200 + InicioPartidaResponse | 404 sesión no existe · 409 no en Lobby / modo incompatible |
-| Start a partida (automatic, idempotent) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio-automatico` | Operador/Sistema | 200 + InicioPartidaResponse | 404 sesión no existe · 409 modo incompatible |
-| Finalize current game (advance) | POST | `/operaciones-sesion/partidas/{partidaId}/juego-actual/finalizacion` | Operador | 200 + AvanceJuegoResponse | 404 sesión no existe · 409 no iniciada |
-| Session state | GET | `/operaciones-sesion/partidas/{partidaId}/estado` | Operador/Participante | 200 + EstadoSesionDto | 404 sesión no existe |
-| Answer active question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/respuesta` | Participante | 200 + RespuestaTriviaResponse | 401 sin identidad · 403 no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no Trivia / sin pregunta activa / duplicada (individual o, en Equipo, por equipo) / fuera de tiempo |
-| Advance current question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/avance` | Operador | 200 + AvancePreguntaResponse | 404 · 409 no iniciada / juego no Trivia / sin pregunta activa |
-| Current question | GET | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual` | Operador/Participante | 200 + PreguntaActualDto | 404 sesión no existe · 409 sin pregunta activa |
-| Validar tesoro | POST | `/operaciones-sesion/partidas/{partidaId}/etapa-actual/tesoro` | Participante | 200 + ValidacionTesoroResponse | 401 sin identidad · 403 no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no BDT / sin etapa activa |
-| Avanzar/cerrar etapa | POST | `/operaciones-sesion/partidas/{partidaId}/etapa-actual/avance` | Operador | 200 + AvanceEtapaResponse | 404 · 409 no iniciada / juego no BDT / sin etapa activa |
-| Etapa actual | GET | `/operaciones-sesion/partidas/{partidaId}/etapa-actual` | Operador/Participante | 200 + EtapaActualDto | 404 sesión no existe · 409 sin etapa activa |
-| Enviar pista (BDT) | POST | `/operaciones-sesion/partidas/{partidaId}/pistas` | Operador | 200 + PistaEnviadaResponse | 400 no se indicó exactamente un destino · 404 sesión no existe / equipo destino sin inscripción activa · 403 destino participante no inscrito · 409 no iniciada / juego no BDT / sin etapa activa / destino equipo en partida Individual |
-| Mi sesión (reconexión) | GET | `/operaciones-sesion/mi-sesion` | Participante | 200 + MiSesionDto · 204 sin participación activa | 401 sin identidad |
-| Mis convocatorias pendientes | GET | `/operaciones-sesion/mis-convocatorias` | Participante | 200 + ConvocatoriaPendienteDto[] (vacía si no hay) | 401 sin identidad |
+| Publish a partida to lobby | POST | `/operaciones-sesion/partidas/{partidaId}/publicacion` | Policy `GestionarPartidas` | 201 + LobbyDto (Location → lobby) | 401 sin token · 403 sin el permiso · 404 config no existe · 502 Partidas inaccesible · 409 ya publicada / no publicable |
+| Inscribe (Individual) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones` | Policy `ParticiparEnPartidas` | 201 + InscripcionResponse | 401 sin identidad · 403 sin el permiso · 404 sesión no existe · 409 ya inscrito / participación activa / cupo lleno / modalidad no soportada |
+| Cancel own inscription | DELETE | `/operaciones-sesion/partidas/{partidaId}/inscripciones/mia` | Policy `ParticiparEnPartidas` | 204 | 401 · 403 sin el permiso · 404 sesión / inscripción no existe |
+| Preinscribir equipo (líder) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones-equipo` | Policy `ParticiparEnPartidas` (líder por regla de dominio, no por policy) | 201 + PreinscripcionEquipoResponse | 401 sin identidad · 403 sin el permiso / no es líder · 404 sesión no existe · 409 equipo ya inscrito / participación activa en otra / cupo lleno / sin equipo activo · 502 Identity inaccesible |
+| Cancelar preinscripción de equipo (líder) | DELETE | `/operaciones-sesion/partidas/{partidaId}/inscripciones-equipo/mia` | Policy `ParticiparEnPartidas` (líder por regla de dominio, no por policy) | 204 | 401 sin identidad · 403 sin el permiso / no es líder · 404 sesión/inscripción no existe · 409 no en lobby / sin equipo activo · 502 Identity inaccesible |
+| Aceptar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/aceptacion` | Policy `ParticiparEnPartidas` (convocado por regla de dominio, no por policy) | 200 + ConvocatoriaResponse | 401 sin identidad · 403 sin el permiso · 404 convocatoria no encontrada · 409 no en lobby / participación activa en otra |
+| Rechazar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/rechazo` | Policy `ParticiparEnPartidas` (convocado por regla de dominio, no por policy) | 200 + ConvocatoriaResponse | 401 sin identidad · 403 sin el permiso · 404 convocatoria no encontrada · 409 no en lobby |
+| Lobby state | GET | `/operaciones-sesion/partidas/{partidaId}/lobby` | Autenticado (cualquier rol; sin policy de permiso) | 200 + LobbyDto | 401 sin token · 404 sesión no existe |
+| Start a partida (manual) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio` | Policy `GestionarPartidas` | 200 + InicioPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 no en Lobby / modo incompatible |
+| Start a partida (automatic, idempotent) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio-automatico` | Policy `GestionarPartidas` (llamado también por el worker interno vía `ISender` in-process, sin HTTP) | 200 + InicioPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 modo incompatible |
+| Finalize current game (advance) | POST | `/operaciones-sesion/partidas/{partidaId}/juego-actual/finalizacion` | Policy `GestionarPartidas` | 200 + AvanceJuegoResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 no iniciada |
+| Session state | GET | `/operaciones-sesion/partidas/{partidaId}/estado` | Autenticado (cualquier rol; sin policy de permiso) | 200 + EstadoSesionDto | 401 sin token · 404 sesión no existe |
+| Answer active question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/respuesta` | Policy `ParticiparEnPartidas` | 200 + RespuestaTriviaResponse | 401 sin identidad · 403 sin el permiso / no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no Trivia / sin pregunta activa / duplicada (individual o, en Equipo, por equipo) / fuera de tiempo |
+| Advance current question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/avance` | Policy `GestionarPartidas` | 200 + AvancePreguntaResponse | 401 sin token · 403 sin el permiso · 404 · 409 no iniciada / juego no Trivia / sin pregunta activa |
+| Current question | GET | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual` | Autenticado (cualquier rol; sin policy de permiso) | 200 + PreguntaActualDto | 401 sin token · 404 sesión no existe · 409 sin pregunta activa |
+| Validar tesoro | POST | `/operaciones-sesion/partidas/{partidaId}/etapa-actual/tesoro` | Policy `ParticiparEnPartidas` | 200 + ValidacionTesoroResponse | 401 sin identidad · 403 sin el permiso / no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no BDT / sin etapa activa |
+| Avanzar/cerrar etapa | POST | `/operaciones-sesion/partidas/{partidaId}/etapa-actual/avance` | Policy `GestionarPartidas` | 200 + AvanceEtapaResponse | 401 sin token · 403 sin el permiso · 404 · 409 no iniciada / juego no BDT / sin etapa activa |
+| Etapa actual | GET | `/operaciones-sesion/partidas/{partidaId}/etapa-actual` | Autenticado (cualquier rol; sin policy de permiso) | 200 + EtapaActualDto | 401 sin token · 404 sesión no existe · 409 sin etapa activa |
+| Enviar pista (BDT) | POST | `/operaciones-sesion/partidas/{partidaId}/pistas` | Policy `GestionarPartidas` | 200 + PistaEnviadaResponse | 401 sin token · 403 sin el permiso / destino participante no inscrito · 400 no se indicó exactamente un destino · 404 sesión no existe / equipo destino sin inscripción activa · 409 no iniciada / juego no BDT / sin etapa activa / destino equipo en partida Individual |
+| Mi sesión (reconexión) | GET | `/operaciones-sesion/mi-sesion` | Policy `ParticiparEnPartidas` | 200 + MiSesionDto · 204 sin participación activa | 401 sin identidad · 403 sin el permiso |
+| Mis convocatorias pendientes | GET | `/operaciones-sesion/mis-convocatorias` | Policy `ParticiparEnPartidas` | 200 + ConvocatoriaPendienteDto[] (vacía si no hay) | 401 sin identidad · 403 sin el permiso |
 
 ### DTOs
 
@@ -60,7 +60,7 @@ Requests enter through the YARP gateway.
 - `AvanceEtapaResponse { partidaId, etapaCerradaOrden, etapaActivadaOrden?, sinMasEtapas }`
 - `EtapaActualDto { partidaId, juegoId, etapaId, orden, areaBusqueda, tiempoLimiteSegundos, fechaActivacion }` (participant-safe; nunca `codigoQREsperado`)
 - `PistaEnviadaResponse { partidaId, juegoId, participanteDestinoId?, timestampUtc, equipoDestinoId? }` (request body `{ participanteDestinoId?, texto, equipoDestinoId? }` — exactamente uno de los dos destinos, si no 400; efecto: push `PistaEnviada` al participante destino o, si el destino es un equipo (modalidad Equipo, SP-3e-4), a todos sus miembros conectados vía el grupo `equipo:{equipoDestinoId}`)
-- `PreinscripcionEquipoResponse { inscripcionId, equipoId, convocados }` (líder preinscribe su equipo; el equipo y miembros se toman por snapshot de `GET /api/teams/mine` en Identity; genera una convocatoria por integrante)
+- `PreinscripcionEquipoResponse { inscripcionId, equipoId, convocados }` (líder preinscribe su equipo; el equipo y miembros se toman por snapshot de `GET /identity/teams/mine` en Identity — re-homed en SP-5a, antes `/api/teams/mine`; genera una convocatoria por integrante)
 - `ConvocatoriaResponse { convocatoriaId, estado }` (`estado` ∈ `Pendiente|Aceptada|Rechazada`)
 - `LobbyDto.equipos: [{ equipoId, convocados, aceptados }]` (solo modalidad Equipo)
 - `MiSesionDto.convocatoria: { convocatoriaId, equipoId, estado } | null` (estado de la convocatoria del caller en modalidad Equipo)
@@ -68,6 +68,30 @@ Requests enter through the YARP gateway.
 - `ConvocatoriaPendienteDto { convocatoriaId, partidaId, equipoId, fechaEnvio }` (solo convocatorias Pendientes accionables: partida en Lobby, inscripción del equipo activa; orden por fechaEnvio)
 
 Notes: enums serialized as strings. `participanteId` is taken from the JWT `sub` claim (never the body). Config handoff is an internal `GET /partidas/{id}` (not via the gateway), forwarding the caller's bearer. Start/advance return 200 (state transition, not resource creation). Minimums not met on start is a valid `200 + estado=Cancelada` outcome (not a 4xx). `/inicio-automatico` is idempotent: not in Lobby or before `TiempoInicio` → no-op `200` with the current estado. Request body for `/pregunta-actual/respuesta` is `{ opcionId }`; `participanteId` taken from the JWT `sub` claim. Request body for `/etapa-actual/tesoro` is `{ imagenBase64 }`; `participanteId` taken from the JWT `sub` claim. The backend decodes the image server-side (RF-29). `GET /mi-sesion` direcciona por participante (JWT `sub`, sin `partidaId`): devuelve la única participación activa vigente (partida en Lobby/Iniciada) o `204` si no hay. `estadoPartida` en el cuerpo solo toma Lobby/Iniciada. `yaRespondioPreguntaActual` es true/false solo con pregunta Trivia activa, null en BDT/lobby. Read-only; no emite eventos. Concurrencia (SP-3f-1): `SesionPartida` usa token optimista (`xmin`). Los endpoints de runtime/inicio (responder pregunta, validar tesoro, avanzar pregunta/etapa, iniciar) pueden devolver `409 Conflict` cuando un barrido de fondo modifica la misma sesión en el instante de la petición; el cliente refetchea (`GET /mi-sesion`) y reintenta. Dos barridos de fondo (sin endpoint, dentro de Operaciones de Sesión) avanzan el estado por tiempo: inicio automático al cumplirse `TiempoInicio` (Lobby + Automatico/ManualYAutomatico) y cierre por timeout de la pregunta/etapa vencida del juego activo. Read/write internos; emiten los mismos eventos de dominio que el path request (No-Op por ahora). Modalidad Equipo (SP-3e-2): en `POST .../pregunta-actual/respuesta` responde cualquier miembro con convocatoria aceptada; la PRIMERA respuesta del equipo (correcta o no) lo sella — los demás miembros reciben 409 duplicada. `MiSesionDto.yaRespondioPreguntaActual` en Equipo significa "mi equipo ya respondió". Aceptar una convocatoria teniendo otra aceptada en la misma partida devuelve 409. Los eventos internos `RespuestaTriviaValidada`/`PuntajeTriviaIncrementado`/`PreguntaTriviaCerrada` portan `equipoId`/`ganadorEquipoId` (null en Individual); los payloads SignalR difundidos no cambian. Modalidad Equipo (SP-3e-3): en `POST .../etapa-actual/tesoro` valida cualquier miembro con convocatoria aceptada (403 `ParticipanteNoInscritoException` si no la hay) — a diferencia de Trivia, **reintentos ilimitados**: un QR incorrecto solo registra el intento (`TesoroQR` con autor + equipo), no sella nada, sin 409 de duplicado. La primera validación correcta dentro de la ventana gana la etapa para todo el equipo (`GanadorEquipoId`). Los eventos internos `TesoroQRValidado`/`EtapaBDTGanada`/`EtapaBDTCerrada` portan `equipoId`/`ganadorEquipoId` (null en Individual); los payloads SignalR difundidos no cambian.
+
+## Autorización (SP-5a)
+
+JWT Keycloak validado con normalizador `KeycloakRoleClaims` (`OnTokenValidated` → roles desde
+`realm_access`, mismo patrón que gateway/Identity) — antes de SP-5a el claim `roles` estaba
+seteado pero nada lo poblaba. `FallbackPolicy` = autenticado (cualquier rol); el hub SignalR
+(`/operaciones-sesion/hubs/sesion`) queda `[Authorize]` sin policy de permiso (lo usan operador
+y participante); `/health` es anónimo. `401` = sin token / token inválido; `403` = token válido
+sin el permiso requerido.
+
+| Grupo | Policy | Endpoints |
+|---|---|---|
+| Operación de la partida (7) | `GestionarPartidas` | `publicacion` (POST) · `inicio` (POST) · `inicio-automatico` (POST) · `juego-actual/finalizacion` (POST) · `pregunta-actual/avance` (POST) · `etapa-actual/avance` (POST) · `pistas` (POST) |
+| Participación (10) | `ParticiparEnPartidas` | `inscripciones` (POST, Individual) · `inscripciones/mia` (DELETE) · `inscripciones-equipo` (POST, líder) · `inscripciones-equipo/mia` (DELETE, líder) · `convocatorias/{id}/aceptacion` (POST, convocado) · `convocatorias/{id}/rechazo` (POST, convocado) · `pregunta-actual/respuesta` (POST) · `etapa-actual/tesoro` (POST) · `mi-sesion` (GET) · `mis-convocatorias` (GET) |
+| Lectura compartida (4) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) |
+| Infraestructura | Anónimo | `health` (GET) |
+
+Notas: los calificadores "líder"/"convocado" en el grupo `ParticiparEnPartidas` son reglas de
+**dominio** (403 `NoEsLiderEquipoException`/`ParticipanteNoInscritoException` y afines), no
+policies adicionales de ASP.NET — la policy solo exige el permiso funcional, no el rol de negocio
+dentro del equipo. El worker interno (`MantenimientoSesionesWorker`) invoca los mismos handlers
+vía `ISender` in-process (sin HTTP), por lo que proteger todos los endpoints no rompe los
+barridos automáticos (inicio automático, timeouts). Fuente: spec
+`2026-07-03-sp5a-autorizacion-enforcement-design.md` §5.2.
 
 ## Realtime / SignalR (SP-3f-2)
 

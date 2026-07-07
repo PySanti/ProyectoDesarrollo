@@ -51,7 +51,8 @@ public static class KeycloakJwtExtensions
                     {
                         var accessToken = ctx.Request.Query["access_token"];
                         var path = ctx.HttpContext.Request.Path;
-                        if (!string.IsNullOrEmpty(accessToken) && path.StartsWithSegments("/operaciones-sesion/hubs"))
+                        if (!string.IsNullOrEmpty(accessToken) &&
+                            (path.StartsWithSegments("/operaciones-sesion/hubs") || path.StartsWithSegments("/puntuaciones/hubs")))
                         {
                             ctx.Token = accessToken;
                         }

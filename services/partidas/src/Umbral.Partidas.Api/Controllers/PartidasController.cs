@@ -1,4 +1,5 @@
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Umbral.Partidas.Api.Contracts;
 using Umbral.Partidas.Application.Commands;
@@ -14,6 +15,7 @@ public sealed class PartidasController : ControllerBase
 
     public PartidasController(ISender mediator) => _mediator = mediator;
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost]
     public async Task<IActionResult> CrearPartida(
         [FromBody] CrearPartidaRequest request,
@@ -31,6 +33,7 @@ public sealed class PartidasController : ControllerBase
         return CreatedAtAction(nameof(GetPartida), new { partidaId = response.PartidaId }, response);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("{partidaId:guid}/juegos/trivia")]
     public async Task<IActionResult> AgregarJuegoTrivia(
         Guid partidaId,
@@ -43,6 +46,7 @@ public sealed class PartidasController : ControllerBase
         return CreatedAtAction(nameof(GetPartida), new { partidaId }, response);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("{partidaId:guid}/juegos/bdt")]
     public async Task<IActionResult> AgregarJuegoBDT(
         Guid partidaId,

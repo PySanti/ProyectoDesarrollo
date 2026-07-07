@@ -174,7 +174,7 @@ public sealed class EnviarInvitacionEquipoHandlerTests
             => Task.CompletedTask;
     }
 
-    private sealed class FakeEquipoEventsPublisher : IEquipoEventsPublisher
+    private sealed class FakeEquipoEventsPublisher : IIdentityEventsPublisher
     {
         public bool InvitacionCreadaWasCalled { get; private set; }
 
@@ -191,6 +191,12 @@ public sealed class EnviarInvitacionEquipoHandlerTests
             => Task.CompletedTask;
 
         public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishRolUsuarioModificadoAsync(RolUsuarioModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
     }
 }

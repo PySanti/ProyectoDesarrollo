@@ -43,7 +43,7 @@ public sealed class TeamsControllerTests
             CancellationToken.None);
 
         var created = Assert.IsType<CreatedResult>(result);
-        Assert.Equal($"/api/teams/{equipoId}", created.Location);
+        Assert.Equal($"/identity/teams/{equipoId}", created.Location);
         var command = Assert.IsType<CrearEquipoCommand>(sender.LastRequest);
         Assert.Equal(actor, command.ActorUserId);
         Assert.Equal("Equipo A", command.NombreEquipo);

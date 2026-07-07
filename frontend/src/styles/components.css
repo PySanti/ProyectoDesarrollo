@@ -31,6 +31,25 @@
   gap: var(--sp-sm);
 }
 
+/* Checkbox + label inline (permission toggles) — keeps the box adjacent to its
+   text, unlike .row which splits them across a two-column grid. */
+.check-row {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+  cursor: pointer;
+}
+
+.check-row input[type="checkbox"] {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  accent-color: var(--primary);
+  cursor: pointer;
+}
+
 .muted {
   color: var(--muted);
 }

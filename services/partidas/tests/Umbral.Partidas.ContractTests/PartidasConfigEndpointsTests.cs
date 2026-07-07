@@ -5,18 +5,17 @@ using System.Net;
 using System.Net.Http;
 using System.Net.Http.Json;
 using System.Threading.Tasks;
-using Microsoft.AspNetCore.Mvc.Testing;
 using Umbral.Partidas.Application.DTOs;
 
 namespace Umbral.Partidas.ContractTests;
 
-public class PartidasConfigEndpointsTests : IClassFixture<WebApplicationFactory<Program>>
+public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
 {
     private readonly HttpClient _client;
 
-    public PartidasConfigEndpointsTests(WebApplicationFactory<Program> factory)
+    public PartidasConfigEndpointsTests(PartidasWebFactory factory)
     {
-        _client = factory.CreateClient();
+        _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
     private static object CrearPartidaBody(string nombre = "Copa") => new

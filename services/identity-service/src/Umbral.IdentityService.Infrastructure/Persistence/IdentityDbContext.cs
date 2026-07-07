@@ -13,6 +13,7 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<Equipo> Equipos => Set<Equipo>();
     public DbSet<ParticipanteEquipo> ParticipantesEquipo => Set<ParticipanteEquipo>();
     public DbSet<InvitacionEquipo> InvitacionesEquipo => Set<InvitacionEquipo>();
+    public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -71,6 +72,14 @@ public sealed class IdentityDbContext : DbContext
                 .WithMany()
                 .HasForeignKey(x => x.EquipoId)
                 .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        modelBuilder.Entity<PermisoRol>(entity =>
+        {
+            entity.ToTable("permisos_rol");
+            entity.HasKey(p => new { p.Rol, p.Permiso });
+            entity.Property(p => p.Rol).HasColumnName("rol");
+            entity.Property(p => p.Permiso).HasColumnName("permiso");
         });
     }
 }

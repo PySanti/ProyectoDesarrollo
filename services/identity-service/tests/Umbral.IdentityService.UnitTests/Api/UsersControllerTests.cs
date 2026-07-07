@@ -36,7 +36,7 @@ public sealed class UsersControllerTests
         var result = await controller.Create(command, new InlineValidator<CreateUserWithInitialRoleCommand>(), CancellationToken.None);
 
         var created = Assert.IsType<CreatedResult>(result);
-        Assert.Equal($"/api/identity/users/{userId}", created.Location);
+        Assert.Equal($"/identity/users/{userId}", created.Location);
         Assert.IsType<CreateUserWithInitialRoleCommand>(sender.LastRequest);
     }
 
@@ -110,6 +110,48 @@ public sealed class UsersControllerTests
         Assert.Equal(userId, command.UserId);
         Assert.Equal("Bob", command.Name);
         Assert.Equal("bob@x.com", command.Email);
+    }
+
+    // ── ChangeRole ───────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task ChangeRole_Dispatches_Command_And_Returns_Ok()
+    {
+        var userId = Guid.NewGuid();
+        var response = new CambiarRolUsuarioResponse(userId, "Administrador");
+        var sender = new FakeSender { NextResponse = response };
+        var controller = BuildController(sender);
+
+        var result = await controller.ChangeRole(
+            userId,
+            new ChangeUserRoleRequest("Administrador"),
+            new InlineValidator<CambiarRolUsuarioCommand>(),
+            CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(response, ok.Value);
+        var command = Assert.IsType<CambiarRolUsuarioCommand>(sender.LastRequest);
+        Assert.Equal(userId, command.UserId);
+        Assert.Equal("Administrador", command.Rol);
+    }
+
+    [Fact]
+    public async Task ChangeRole_Returns_400_When_Validation_Fails_And_Does_Not_Dispatch()
+    {
+        var validator = new InlineValidator<CambiarRolUsuarioCommand>();
+        validator.RuleFor(c => c.Rol).Must(_ => false).WithMessage("bad");
+        var sender = new FakeSender();
+        var controller = BuildController(sender);
+
+        var result = await controller.ChangeRole(
+            Guid.NewGuid(),
+            new ChangeUserRoleRequest("SuperUser"),
+            validator,
+            CancellationToken.None);
+
+        var obj = Assert.IsAssignableFrom<ObjectResult>(result);
+        Assert.Equal(400, obj.StatusCode);
+        Assert.Null(sender.LastRequest);
     }
 
     // ── Deactivate ───────────────────────────────────────────────────────────

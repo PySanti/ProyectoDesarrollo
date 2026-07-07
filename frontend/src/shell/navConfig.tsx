@@ -1,4 +1,4 @@
-import { ClipboardList, Flag, IconComponent, ListChecks, MapPin, Play, Plus, UserPlus, Users } from "./icons";
+import { ClipboardList, Flag, IconComponent, ListChecks, Lock, MapPin, Play, Plus, UserPlus, Users } from "./icons";
 
 export type Role = "Administrador" | "Operador";
 
@@ -26,7 +26,8 @@ export const NAV_AREAS: NavAreaDef[] = [
     icon: Users,
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
-      { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users }
+      { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
+      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
     ]
   },
   {

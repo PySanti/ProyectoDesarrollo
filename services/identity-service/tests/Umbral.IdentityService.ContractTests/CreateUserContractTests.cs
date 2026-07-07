@@ -23,7 +23,7 @@ public sealed class CreateUserContractTests : IClassFixture<IdentityApiFactory>
             initialRole = "Administrador"
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(request)
         };
@@ -52,7 +52,7 @@ public sealed class CreateUserContractTests : IClassFixture<IdentityApiFactory>
             initialRole = "Guest"
         };
 
-        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var httpRequest = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(request)
         };
