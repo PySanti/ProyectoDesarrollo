@@ -31,6 +31,23 @@ usuario: guest
 password: guest
 ```
 
+## Levantamiento completo con Docker Compose (RNF-10)
+
+Alternativa al `dotnet run` por servicio: levantar la solución entera (infra + 4 servicios + gateway) con un solo comando desde la raíz del repo:
+
+```powershell
+docker compose -f "infra/docker-compose.yml" up -d --build postgres rabbitmq keycloak identity-service partidas operaciones-sesion puntuaciones gateway
+```
+
+Puertos host: gateway **5080**, identity **5001**, partidas **5010**, operaciones-sesion **5020**, puntuaciones **5030** (health anónimo en `/health` de cada servicio; vía gateway todo exige JWT por diseño SP-5a). Keycloak 8080, Postgres 55432, RabbitMQ 5672/15672.
+
+Notas:
+
+- **Base fresca:** con el volumen de Postgres recién creado, `infra/postgres-init/01-create-databases.sql` crea las 4 bases (`umbral_identity`, `umbral_partidas`, `umbral_operaciones_sesion`, `umbral_puntuaciones`) y cada servicio aplica su esquema al arrancar — partidas/operaciones/puntuaciones vía migraciones EF (`EF_MIGRATE_ON_STARTUP=true`, solo activo en compose; `dotnet run` local no migra), identity vía su bootstrap propio (`EnsureCreated` + SQL idempotente, incondicional). Para un volumen ya existente sigue valiendo el `CREATE DATABASE` manual del CLAUDE.md.
+- **Orden de arranque:** postgres y rabbitmq tienen healthcheck; los servicios esperan `service_healthy` — no hay carrera contra la DB en el primer arranque.
+- **Dentro de la red Docker** los servicios hablan con Keycloak como `http://keycloak:8080`; los tokens emitidos desde el navegador llevan issuer `http://localhost:8080`, por eso `KEYCLOAK_VALID_ISSUERS` lista ambos.
+- Los servicios legacy (`trivia-game-service`, `bdt-game-service`) no forman parte de este levantamiento (pendientes de retiro, Bloque 3).
+
 ## Variables de entorno (.env central)
 
 Hay un **`.env` en la raíz del repo** que es la **fuente única de verdad** para los valores

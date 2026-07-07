@@ -1,8 +1,10 @@
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.Puntuaciones.Api.Middleware;
 using Umbral.Puntuaciones.Application;
 using Umbral.Puntuaciones.Infrastructure;
+using Umbral.Puntuaciones.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -122,6 +124,14 @@ else
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
+
+// RNF-10: el compose activa EF_MIGRATE_ON_STARTUP=true para aplicar el esquema
+// contra una base fresca. Default off: dotnet run local y tests quedan idénticos.
+if (Environment.GetEnvironmentVariable("EF_MIGRATE_ON_STARTUP") == "true")
+{
+    using var migrationScope = app.Services.CreateScope();
+    migrationScope.ServiceProvider.GetRequiredService<PuntuacionesDbContext>().Database.Migrate();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();
