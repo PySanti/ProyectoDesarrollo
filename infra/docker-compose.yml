@@ -65,7 +65,6 @@ services:
       KEYCLOAK_CLIENT_ID: identity-service
       KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
       KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
-      EF_MIGRATE_ON_STARTUP: "true"
     depends_on:
       - postgres
       - rabbitmq

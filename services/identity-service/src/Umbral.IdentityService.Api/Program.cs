@@ -110,14 +110,6 @@ builder.Services.AddAuthorization(options =>
 
 var app = builder.Build();
 
-// RNF-10: el compose activa EF_MIGRATE_ON_STARTUP=true para aplicar el esquema
-// contra una base fresca. Default off: dotnet run local y tests quedan idénticos.
-if (Environment.GetEnvironmentVariable("EF_MIGRATE_ON_STARTUP") == "true")
-{
-    using var migrationScope = app.Services.CreateScope();
-    migrationScope.ServiceProvider.GetRequiredService<IdentityDbContext>().Database.Migrate();
-}
-
 using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
