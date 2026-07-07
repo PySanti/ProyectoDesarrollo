@@ -53,4 +53,21 @@ public sealed class ProyeccionesRepository : IProyeccionesRepository
                     && m.TipoCompetidor == TipoCompetidor.Equipo))
             .OrderByDescending(p => p.FechaFin)
             .ToListAsync(cancellationToken);
+
+    // HU-27 (a): participación individual = tener ≥1 marcador propio en una partida Individual terminada.
+    public async Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken)
+        => await _db.Partidas.AsNoTracking()
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
+                && p.Modalidad == Modalidad.Individual
+                && _db.Marcadores.Any(m => m.PartidaId == p.PartidaId
+                    && m.CompetidorId == participanteId
+                    && m.TipoCompetidor == TipoCompetidor.Participante))
+            .OrderByDescending(p => p.FechaFin)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<JuegoProyectado>> GetJuegosDePartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => await _db.Juegos.AsNoTracking()
+            .Where(j => j.PartidaId == partidaId)
+            .OrderBy(j => j.Orden)
+            .ToListAsync(cancellationToken);
 }

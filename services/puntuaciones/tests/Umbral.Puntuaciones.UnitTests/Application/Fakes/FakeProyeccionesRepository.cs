@@ -46,4 +46,20 @@ public sealed class FakeProyeccionesRepository : IProyeccionesRepository
                     && m.TipoCompetidor == TipoCompetidor.Equipo))
             .OrderByDescending(p => p.FechaFin)
             .ToList());
+
+    public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
+                && p.Modalidad == Modalidad.Individual
+                && Marcadores.Any(m => m.PartidaId == p.PartidaId
+                    && m.CompetidorId == participanteId
+                    && m.TipoCompetidor == TipoCompetidor.Participante))
+            .OrderByDescending(p => p.FechaFin)
+            .ToList());
+
+    public Task<IReadOnlyList<JuegoProyectado>> GetJuegosDePartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<JuegoProyectado>>(Juegos
+            .Where(j => j.PartidaId == partidaId)
+            .OrderBy(j => j.Orden)
+            .ToList());
 }
