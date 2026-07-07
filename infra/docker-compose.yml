@@ -147,7 +147,6 @@ services:
       ConnectionStrings__PuntuacionesDatabase: Host=postgres;Port=5432;Database=umbral_puntuaciones;Username=umbral;Password=16102005
       EF_MIGRATE_ON_STARTUP: "true"
       RabbitMq__Host: rabbitmq
-      RabbitMqHistorial__Host: rabbitmq
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
