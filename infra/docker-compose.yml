@@ -15,7 +15,8 @@ services:
       - "55432:5432"
     volumes:
       - umbral-postgres-data:/var/lib/postgresql/data
-      - ./postgres/init:/docker-entrypoint-initdb.d
+      # Init SQL versionado (el viejo ./postgres/init quedó vacío y root-owned).
+      - ./postgres-init:/docker-entrypoint-initdb.d
 
   rabbitmq:
     image: rabbitmq:3-management
@@ -63,6 +64,8 @@ services:
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_CLIENT_ID: identity-service
       KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      EF_MIGRATE_ON_STARTUP: "true"
     depends_on:
       - postgres
       - rabbitmq
@@ -79,6 +82,7 @@ services:
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile,account
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
       ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity-service:8080/
       ReverseProxy__Clusters__partidas__Destinations__d1__Address: http://partidas:8080/
       ReverseProxy__Clusters__operaciones-sesion__Destinations__d1__Address: http://operaciones-sesion:8080/
@@ -93,32 +97,65 @@ services:
   partidas:
     build:
       context: ../services/partidas
+    ports:
+      - "5010:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__PartidasDatabase: Host=postgres;Port=5432;Database=umbral_partidas;Username=umbral;Password=16102005
+      EF_MIGRATE_ON_STARTUP: "true"
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
     depends_on:
       - postgres
+      - keycloak
 
   operaciones-sesion:
     build:
       context: ../services/operaciones-sesion
+    ports:
+      - "5020:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__OperacionesSesionDatabase: Host=postgres;Port=5432;Database=umbral_operaciones_sesion;Username=umbral;Password=16102005
+      EF_MIGRATE_ON_STARTUP: "true"
+      RabbitMq__Host: rabbitmq
+      IdentityApi__BaseUrl: http://identity-service:8080
+      PartidasApi__BaseUrl: http://partidas:8080
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
     depends_on:
       - postgres
+      - rabbitmq
+      - keycloak
+      - partidas
+      - identity-service
 
   puntuaciones:
     build:
       context: ../services/puntuaciones
+    ports:
+      - "5030:8080"
     environment:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__PuntuacionesDatabase: Host=postgres;Port=5432;Database=umbral_puntuaciones;Username=umbral;Password=16102005
+      EF_MIGRATE_ON_STARTUP: "true"
+      RabbitMq__Host: rabbitmq
+      RabbitMqHistorial__Host: rabbitmq
+      KEYCLOAK_BASE_URL: http://keycloak:8080
+      KEYCLOAK_REALM: UMBRAL-UCAB
+      KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
     depends_on:
       - postgres
+      - rabbitmq
+      - keycloak
 
   trivia-game-service:
     build:
