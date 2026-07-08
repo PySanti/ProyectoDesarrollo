@@ -129,7 +129,7 @@ public sealed class SesionPartida
         return convocatoria;
     }
 
-    public void CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
+    public Guid CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
     {
         if (Estado != EstadoSesion.Lobby)
             throw new SesionNoEnLobbyException(PartidaId);
@@ -138,6 +138,7 @@ public sealed class SesionPartida
         var inscripcion = _inscripciones.FirstOrDefault(i => i.EquipoId == equipoId && i.EsActiva)
             ?? throw InscripcionNoEncontradaException.ParaEquipo(equipoId);
         inscripcion.Cancelar();
+        return inscripcion.Id.Valor;
     }
 
     public ResultadoInicio Iniciar(DateTime now)

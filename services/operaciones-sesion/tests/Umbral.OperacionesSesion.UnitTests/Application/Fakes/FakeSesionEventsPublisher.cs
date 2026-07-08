@@ -90,4 +90,12 @@ public sealed class FakeSesionEventsPublisher : ISesionEventsPublisher
 
     public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken)
     { UbicacionesActualizadas.Add(evento); return Task.CompletedTask; }
+
+    public List<InscripcionEquipoCreadaEvent> InscripcionesEquipoCreadas { get; } = new();
+    public List<InscripcionEquipoCanceladaEvent> InscripcionesEquipoCanceladas { get; } = new();
+
+    public Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken)
+    { InscripcionesEquipoCreadas.Add(evento); return Task.CompletedTask; }
+    public Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken)
+    { InscripcionesEquipoCanceladas.Add(evento); return Task.CompletedTask; }
 }

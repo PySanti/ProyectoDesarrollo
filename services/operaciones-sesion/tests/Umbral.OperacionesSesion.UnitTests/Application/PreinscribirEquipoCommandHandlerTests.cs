@@ -57,6 +57,12 @@ public class PreinscribirEquipoCommandHandlerTests
         Assert.Equal(2, events.ConvocatoriasCreadas.Count);
         Assert.All(events.ConvocatoriasCreadas, e => Assert.Equal(equipoId, e.EquipoId));
         Assert.Contains(events.ConvocatoriasCreadas, e => e.UsuarioId == miembro);
+
+        var inscripcionCreada = Assert.Single(events.InscripcionesEquipoCreadas);
+        Assert.Equal(partidaId, inscripcionCreada.PartidaId);
+        Assert.Equal(equipoId, inscripcionCreada.EquipoId);
+        Assert.Equal(resp.InscripcionId, inscripcionCreada.InscripcionId);
+        Assert.Equal(T0, inscripcionCreada.Instante);
     }
 
     [Fact]

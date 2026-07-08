@@ -39,10 +39,19 @@ public class CancelarInscripcionEquipoCommandHandlerTests
         {
             Equipo = new EquipoSnapshotDto(equipoId, "H", new List<MiembroEquipoDto> { new(lider, true) })
         };
-        var handler = new CancelarInscripcionEquipoCommandHandler(repo, directory, new FakeOperacionesSesionUnitOfWork());
+        var inscripcionId = sesion.Inscripciones.Single(i => i.EquipoId == equipoId).Id.Valor;
+        var events = new FakeSesionEventsPublisher();
+        var handler = new CancelarInscripcionEquipoCommandHandler(
+            repo, directory, events, new FakeOperacionesSesionUnitOfWork(), new FakeTimeProvider(T0));
 
         await handler.Handle(new CancelarInscripcionEquipoCommand(partidaId, lider, "Bearer x"), default);
 
         Assert.DoesNotContain(sesion.Inscripciones, i => i.EsActiva);
+
+        var inscripcionCancelada = Assert.Single(events.InscripcionesEquipoCanceladas);
+        Assert.Equal(partidaId, inscripcionCancelada.PartidaId);
+        Assert.Equal(equipoId, inscripcionCancelada.EquipoId);
+        Assert.Equal(inscripcionId, inscripcionCancelada.InscripcionId);
+        Assert.Equal(T0, inscripcionCancelada.Instante);
     }
 }

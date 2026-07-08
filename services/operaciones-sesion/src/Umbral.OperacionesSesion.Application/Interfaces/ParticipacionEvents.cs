@@ -5,3 +5,9 @@ public sealed record ConvocatoriaCreadaEvent(
 
 public sealed record ConvocatoriaRespondidaEvent(
     Guid PartidaId, Guid SesionPartidaId, Guid ConvocatoriaId, Guid UsuarioId, string EstadoConvocatoria);
+
+public sealed record InscripcionEquipoCreadaEvent(
+    Guid PartidaId, Guid SesionPartidaId, Guid InscripcionId, Guid EquipoId, DateTime Instante);
+
+public sealed record InscripcionEquipoCanceladaEvent(
+    Guid PartidaId, Guid InscripcionId, Guid EquipoId, DateTime Instante);

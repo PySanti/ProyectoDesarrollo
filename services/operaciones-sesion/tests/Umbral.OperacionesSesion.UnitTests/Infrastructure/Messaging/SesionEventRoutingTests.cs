@@ -24,7 +24,9 @@ public class SesionEventRoutingTests
     [InlineData("ConvocatoriaCreada", "operaciones-sesion.convocatoria-creada.v1")]
     [InlineData("ConvocatoriaRespondida", "operaciones-sesion.convocatoria-respondida.v1")]
     [InlineData("UbicacionActualizada", "operaciones-sesion.ubicacion-actualizada.v1")]
-    public void RoutingKeyFor_mapea_los_17_eventos(string eventType, string esperado)
+    [InlineData("InscripcionEquipoCreada", "operaciones-sesion.inscripcion-equipo-creada.v1")]
+    [InlineData("InscripcionEquipoCancelada", "operaciones-sesion.inscripcion-equipo-cancelada.v1")]
+    public void RoutingKeyFor_mapea_los_19_eventos(string eventType, string esperado)
         => Assert.Equal(esperado, SesionEventRouting.RoutingKeyFor(eventType));
 
     [Fact]

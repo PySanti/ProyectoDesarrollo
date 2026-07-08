@@ -58,6 +58,12 @@ public sealed class PreinscribirEquipoCommandHandler
                 cancellationToken);
         }
 
+        await _events.PublicarInscripcionEquipoCreadaAsync(
+            new InscripcionEquipoCreadaEvent(
+                sesion.PartidaId, sesion.Id.Valor, inscripcion.Id.Valor, equipo.EquipoId,
+                _timeProvider.GetUtcNow().UtcDateTime),
+            cancellationToken);
+
         return new PreinscripcionEquipoResponse(inscripcion.Id.Valor, equipo.EquipoId, inscripcion.Convocatorias.Count);
     }
 }

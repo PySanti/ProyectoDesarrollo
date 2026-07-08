@@ -11,14 +11,19 @@ public sealed class CancelarInscripcionEquipoCommandHandler : IRequestHandler<Ca
 {
     private readonly ISesionPartidaRepository _sesiones;
     private readonly IEquipoDirectoryClient _directory;
+    private readonly ISesionEventsPublisher _events;
     private readonly IOperacionesSesionUnitOfWork _unitOfWork;
+    private readonly TimeProvider _timeProvider;
 
     public CancelarInscripcionEquipoCommandHandler(
-        ISesionPartidaRepository sesiones, IEquipoDirectoryClient directory, IOperacionesSesionUnitOfWork unitOfWork)
+        ISesionPartidaRepository sesiones, IEquipoDirectoryClient directory, ISesionEventsPublisher events,
+        IOperacionesSesionUnitOfWork unitOfWork, TimeProvider timeProvider)
     {
         _sesiones = sesiones;
         _directory = directory;
+        _events = events;
         _unitOfWork = unitOfWork;
+        _timeProvider = timeProvider;
     }
 
     public async Task Handle(CancelarInscripcionEquipoCommand request, CancellationToken cancellationToken)
@@ -30,8 +35,13 @@ public sealed class CancelarInscripcionEquipoCommandHandler : IRequestHandler<Ca
             ?? throw new SinEquipoActivoException(request.LiderId);
 
         var callerEsLider = equipo.Miembros.Any(m => m.UsuarioId == request.LiderId && m.EsLider);
-        sesion.CancelarInscripcionEquipo(equipo.EquipoId, callerEsLider);
+        var inscripcionId = sesion.CancelarInscripcionEquipo(equipo.EquipoId, callerEsLider);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
+
+        var now = _timeProvider.GetUtcNow().UtcDateTime;
+        await _events.PublicarInscripcionEquipoCanceladaAsync(
+            new InscripcionEquipoCanceladaEvent(request.PartidaId, inscripcionId, equipo.EquipoId, now),
+            cancellationToken);
     }
 }

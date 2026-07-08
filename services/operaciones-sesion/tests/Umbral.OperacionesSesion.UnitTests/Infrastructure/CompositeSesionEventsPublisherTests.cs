@@ -135,5 +135,7 @@ public class CompositeSesionEventsPublisherTests
         public virtual Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent e, CancellationToken ct) => Task.CompletedTask;
         public virtual Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent e, CancellationToken ct) => Task.CompletedTask;
         public virtual Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent e, CancellationToken ct) => Task.CompletedTask;
+        public virtual Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent e, CancellationToken ct) => Task.CompletedTask;
+        public virtual Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent e, CancellationToken ct) => Task.CompletedTask;
     }
 }
