@@ -27,7 +27,8 @@ export const NAV_AREAS: NavAreaDef[] = [
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
       { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
-      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
+      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock },
+      { label: "Equipos", path: "/identidad/equipos", icon: Flag }
     ]
   },
   {
