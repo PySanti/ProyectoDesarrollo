@@ -46,6 +46,7 @@ public sealed class ExceptionHandlingMiddleware
             NoActiveTeamForParticipantException  => HttpStatusCode.NotFound,
             InvitacionNoEncontradaException      => HttpStatusCode.NotFound,
             UserNotFoundException                => HttpStatusCode.NotFound,
+            EquipoNoEncontradoException          => HttpStatusCode.NotFound,
             NoEsLiderException                   => HttpStatusCode.Forbidden,
             KeycloakIntegrationException         => HttpStatusCode.BadGateway,
             EmailDeliveryException               => HttpStatusCode.BadGateway,
