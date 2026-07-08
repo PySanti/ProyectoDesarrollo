@@ -143,6 +143,29 @@ public sealed class TeamsControllerTests
         Assert.IsType<UnauthorizedResult>(result);
     }
 
+    // ── EliminarMiEquipo ─────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task EliminarMiEquipo_Dispatches_And_Returns_NoContent()
+    {
+        var actor = Guid.NewGuid();
+        var sender = new FakeSender { NextResponse = new EliminarEquipoResponse(Guid.NewGuid(), "Eliminado") };
+        var controller = BuildController(sender, actor);
+
+        var result = await controller.EliminarMiEquipo(CancellationToken.None);
+
+        Assert.IsType<NoContentResult>(result);
+        var command = Assert.IsType<EliminarMiEquipoCommand>(sender.LastRequest);
+        Assert.Equal(actor, command.ActorUserId);
+    }
+
+    [Fact]
+    public async Task EliminarMiEquipo_Returns_Unauthorized_When_No_Sub()
+    {
+        var controller = BuildController(new FakeSender(), sub: null);
+        Assert.IsType<UnauthorizedResult>(await controller.EliminarMiEquipo(CancellationToken.None));
+    }
+
     // ── MiHistorial ──────────────────────────────────────────────────────────
 
     [Fact]

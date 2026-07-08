@@ -71,6 +71,16 @@ public sealed class TeamsController : ControllerBase
         return Ok(response);
     }
 
+    [HttpDelete("mine")]
+    public async Task<IActionResult> EliminarMiEquipo(CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserClaims.TryGetUserId(User, out var actorUserId))
+            return Unauthorized();
+
+        await _sender.Send(new EliminarMiEquipoCommand(actorUserId), cancellationToken);
+        return NoContent();
+    }
+
     [HttpPatch("leadership")]
     public async Task<IActionResult> TransferirLiderazgo(
         [FromBody] TransferirLiderazgoRequest request,
