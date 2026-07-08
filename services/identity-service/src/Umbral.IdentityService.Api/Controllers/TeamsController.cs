@@ -45,6 +45,16 @@ public sealed class TeamsController : ControllerBase
         return equipo is null ? NotFound() : Ok(equipo);
     }
 
+    [HttpGet("mine/history")]
+    public async Task<IActionResult> MiHistorial(CancellationToken cancellationToken)
+    {
+        if (!AuthenticatedUserClaims.TryGetUserId(User, out var actorUserId))
+            return Unauthorized();
+
+        var response = await _sender.Send(new GetHistorialNombresEquipoQuery(actorUserId), cancellationToken);
+        return Ok(response);
+    }
+
     [HttpDelete("membership")]
     public async Task<IActionResult> Salir(
         [FromServices] IValidator<SalirDeEquipoCommand> validator,
