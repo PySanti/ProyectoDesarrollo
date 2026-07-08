@@ -10,6 +10,7 @@ import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenC
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
+import { DeleteTeamScreenContainer } from "../features/teams/DeleteTeamScreenContainer";
 import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
 import { TriviaLobbyScreenContainer } from "../features/trivia/screens/TriviaLobbyScreenContainer";
 import { TriviaLivePlayScreenContainer } from "../features/trivia/live/TriviaLivePlayScreenContainer";
@@ -91,6 +92,11 @@ export function RootNavigator() {
         name="LeaveTeam"
         component={LeaveTeamScreenContainer}
         options={{ title: "Salir del equipo" }}
+      />
+      <AppStack.Screen
+        name="DeleteTeam"
+        component={DeleteTeamScreenContainer}
+        options={{ title: "Eliminar equipo" }}
       />
       <AppStack.Screen
         name="TriviaGamesList"

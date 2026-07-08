@@ -9,6 +9,7 @@ export type AppStackParamList = {
   InviteMember: undefined;
   TransferLeadership: undefined;
   LeaveTeam: undefined;
+  DeleteTeam: undefined;
   TriviaGamesList: undefined;
   TriviaLobby: { partidaId: string };
   TriviaLivePlay: { partidaId: string };
