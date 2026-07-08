@@ -49,6 +49,7 @@ export function HomeScreen({ navigation }: Props) {
         <NavCard icon="repeat" label="Transferir liderazgo" onPress={() => navigation.navigate("TransferLeadership")} />
         <NavCard icon="log-out" label="Salir del equipo" onPress={() => navigation.navigate("LeaveTeam")} />
         <NavCard icon="trash-2" label="Eliminar equipo" onPress={() => navigation.navigate("DeleteTeam")} />
+        <NavCard icon="clock" label="Historial de equipos" onPress={() => navigation.navigate("TeamHistory")} />
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>
