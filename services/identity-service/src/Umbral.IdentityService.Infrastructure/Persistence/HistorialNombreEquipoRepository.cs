@@ -1,4 +1,5 @@
 using Microsoft.EntityFrameworkCore;
+using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Domain.Entities;
 
@@ -12,8 +13,15 @@ public sealed class HistorialNombreEquipoRepository : IHistorialNombreEquipoRepo
 
     public async Task AddRangeAsync(IEnumerable<HistorialNombreEquipo> registros, CancellationToken cancellationToken)
     {
-        await _db.HistorialNombresEquipo.AddRangeAsync(registros, cancellationToken);
-        await _db.SaveChangesAsync(cancellationToken);
+        try
+        {
+            await _db.HistorialNombresEquipo.AddRangeAsync(registros, cancellationToken);
+            await _db.SaveChangesAsync(cancellationToken);
+        }
+        catch (DbUpdateException ex)
+        {
+            throw new PersistenceException("No fue posible persistir el historial de nombre de equipo.", ex);
+        }
     }
 
     public async Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)

@@ -13,13 +13,19 @@ public sealed class CrearEquipoCommandHandler : IRequestHandler<CrearEquipoComma
 {
     private readonly IEquipoRepository _equipoRepository;
     private readonly IIdentityEventsPublisher _equipoEventsPublisher;
+    private readonly IHistorialNombreEquipoRepository _historialRepository;
+    private readonly TimeProvider _timeProvider;
 
     public CrearEquipoCommandHandler(
         IEquipoRepository equipoRepository,
-        IIdentityEventsPublisher equipoEventsPublisher)
+        IIdentityEventsPublisher equipoEventsPublisher,
+        IHistorialNombreEquipoRepository historialRepository,
+        TimeProvider timeProvider)
     {
         _equipoRepository = equipoRepository;
         _equipoEventsPublisher = equipoEventsPublisher;
+        _historialRepository = historialRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CrearEquipoResponse> Handle(CrearEquipoCommand request, CancellationToken cancellationToken)
@@ -40,6 +46,12 @@ public sealed class CrearEquipoCommandHandler : IRequestHandler<CrearEquipoComma
         {
             throw new AlreadyBelongsToActiveTeamException(request.ActorUserId);
         }
+
+        await _historialRepository.AddRangeAsync(new[]
+        {
+            HistorialNombreEquipo.Registrar(
+                request.ActorUserId, equipo.EquipoId, equipo.NombreEquipo, _timeProvider.GetUtcNow().UtcDateTime)
+        }, cancellationToken);
 
         await _equipoEventsPublisher.PublishEquipoCreadoAsync(
             new EquipoCreadoIntegrationEvent(

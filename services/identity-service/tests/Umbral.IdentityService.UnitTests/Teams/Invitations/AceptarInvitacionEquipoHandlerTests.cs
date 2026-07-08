@@ -18,7 +18,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         var invRepo = new FakeInvitacionEquipoRepository { InvitacionToReturn = null };
         var equipoRepo = new FakeEquipoRepository();
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<InvitacionNoEncontradaException>(() =>
             handler.Handle(new AceptarInvitacionEquipoCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
@@ -35,7 +36,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         var invRepo = new FakeInvitacionEquipoRepository { InvitacionToReturn = invitacion };
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         // actor is different from invitado
         await Assert.ThrowsAsync<InvitacionNoEncontradaException>(() =>
@@ -55,7 +57,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         var invRepo = new FakeInvitacionEquipoRepository { InvitacionToReturn = invitacion };
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<InvitacionNoEncontradaException>(() =>
             handler.Handle(new AceptarInvitacionEquipoCommand(invitado, invitacion.InvitacionEquipoId), CancellationToken.None));
@@ -76,7 +79,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
             InvitadoAlreadyHasTeam = true
         };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<UsuarioYaEnEquipoException>(() =>
             handler.Handle(new AceptarInvitacionEquipoCommand(invitado, invitacion.InvitacionEquipoId), CancellationToken.None));
@@ -97,7 +101,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         var invRepo = new FakeInvitacionEquipoRepository { InvitacionToReturn = invitacion };
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<EquipoLlenoException>(() =>
             handler.Handle(new AceptarInvitacionEquipoCommand(invitado, invitacion.InvitacionEquipoId), CancellationToken.None));
@@ -114,7 +119,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         var invRepo = new FakeInvitacionEquipoRepository { InvitacionToReturn = invitacion };
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, publisher, historial, TimeProvider.System);
 
         var response = await handler.Handle(new AceptarInvitacionEquipoCommand(invitado, invitacion.InvitacionEquipoId), CancellationToken.None);
 
@@ -180,6 +186,22 @@ public sealed class AceptarInvitacionEquipoHandlerTests
             UpdateWasCalled = true;
             return Task.CompletedTask;
         }
+    }
+
+    private sealed class FakeHistorialNombreEquipoRepository : IHistorialNombreEquipoRepository
+    {
+        public List<HistorialNombreEquipo> Registros { get; } = new();
+
+        public Task AddRangeAsync(IEnumerable<HistorialNombreEquipo> registros, CancellationToken cancellationToken)
+        {
+            Registros.AddRange(registros);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+
+        public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }
 
     private sealed class FakeEquipoEventsPublisher : IIdentityEventsPublisher
