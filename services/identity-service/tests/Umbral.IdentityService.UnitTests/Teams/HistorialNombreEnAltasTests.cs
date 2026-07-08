@@ -123,6 +123,18 @@ public sealed class HistorialNombreEnAltasTests
 
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     [Fact]

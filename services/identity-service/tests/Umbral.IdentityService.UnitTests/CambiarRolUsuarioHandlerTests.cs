@@ -107,6 +107,10 @@ public class CambiarRolUsuarioHandlerTests
         public Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static (CambiarRolUsuarioCommandHandler Handler, UsuarioRepositoryFake Usuarios, EquipoRepositoryFake Equipos, KeycloakFake Kc, PublisherFake Pub) Crear()
