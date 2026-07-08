@@ -114,6 +114,7 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
+    await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
 
     if (dbContext.Database.IsRelational())
     {
