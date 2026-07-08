@@ -28,6 +28,8 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `PistaEnviada` (SP-3f-4, SP-3e-4) | El operador envía una pista a un participante o equipo durante un juego BDT activo. | Defined by SDD | Payload registered (SP-3f-4 / SP-3e-4) |
 | `ConvocatoriaCreada` (SP-3e-1) | Se preinscribe un equipo: cada miembro del snapshot recibe una convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
+| `InscripcionEquipoCreada` (SP-Bloque4A) | Un líder preinscribe su equipo en una partida. | Identity (proyección guard BR-E10) | Registered — `{ partidaId, sesionPartidaId, inscripcionId, equipoId, instante }` |
+| `InscripcionEquipoCancelada` (SP-Bloque4A) | Se cancela la preinscripción de un equipo. | Identity (proyección guard BR-E10) | Registered — `{ partidaId, inscripcionId, equipoId, instante }` |
 | `UbicacionActualizada` (SP-3i) | Un participante BDT envía su ubicación (~cada 2 s) durante un juego activo. | Defined by SDD | Payload registered (SP-3i) |
 
 ## Transport (SP-3i · SP-4a)
@@ -59,6 +61,8 @@ Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012
 | `ConvocatoriaCreada` | `operaciones-sesion.convocatoria-creada.v1` |
 | `ConvocatoriaRespondida` | `operaciones-sesion.convocatoria-respondida.v1` |
 | `UbicacionActualizada` | `operaciones-sesion.ubicacion-actualizada.v1` |
+| `InscripcionEquipoCreada` | `operaciones-sesion.inscripcion-equipo-creada.v1` |
+| `InscripcionEquipoCancelada` | `operaciones-sesion.inscripcion-equipo-cancelada.v1` |
 
 ## Payloads (registered)
 
@@ -303,6 +307,33 @@ Emitted to the broker for deferred audit each time a participant sends their loc
   "participanteId": "guid",
   "latitud": 10.5,
   "longitud": -66.9,
+  "instante": "datetime"
+}
+```
+
+### `InscripcionEquipoCreada` (SP-Bloque4A)
+
+Emitted (best-effort, after `SaveChanges`) when a leader preinscribes their team in a partida. Consumed by Identity to project `participaciones_activas_equipo` for the BR-E10 team-delete guard.
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "inscripcionId": "guid",
+  "equipoId": "guid",
+  "instante": "datetime"
+}
+```
+
+### `InscripcionEquipoCancelada` (SP-Bloque4A)
+
+Emitted (best-effort, after `SaveChanges`) when a team's preinscription is cancelled. Consumed by Identity to remove the `(equipoId, partidaId)` row from the BR-E10 guard projection.
+
+```json
+{
+  "partidaId": "guid",
+  "inscripcionId": "guid",
+  "equipoId": "guid",
   "instante": "datetime"
 }
 ```

@@ -20,6 +20,10 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `InvitacionEquipoRechazada` | An invited participant rejects the invitation. | `{ invitacionEquipoId, equipoId, invitadoUserId, occurredOnUtc }` | Defined by SDD | Published to the broker since SP-5b (best-effort, ADR-0012) — routing key `identity.invitacion-equipo-rechazada.v1` |
 | `RolUsuarioModificado` (SP-5b) | An admin changes a user's role (never an admin's own role). | `{ usuarioId, rolAnterior, rolNuevo, occurredOnUtc }` | Defined by SDD | Published to the broker since SP-5b (best-effort, ADR-0012) — routing key `identity.rol-usuario-modificado.v1` |
 | `PermisosRolActualizados` (SP-5b) | An admin replaces the functional-permission set of a role via the governance panel. | `{ rol, permisos[], occurredOnUtc }` | Defined by SDD | Published to the broker since SP-5b (best-effort, ADR-0012) — routing key `identity.permisos-rol-actualizados.v1` |
+| `EquipoEliminado` (SP-Bloque4A) | A team is deleted by its leader (HU-06) or by an admin (HU-09). | `{ equipoId, nombreEquipo, origen, miembros[], occurredOnUtc }` — `origen` ∈ `"Lider"`\|`"Admin"` | Defined by SDD | Published to the broker (best-effort, ADR-0012) — routing key `identity.equipo-eliminado.v1` |
+| `LiderazgoEquipoModificado` (SP-Bloque4A) | An admin reassigns a team's leadership among existing members (HU-09). | `{ equipoId, liderAnteriorUserId, nuevoLiderUserId, origen, occurredOnUtc }` — `origen` = `"Admin"` | Defined by SDD | Published to the broker (best-effort, ADR-0012) — routing key `identity.liderazgo-equipo-modificado.v1` |
+| `EquipoDesactivado` (SP-Bloque4A) | An admin deactivates a team (HU-09; a `Desactivado` team cannot be inscribed in new partidas, BR-E10). | `{ equipoId, occurredOnUtc }` | Defined by SDD | Published to the broker (best-effort, ADR-0012) — routing key `identity.equipo-desactivado.v1` |
+| `EquipoReactivado` (SP-Bloque4A) | An admin reactivates a previously deactivated team (HU-09). | `{ equipoId, occurredOnUtc }` | Defined by SDD | Published to the broker (best-effort, ADR-0012) — routing key `identity.equipo-reactivado.v1` |
 
 ## Transport (SP-5b)
 
@@ -41,6 +45,19 @@ by `operaciones-sesion-events.md` §Transport (SP-3i).
 | `InvitacionEquipoRechazada` | `identity.invitacion-equipo-rechazada.v1` |
 | `RolUsuarioModificado` | `identity.rol-usuario-modificado.v1` |
 | `PermisosRolActualizados` | `identity.permisos-rol-actualizados.v1` |
+| `EquipoEliminado` | `identity.equipo-eliminado.v1` |
+| `LiderazgoEquipoModificado` | `identity.liderazgo-equipo-modificado.v1` |
+| `EquipoDesactivado` | `identity.equipo-desactivado.v1` |
+| `EquipoReactivado` | `identity.equipo-reactivado.v1` |
+
+## Consumers (SP-Bloque4A)
+
+Identity runs its **first consumer** (`OperacionesInscripcionesConsumer`, a `BackgroundService`) to maintain the local `participaciones_activas_equipo` projection that backs the BR-E10 delete guard.
+
+- **Queue:** `identity.operaciones-sesion.participaciones` (durable), bound to exchange `umbral.operaciones-sesion` (topic, durable) on 4 routing keys: `operaciones-sesion.inscripcion-equipo-creada.v1`, `operaciones-sesion.inscripcion-equipo-cancelada.v1`, `operaciones-sesion.partida-finalizada.v1`, `operaciones-sesion.partida-cancelada.v1`.
+- **Projection:** `InscripcionEquipoCreada` → upsert `(equipoId, partidaId)`; `InscripcionEquipoCancelada` → remove `(equipoId, partidaId)`; `PartidaFinalizada`/`PartidaCancelada` → remove all rows of that `partidaId`.
+- **Semantics:** best-effort ack-always (ADR-0012) — malformed envelope / unknown event / handler failure (incl. `DbUpdateException`) is logged and acked, never requeued/poison-looped; the projection is reconstructible. Idempotent by the composite key. Does not start when RabbitMQ is disabled. Enabled via the `RabbitMqConsumer` config section (see `GUIA-LEVANTAMIENTO.md`).
+- **Caveat (eventual consistency):** the guard is eventually consistent — an inscription made instants before a delete may not yet be projected. Accepted trade-off (chosen over synchronous cross-service HTTP) recorded in the slice design.
 
 ## Payloads (registered, SP-5b)
 
