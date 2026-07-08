@@ -60,6 +60,7 @@ public sealed class EquipoAdminHandlersTests
         var liderUsuario = Usuario.Crear(Guid.NewGuid().ToString(), "Ana", "ana@x.com", RolUsuario.Participante);
         usuarios.Agregar(liderUsuario);
         var liderId = liderUsuario.UsuarioId;
+        var liderMembershipKey = Guid.Parse(liderUsuario.KeycloakId);
         var equipos = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = false };
         var historial = new FakeHistorialNombreEquipoRepository();
         var publisher = new FakeIdentityEventsPublisher();
@@ -69,14 +70,49 @@ public sealed class EquipoAdminHandlersTests
 
         Assert.Equal("Equipo A", response.NombreEquipo);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.Estado);
-        Assert.Equal(liderId, response.LiderUserId);
+        Assert.Equal(liderMembershipKey, response.LiderUserId);
         Assert.Single(response.Integrantes);
         Assert.True(equipos.AddWasCalled);
         Assert.Single(historial.Registros);
-        Assert.Equal(liderId, historial.Registros[0].UsuarioId);
+        Assert.Equal(liderMembershipKey, historial.Registros[0].UsuarioId);
         Assert.Equal("Equipo A", historial.Registros[0].NombreEquipo);
         Assert.True(publisher.EquipoCreadoWasCalled);
-        Assert.Equal(liderId, publisher.EquipoCreadoEvent!.LiderUserId);
+        Assert.Equal(liderMembershipKey, publisher.EquipoCreadoEvent!.LiderUserId);
+    }
+
+    [Fact]
+    public async Task Crear_resuelve_clave_de_membresia_del_lider_por_KeycloakId_no_por_UsuarioId_local()
+    {
+        // El JWT `sub` (y por ende toda clave de membresía/evento/historial de equipos) vive en el
+        // espacio de KeycloakId, NO en el espacio de Usuario.UsuarioId local. El admin envía el
+        // UsuarioId local (el que expone el directorio de usuarios); el handler debe resolverlo
+        // contra el usuario y usar su KeycloakId como clave de membresía.
+        var usuarios = new FakeUsuarioRepository();
+        var keycloakId = Guid.NewGuid().ToString();
+        var liderUsuario = Usuario.Crear(keycloakId, "Beto", "beto@x.com", RolUsuario.Participante);
+        usuarios.Agregar(liderUsuario);
+
+        var liderUserIdLocal = liderUsuario.UsuarioId;
+        var liderMembershipKey = Guid.Parse(liderUsuario.KeycloakId);
+        Assert.NotEqual(liderUserIdLocal, liderMembershipKey);
+
+        var equipos = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = false };
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = new CrearEquipoAdminCommandHandler(usuarios, equipos, historial, publisher, TimeProvider.System);
+
+        var response = await handler.Handle(new CrearEquipoAdminCommand("Equipo B", liderUserIdLocal), CancellationToken.None);
+
+        Assert.Equal(liderMembershipKey, response.LiderUserId);
+        Assert.NotEqual(liderUserIdLocal, response.LiderUserId);
+
+        Assert.Single(historial.Registros);
+        Assert.Equal(liderMembershipKey, historial.Registros[0].UsuarioId);
+        Assert.NotEqual(liderUserIdLocal, historial.Registros[0].UsuarioId);
+
+        Assert.True(publisher.EquipoCreadoWasCalled);
+        Assert.Equal(liderMembershipKey, publisher.EquipoCreadoEvent!.LiderUserId);
+        Assert.NotEqual(liderUserIdLocal, publisher.EquipoCreadoEvent.LiderUserId);
     }
 
     // ---------- Renombrar ----------
