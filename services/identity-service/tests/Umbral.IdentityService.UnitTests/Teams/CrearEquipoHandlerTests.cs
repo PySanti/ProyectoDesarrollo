@@ -70,6 +70,9 @@ public sealed class CrearEquipoHandlerTests
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult<Equipo?>(null);
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
         {
             AddWasCalled = true;

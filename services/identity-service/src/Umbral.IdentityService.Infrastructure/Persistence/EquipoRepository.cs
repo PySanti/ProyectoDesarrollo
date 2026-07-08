@@ -40,6 +40,9 @@ public sealed class EquipoRepository : IEquipoRepository
             .FirstOrDefaultAsync(e => e.EquipoId == equipoId, cancellationToken);
     }
 
+    public async Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+        => await _dbContext.Equipos.Include(e => e.Participantes).ToListAsync(cancellationToken);
+
     public async Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
     {
         try

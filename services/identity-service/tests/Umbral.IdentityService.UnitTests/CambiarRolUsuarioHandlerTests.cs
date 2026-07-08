@@ -54,6 +54,9 @@ public class CambiarRolUsuarioHandlerTests
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
