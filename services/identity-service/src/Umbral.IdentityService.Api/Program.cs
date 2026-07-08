@@ -3,15 +3,27 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Umbral.IdentityService.Api.Utils;
+using Umbral.IdentityService.Api.Workers;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Infrastructure;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddIdentityApplication();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
+
+// Primer consumidor RabbitMQ de Identity (Task D3): proyecta participaciones activas de
+// equipo desde eventos de Operaciones de Sesión. El BackgroundService no arranca si está
+// deshabilitado o sin host (mismo patrón que el consumidor de Puntuaciones).
+var rabbitConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqConsumerOptions.SectionName)
+    .Get<RabbitMqConsumerOptions>()
+    ?? new RabbitMqConsumerOptions();
+builder.Services.AddSingleton(rabbitConsumerOptions);
+builder.Services.AddHostedService<OperacionesInscripcionesConsumer>();
 builder.Services.AddCors(options =>
 {
     options.AddPolicy("FrontendDev", policy =>
