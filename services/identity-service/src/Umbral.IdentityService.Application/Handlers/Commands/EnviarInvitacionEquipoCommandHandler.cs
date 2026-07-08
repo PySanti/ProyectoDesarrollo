@@ -14,12 +14,12 @@ public sealed class EnviarInvitacionEquipoCommandHandler : IRequestHandler<Envia
 {
     private readonly IEquipoRepository _equipoRepository;
     private readonly IInvitacionEquipoRepository _invitacionRepository;
-    private readonly IEquipoEventsPublisher _eventsPublisher;
+    private readonly IIdentityEventsPublisher _eventsPublisher;
 
     public EnviarInvitacionEquipoCommandHandler(
         IEquipoRepository equipoRepository,
         IInvitacionEquipoRepository invitacionRepository,
-        IEquipoEventsPublisher eventsPublisher)
+        IIdentityEventsPublisher eventsPublisher)
     {
         _equipoRepository = equipoRepository;
         _invitacionRepository = invitacionRepository;

@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useState } from "react";
 import {
+  changeUserRole,
   deactivateIdentityUser,
   getIdentityUserById,
   getIdentityUsers,
@@ -30,6 +31,12 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [page, setPage] = useState(1);
+  const [roleModalUser, setRoleModalUser] = useState<IdentityUserSummary | null>(null);
+  const [roleTarget, setRoleTarget] = useState("");
+  const [roleArmed, setRoleArmed] = useState(false);
+  const [roleError, setRoleError] = useState<string | null>(null);
+  const [roleSaving, setRoleSaving] = useState(false);
+  const [roleSuccess, setRoleSuccess] = useState<string | null>(null);
 
   // El front no sabe si el usuario aún tiene contraseña temporal (eso lo decide el backend
   // contra Keycloak), pero sí sabe si el correo cambió, que es la condición para que se reenvíe.
@@ -156,6 +163,50 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
     }
   }
 
+  function openRoleModal(user: IdentityUserSummary) {
+    setRoleModalUser(user);
+    setRoleTarget("");
+    setRoleArmed(false);
+    setRoleError(null);
+    setRoleSuccess(null);
+  }
+
+  function closeRoleModal() {
+    if (roleSaving) {
+      return;
+    }
+    setRoleModalUser(null);
+  }
+
+  async function onChangeRole() {
+    if (!roleModalUser || !roleTarget) {
+      return;
+    }
+
+    // Promoción a admin es irreversible: primer click arma, segundo ejecuta.
+    if (roleTarget === "Administrador" && !roleArmed) {
+      setRoleArmed(true);
+      return;
+    }
+
+    setRoleSaving(true);
+    setRoleError(null);
+    try {
+      const response = await changeUserRole(roleModalUser.userId, roleTarget, accessToken);
+      setUsers((current) =>
+        current.map((user) =>
+          user.userId === response.usuarioId ? { ...user, role: response.rol } : user
+        )
+      );
+      setRoleSuccess(`Rol de ${roleModalUser.name} actualizado a ${response.rol}.`);
+      setRoleModalUser(null);
+    } catch (caught) {
+      setRoleError(mapRoleChangeError(caught));
+    } finally {
+      setRoleSaving(false);
+    }
+  }
+
   const totalPages = Math.max(1, Math.ceil(users.length / PAGE_SIZE));
   const currentPage = Math.min(page, totalPages);
   const pageUsers = users.slice((currentPage - 1) * PAGE_SIZE, currentPage * PAGE_SIZE);
@@ -166,14 +217,20 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
         <div>
           <h1>Gestión de usuarios</h1>
           <p className="muted">
-            Consulta, actualiza datos generales y desactiva usuarios. El rol inicial se asigna al
-            crear y no se gestiona desde aquí.
+            Consulta, actualiza datos generales, desactiva usuarios y cambia el rol de operadores y
+            participantes. El rol de un Administrador es inmutable.
           </p>
         </div>
 
         {listError ? (
           <div className="notice error" role="alert">
             {listError}
+          </div>
+        ) : null}
+
+        {roleSuccess ? (
+          <div className="notice success" role="status" data-testid="role-change-success">
+            {roleSuccess}
           </div>
         ) : null}
 
@@ -211,6 +268,8 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
                       <th scope="col">Nombre</th>
                       <th scope="col">Correo</th>
                       <th scope="col">Estado</th>
+                      <th scope="col">Rol</th>
+                      <th scope="col">Acciones</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -228,6 +287,23 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
                         <td>{user.email}</td>
                         <td>
                           <StatusPill status={user.status} />
+                        </td>
+                        <td>{user.role}</td>
+                        <td>
+                          <button
+                            type="button"
+                            className="secondary-button"
+                            data-testid={`role-change-open-${user.userId}`}
+                            disabled={user.role === "Administrador"}
+                            title={
+                              user.role === "Administrador"
+                                ? "El rol de un Administrador es inmutable."
+                                : undefined
+                            }
+                            onClick={() => openRoleModal(user)}
+                          >
+                            Cambiar rol
+                          </button>
                         </td>
                       </tr>
                     ))}
@@ -349,6 +425,92 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
           </div>
         ) : null}
       </div>
+
+      {roleModalUser ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="role-change-title"
+            data-testid="role-change-modal"
+          >
+            <div className="modal-header">
+              <div>
+                <span className="badge">Cambiar rol</span>
+                <h2 id="role-change-title">{roleModalUser.name}</h2>
+              </div>
+              <button type="button" className="secondary-button" onClick={closeRoleModal}>
+                Cerrar
+              </button>
+            </div>
+
+            <p className="muted">
+              {roleModalUser.email} · Rol actual: <strong>{roleModalUser.role}</strong>
+            </p>
+
+            <label htmlFor="role-change-select">
+              Nuevo rol
+              <select
+                id="role-change-select"
+                data-testid="role-change-select"
+                value={roleTarget}
+                disabled={roleSaving}
+                onChange={(event) => {
+                  setRoleTarget(event.target.value);
+                  setRoleArmed(false);
+                  setRoleError(null);
+                }}
+              >
+                <option value="">Selecciona un rol…</option>
+                {(["Administrador", "Operador", "Participante"] as const)
+                  .filter((rol) => rol !== roleModalUser.role)
+                  .map((rol) => (
+                    <option key={rol} value={rol}>
+                      {rol}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            {roleTarget === "Administrador" ? (
+              <div className="notice info" role="alert" data-testid="role-change-warning">
+                Promover a Administrador es irreversible: el rol de un administrador no puede
+                volver a cambiarse.
+              </div>
+            ) : null}
+
+            {roleError ? (
+              <div className="notice error" role="alert" data-testid="role-change-error">
+                {roleError}
+              </div>
+            ) : null}
+
+            <div className="row">
+              <button
+                type="button"
+                data-testid="role-change-confirm"
+                disabled={roleSaving || !roleTarget}
+                onClick={onChangeRole}
+              >
+                {roleSaving
+                  ? "Cambiando…"
+                  : roleTarget === "Administrador" && roleArmed
+                    ? "Entiendo, promover"
+                    : "Cambiar rol"}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={roleSaving}
+                onClick={closeRoleModal}
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
     </div>
   );
 }
@@ -384,5 +546,21 @@ function mapHu02ErrorMessage(statusCode: number, fallbackMessage: string): strin
       return "Error de integración con Keycloak al actualizar el usuario. El cambio se revirtió; inténtalo nuevamente.";
     default:
       return fallbackMessage || "Error inesperado en Identity Service.";
+  }
+}
+
+function mapRoleChangeError(caught: unknown): string {
+  if (!(caught instanceof IdentityApiError)) {
+    return "Error inesperado al cambiar el rol.";
+  }
+  switch (caught.statusCode) {
+    case 502:
+      return "Keycloak no disponible. Inténtalo de nuevo.";
+    case 409:
+    case 400:
+    case 404:
+      return caught.message || "No fue posible cambiar el rol.";
+    default:
+      return caught.message || "Error inesperado en Identity Service.";
   }
 }

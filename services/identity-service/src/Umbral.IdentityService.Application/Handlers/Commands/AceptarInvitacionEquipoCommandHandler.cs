@@ -14,12 +14,12 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
 {
     private readonly IInvitacionEquipoRepository _invitacionRepository;
     private readonly IEquipoRepository _equipoRepository;
-    private readonly IEquipoEventsPublisher _eventsPublisher;
+    private readonly IIdentityEventsPublisher _eventsPublisher;
 
     public AceptarInvitacionEquipoCommandHandler(
         IInvitacionEquipoRepository invitacionRepository,
         IEquipoRepository equipoRepository,
-        IEquipoEventsPublisher eventsPublisher)
+        IIdentityEventsPublisher eventsPublisher)
     {
         _invitacionRepository = invitacionRepository;
         _equipoRepository = equipoRepository;

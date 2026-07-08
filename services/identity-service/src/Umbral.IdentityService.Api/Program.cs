@@ -105,7 +105,7 @@ else
 builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
-    options.AddPolicy("ParticipantOnly", policy => policy.RequireRole("Participante"));
+    options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
 });
 
 var app = builder.Build();
@@ -128,6 +128,19 @@ using (var scope = app.Services.CreateScope())
             );
 
             CREATE UNIQUE INDEX IF NOT EXISTS ix_usuarios_correo ON usuarios (correo);
+            """);
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS permisos_rol (
+                rol integer NOT NULL,
+                permiso integer NOT NULL,
+                PRIMARY KEY (rol, permiso)
+            );
+
+            INSERT INTO permisos_rol (rol, permiso)
+            SELECT v.rol, v.permiso
+            FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
+            WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
             """);
     }
 }

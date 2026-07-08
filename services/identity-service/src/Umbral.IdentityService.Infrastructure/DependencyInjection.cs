@@ -1,6 +1,7 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Logging;
 using Umbral.IdentityService.Application.Interfaces;
 
 
@@ -9,6 +10,7 @@ using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Infrastructure.Persistence;
 using Umbral.IdentityService.Infrastructure.Services.Events;
 using Umbral.IdentityService.Infrastructure.Services.Identity;
+using Umbral.IdentityService.Infrastructure.Services.Messaging;
 using Umbral.IdentityService.Infrastructure.Services.Notifications;
 using Umbral.IdentityService.Infrastructure.Services.Security;
 
@@ -53,7 +55,29 @@ public static class DependencyInjection
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IEquipoRepository, EquipoRepository>();
         services.AddScoped<IInvitacionEquipoRepository, InvitacionEquipoRepository>();
-        services.AddScoped<IEquipoEventsPublisher, NoOpEquipoEventsPublisher>();
+        services.AddScoped<IPermisosRolRepository, PermisosRolRepository>();
+        services.AddSingleton(TimeProvider.System);
+
+        var rabbitOptions = configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>()
+            ?? new RabbitMqOptions();
+        var rabbitHabilitado = rabbitOptions.Enabled && !string.IsNullOrWhiteSpace(rabbitOptions.Host);
+        services.AddScoped<NoOpIdentityEventsPublisher>();
+        if (rabbitHabilitado)
+        {
+            services.AddSingleton(rabbitOptions);
+            services.AddSingleton<IRabbitMqPublishChannel, RabbitMqPublishChannel>();
+            services.AddScoped<RabbitMqIdentityEventsPublisher>();
+        }
+        services.AddScoped<IIdentityEventsPublisher>(sp =>
+        {
+            var publishers = new List<IIdentityEventsPublisher> { sp.GetRequiredService<NoOpIdentityEventsPublisher>() };
+            if (rabbitHabilitado)
+            {
+                publishers.Add(sp.GetRequiredService<RabbitMqIdentityEventsPublisher>());
+            }
+            return new CompositeIdentityEventsPublisher(publishers,
+                sp.GetRequiredService<ILogger<CompositeIdentityEventsPublisher>>());
+        });
 
         services.AddSingleton<ITemporaryPasswordGenerator, CryptoTemporaryPasswordGenerator>();
 

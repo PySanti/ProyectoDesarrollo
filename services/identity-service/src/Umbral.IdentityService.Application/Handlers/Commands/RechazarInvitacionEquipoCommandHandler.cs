@@ -12,11 +12,11 @@ namespace Umbral.IdentityService.Application.Handlers.Commands;
 public sealed class RechazarInvitacionEquipoCommandHandler : IRequestHandler<RechazarInvitacionEquipoCommand, RechazarInvitacionEquipoResponse>
 {
     private readonly IInvitacionEquipoRepository _invitacionRepository;
-    private readonly IEquipoEventsPublisher _eventsPublisher;
+    private readonly IIdentityEventsPublisher _eventsPublisher;
 
     public RechazarInvitacionEquipoCommandHandler(
         IInvitacionEquipoRepository invitacionRepository,
-        IEquipoEventsPublisher eventsPublisher)
+        IIdentityEventsPublisher eventsPublisher)
     {
         _invitacionRepository = invitacionRepository;
         _eventsPublisher = eventsPublisher;

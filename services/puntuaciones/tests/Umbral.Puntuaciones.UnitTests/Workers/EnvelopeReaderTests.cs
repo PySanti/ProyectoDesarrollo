@@ -1,5 +1,6 @@
 using System;
 using System.Text;
+using System.Text.Json;
 using Umbral.Puntuaciones.Api.Workers;
 using Xunit;
 
@@ -18,6 +19,7 @@ public class EnvelopeReaderTests
         Assert.Equal("EtapaBDTGanada", envelope!.EventType);
         Assert.Equal(Guid.Parse("3f2504e0-4f89-11d3-9a0c-0305e82c3301"), envelope.EventId);
         Assert.Equal(1, envelope.Version);
+        Assert.Equal(JsonValueKind.Object, envelope.Payload.ValueKind);
     }
 
     [Theory]
@@ -29,6 +31,17 @@ public class EnvelopeReaderTests
     public void TryRead_malformado_devuelve_false(string body)
     {
         var ok = EnvelopeReader.TryRead(System.Text.Encoding.UTF8.GetBytes(body), out var envelope);
+        Assert.False(ok);
+        Assert.Null(envelope);
+    }
+
+    [Fact]
+    public void Envelope_sin_payload_es_malformado()
+    {
+        var json = "{\"eventId\":\"3f2504e0-4f89-11d3-9a0c-0305e82c3301\",\"eventType\":\"EtapaBDTGanada\",\"version\":1,\"occurredAt\":\"2026-07-03T10:00:00Z\"}";
+
+        var ok = EnvelopeReader.TryRead(Encoding.UTF8.GetBytes(json), out var envelope);
+
         Assert.False(ok);
         Assert.Null(envelope);
     }

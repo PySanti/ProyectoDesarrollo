@@ -28,7 +28,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
         await CreateTeamAsync(leaderId, "Invite Test Team 201");
 
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = invitadoId });
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
@@ -55,7 +55,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         // Member (non-leader) tries to invite
         var memberClient = _factory.CreateClientAs("Participante", memberId);
-        var response = await memberClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await memberClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = thirdUserId });
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
@@ -74,7 +74,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         // Second invitation to same participant — should return 409
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = invitadoId });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -97,13 +97,13 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
         // Now team is full — invite a 6th person should return 409
         var extraUserId = Guid.NewGuid();
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = extraUserId });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
     }
 
-    // ── Inbox (GET /api/teams/invitations) ───────────────────────────────────
+    // ── Inbox (GET /identity/teams/invitations) ───────────────────────────────────
 
     [Fact]
     public async Task GetInvitations_Returns200_WithList()
@@ -115,7 +115,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
         await InviteParticipantAsync(leaderId, invitadoId);
 
         var invitadoClient = _factory.CreateClientAs("Participante", invitadoId);
-        var response = await invitadoClient.GetAsync("/api/teams/invitations");
+        var response = await invitadoClient.GetAsync("/identity/teams/invitations");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -137,7 +137,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
         var userId = Guid.NewGuid();
         var client = _factory.CreateClientAs("Participante", userId);
 
-        var response = await client.GetAsync("/api/teams/invitations");
+        var response = await client.GetAsync("/identity/teams/invitations");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -158,7 +158,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         var invitadoClient = _factory.CreateClientAs("Participante", invitadoId);
         var response = await invitadoClient.PostAsJsonAsync(
-            $"/api/teams/invitations/{invitacionId}/acceptance", new { });
+            $"/identity/teams/invitations/{invitacionId}/acceptance", new { });
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -177,7 +177,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         var fakeId = Guid.NewGuid();
         var response = await client.PostAsJsonAsync(
-            $"/api/teams/invitations/{fakeId}/acceptance", new { });
+            $"/identity/teams/invitations/{fakeId}/acceptance", new { });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -195,7 +195,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         var invitadoClient = _factory.CreateClientAs("Participante", invitadoId);
         var response = await invitadoClient.PostAsJsonAsync(
-            $"/api/teams/invitations/{invitacionId}/rejection", new { });
+            $"/identity/teams/invitations/{invitacionId}/rejection", new { });
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -214,7 +214,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         var fakeId = Guid.NewGuid();
         var response = await client.PostAsJsonAsync(
-            $"/api/teams/invitations/{fakeId}/rejection", new { });
+            $"/identity/teams/invitations/{fakeId}/rejection", new { });
 
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
@@ -228,7 +228,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
         await CreateTeamAsync(leaderId, "Eligible Test Team");
 
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.GetAsync("/api/teams/eligible-participants");
+        var response = await leaderClient.GetAsync("/identity/teams/eligible-participants");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -248,7 +248,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
 
         // Both leader and member have a team; neither should appear in eligible list
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.GetAsync("/api/teams/eligible-participants");
+        var response = await leaderClient.GetAsync("/identity/teams/eligible-participants");
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -274,7 +274,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> CreateTeamAsync(Guid leaderId, string name)
     {
         var client = _factory.CreateClientAs("Participante", leaderId);
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = name });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = name });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
@@ -285,7 +285,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> InviteParticipantAsync(Guid leaderId, Guid invitadoId)
     {
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = invitadoId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -298,7 +298,7 @@ public sealed class InvitationsContractTests : IClassFixture<IdentityApiFactory>
     {
         var client = _factory.CreateClientAs("Participante", invitadoId);
         var response = await client.PostAsJsonAsync(
-            $"/api/teams/invitations/{invitacionId}/acceptance", new { });
+            $"/identity/teams/invitations/{invitacionId}/acceptance", new { });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using MediatR;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
 using Umbral.OperacionesSesion.Application.Commands;
 using Umbral.OperacionesSesion.Application.DTOs;
@@ -16,6 +17,7 @@ public sealed class SesionesController : ControllerBase
 
     public SesionesController(ISender mediator) => _mediator = mediator;
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/publicacion")]
     public async Task<IActionResult> Publicar(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -25,6 +27,7 @@ public sealed class SesionesController : ControllerBase
         return CreatedAtAction(nameof(ObtenerLobby), new { partidaId }, lobby);
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inscripciones")]
     public async Task<IActionResult> Inscribir(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -33,6 +36,7 @@ public sealed class SesionesController : ControllerBase
         return CreatedAtAction(nameof(ObtenerLobby), new { partidaId }, response);
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpDelete("partidas/{partidaId:guid}/inscripciones/mia")]
     public async Task<IActionResult> CancelarInscripcion(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -41,6 +45,7 @@ public sealed class SesionesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inscripciones-equipo")]
     public async Task<IActionResult> PreinscribirEquipo(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -52,6 +57,7 @@ public sealed class SesionesController : ControllerBase
         return CreatedAtAction(nameof(ObtenerLobby), new { partidaId }, response);
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpDelete("partidas/{partidaId:guid}/inscripciones-equipo/mia")]
     public async Task<IActionResult> CancelarInscripcionEquipo(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -63,6 +69,7 @@ public sealed class SesionesController : ControllerBase
         return NoContent();
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("convocatorias/{convocatoriaId:guid}/aceptacion")]
     public async Task<IActionResult> AceptarConvocatoria(Guid convocatoriaId, CancellationToken cancellationToken)
     {
@@ -72,6 +79,7 @@ public sealed class SesionesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("convocatorias/{convocatoriaId:guid}/rechazo")]
     public async Task<IActionResult> RechazarConvocatoria(Guid convocatoriaId, CancellationToken cancellationToken)
     {
@@ -88,14 +96,17 @@ public sealed class SesionesController : ControllerBase
         return Ok(lobby);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inicio")]
     public async Task<IActionResult> Iniciar(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new IniciarPartidaCommand(partidaId), cancellationToken));
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inicio-automatico")]
     public async Task<IActionResult> IniciarAutomatico(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new IntentarInicioAutomaticoCommand(partidaId), cancellationToken));
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/juego-actual/finalizacion")]
     public async Task<IActionResult> FinalizarJuegoActual(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new FinalizarJuegoActualCommand(partidaId), cancellationToken));
@@ -104,6 +115,7 @@ public sealed class SesionesController : ControllerBase
     public async Task<IActionResult> ObtenerEstado(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new ObtenerEstadoSesionQuery(partidaId), cancellationToken));
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("partidas/{partidaId:guid}/pregunta-actual/respuesta")]
     public async Task<IActionResult> Responder(Guid partidaId, [FromBody] ResponderPreguntaRequest request, CancellationToken cancellationToken)
     {
@@ -112,6 +124,7 @@ public sealed class SesionesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/pregunta-actual/avance")]
     public async Task<IActionResult> Avanzar(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new AvanzarPreguntaCommand(partidaId), cancellationToken));
@@ -120,6 +133,7 @@ public sealed class SesionesController : ControllerBase
     public async Task<IActionResult> ObtenerPreguntaActual(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new ObtenerPreguntaActualQuery(partidaId), cancellationToken));
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("partidas/{partidaId:guid}/etapa-actual/tesoro")]
     public async Task<IActionResult> ValidarTesoro(Guid partidaId, [FromBody] ValidarTesoroRequest request, CancellationToken cancellationToken)
     {
@@ -128,10 +142,12 @@ public sealed class SesionesController : ControllerBase
         return Ok(response);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/etapa-actual/avance")]
     public async Task<IActionResult> AvanzarEtapa(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new AvanzarEtapaCommand(partidaId), cancellationToken));
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/pistas")]
     public async Task<IActionResult> EnviarPista(Guid partidaId, [FromBody] EnviarPistaRequest request, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new EnviarPistaCommand(partidaId, request.ParticipanteDestinoId, request.Texto, request.EquipoDestinoId), cancellationToken));
@@ -140,6 +156,7 @@ public sealed class SesionesController : ControllerBase
     public async Task<IActionResult> ObtenerEtapaActual(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new ObtenerEtapaActualQuery(partidaId), cancellationToken));
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpGet("mi-sesion")]
     public async Task<IActionResult> ObtenerMiSesion(CancellationToken cancellationToken)
     {
@@ -148,6 +165,7 @@ public sealed class SesionesController : ControllerBase
         return dto is null ? NoContent() : Ok(dto);
     }
 
+    [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpGet("mis-convocatorias")]
     public async Task<IActionResult> ObtenerMisConvocatorias(CancellationToken cancellationToken)
     {

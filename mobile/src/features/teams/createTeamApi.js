@@ -1,7 +1,7 @@
 export async function createTeam(apiBaseUrl, token, payload, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

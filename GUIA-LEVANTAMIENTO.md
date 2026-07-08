@@ -31,6 +31,23 @@ usuario: guest
 password: guest
 ```
 
+## Levantamiento completo con Docker Compose (RNF-10)
+
+Alternativa al `dotnet run` por servicio: levantar la solución entera (infra + 4 servicios + gateway) con un solo comando desde la raíz del repo:
+
+```powershell
+docker compose -f "infra/docker-compose.yml" up -d --build postgres rabbitmq keycloak identity-service partidas operaciones-sesion puntuaciones gateway
+```
+
+Puertos host: gateway **5080**, identity **5001**, partidas **5010**, operaciones-sesion **5020**, puntuaciones **5030** (health anónimo en `/health` de cada servicio; vía gateway todo exige JWT por diseño SP-5a). Keycloak 8080, Postgres 55432, RabbitMQ 5672/15672.
+
+Notas:
+
+- **Base fresca:** con el volumen de Postgres recién creado, `infra/postgres-init/01-create-databases.sql` crea las 4 bases (`umbral_identity`, `umbral_partidas`, `umbral_operaciones_sesion`, `umbral_puntuaciones`) y cada servicio aplica su esquema al arrancar — partidas/operaciones/puntuaciones vía migraciones EF (`EF_MIGRATE_ON_STARTUP=true`, solo activo en compose; `dotnet run` local no migra), identity vía su bootstrap propio (`EnsureCreated` + SQL idempotente, incondicional). Para un volumen ya existente sigue valiendo el `CREATE DATABASE` manual del CLAUDE.md.
+- **Orden de arranque:** postgres y rabbitmq tienen healthcheck; los servicios esperan `service_healthy` — no hay carrera contra la DB en el primer arranque.
+- **Dentro de la red Docker** los servicios hablan con Keycloak como `http://keycloak:8080`; los tokens emitidos desde el navegador llevan issuer `http://localhost:8080`, por eso `KEYCLOAK_VALID_ISSUERS` lista ambos.
+- Los servicios legacy (`trivia-game-service`, `bdt-game-service`) no forman parte de este levantamiento (pendientes de retiro, Bloque 3).
+
 ## Variables de entorno (.env central)
 
 Hay un **`.env` en la raíz del repo** que es la **fuente única de verdad** para los valores
@@ -167,3 +184,44 @@ Una vez levantadas ambas imágenes y los dos servicios:
 3. Navega a **Exchanges** y busca `umbral.operaciones-sesion` (type: topic, durable)
 4. Opera una partida con ambos servicios corriendo (publícala, inicia, responde preguntas o valida QRs)
 5. La cola debe mostrar mensajes entrando: click en el nombre de la cola para ver los detalles
+
+## Broker RabbitMQ (Identity)
+
+Desde SP-5b, `identity-service` también publica eventos (equipos + gobernanza de rol/permisos) a
+RabbitMQ, best-effort (ADR-0012) — mismo patrón que `operaciones-sesion`/`puntuaciones` de la
+sección anterior. Configura estas variables en `services/identity-service/.env`:
+
+```
+RabbitMq__Enabled=true
+RabbitMq__Host=localhost
+RabbitMq__Port=5672
+RabbitMq__User=guest
+RabbitMq__Password=guest
+RabbitMq__Exchange=umbral.identity
+```
+
+Si `RabbitMq__Enabled=false` (default), el servicio arranca igual y los eventos simplemente no se
+publican (best-effort: la ausencia de broker nunca rompe el flujo HTTP). Los valores por defecto
+(usuario y contraseña `guest`, puerto `5672`) funcionan con la imagen de RabbitMQ del
+`docker-compose.yml` de desarrollo, igual que en Operaciones/Puntuaciones.
+
+Smoke test opt-in con el broker vivo:
+
+```
+RABBITMQ_TEST_HOST=localhost dotnet test services/identity-service/tests/Umbral.IdentityService.IntegrationTests --filter RabbitMqRoundTripTests
+```
+
+Sin `RABBITMQ_TEST_HOST` el test retorna vacío (no falla) — mismo patrón opt-in que SP-3i.
+
+## Autenticación JWT (Partidas)
+
+Desde SP-5a, Partidas valida JWT y exige el permiso `GestionarPartidas` en mutaciones; sin estas
+vars el servicio arranca sin validación JWT real (solo apto para tests). Configura estas variables
+en `services/partidas/.env`:
+
+```
+KEYCLOAK_BASE_URL=http://localhost:8080
+KEYCLOAK_REALM=UMBRAL-UCAB
+KEYCLOAK_VALID_AUDIENCES=umbral-web,umbral-mobile,account
+KEYCLOAK_VALID_ISSUERS=http://localhost:8080/realms/UMBRAL-UCAB
+```

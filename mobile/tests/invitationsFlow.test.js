@@ -12,7 +12,7 @@ const INV_ID = "aaaaaaaa-aaaa-aaaa-aaaa-aaaaaaaaaaaa";
 
 // ── loadInvitations ──────────────────────────────────────────────────────────
 
-test("loadInvitations should call GET /api/teams/invitations with Bearer token", async () => {
+test("loadInvitations should call GET /identity/teams/invitations with Bearer token", async () => {
   let requestedUrl;
   let requestedHeaders;
 
@@ -34,7 +34,7 @@ test("loadInvitations should call GET /api/teams/invitations with Bearer token",
     };
   });
 
-  assert.equal(requestedUrl, `${API_BASE}/api/teams/invitations`);
+  assert.equal(requestedUrl, `${API_BASE}/identity/teams/invitations`);
   assert.equal(requestedHeaders["Authorization"], `Bearer ${TOKEN}`);
   assert.equal(result.ok, true);
   assert.equal(result.data.length, 1);
@@ -73,7 +73,7 @@ test("loadInvitations should return error on unexpected status", async () => {
 
 // ── acceptInvitation ─────────────────────────────────────────────────────────
 
-test("acceptInvitation should call POST /api/teams/invitations/{id}/acceptance", async () => {
+test("acceptInvitation should call POST /identity/teams/invitations/{id}/acceptance", async () => {
   let requestedUrl;
   let requestedMethod;
 
@@ -91,7 +91,7 @@ test("acceptInvitation should call POST /api/teams/invitations/{id}/acceptance",
     };
   });
 
-  assert.equal(requestedUrl, `${API_BASE}/api/teams/invitations/${INV_ID}/acceptance`);
+  assert.equal(requestedUrl, `${API_BASE}/identity/teams/invitations/${INV_ID}/acceptance`);
   assert.equal(requestedMethod, "POST");
   assert.equal(result.ok, true);
   assert.equal(result.data.estado, "Aceptada");
@@ -128,7 +128,7 @@ test("acceptInvitation should return network error when fetch throws", async () 
 
 // ── rejectInvitation ─────────────────────────────────────────────────────────
 
-test("rejectInvitation should call POST /api/teams/invitations/{id}/rejection", async () => {
+test("rejectInvitation should call POST /identity/teams/invitations/{id}/rejection", async () => {
   let requestedUrl;
   let requestedMethod;
 
@@ -145,7 +145,7 @@ test("rejectInvitation should call POST /api/teams/invitations/{id}/rejection", 
     };
   });
 
-  assert.equal(requestedUrl, `${API_BASE}/api/teams/invitations/${INV_ID}/rejection`);
+  assert.equal(requestedUrl, `${API_BASE}/identity/teams/invitations/${INV_ID}/rejection`);
   assert.equal(requestedMethod, "POST");
   assert.equal(result.ok, true);
   assert.equal(result.data.estado, "Rechazada");

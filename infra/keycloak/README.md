@@ -35,6 +35,20 @@ docker compose -f "infra/docker-compose.yml" up -d keycloak
 > Editar `umbral-realm.json` y reiniciar **no** reimporta si el realm ya existe (estrategia
 > `IGNORE_EXISTING`). Para aplicar cambios del JSON, re-siembra con los comandos de arriba.
 
+## Permisos funcionales (SP-5a, ADR-0013)
+
+El realm define 3 realm roles técnicos — `GestionarPartidas`, `GestionarEquipos`,
+`ParticiparEnPartidas` — asignados como **composite** de los roles base
+(Operador → GestionarPartidas; Participante → GestionarEquipos + ParticiparEnPartidas).
+Keycloak los expande automáticamente en `realm_access.roles` del token. No se asignan
+a usuarios directamente.
+
+**Entornos con el realm ya importado:** re-importar el realm (o crear los 3 roles
+técnicos y sus composites a mano en la consola admin). Los tokens emitidos antes del
+re-seed no llevan los permisos → 403 hasta re-login/refresh.
+
+Verificación: `python3 scripts/check-realm-composites.py`
+
 ## Tema de login
 
 Tema custom que reemplaza la interfaz genérica de Keycloak por la identidad de UMBRAL

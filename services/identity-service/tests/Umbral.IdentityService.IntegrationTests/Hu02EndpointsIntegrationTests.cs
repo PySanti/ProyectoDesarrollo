@@ -13,10 +13,10 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
     }
 
     [Theory]
-    [InlineData("GET", "/api/identity/users")]
-    [InlineData("GET", "/api/identity/users/{id}")]
-    [InlineData("PATCH", "/api/identity/users/{id}")]
-    [InlineData("PATCH", "/api/identity/users/{id}/deactivation")]
+    [InlineData("GET", "/identity/users")]
+    [InlineData("GET", "/identity/users/{id}")]
+    [InlineData("PATCH", "/identity/users/{id}")]
+    [InlineData("PATCH", "/identity/users/{id}/deactivation")]
     public async Task Hu02_Endpoints_Should_Return_Unauthorized_When_Unauthenticated(string method, string rawPath)
     {
         var userId = Guid.NewGuid();
@@ -34,10 +34,10 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
     }
 
     [Theory]
-    [InlineData("GET", "/api/identity/users")]
-    [InlineData("GET", "/api/identity/users/{id}")]
-    [InlineData("PATCH", "/api/identity/users/{id}")]
-    [InlineData("PATCH", "/api/identity/users/{id}/deactivation")]
+    [InlineData("GET", "/identity/users")]
+    [InlineData("GET", "/identity/users/{id}")]
+    [InlineData("PATCH", "/identity/users/{id}")]
+    [InlineData("PATCH", "/identity/users/{id}/deactivation")]
     public async Task Hu02_Endpoints_Should_Return_Forbidden_For_Non_Admin(string method, string rawPath)
     {
         var userId = Guid.NewGuid();
@@ -61,7 +61,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
         var createResponse = await CreateUserAsAdminAsync("List User", "hu02.list@umbral.dev", "Participante");
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/identity/users");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/identity/users");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -75,7 +75,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
         var createResponse = await CreateUserAsAdminAsync("Detail User", "hu02.detail@umbral.dev", "Participante");
         var createdUser = await createResponse.Content.ReadFromJsonAsync<CreateUserResponse>();
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/identity/users/{createdUser!.UserId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/identity/users/{createdUser!.UserId}");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -86,7 +86,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
     [Fact]
     public async Task GetUserById_Should_Return_NotFound_For_Unknown_User()
     {
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/identity/users/{Guid.NewGuid()}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/identity/users/{Guid.NewGuid()}");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -100,7 +100,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
         var createResponse = await CreateUserAsAdminAsync("Update User", "hu02.update@umbral.dev", "Operador");
         var createdUser = await createResponse.Content.ReadFromJsonAsync<CreateUserResponse>();
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{createdUser!.UserId}")
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{createdUser!.UserId}")
         {
             Content = JsonContent.Create(new
             {
@@ -118,7 +118,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
     [Fact]
     public async Task UpdateUserGeneralData_Should_Return_NotFound_For_Unknown_User()
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{Guid.NewGuid()}")
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{Guid.NewGuid()}")
         {
             Content = JsonContent.Create(new
             {
@@ -142,7 +142,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
         var first = await createFirstResponse.Content.ReadFromJsonAsync<CreateUserResponse>();
         var second = await createSecondResponse.Content.ReadFromJsonAsync<CreateUserResponse>();
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{first!.UserId}")
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{first!.UserId}")
         {
             Content = JsonContent.Create(new
             {
@@ -163,7 +163,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
         var createResponse = await CreateUserAsAdminAsync("Deactivate User", "hu02.deactivate@umbral.dev", "Participante");
         var createdUser = await createResponse.Content.ReadFromJsonAsync<CreateUserResponse>();
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{createdUser!.UserId}/deactivation");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{createdUser!.UserId}/deactivation");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -174,7 +174,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
     [Fact]
     public async Task DeactivateUser_Should_Return_NotFound_For_Unknown_User()
     {
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{Guid.NewGuid()}/deactivation");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{Guid.NewGuid()}/deactivation");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -184,7 +184,7 @@ public sealed class Hu02EndpointsIntegrationTests : IClassFixture<IdentityApiFac
 
     private async Task<HttpResponseMessage> CreateUserAsAdminAsync(string name, string email, string initialRole)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(new
             {

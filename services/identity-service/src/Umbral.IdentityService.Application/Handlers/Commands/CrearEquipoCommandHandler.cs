@@ -12,11 +12,11 @@ namespace Umbral.IdentityService.Application.Handlers.Commands;
 public sealed class CrearEquipoCommandHandler : IRequestHandler<CrearEquipoCommand, CrearEquipoResponse>
 {
     private readonly IEquipoRepository _equipoRepository;
-    private readonly IEquipoEventsPublisher _equipoEventsPublisher;
+    private readonly IIdentityEventsPublisher _equipoEventsPublisher;
 
     public CrearEquipoCommandHandler(
         IEquipoRepository equipoRepository,
-        IEquipoEventsPublisher equipoEventsPublisher)
+        IIdentityEventsPublisher equipoEventsPublisher)
     {
         _equipoRepository = equipoRepository;
         _equipoEventsPublisher = equipoEventsPublisher;

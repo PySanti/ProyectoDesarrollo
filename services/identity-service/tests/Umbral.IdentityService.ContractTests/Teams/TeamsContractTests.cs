@@ -25,7 +25,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
         var leaderId = Guid.NewGuid();
         var client = _factory.CreateClientAs("Participante", leaderId);
 
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = "Equipo Alpha" });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = "Equipo Alpha" });
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
 
@@ -45,7 +45,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     public async Task CreateTeam_Returns401_WithNoAuth()
     {
         var client = _factory.CreateClient();
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = "No Auth Team" });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = "No Auth Team" });
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 
@@ -53,7 +53,18 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     public async Task CreateTeam_Returns403_ForAdministrador()
     {
         var client = _factory.CreateClientAs("Administrador", Guid.NewGuid());
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = "Admin Team" });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = "Admin Team" });
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Teams_con_rol_sin_GestionarEquipos_es_403()
+    {
+        // Operador autenticado pero sin el permiso GestionarEquipos.
+        var client = _factory.CreateClientAs("Operador", Guid.NewGuid());
+
+        var response = await client.GetAsync("identity/teams/mine");
+
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
@@ -64,11 +75,11 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
         var client = _factory.CreateClientAs("Participante", leaderId);
 
         // First team creation should succeed
-        var first = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = "First Team" });
+        var first = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = "First Team" });
         Assert.Equal(HttpStatusCode.Created, first.StatusCode);
 
         // Second creation by same user should conflict
-        var second = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = "Second Team" });
+        var second = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = "Second Team" });
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
     }
 
@@ -87,7 +98,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
 
         // Member leaves
         var memberClient = _factory.CreateClientAs("Participante", memberId);
-        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/api/teams/membership");
+        var deleteRequest = new HttpRequestMessage(HttpMethod.Delete, "/identity/teams/membership");
         deleteRequest.Headers.Add("X-Test-Role", "Participante");
         deleteRequest.Headers.Add("X-Test-UserId", memberId.ToString());
         var response = await memberClient.SendAsync(deleteRequest);
@@ -106,7 +117,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
         var userId = Guid.NewGuid();
         var client = _factory.CreateClientAs("Participante", userId);
 
-        var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/api/teams/membership"));
+        var response = await client.SendAsync(new HttpRequestMessage(HttpMethod.Delete, "/identity/teams/membership"));
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
     }
 
@@ -123,7 +134,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
         await AcceptInvitationAsync(memberId, invitacionId);
 
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PatchAsJsonAsync("/api/teams/leadership",
+        var response = await leaderClient.PatchAsJsonAsync("/identity/teams/leadership",
             new { nuevoLiderUserId = memberId });
 
         var body = await response.Content.ReadAsStringAsync();
@@ -149,7 +160,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
         // Member (non-leader) tries to transfer leadership —
         // the handler maps ActorNoEsLiderEquipoException → TransferirLiderazgoConflictException → 409.
         var memberClient = _factory.CreateClientAs("Participante", memberId);
-        var response = await memberClient.PatchAsJsonAsync("/api/teams/leadership",
+        var response = await memberClient.PatchAsJsonAsync("/identity/teams/leadership",
             new { nuevoLiderUserId = leaderId });
 
         Assert.Equal(HttpStatusCode.Conflict, response.StatusCode);
@@ -160,7 +171,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> CreateTeamAsync(Guid leaderId, string name)
     {
         var client = _factory.CreateClientAs("Participante", leaderId);
-        var response = await client.PostAsJsonAsync("/api/teams", new { nombreEquipo = name });
+        var response = await client.PostAsJsonAsync("/identity/teams", new { nombreEquipo = name });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
         using var doc = JsonDocument.Parse(body);
@@ -171,7 +182,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     private async Task<Guid> InviteParticipantAsync(Guid leaderId, Guid invitadoId)
     {
         var leaderClient = _factory.CreateClientAs("Participante", leaderId);
-        var response = await leaderClient.PostAsJsonAsync("/api/teams/invitations",
+        var response = await leaderClient.PostAsJsonAsync("/identity/teams/invitations",
             new { invitadoUserId = invitadoId });
         Assert.Equal(HttpStatusCode.Created, response.StatusCode);
         var body = await response.Content.ReadAsStringAsync();
@@ -184,7 +195,7 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     {
         var client = _factory.CreateClientAs("Participante", invitadoId);
         var response = await client.PostAsJsonAsync(
-            $"/api/teams/invitations/{invitacionId}/acceptance", new { });
+            $"/identity/teams/invitations/{invitacionId}/acceptance", new { });
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
 }

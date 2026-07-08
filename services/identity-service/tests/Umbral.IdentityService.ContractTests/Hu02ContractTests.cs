@@ -22,7 +22,7 @@ public sealed class Hu02ContractTests : IClassFixture<IdentityApiFactory>
             "Participante");
         Assert.Equal(HttpStatusCode.Created, createResponse.StatusCode);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, "/api/identity/users");
+        var request = new HttpRequestMessage(HttpMethod.Get, "/identity/users");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -51,7 +51,7 @@ public sealed class Hu02ContractTests : IClassFixture<IdentityApiFactory>
             "Operador");
         var createdUserId = await ExtractUserIdAsync(createResponse);
 
-        var request = new HttpRequestMessage(HttpMethod.Get, $"/api/identity/users/{createdUserId}");
+        var request = new HttpRequestMessage(HttpMethod.Get, $"/identity/users/{createdUserId}");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -76,7 +76,7 @@ public sealed class Hu02ContractTests : IClassFixture<IdentityApiFactory>
             "Participante");
         var createdUserId = await ExtractUserIdAsync(createResponse);
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{createdUserId}")
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{createdUserId}")
         {
             Content = JsonContent.Create(new
             {
@@ -107,7 +107,7 @@ public sealed class Hu02ContractTests : IClassFixture<IdentityApiFactory>
             "Participante");
         var createdUserId = await ExtractUserIdAsync(createResponse);
 
-        var request = new HttpRequestMessage(HttpMethod.Patch, $"/api/identity/users/{createdUserId}/deactivation");
+        var request = new HttpRequestMessage(HttpMethod.Patch, $"/identity/users/{createdUserId}/deactivation");
         request.Headers.Add("X-Test-Role", "Administrador");
 
         var response = await _client.SendAsync(request);
@@ -121,7 +121,7 @@ public sealed class Hu02ContractTests : IClassFixture<IdentityApiFactory>
 
     private async Task<HttpResponseMessage> CreateUserAsAdminAsync(string name, string email, string initialRole)
     {
-        var request = new HttpRequestMessage(HttpMethod.Post, "/api/identity/users")
+        var request = new HttpRequestMessage(HttpMethod.Post, "/identity/users")
         {
             Content = JsonContent.Create(new
             {

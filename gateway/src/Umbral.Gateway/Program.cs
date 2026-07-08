@@ -15,6 +15,7 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Administrador", p => p.RequireRole("Administrador"))
     .AddPolicy("Operador", p => p.RequireRole("Operador"))
     .AddPolicy("Participante", p => p.RequireRole("Participante"))
+    .AddPolicy("OperadorOAdministrador", p => p.RequireRole("Operador", "Administrador"))
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 var app = builder.Build();

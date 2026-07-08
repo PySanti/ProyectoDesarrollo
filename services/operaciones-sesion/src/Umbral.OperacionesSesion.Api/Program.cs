@@ -1,9 +1,14 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Authorization;
+using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.OperacionesSesion.Api.Middleware;
+using Umbral.OperacionesSesion.Api.Utils;
 using Umbral.OperacionesSesion.Application;
 using Umbral.OperacionesSesion.Application.Interfaces;
 using Umbral.OperacionesSesion.Infrastructure;
+using Umbral.OperacionesSesion.Infrastructure.Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -108,6 +113,14 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
             };
             options.Events = new JwtBearerEvents
             {
+                OnTokenValidated = context =>
+                {
+                    if (context.Principal?.Identity is ClaimsIdentity identity)
+                    {
+                        KeycloakRoleClaims.AddRolesFromKeycloakClaims(identity);
+                    }
+                    return Task.CompletedTask;
+                },
                 OnMessageReceived = context =>
                 {
                     var accessToken = context.Request.Query["access_token"];
@@ -126,9 +139,20 @@ else
     builder.Services.AddAuthentication();
 }
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorizationBuilder()
+    .AddPolicy("GestionarPartidas", p => p.RequireRole("GestionarPartidas"))
+    .AddPolicy("ParticiparEnPartidas", p => p.RequireRole("ParticiparEnPartidas"))
+    .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 var app = builder.Build();
+
+// RNF-10: el compose activa EF_MIGRATE_ON_STARTUP=true para aplicar el esquema
+// contra una base fresca. Default off: dotnet run local y tests quedan idénticos.
+if (Environment.GetEnvironmentVariable("EF_MIGRATE_ON_STARTUP") == "true")
+{
+    using var migrationScope = app.Services.CreateScope();
+    migrationScope.ServiceProvider.GetRequiredService<OperacionesSesionDbContext>().Database.Migrate();
+}
 
 app.UseMiddleware<ExceptionHandlingMiddleware>();
 app.UseAuthentication();

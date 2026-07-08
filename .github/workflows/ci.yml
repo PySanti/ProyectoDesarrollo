@@ -1,0 +1,104 @@
+name: CI
+
+on:
+  push:
+    branches: [develop, master]
+  pull_request:
+
+jobs:
+  backend:
+    name: backend-${{ matrix.name }}
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: puntuaciones
+            sln: services/puntuaciones/Umbral.Puntuaciones.sln
+          - name: identity
+            sln: services/identity-service/Umbral.IdentityService.sln
+          - name: partidas
+            sln: services/partidas/Umbral.Partidas.sln
+          - name: operaciones-sesion
+            sln: services/operaciones-sesion/Umbral.OperacionesSesion.sln
+          - name: gateway
+            sln: gateway/Umbral.Gateway.sln
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: 8.0.x
+      - name: Test con cobertura
+        run: dotnet test "${{ matrix.sln }}" --collect:"XPlat Code Coverage" --results-directory coverage-results
+      - uses: actions/upload-artifact@v4
+        with:
+          name: coverage-${{ matrix.name }}
+          path: coverage-results/**/coverage.cobertura.xml
+
+  frontend:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: frontend/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run build
+
+  mobile:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: mobile
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+      - run: npm ci
+      - run: npm test
+      - run: npm run typecheck
+
+  cobertura:
+    needs: backend
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/download-artifact@v4
+        with:
+          pattern: coverage-*
+          path: artifacts
+      - name: Instalar reportgenerator
+        run: dotnet tool install -g dotnet-reportgenerator-globaltool
+      - name: Resumen por servicio + total backend
+        run: |
+          {
+            echo "## Cobertura backend (líneas)"
+            echo ""
+            echo "| Servicio | Cobertura |"
+            echo "|---|---|"
+          } >> "$GITHUB_STEP_SUMMARY"
+          for dir in artifacts/coverage-*; do
+            name="${dir#artifacts/coverage-}"
+            reportgenerator "-reports:$dir/**/coverage.cobertura.xml" "-targetdir:resumen-$name" "-reporttypes:JsonSummary" > /dev/null
+            pct=$(jq -r '.summary.linecoverage' "resumen-$name/Summary.json")
+            echo "| $name | ${pct}% |" >> "$GITHUB_STEP_SUMMARY"
+          done
+          reportgenerator "-reports:artifacts/coverage-*/**/coverage.cobertura.xml" "-targetdir:reporte-total" "-reporttypes:JsonSummary;Html" > /dev/null
+          total=$(jq -r '.summary.linecoverage' reporte-total/Summary.json)
+          {
+            echo "| **Total backend** | **${total}%** |"
+            echo ""
+            echo "_Meta académica RNF-09: 90% (report-only, sin gate)._"
+          } >> "$GITHUB_STEP_SUMMARY"
+      - uses: actions/upload-artifact@v4
+        with:
+          name: reporte-cobertura-html
+          path: reporte-total

@@ -1,7 +1,7 @@
 export async function loadEligibleParticipants(apiBaseUrl, token, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/eligible-participants`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/eligible-participants`, {
       method: "GET",
       headers: {
         Authorization: `Bearer ${token}`,
@@ -38,7 +38,7 @@ export async function loadEligibleParticipants(apiBaseUrl, token, fetchImpl = fe
 export async function sendInvitation(apiBaseUrl, token, invitadoUserId, fetchImpl = fetch) {
   let response;
   try {
-    response = await fetchImpl(`${apiBaseUrl}/api/teams/invitations`, {
+    response = await fetchImpl(`${apiBaseUrl}/identity/teams/invitations`, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",

@@ -7,7 +7,7 @@ using Umbral.OperacionesSesion.Application.Interfaces;
 
 namespace Umbral.OperacionesSesion.Infrastructure.Services;
 
-// GET /api/teams/mine en Identity → snapshot de membresía del líder autenticado.
+// GET /identity/teams/mine en Identity → snapshot de membresía del líder autenticado.
 // 404 → null (sin equipo activo); red/timeout/non-success → IdentityInaccesible (Identity caído ≠ sin equipo).
 public sealed class IdentityEquipoHttpClient : IEquipoDirectoryClient
 {
@@ -17,7 +17,7 @@ public sealed class IdentityEquipoHttpClient : IEquipoDirectoryClient
 
     public async Task<EquipoSnapshotDto?> ObtenerMiEquipoAsync(string? bearerToken, CancellationToken cancellationToken)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, "/api/teams/mine");
+        using var request = new HttpRequestMessage(HttpMethod.Get, "/identity/teams/mine");
         if (!string.IsNullOrWhiteSpace(bearerToken))
             request.Headers.TryAddWithoutValidation("Authorization", bearerToken);
 
@@ -52,7 +52,7 @@ public sealed class IdentityEquipoHttpClient : IEquipoDirectoryClient
         }
     }
 
-    // Deserialización local del contrato identity-api GET /api/teams/mine (camelCase; binding case-insensitive).
+    // Deserialización local del contrato identity-api GET /identity/teams/mine (camelCase; binding case-insensitive).
     private sealed record EquipoMineResponse(Guid EquipoId, string NombreEquipo, string Estado, List<MiembroResponse> Participantes);
     private sealed record MiembroResponse(Guid UsuarioId, bool EsLider);
 }

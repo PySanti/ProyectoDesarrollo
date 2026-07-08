@@ -11,7 +11,7 @@ const INVITADO_USER_ID = "dddddddd-dddd-dddd-dddd-dddddddddddd";
 
 // ── loadEligibleParticipants ──────────────────────────────────────────────────
 
-test("loadEligibleParticipants should call GET /api/teams/eligible-participants with Bearer token", async () => {
+test("loadEligibleParticipants should call GET /identity/teams/eligible-participants with Bearer token", async () => {
   let requestedUrl;
   let requestedHeaders;
 
@@ -27,7 +27,7 @@ test("loadEligibleParticipants should call GET /api/teams/eligible-participants 
     };
   });
 
-  assert.equal(requestedUrl, `${API_BASE}/api/teams/eligible-participants`);
+  assert.equal(requestedUrl, `${API_BASE}/identity/teams/eligible-participants`);
   assert.equal(requestedHeaders["Authorization"], `Bearer ${TOKEN}`);
   assert.equal(result.ok, true);
   assert.equal(result.data.length, 1);
@@ -77,7 +77,7 @@ test("loadEligibleParticipants should return error on unexpected status", async 
 
 // ── sendInvitation ────────────────────────────────────────────────────────────
 
-test("sendInvitation should call POST /api/teams/invitations with invitadoUserId in body", async () => {
+test("sendInvitation should call POST /identity/teams/invitations with invitadoUserId in body", async () => {
   let requestedUrl;
   let requestedMethod;
   let requestedBody;
@@ -100,7 +100,7 @@ test("sendInvitation should call POST /api/teams/invitations with invitadoUserId
     };
   });
 
-  assert.equal(requestedUrl, `${API_BASE}/api/teams/invitations`);
+  assert.equal(requestedUrl, `${API_BASE}/identity/teams/invitations`);
   assert.equal(requestedMethod, "POST");
   assert.deepEqual(requestedBody, { invitadoUserId: INVITADO_USER_ID });
   assert.equal(requestedHeaders["Content-Type"], "application/json");

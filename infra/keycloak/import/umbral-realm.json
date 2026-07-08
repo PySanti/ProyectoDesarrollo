@@ -10,9 +10,34 @@
   "registrationAllowed": false,
   "roles": {
     "realm": [
-      { "name": "Administrador", "description": "Administra usuarios y configuración de la plataforma." },
-      { "name": "Operador", "description": "Crea y supervisa partidas de Trivia y BDT." },
-      { "name": "Participante", "description": "Juega Trivia y BDT desde la app móvil." }
+      {
+        "name": "Administrador",
+        "description": "Administra usuarios y configuración de la plataforma."
+      },
+      {
+        "name": "Operador",
+        "description": "Crea y supervisa partidas de Trivia y BDT.",
+        "composite": true,
+        "composites": { "realm": ["GestionarPartidas"] }
+      },
+      {
+        "name": "Participante",
+        "description": "Juega Trivia y BDT desde la app móvil.",
+        "composite": true,
+        "composites": { "realm": ["GestionarEquipos", "ParticiparEnPartidas"] }
+      },
+      {
+        "name": "GestionarPartidas",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): gestionar y operar partidas."
+      },
+      {
+        "name": "GestionarEquipos",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): gestionar equipos."
+      },
+      {
+        "name": "ParticiparEnPartidas",
+        "description": "Permiso funcional (rol técnico, no asignable a usuarios): participar en partidas."
+      }
     ]
   },
   "clients": [
@@ -28,7 +53,21 @@
       "attributes": {
         "pkce.code.challenge.method": "S256",
         "post.logout.redirect.uris": "http://localhost:5173/*"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "umbral-web-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "",
+            "included.custom.audience": "umbral-web",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     },
     {
       "clientId": "umbral-mobile",
@@ -41,7 +80,21 @@
       "webOrigins": ["+"],
       "attributes": {
         "pkce.code.challenge.method": "S256"
-      }
+      },
+      "protocolMappers": [
+        {
+          "name": "umbral-mobile-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "",
+            "included.custom.audience": "umbral-mobile",
+            "id.token.claim": "false",
+            "access.token.claim": "true"
+          }
+        }
+      ]
     },
     {
       "clientId": "identity-service",
