@@ -56,6 +56,7 @@ public static class DependencyInjection
         services.AddScoped<IEquipoRepository, EquipoRepository>();
         services.AddScoped<IInvitacionEquipoRepository, InvitacionEquipoRepository>();
         services.AddScoped<IHistorialNombreEquipoRepository, HistorialNombreEquipoRepository>();
+        services.AddScoped<IParticipacionActivaEquipoRepository, ParticipacionActivaEquipoRepository>();
         services.AddScoped<IPermisosRolRepository, PermisosRolRepository>();
         services.AddSingleton(TimeProvider.System);
 

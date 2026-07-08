@@ -15,6 +15,7 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<InvitacionEquipo> InvitacionesEquipo => Set<InvitacionEquipo>();
     public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
     public DbSet<HistorialNombreEquipo> HistorialNombresEquipo => Set<HistorialNombreEquipo>();
+    public DbSet<ParticipacionActivaEquipo> ParticipacionesActivasEquipo => Set<ParticipacionActivaEquipo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -93,6 +94,15 @@ public sealed class IdentityDbContext : DbContext
             entity.Property(x => x.NombreEquipo).HasColumnName("nombreequipo").HasMaxLength(120).IsRequired();
             entity.Property(x => x.FechaRegistroUtc).HasColumnName("fecharegistroutc").IsRequired();
             entity.HasIndex(x => x.UsuarioId).HasDatabaseName("ix_historial_nombre_equipo_usuarioid");
+        });
+
+        modelBuilder.Entity<ParticipacionActivaEquipo>(entity =>
+        {
+            entity.ToTable("participaciones_activas_equipo");
+            entity.HasKey(x => new { x.EquipoId, x.PartidaId });
+            entity.Property(x => x.EquipoId).HasColumnName("equipoid");
+            entity.Property(x => x.PartidaId).HasColumnName("partidaid");
+            entity.Property(x => x.FechaRegistroUtc).HasColumnName("fecharegistroutc").IsRequired();
         });
     }
 }
