@@ -14,6 +14,7 @@ public sealed class IdentityDbContext : DbContext
     public DbSet<ParticipanteEquipo> ParticipantesEquipo => Set<ParticipanteEquipo>();
     public DbSet<InvitacionEquipo> InvitacionesEquipo => Set<InvitacionEquipo>();
     public DbSet<PermisoRol> PermisosRol => Set<PermisoRol>();
+    public DbSet<HistorialNombreEquipo> HistorialNombresEquipo => Set<HistorialNombreEquipo>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -80,6 +81,18 @@ public sealed class IdentityDbContext : DbContext
             entity.HasKey(p => new { p.Rol, p.Permiso });
             entity.Property(p => p.Rol).HasColumnName("rol");
             entity.Property(p => p.Permiso).HasColumnName("permiso");
+        });
+
+        modelBuilder.Entity<HistorialNombreEquipo>(entity =>
+        {
+            entity.ToTable("historial_nombre_equipo");
+            entity.HasKey(x => x.Id);
+            entity.Property(x => x.Id).HasColumnName("id");
+            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid").IsRequired();
+            entity.Property(x => x.EquipoId).HasColumnName("equipoid").IsRequired();
+            entity.Property(x => x.NombreEquipo).HasColumnName("nombreequipo").HasMaxLength(120).IsRequired();
+            entity.Property(x => x.FechaRegistroUtc).HasColumnName("fecharegistroutc").IsRequired();
+            entity.HasIndex(x => x.UsuarioId).HasDatabaseName("ix_historial_nombre_equipo_usuarioid");
         });
     }
 }
