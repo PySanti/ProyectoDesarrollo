@@ -104,6 +104,7 @@ public static class DependencyInjection
             }
         });
         services.AddScoped<IUserWelcomeEmailSender, SmtpUserWelcomeEmailSender>();
+        services.AddScoped<ITeamLifecycleNotifier, SmtpTeamLifecycleNotifier>();
 
         return services;
     }
