@@ -213,6 +213,39 @@ RABBITMQ_TEST_HOST=localhost dotnet test services/identity-service/tests/Umbral.
 
 Sin `RABBITMQ_TEST_HOST` el test retorna vacío (no falla) — mismo patrón opt-in que SP-3i.
 
+### Consumidor de inscripciones de equipo (Bloque 4A — guard BR-E10)
+
+Desde el Bloque 4A, `identity-service` también **consume** eventos de Operaciones de Sesión para
+mantener la proyección `participaciones_activas_equipo` que respalda el guard de borrado de equipo
+(BR-E10: no se elimina un equipo con participación activa en partida `Lobby`/`Iniciada`). Es el
+primer consumidor de Identity (`OperacionesInscripcionesConsumer`, best-effort ack-siempre,
+ADR-0012). Se configura en su propia sección `RabbitMqConsumer` en `services/identity-service/.env`:
+
+```
+RabbitMqConsumer__Enabled=true
+RabbitMqConsumer__Host=localhost
+RabbitMqConsumer__Port=5672
+RabbitMqConsumer__User=guest
+RabbitMqConsumer__Password=guest
+RabbitMqConsumer__Exchange=umbral.operaciones-sesion
+RabbitMqConsumer__Queue=identity.operaciones-sesion.participaciones
+```
+
+Notas:
+- El **exchange es el de Operaciones** (`umbral.operaciones-sesion`), no el de Identity — el
+  consumidor se ata a los eventos que **produce Operaciones**. La cola
+  `identity.operaciones-sesion.participaciones` (durable) se enlaza a 4 routing keys:
+  `operaciones-sesion.inscripcion-equipo-creada.v1`, `…inscripcion-equipo-cancelada.v1`,
+  `…partida-finalizada.v1`, `…partida-cancelada.v1`.
+- Si `RabbitMqConsumer__Enabled=false` (o el host vacío), el consumidor **no arranca** y el guard
+  BR-E10 queda inerte (el borrado no se bloqueará por participación activa). Para probar el guard
+  end-to-end en dev, habilítalo junto con `RabbitMq__Enabled=true` en Operaciones para que los
+  eventos de inscripción realmente se publiquen.
+- La proyección es **eventualmente consistente** (caveat aceptado): una inscripción hecha instantes
+  antes de un borrado puede no estar proyectada aún. Al desplegar, la tabla arranca vacía
+  (cold start): las inscripciones de equipo previas al arranque del consumidor no estarán
+  proyectadas hasta re-emitirse.
+
 ## Autenticación JWT (Partidas)
 
 Desde SP-5a, Partidas valida JWT y exige el permiso `GestionarPartidas` en mutaciones; sin estas

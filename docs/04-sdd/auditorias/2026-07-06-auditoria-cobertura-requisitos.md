@@ -131,6 +131,18 @@ guard de BR-E10/HU-06, que necesita consulta cross-service Identity→Operacione
 Lobby/Iniciada?"). `TeamsController` hoy solo expone create / mine / membership / leadership. Paralelizable con
 Bloques 1-2.
 
+> **Actualización 2026-07-08 — Bloque 4A COMPLETADO** (`feature/bloque4a-equipos-admin`, subagent-driven, 23 tasks
+> A1..I3, review-clean). Cierra **HU-06, HU-09, HU-48 · BR-E06, BR-E10, BR-E11** end-to-end (backend Identity +
+> web admin + mobile). El guard cross-service de BR-E10 se resolvió **no** por HTTP síncrono sino por **proyección
+> local alimentada por eventos RabbitMQ** (Operaciones emite `InscripcionEquipoCreada`/`Cancelada`; Identity estrena
+> su primer consumidor y mantiene `participaciones_activas_equipo`) — caveat aceptado: eventualmente consistente.
+> Suites verdes: Identity 312/312, Operaciones 458, web 84/84, mobile 112/112. Ver
+> `docs/superpowers/specs/2026-07-08-bloque4a-equipos-admin-{design,acceptance}.md` y la fila en la matriz.
+>
+> **Pendiente — HU-19 = slice 4B** (sin cerrar): el operador acepta/rechaza inscripciones en el lobby vive en
+> Operaciones de Sesión y cambia el flujo de inscripción (hoy directa: inscribirse = quedar Activa). Se separó como
+> slice propio con su ciclo spec→plan; no forma parte del Bloque 4A.
+
 ### Bloque 5 — RNF sueltos de auth/notificaciones (2 requisitos; ya conocidos)
 
 - RNF-23 + BR-R05: publicar `UsuarioCreado`/`CredencialTemporalEmitida` y mover el envío de correo a un consumidor
