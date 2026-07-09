@@ -336,6 +336,9 @@ public sealed class EquipoAdminHandlersTests
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.TryGetValue(userId, out var usuario) ? usuario : null);
 
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult(_usuarios.Values.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
+
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 

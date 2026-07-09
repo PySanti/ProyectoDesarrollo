@@ -183,6 +183,9 @@ public sealed class GetParticipantesElegiblesHandlerTests
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.UsuarioId == userId));
 
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
+
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 

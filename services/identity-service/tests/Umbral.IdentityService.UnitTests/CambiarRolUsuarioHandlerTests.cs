@@ -24,6 +24,9 @@ public class CambiarRolUsuarioHandlerTests
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.TryGetValue(userId, out var usuario) ? usuario : null);
 
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 

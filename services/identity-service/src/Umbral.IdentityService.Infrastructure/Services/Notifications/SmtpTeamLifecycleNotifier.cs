@@ -51,24 +51,28 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         await EnviarCorreoBestEffortAsync(nuevoLiderUserId, subjectNuevo, textoNuevo, ct);
     }
 
-    private async Task EnviarCorreoBestEffortAsync(Guid usuarioId, string subject, string plainText, CancellationToken ct)
+    private async Task EnviarCorreoBestEffortAsync(Guid miembroKeycloakId, string subject, string plainText, CancellationToken ct)
     {
         try
         {
-            var usuario = await _usuarioRepository.GetByIdAsync(usuarioId, ct);
+            // Los miembros de equipo llegan en espacio KeycloakId (el `sub` del JWT), no en el
+            // UsuarioId local: ver Equipo.EliminarPorLider/EliminarPorAdmin y
+            // ReasignarLiderazgoPorAdmin. Resolver por GetByIdAsync aquí nunca encontraría al
+            // destinatario.
+            var usuario = await _usuarioRepository.GetByKeycloakIdAsync(miembroKeycloakId, ct);
             if (usuario is null)
             {
                 _logger.LogWarning(
-                    "No se pudo notificar el ciclo de vida del equipo: usuario {UsuarioId} no existe.",
-                    usuarioId);
+                    "No se pudo notificar el ciclo de vida del equipo: usuario con KeycloakId {KeycloakId} no existe.",
+                    miembroKeycloakId);
                 return;
             }
 
             if (string.IsNullOrWhiteSpace(_options.Host) || string.IsNullOrWhiteSpace(_options.FromAddress))
             {
                 _logger.LogWarning(
-                    "No se pudo notificar el ciclo de vida del equipo a {UsuarioId}: configuración SMTP incompleta.",
-                    usuarioId);
+                    "No se pudo notificar el ciclo de vida del equipo a {KeycloakId}: configuración SMTP incompleta.",
+                    miembroKeycloakId);
                 return;
             }
 
@@ -78,8 +82,8 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         {
             _logger.LogWarning(
                 ex,
-                "Fallo best-effort al notificar ciclo de vida de equipo al usuario {UsuarioId}.",
-                usuarioId);
+                "Fallo best-effort al notificar ciclo de vida de equipo al usuario con KeycloakId {KeycloakId}.",
+                miembroKeycloakId);
         }
     }
 
