@@ -126,28 +126,23 @@ Cambios en eventos existentes:
 
 Tiempo real: **ninguno nuevo.** El lobby del operador **pollea** `GET …/lobby` (coherente con la decisión SP-3f-2 de que el lobby no difunde por SignalR; `ConvocatoriaRespondida` es No-Op en SignalR por la misma razón).
 
-## Sección 5 — Clientes
+## Sección 5 — Clientes (DIFERIDO a slice de migración)
 
-**Web (operador)** — vista de lobby:
-- Dos secciones nuevas: "Solicitudes pendientes (individuales)" y "Solicitudes pendientes (equipos)", cada fila con botones **Aceptar** / **Rechazar**.
-- Cada acción llama al endpoint correspondiente y refresca el lobby (reusa el polling/refetch actual).
-- Se preservan `label`/`id`/`data-testid`/roles ARIA existentes; las nuevas usan las primitivas del design system (`docs/02-project-context/design/design-system.md`).
+**Hallazgo (2026-07-08):** la web (`TriviaOperationsPage.tsx` vía `VITE_TRIVIA_API_BASE_URL`→5015) y el móvil (`EXPO_PUBLIC_*`→5015/5016) corren **100% sobre los servicios legacy** (`trivia-game-service`/`bdt-game-service`), con DTOs propios distintos al `LobbyDto` nuevo; **ningún cliente tiene cableado a Operaciones de Sesión ni al gateway**. Exponer HU-19 en los clientes reales no es "extender un adaptador" sino un mini-proyecto de migración (modificar servicios legacy a retirar, o construir wiring nuevo cliente→gateway→Operaciones).
 
-**Mobile (participante):**
-- Individual: tras solicitar, la inscripción muestra "Pendiente de aprobación"; al aprobar pasa al estado unido normal; al rechazar muestra "Solicitud rechazada" con opción de volver a solicitar (nueva solicitud `Pendiente`).
-- Miembro de equipo: la convocatoria **solo llega tras la aprobación del operador** (cambio de tiempo); antes el miembro ve "esperando aprobación del operador". El líder ve su preinscripción `Pendiente`.
+**Decisión:** este slice 4B cubre **solo el backend de Operaciones** (núcleo gradeable, testeable e independiente del enredo legacy). La UI de operador (aceptar/rechazar + secciones de pendientes) y el estado `Pendiente`/`Rechazada` del participante se implementan en un **slice cliente aparte**, una vez migrado el lobby a gateway/Operaciones — mismo criterio que 4A (backend sólido primero). Cuando se haga: web = dos secciones de pendientes con Aceptar/Rechazar + refetch, preservando `label`/`id`/`data-testid`/ARIA; mobile = estado "Pendiente de aprobación" → unido/"Solicitud rechazada" con re-solicitud, y convocatoria de miembro que solo llega tras la aprobación.
 
 ## Sección 6 — Testing
 
 - **Dominio (unit):** máquina de estados (Pendiente→Activa/Rechazada); convocatorias diferidas y creadas solo al aceptar (Equipo); cupo validado al aceptar (409 si `Activos == Maximos`); `OcupaParticipacion` en guards de "ya inscrito"; mínimos al iniciar excluyen `Pendiente`; rechazo→re-solicitud permitida; cancelar Pendiente.
 - **Handlers/controllers (unit):** `AceptarInscripcion`/`RechazarInscripcion` (authz `GestionarPartidas`; 200/404/409); `LobbyDto` con listas de pendientes; `mi-sesion` con `OcupaParticipacion`.
 - **Contract tests:** payloads de `InscripcionSolicitada`/`Aceptada`/`Rechazada`; timing de `ConvocatoriaCreada` (al aceptar) e `InscripcionEquipoCancelada` (al rechazar).
-- **Web (vitest):** render de secciones de pendientes + llamadas Aceptar/Rechazar + refetch.
-- **Mobile (node --test):** render de estado Pendiente/Rechazada + re-solicitud.
-- **Regresión:** actualizar todos los tests existentes que asumían "inscribir/preinscribir = `Activa`" (dominio, handlers, contract, web, mobile) al nuevo `Pendiente`.
+- **Regresión:** actualizar todos los tests existentes de Operaciones que asumían "inscribir/preinscribir = `Activa`" (dominio, handlers, contract) al nuevo `Pendiente`.
+- **Clientes (web/mobile):** diferido junto con la UI al slice de migración (ver Sección 5).
 
 ## Fuera de alcance
 
+- **UI de clientes (web operador + mobile participante)** — diferida a un slice de migración (Sección 5): los clientes corren sobre servicios legacy sin cableado a Operaciones.
 - Configurabilidad de la aprobación por partida (descartada: HU-19 no la pide; aprobación siempre obligatoria).
 - SignalR para el lobby (el operador pollea, coherente con SP-3f-2).
 - Cambios en Identity (solo cambia el *momento* de emisión de eventos ya consumidos).
