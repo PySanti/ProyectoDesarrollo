@@ -32,7 +32,8 @@ public class CancelarInscripcionEquipoCommandHandlerTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5,
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
-        sesion.PreinscribirEquipo(equipoId, true, new[] { lider }, false, 0, T0);
+        var inscPre = sesion.PreinscribirEquipo(equipoId, true, new[] { lider }, false, 0, T0);
+        sesion.AceptarInscripcion(inscPre.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         var directory = new FakeEquipoDirectoryClient

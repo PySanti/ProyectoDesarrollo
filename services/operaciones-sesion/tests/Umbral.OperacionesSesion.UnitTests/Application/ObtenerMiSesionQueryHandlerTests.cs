@@ -26,7 +26,8 @@ public class ObtenerMiSesionQueryHandlerTests
         var snap = new ConfiguracionSnapshot("Q", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
             new List<JuegoResumen> { juego });
         var s = SesionPartida.Publicar(partidaId, snap);
-        s.Inscribir(participante, false, 0, T0);
+        var insc = s.Inscribir(participante, false, 0, T0);
+        s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
         if (iniciar) s.Iniciar(T0);   // activa juego 1 + pregunta 1
         return s;
     }
@@ -38,7 +39,8 @@ public class ObtenerMiSesionQueryHandlerTests
         var snap = new ConfiguracionSnapshot("B", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
             new List<JuegoResumen> { juego });
         var s = SesionPartida.Publicar(partidaId, snap);
-        s.Inscribir(participante, false, 0, T0);
+        var insc = s.Inscribir(participante, false, 0, T0);
+        s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
         s.Iniciar(T0);                // activa juego 1 + etapa 1
         return s;
     }

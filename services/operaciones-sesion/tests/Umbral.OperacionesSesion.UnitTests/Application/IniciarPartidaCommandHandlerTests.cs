@@ -22,7 +22,11 @@ public class IniciarPartidaCommandHandlerTests
         var lista = Enumerable.Range(1, juegos).Select(o => new JuegoResumen(Guid.NewGuid(), o, TipoJuego.Trivia)).ToList();
         var snapshot = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, min, max, lista);
         var sesion = SesionPartida.Publicar(partidaId, snapshot);
-        for (var i = 0; i < inscritos; i++) sesion.Inscribir(Guid.NewGuid(), false, i, T0);
+        for (var i = 0; i < inscritos; i++)
+        {
+            var ins = sesion.Inscribir(Guid.NewGuid(), false, i, T0);
+            sesion.AceptarInscripcion(ins.Id.Valor, i, T0); // HU-19: aceptar para que cuente en mínimos
+        }
         return sesion;
     }
 

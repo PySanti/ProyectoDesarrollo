@@ -23,7 +23,8 @@ public class ObtenerEstadoSesionQueryHandlerTests
         var lista = Enumerable.Range(1, 2).Select(o => new JuegoResumen(Guid.NewGuid(), o, TipoJuego.Trivia)).ToList();
         var snapshot = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, lista);
         var sesion = SesionPartida.Publicar(partidaId, snapshot);
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0); // game 1 → Activo
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);

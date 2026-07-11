@@ -23,7 +23,8 @@ public class ObtenerPreguntaActualQueryHandlerTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { pregunta });
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
         return sesion;
     }

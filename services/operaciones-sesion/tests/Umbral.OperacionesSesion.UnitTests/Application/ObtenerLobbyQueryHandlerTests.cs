@@ -27,7 +27,8 @@ public class ObtenerLobbyQueryHandlerTests
         var repo = new FakeSesionPartidaRepository();
         var sesion = PublishedSession(partidaId);
         var participante = Guid.NewGuid();
-        sesion.Inscribir(participante, false, 0, DateTime.UtcNow);
+        var insc = sesion.Inscribir(participante, false, 0, DateTime.UtcNow);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, DateTime.UtcNow); // HU-19: aceptar para inscripción activa
         repo.Add(sesion);
         var handler = new ObtenerLobbyQueryHandler(repo);
 
