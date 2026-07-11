@@ -34,3 +34,13 @@ public class SesionEventRoutingTests
         => Assert.Throws<System.Collections.Generic.KeyNotFoundException>(
             () => SesionEventRouting.RoutingKeyFor("EventoInventado"));
 }
+
+public class SesionEventRoutingInscripcionTests
+{
+    [Theory]
+    [InlineData("InscripcionSolicitada", "operaciones-sesion.inscripcion-solicitada.v1")]
+    [InlineData("InscripcionAceptada", "operaciones-sesion.inscripcion-aceptada.v1")]
+    [InlineData("InscripcionRechazada", "operaciones-sesion.inscripcion-rechazada.v1")]
+    public void RoutingKeyFor_mapea_los_eventos_de_aprobacion(string eventType, string expected)
+        => Assert.Equal(expected, SesionEventRouting.RoutingKeyFor(eventType));
+}
