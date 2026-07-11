@@ -36,6 +36,7 @@ public class SesionPartidaRepositoryEquipoTests
         var repo = new SesionPartidaRepository(ctx);
         var sesion = PartidaEquipo(Guid.NewGuid());
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         var convocatoriaId = insc.Convocatorias[0].Id.Valor;
         repo.Add(sesion);
         await ctx.SaveChangesAsync();
@@ -71,6 +72,7 @@ public class SesionPartidaRepositoryEquipoTests
         var usuario = Guid.NewGuid();
         var sesion = PartidaEquipo(Guid.NewGuid());
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
         repo.Add(sesion);
         await ctx.SaveChangesAsync();
@@ -88,6 +90,7 @@ public class SesionPartidaRepositoryEquipoTests
         var usuario = Guid.NewGuid();
         var sesion = PartidaEquipo(Guid.NewGuid());
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
         repo.Add(sesion);
         await ctx.SaveChangesAsync();
@@ -113,6 +116,7 @@ public class SesionPartidaRepositoryEquipoTests
         {
             var sesion = PartidaEquipo(partidaId);
             var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
             new SesionPartidaRepository(write).Add(sesion);
             await write.SaveChangesAsync();

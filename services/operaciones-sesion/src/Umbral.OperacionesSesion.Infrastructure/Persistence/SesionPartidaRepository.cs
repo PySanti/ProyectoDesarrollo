@@ -31,9 +31,13 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Where(s => s.PartidaId != exceptPartidaId
                 && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
             .SelectMany(s => s.Inscripciones)
-            .AnyAsync(i => i.Estado == EstadoInscripcion.Activa
-                && (i.ParticipanteId == participanteId
-                    || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)),
+            // BR-G09 (HU-19): Pendiente+Activa ocupan participación para la inscripción propia.
+            // La convocatoria aceptada solo cuenta sobre inscripciones ya activas.
+            .AnyAsync(i =>
+                ((i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa)
+                    && i.ParticipanteId == participanteId)
+                || (i.Estado == EstadoInscripcion.Activa
+                    && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)),
                 cancellationToken);
 
     public Task<SesionPartida?> GetByParticipanteActivoAsync(Guid participanteId, CancellationToken cancellationToken)
@@ -44,10 +48,14 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
             .Where(s => s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada)
             .OrderBy(s => s.PartidaId)
+            // mi-sesion debe mostrar también el estado Pendiente de la inscripción propia;
+            // la convocatoria aceptada sigue exigiendo inscripción activa (BR-G09, HU-19).
             .FirstOrDefaultAsync(
-                s => s.Inscripciones.Any(i => i.Estado == EstadoInscripcion.Activa
-                    && (i.ParticipanteId == participanteId
-                        || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada))),
+                s => s.Inscripciones.Any(i =>
+                    ((i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa)
+                        && i.ParticipanteId == participanteId)
+                    || (i.Estado == EstadoInscripcion.Activa
+                        && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada))),
                 cancellationToken);
 
     public async Task<IReadOnlyList<SesionPartida>> GetSesionesConActividadVencidaAsync(
@@ -89,7 +97,10 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Where(s => s.PartidaId != exceptPartidaId
                 && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
             .SelectMany(s => s.Inscripciones)
-            .AnyAsync(i => i.EquipoId == equipoId && i.Estado == EstadoInscripcion.Activa, cancellationToken);
+            // BR-G09 (HU-19): Pendiente+Activa ocupan participación del equipo.
+            .AnyAsync(i => i.EquipoId == equipoId
+                && (i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa),
+                cancellationToken);
 
     public Task<SesionPartida?> GetByConvocatoriaIdAsync(Guid convocatoriaId, CancellationToken cancellationToken)
     {

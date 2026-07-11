@@ -28,7 +28,12 @@ public class SesionPartidaRepositoryReconexionTests
         var snapshot = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, min, 10,
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(partidaId, snapshot);
-        if (inscribir) sesion.Inscribir(participanteId, false, 0, T0);
+        if (inscribir)
+        {
+            // HU-19: la inscripción nace Pendiente; aceptarla para que quede Activa.
+            var insc = sesion.Inscribir(participanteId, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
+        }
         if (iniciar) sesion.Iniciar(T0);
         return sesion;
     }

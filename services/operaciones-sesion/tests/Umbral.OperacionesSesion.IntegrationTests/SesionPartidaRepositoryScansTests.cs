@@ -36,11 +36,13 @@ public class SesionPartidaRepositoryScansTests
         var repo = new SesionPartidaRepository(ctx);
 
         var vencida = TriviaPublicada(30, null, ModoInicioPartida.Manual);
-        vencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var inscVencida = vencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        vencida.AceptarInscripcion(inscVencida.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         vencida.Iniciar(T0); // Q1 activa, FechaActivacion = T0
 
         var noVencida = TriviaPublicada(30, null, ModoInicioPartida.Manual);
-        noVencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var inscNoVencida = noVencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        noVencida.AceptarInscripcion(inscNoVencida.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         noVencida.Iniciar(T0);
 
         var enLobby = TriviaPublicada(30, null, ModoInicioPartida.Manual);
@@ -104,6 +106,7 @@ public class SesionPartidaRepositoryScansTests
             var writeRepo = new SesionPartidaRepository(write);
             var sesion = EquipoPublicada(T0, ModoInicioPartida.Automatico);
             var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { miembro }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, miembro, true, false, T0);
             writeRepo.Add(sesion);
             await write.SaveChangesAsync();
