@@ -17,8 +17,9 @@ public sealed class ObtenerMiSesionQueryHandler : IRequestHandler<ObtenerMiSesio
         var sesion = await _sesiones.GetByParticipanteActivoAsync(request.ParticipanteId, cancellationToken);
         if (sesion is null) return null;
 
+        // HU-19: mi-sesion también muestra la inscripción propia Pendiente (OcupaParticipacion).
         var inscripcion = sesion.Inscripciones.FirstOrDefault(
-            i => i.EsActiva && i.ParticipanteId == request.ParticipanteId);
+            i => i.OcupaParticipacion && i.ParticipanteId == request.ParticipanteId);
 
         var convocatoria = sesion.Inscripciones
             .Where(i => i.EsActiva)

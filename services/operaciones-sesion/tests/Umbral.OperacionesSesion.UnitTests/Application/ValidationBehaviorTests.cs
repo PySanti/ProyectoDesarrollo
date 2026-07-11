@@ -36,5 +36,6 @@ public class ValidationBehaviorTests
     }
 
     private static LobbyDto Lobby() =>
-        new(Guid.NewGuid(), Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>());
+        new(Guid.NewGuid(), Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>(),
+            Array.Empty<SolicitudIndividualDto>(), Array.Empty<SolicitudEquipoDto>());
 }
