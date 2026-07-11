@@ -29,6 +29,18 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
+    // HU-19: una inscripción nace Pendiente; el operador debe aceptarla para que el jugador
+    // cuente como activo (mínimos/cupo/inicio). Inscribe con el cliente del jugador y acepta con _client.
+    private async Task InscribirYAceptar(HttpClient jugadorClient, Guid partidaId)
+    {
+        var inscribe = await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        var insc = await inscribe.Content.ReadFromJsonAsync<InscripcionResponse>();
+        var aceptar = await _client.PostAsync(
+            $"{Rutas.Base}/partidas/{partidaId}/inscripciones/{insc!.InscripcionId}/aceptacion", null);
+        Assert.Equal(HttpStatusCode.OK, aceptar.StatusCode);
+    }
+
     // Builds a ConfiguracionPartidaDto with one Trivia game whose questions are specified as
     // (PreguntaId, CorrectaOpcionId, PuntajeAsignado) tuples in sequential order.
     // minParticipacion = 1 so a single inscription satisfies the minimum.
@@ -79,8 +91,7 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         Assert.Equal(HttpStatusCode.Created, publish.StatusCode);
 
         // Inscribir jugador
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
 
         // Iniciar partida
         var start = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
@@ -143,8 +154,7 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         // Publish → inscribe → inicio
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         var start = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
         Assert.Equal(HttpStatusCode.OK, start.StatusCode);
 
@@ -205,8 +215,7 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         // Publish → inscribe → inicio
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -249,8 +258,7 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         // Publish → jugador inscribes (meets min=1) → inicio
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -279,8 +287,7 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         // Publish → inscribe → inicio (Q1 becomes Activa)
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 

@@ -31,6 +31,8 @@ Requests enter through the YARP gateway.
 | Cancelar preinscripción de equipo (líder) | DELETE | `/operaciones-sesion/partidas/{partidaId}/inscripciones-equipo/mia` | Policy `ParticiparEnPartidas` (líder por regla de dominio, no por policy) | 204 | 401 sin identidad · 403 sin el permiso / no es líder · 404 sesión/inscripción no existe · 409 no en lobby / sin equipo activo · 502 Identity inaccesible |
 | Aceptar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/aceptacion` | Policy `ParticiparEnPartidas` (convocado por regla de dominio, no por policy) | 200 + ConvocatoriaResponse | 401 sin identidad · 403 sin el permiso · 404 convocatoria no encontrada · 409 no en lobby / participación activa en otra |
 | Rechazar convocatoria | POST | `/operaciones-sesion/convocatorias/{convocatoriaId}/rechazo` | Policy `ParticiparEnPartidas` (convocado por regla de dominio, no por policy) | 200 + ConvocatoriaResponse | 401 sin identidad · 403 sin el permiso · 404 convocatoria no encontrada · 409 no en lobby |
+| Aceptar inscripción (operador, HU-19) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones/{inscripcionId}/aceptacion` | Policy `GestionarPartidas` | 200 + LobbyDto | 401 sin token · 403 sin el permiso · 404 sesión / inscripción no existe · 409 cupo lleno / inscripción no pendiente / sesión no en lobby |
+| Rechazar inscripción (operador, HU-19) | POST | `/operaciones-sesion/partidas/{partidaId}/inscripciones/{inscripcionId}/rechazo` | Policy `GestionarPartidas` | 200 + LobbyDto | 401 sin token · 403 sin el permiso · 404 sesión / inscripción no existe · 409 inscripción no pendiente / sesión no en lobby |
 | Lobby state | GET | `/operaciones-sesion/partidas/{partidaId}/lobby` | Autenticado (cualquier rol; sin policy de permiso) | 200 + LobbyDto | 401 sin token · 404 sesión no existe |
 | Start a partida (manual) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio` | Policy `GestionarPartidas` | 200 + InicioPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 no en Lobby / modo incompatible |
 | Start a partida (automatic, idempotent) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio-automatico` | Policy `GestionarPartidas` (llamado también por el worker interno vía `ISender` in-process, sin HTTP) | 200 + InicioPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 modo incompatible |
@@ -48,8 +50,10 @@ Requests enter through the YARP gateway.
 
 ### DTOs
 
-- `LobbyDto { partidaId, sesionPartidaId, estado, modalidad, minimosParticipacion, maximosParticipacion, inscritosActivos, participantes[], equipos[] }`
-- `InscripcionResponse { inscripcionId, partidaId, participanteId }`
+- `LobbyDto { partidaId, sesionPartidaId, estado, modalidad, minimosParticipacion, maximosParticipacion, inscritosActivos, participantes[], equipos[], solicitudesPendientesIndividual[], solicitudesPendientesEquipo[] }` (HU-19: `inscritosActivos`/`participantes`/`equipos` solo cuentan inscripciones **Activas**; las pendientes de aprobación viajan en las dos listas nuevas)
+- `LobbyDto.solicitudesPendientesIndividual: [{ inscripcionId, participanteId, fechaInscripcion }]` (solo modalidad Individual)
+- `LobbyDto.solicitudesPendientesEquipo: [{ inscripcionId, equipoId, miembros, fechaInscripcion }]` (solo modalidad Equipo)
+- `InscripcionResponse { inscripcionId, partidaId, participanteId }` (HU-19: inscribir/preinscribir devuelve la inscripción en estado `Pendiente`; requiere aprobación del operador para contar en mínimos/cupo/inicio)
 - `InicioPartidaResponse { partidaId, estado, juegoActivadoId?, juegoActivadoOrden? }` (estado ∈ {Iniciada, Cancelada, Lobby}; Lobby = automatic no-op)
 - `AvanceJuegoResponse { partidaId, estado, juegoFinalizadoOrden?, juegoActivadoOrden?, terminada }`
 - `EstadoSesionDto { partidaId, sesionPartidaId, estado, modalidad, juegos[]{ juegoId, orden, tipoJuego, estado }, juegoActualOrden? }`
@@ -80,7 +84,7 @@ sin el permiso requerido.
 
 | Grupo | Policy | Endpoints |
 |---|---|---|
-| Operación de la partida (7) | `GestionarPartidas` | `publicacion` (POST) · `inicio` (POST) · `inicio-automatico` (POST) · `juego-actual/finalizacion` (POST) · `pregunta-actual/avance` (POST) · `etapa-actual/avance` (POST) · `pistas` (POST) |
+| Operación de la partida (9) | `GestionarPartidas` | `publicacion` (POST) · `inicio` (POST) · `inicio-automatico` (POST) · `juego-actual/finalizacion` (POST) · `pregunta-actual/avance` (POST) · `etapa-actual/avance` (POST) · `pistas` (POST) · `inscripciones/{id}/aceptacion` (POST, HU-19) · `inscripciones/{id}/rechazo` (POST, HU-19) |
 | Participación (10) | `ParticiparEnPartidas` | `inscripciones` (POST, Individual) · `inscripciones/mia` (DELETE) · `inscripciones-equipo` (POST, líder) · `inscripciones-equipo/mia` (DELETE, líder) · `convocatorias/{id}/aceptacion` (POST, convocado) · `convocatorias/{id}/rechazo` (POST, convocado) · `pregunta-actual/respuesta` (POST) · `etapa-actual/tesoro` (POST) · `mi-sesion` (GET) · `mis-convocatorias` (GET) |
 | Lectura compartida (4) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) |
 | Infraestructura | Anónimo | `health` (GET) |

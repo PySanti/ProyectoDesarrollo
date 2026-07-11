@@ -30,6 +30,18 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         _client = factory.CreateClientAs(Guid.NewGuid());
     }
 
+    // HU-19: una inscripción nace Pendiente; el operador debe aceptarla para que el jugador
+    // cuente como activo (mínimos/cupo/inicio). Inscribe con el cliente del jugador y acepta con _client.
+    private async Task InscribirYAceptar(HttpClient jugadorClient, Guid partidaId)
+    {
+        var inscribe = await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        var insc = await inscribe.Content.ReadFromJsonAsync<InscripcionResponse>();
+        var aceptar = await _client.PostAsync(
+            $"{Rutas.Base}/partidas/{partidaId}/inscripciones/{insc!.InscripcionId}/aceptacion", null);
+        Assert.Equal(HttpStatusCode.OK, aceptar.StatusCode);
+    }
+
     // Codifica el texto del QR como base64 de sus bytes UTF-8 — lo mismo que haría la app móvil
     // al enviar la imagen del QR (el stub ContractTestQrDecoder los decodifica de vuelta a string).
     private static string Tesoro(string texto) =>
@@ -68,8 +80,7 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -117,8 +128,7 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -145,8 +155,7 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -184,8 +193,7 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
@@ -210,8 +218,7 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
 
         Assert.Equal(HttpStatusCode.Created,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
-        Assert.Equal(HttpStatusCode.Created,
-            (await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
         Assert.Equal(HttpStatusCode.OK,
             (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
 
