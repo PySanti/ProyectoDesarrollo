@@ -22,7 +22,8 @@ public class CerrarActividadVencidaTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, preguntas);
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var insc = s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         s.Iniciar(T0);
         return s;
     }
@@ -33,7 +34,8 @@ public class CerrarActividadVencidaTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.BusquedaDelTesoro, "Área", snapEtapas);
         var snap = new ConfiguracionSnapshot("Copa BDT", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var insc = s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         s.Iniciar(T0);
         return s;
     }

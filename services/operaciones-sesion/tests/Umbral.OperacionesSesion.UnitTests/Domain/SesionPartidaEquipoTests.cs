@@ -36,6 +36,7 @@ public class SesionPartidaEquipoTests
         var miembros = new List<Guid> { lider, Guid.NewGuid() };
 
         var insc = sesion.PreinscribirEquipo(equipoId, callerEsLider: true, miembros, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
 
         Assert.Equal(Modalidad.Equipo, insc.Modalidad);
         Assert.Equal(equipoId, insc.EquipoId);
@@ -100,6 +101,7 @@ public class SesionPartidaEquipoTests
         var sesion = PartidaEquipoEnLobby();
         var usuario = Guid.NewGuid();
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         return (sesion, insc.Convocatorias[0].Id.Valor, usuario);
     }
 
@@ -166,7 +168,8 @@ public class SesionPartidaEquipoTests
     {
         var sesion = PartidaEquipoEnLobby();
         var equipoId = Guid.NewGuid();
-        sesion.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid() }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para tener inscripción activa que cancelar
 
         sesion.CancelarInscripcionEquipo(equipoId, callerEsLider: true);
 
@@ -215,6 +218,7 @@ public class SesionPartidaEquipoTests
         var sesion = PartidaEquipoEnLobby(minimos: 1);
         var usuario = Guid.NewGuid();
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
 
         var r = sesion.Iniciar(T0);

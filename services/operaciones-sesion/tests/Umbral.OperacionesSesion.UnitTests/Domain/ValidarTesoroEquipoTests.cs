@@ -42,10 +42,12 @@ public class ValidarTesoroEquipoTests
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
 
         var insA = sesion.PreinscribirEquipo(equipoALocal, true, new[] { liderALocal, miembroALocal, pendienteALocal }, false, 0, T0);
+        sesion.AceptarInscripcion(insA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == liderALocal).Id.Valor, liderALocal, true, false, T0);
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == miembroALocal).Id.Valor, miembroALocal, true, false, T0);
         // pendienteALocal NO responde su convocatoria.
         var insB = sesion.PreinscribirEquipo(equipoBLocal, true, new[] { liderBLocal }, false, 1, T0);
+        sesion.AceptarInscripcion(insB.Id.Valor, 1, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insB.Convocatorias.Single(c => c.UsuarioId == liderBLocal).Id.Valor, liderBLocal, true, false, T0);
 
         sesion.Iniciar(T0);
@@ -115,6 +117,7 @@ public class ValidarTesoroEquipoTests
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
         var lider = Guid.NewGuid();
         var ins = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { lider, rechazado }, false, 0, T0);
+        sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == lider).Id.Valor, lider, true, false, T0);
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == rechazado).Id.Valor, rechazado, false, false, T0);
         sesion.Iniciar(T0);
@@ -147,7 +150,8 @@ public class ValidarTesoroEquipoTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.BusquedaDelTesoro, "Patio", etapas);
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        sesion.Inscribir(jugador, false, 0, T0);
+        var insc = sesion.Inscribir(jugador, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
 
         var r = sesion.ValidarTesoro(jugador, Img("QR-1"), T0.AddSeconds(5), new TextoQrDecoder());
