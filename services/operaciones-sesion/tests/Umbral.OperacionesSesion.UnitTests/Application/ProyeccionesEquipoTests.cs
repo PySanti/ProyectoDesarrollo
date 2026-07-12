@@ -37,6 +37,7 @@ public class ProyeccionesEquipoTests
         var sesion = PartidaEquipo(Guid.NewGuid());
         var usuario = Guid.NewGuid();
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario, Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
 
         var lobby = PublicarPartidaCommandHandler.MapearLobby(sesion);
@@ -54,6 +55,7 @@ public class ProyeccionesEquipoTests
         var equipoId = Guid.NewGuid();
         var sesion = PartidaEquipo(partidaId);
         var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
@@ -82,6 +84,7 @@ public class ProyeccionesEquipoTests
 
         // Pre-inscribir equipo A con líder y miembro
         var inscA = sesion.PreinscribirEquipo(equipoIdA, true, new[] { liderA, miembroA }, false, 0, T0);
+        sesion.AceptarInscripcion(inscA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         var convocA1 = inscA.Convocatorias[0];
         var convocA2 = inscA.Convocatorias[1];
         sesion.ResponderConvocatoria(convocA1.Id.Valor, liderA, true, false, T0);
@@ -89,6 +92,7 @@ public class ProyeccionesEquipoTests
 
         // Pre-inscribir equipo B con líder
         var inscB = sesion.PreinscribirEquipo(equipoIdB, true, new[] { liderB }, false, 1, T0);
+        sesion.AceptarInscripcion(inscB.Id.Valor, 1, T0); // HU-19: aceptar crea las convocatorias
         var convocB = inscB.Convocatorias[0];
         sesion.ResponderConvocatoria(convocB.Id.Valor, liderB, true, false, T0);
 
@@ -123,10 +127,12 @@ public class ProyeccionesEquipoTests
         var sesion = PartidaEquipo(partidaId);
 
         // Equipo A convoca al usuario (queda Pendiente; inscripción A es la primera de la lista)
-        sesion.PreinscribirEquipo(equipoA, true, new[] { usuario, Guid.NewGuid() }, false, 0, T0);
+        var inscA = sesion.PreinscribirEquipo(equipoA, true, new[] { usuario, Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(inscA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias (usuario queda Pendiente)
 
         // Equipo B convoca al usuario y este acepta
         var inscB = sesion.PreinscribirEquipo(equipoB, true, new[] { usuario }, false, 1, T0);
+        sesion.AceptarInscripcion(inscB.Id.Valor, 1, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(inscB.Convocatorias[0].Id.Valor, usuario, true, false, T0);
 
         var repo = new FakeSesionPartidaRepository();

@@ -17,11 +17,10 @@ public class ObtenerMiEquipoQueryHandlerTests
     private sealed class FakeEquipoRepository : IEquipoRepository
     {
         public Equipo? Activo;
-        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
         public Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken ct) => Task.FromResult(Activo);
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken ct) => Task.FromResult(Activo is not null);
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken ct) => Task.FromResult(Activo);
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) => Task.FromResult<IReadOnlyList<Equipo>>(Activo is null ? Array.Empty<Equipo>() : new[] { Activo });
         public Task AddAsync(Equipo equipo, CancellationToken ct) => Task.CompletedTask;
         public Task UpdateAsync(Equipo equipo, CancellationToken ct) => Task.CompletedTask;
     }

@@ -84,6 +84,13 @@ public sealed class ExceptionHandlingMiddlewareTests
         Assert.Equal(409, status);
     }
 
+    [Fact]
+    public async Task EquipoConParticipacionActivaException_Returns_409()
+    {
+        var (status, _) = await InvokeWith(new EquipoConParticipacionActivaException(Guid.NewGuid()));
+        Assert.Equal(409, status);
+    }
+
     // ── 404 Not Found bucket ─────────────────────────────────────────────────
 
     [Fact]

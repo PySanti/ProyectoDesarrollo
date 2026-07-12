@@ -24,11 +24,23 @@ public class SesionEventRoutingTests
     [InlineData("ConvocatoriaCreada", "operaciones-sesion.convocatoria-creada.v1")]
     [InlineData("ConvocatoriaRespondida", "operaciones-sesion.convocatoria-respondida.v1")]
     [InlineData("UbicacionActualizada", "operaciones-sesion.ubicacion-actualizada.v1")]
-    public void RoutingKeyFor_mapea_los_17_eventos(string eventType, string esperado)
+    [InlineData("InscripcionEquipoCreada", "operaciones-sesion.inscripcion-equipo-creada.v1")]
+    [InlineData("InscripcionEquipoCancelada", "operaciones-sesion.inscripcion-equipo-cancelada.v1")]
+    public void RoutingKeyFor_mapea_los_19_eventos(string eventType, string esperado)
         => Assert.Equal(esperado, SesionEventRouting.RoutingKeyFor(eventType));
 
     [Fact]
     public void RoutingKeyFor_evento_desconocido_lanza()
         => Assert.Throws<System.Collections.Generic.KeyNotFoundException>(
             () => SesionEventRouting.RoutingKeyFor("EventoInventado"));
+}
+
+public class SesionEventRoutingInscripcionTests
+{
+    [Theory]
+    [InlineData("InscripcionSolicitada", "operaciones-sesion.inscripcion-solicitada.v1")]
+    [InlineData("InscripcionAceptada", "operaciones-sesion.inscripcion-aceptada.v1")]
+    [InlineData("InscripcionRechazada", "operaciones-sesion.inscripcion-rechazada.v1")]
+    public void RoutingKeyFor_mapea_los_eventos_de_aprobacion(string eventType, string expected)
+        => Assert.Equal(expected, SesionEventRouting.RoutingKeyFor(eventType));
 }

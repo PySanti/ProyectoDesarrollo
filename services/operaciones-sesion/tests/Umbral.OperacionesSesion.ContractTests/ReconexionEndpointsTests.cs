@@ -35,6 +35,18 @@ public class ReconexionEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         _operador = factory.CreateClientAs(Guid.NewGuid());
     }
 
+    // HU-19: una inscripción nace Pendiente; el operador debe aceptarla para que el jugador
+    // cuente como activo (mínimos/cupo/inicio). Inscribe con el cliente del jugador y acepta con _operador.
+    private async Task InscribirYAceptar(HttpClient jugadorClient, Guid partidaId)
+    {
+        var inscribe = await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        var insc = await inscribe.Content.ReadFromJsonAsync<InscripcionResponse>();
+        var aceptar = await _operador.PostAsync(
+            $"{Rutas.Base}/partidas/{partidaId}/inscripciones/{insc!.InscripcionId}/aceptacion", null);
+        Assert.Equal(HttpStatusCode.OK, aceptar.StatusCode);
+    }
+
     // ─────────────────────────────────────────────────────────────────────────
     // Test 1: sin participación activa → 204
     // ─────────────────────────────────────────────────────────────────────────
@@ -84,7 +96,7 @@ public class ReconexionEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         var jugadorClient = _factory.CreateClientAs(jugador);
 
         await _operador.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null);
-        await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        await InscribirYAceptar(jugadorClient, partidaId);
         await _operador.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
 
         var resp = await jugadorClient.GetAsync($"{Rutas.Base}/mi-sesion");
@@ -121,7 +133,7 @@ public class ReconexionEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         var jugadorClient = _factory.CreateClientAs(jugador);
 
         await _operador.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null);
-        await jugadorClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        await InscribirYAceptar(jugadorClient, partidaId);
         await _operador.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
 
         var resp = await jugadorClient.GetAsync($"{Rutas.Base}/mi-sesion");

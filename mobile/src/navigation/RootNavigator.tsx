@@ -10,6 +10,8 @@ import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenC
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
+import { DeleteTeamScreenContainer } from "../features/teams/DeleteTeamScreenContainer";
+import { TeamHistoryScreenContainer } from "../features/teams/TeamHistoryScreenContainer";
 import { PartidasPanelScreenContainer } from "../features/partidas/PartidasPanelScreenContainer";
 import { PartidaLobbyScreenContainer } from "../features/partidas/PartidaLobbyScreenContainer";
 import { PartidaLiveScreenContainer } from "../features/partidas/PartidaLiveScreenContainer";
@@ -85,6 +87,16 @@ export function RootNavigator() {
         name="LeaveTeam"
         component={LeaveTeamScreenContainer}
         options={{ title: "Salir del equipo" }}
+      />
+      <AppStack.Screen
+        name="DeleteTeam"
+        component={DeleteTeamScreenContainer}
+        options={{ title: "Eliminar equipo" }}
+      />
+      <AppStack.Screen
+        name="TeamHistory"
+        component={TeamHistoryScreenContainer}
+        options={{ title: "Historial de equipos" }}
       />
       <AppStack.Screen
         name="PartidasPanel"

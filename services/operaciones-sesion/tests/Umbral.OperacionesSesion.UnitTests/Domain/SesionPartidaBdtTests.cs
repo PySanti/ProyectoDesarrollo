@@ -30,7 +30,8 @@ public class SesionPartidaBdtTests
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snapshot);
         var now = new DateTime(2026, 6, 28, 10, 0, 0);
-        sesion.Inscribir(participante, false, 0, now);
+        var insc = sesion.Inscribir(participante, false, 0, now);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, now); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(now);
         return sesion;
     }
@@ -45,7 +46,8 @@ public class SesionPartidaBdtTests
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snapshot);
         var now = new DateTime(2026, 6, 28, 10, 0, 0);
-        sesion.Inscribir(participante, false, 0, now);
+        var insc = sesion.Inscribir(participante, false, 0, now);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, now); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(now);
         return sesion;
     }

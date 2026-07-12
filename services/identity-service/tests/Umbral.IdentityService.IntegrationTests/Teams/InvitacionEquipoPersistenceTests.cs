@@ -50,7 +50,8 @@ public sealed class InvitacionEquipoPersistenceTests
         var invitacion = InvitacionEquipo.Crear(equipo.EquipoId, invitadoUserId, liderUserId);
         await invRepo.AddAsync(invitacion, CancellationToken.None);
 
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, new NoOpIdentityEventsPublisher());
+        var historialRepo = new HistorialNombreEquipoRepository(dbContext);
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, new NoOpIdentityEventsPublisher(), historialRepo, TimeProvider.System);
         var response = await handler.Handle(
             new AceptarInvitacionEquipoCommand(invitadoUserId, invitacion.InvitacionEquipoId),
             CancellationToken.None);

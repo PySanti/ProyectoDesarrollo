@@ -11,6 +11,10 @@ public static class IdentityEventRouting
         ["InvitacionEquipoRechazada"] = "identity.invitacion-equipo-rechazada.v1",
         ["RolUsuarioModificado"] = "identity.rol-usuario-modificado.v1",
         ["PermisosRolActualizados"] = "identity.permisos-rol-actualizados.v1",
+        ["EquipoEliminado"] = "identity.equipo-eliminado.v1",
+        ["LiderazgoEquipoModificado"] = "identity.liderazgo-equipo-modificado.v1",
+        ["EquipoDesactivado"] = "identity.equipo-desactivado.v1",
+        ["EquipoReactivado"] = "identity.equipo-reactivado.v1",
     };
 
     public static string RoutingKeyFor(string eventType) => Keys[eventType];

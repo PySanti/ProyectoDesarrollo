@@ -33,6 +33,7 @@ public class RespuestaEquipoPersistenciaTests
             var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
             partidaId = sesion.PartidaId;
             var ins = sesion.PreinscribirEquipo(equipo, true, new[] { lider }, false, 0, T0);
+            sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(ins.Convocatorias.Single().Id.Valor, lider, true, false, T0);
             sesion.Iniciar(T0);
             sesion.ResponderPregunta(lider, opcionOk, T0.AddSeconds(5));

@@ -19,4 +19,9 @@ public interface ISesionEventsPublisher
     Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent evento, CancellationToken cancellationToken);
     Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken);
     Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, CancellationToken cancellationToken);
 }

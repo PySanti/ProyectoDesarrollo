@@ -52,4 +52,9 @@ public sealed class RabbitMqSesionEventsPublisher : ISesionEventsPublisher
     public Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent evento, CancellationToken cancellationToken) => Publicar("ConvocatoriaCreada", evento);
     public Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken) => Publicar("ConvocatoriaRespondida", evento);
     public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken) => Publicar("UbicacionActualizada", evento);
+    public Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken) => Publicar("InscripcionEquipoCreada", evento);
+    public Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken) => Publicar("InscripcionEquipoCancelada", evento);
+    public Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken) => Publicar("InscripcionSolicitada", evento);
+    public Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, CancellationToken cancellationToken) => Publicar("InscripcionAceptada", evento);
+    public Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, CancellationToken cancellationToken) => Publicar("InscripcionRechazada", evento);
 }

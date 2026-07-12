@@ -29,7 +29,8 @@ public class CancelarInscripcionCommandHandlerTests
         var participante = Guid.NewGuid();
         var repo = new FakeSesionPartidaRepository();
         var sesion = PublishedSession(partidaId);
-        sesion.Inscribir(participante, false, 0, DateTime.UtcNow);
+        var insc = sesion.Inscribir(participante, false, 0, DateTime.UtcNow);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, DateTime.UtcNow); // HU-19: aceptar para inscripción activa
         repo.Add(sesion);
         var uow = new FakeOperacionesSesionUnitOfWork();
         var handler = new CancelarInscripcionCommandHandler(repo, uow);

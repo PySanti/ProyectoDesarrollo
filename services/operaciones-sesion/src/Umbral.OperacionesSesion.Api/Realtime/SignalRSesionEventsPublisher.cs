@@ -97,4 +97,21 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
     // No difunde: el relay vivo al grupo operador lo hace SesionHub.EnviarUbicacion directamente (BR-B07).
     public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;
+
+    // Sin payload realtime documentado (feed el guard de equipos en Identity vía RabbitMQ).
+    public Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    // No difunden: el lobby del operador se refresca por polling (SP-3f-2). Feed solo historial vía RabbitMQ.
+    public Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
 }

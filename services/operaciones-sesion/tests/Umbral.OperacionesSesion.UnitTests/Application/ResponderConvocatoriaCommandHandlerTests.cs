@@ -30,6 +30,7 @@ public class ResponderConvocatoriaCommandHandlerTests
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var usuario = Guid.NewGuid();
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         return (repo, insc.Convocatorias[0].Id.Valor, usuario);

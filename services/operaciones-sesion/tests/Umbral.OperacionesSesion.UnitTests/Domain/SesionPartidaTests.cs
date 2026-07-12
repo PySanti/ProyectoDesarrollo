@@ -64,6 +64,7 @@ public class SesionPartidaTests
         var participante = Guid.NewGuid();
 
         var inscripcion = sesion.Inscribir(participante, tieneParticipacionActivaEnOtra: false, inscritosActivos: 0, T0);
+        sesion.AceptarInscripcion(inscripcion.Id.Valor, 0, T0);
 
         Assert.Equal(EstadoInscripcion.Activa, inscripcion.Estado);
         Assert.Equal(participante, inscripcion.ParticipanteId);
@@ -133,13 +134,15 @@ public class SesionPartidaTests
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(max: 1));
         var participante = Guid.NewGuid();
-        sesion.Inscribir(participante, false, 0, T0);
+        var insc = sesion.Inscribir(participante, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
 
         sesion.CancelarInscripcion(participante);
 
         Assert.Equal(EstadoInscripcion.Cancelada, sesion.Inscripciones.Single().Estado);
-        // capacity freed → a different participant can now inscribe (active count back to 0)
+        // capacity freed → a different participant can now inscribe and be accepted (active count back to 0)
         var otra = sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        sesion.AceptarInscripcion(otra.Id.Valor, 0, T0);
         Assert.Equal(EstadoInscripcion.Activa, otra.Estado);
     }
 
@@ -170,7 +173,7 @@ public class SesionPartidaTests
     public void Iniciar_with_minimums_met_starts_and_activates_first_game()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(min: 1, max: 5, juegos: 2));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
 
         var resultado = sesion.Iniciar(T0);
 
@@ -203,7 +206,7 @@ public class SesionPartidaTests
     public void Iniciar_when_not_in_lobby_throws()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot());
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
         sesion.Iniciar(T0); // now Iniciada
 
         Assert.Throws<SesionNoEnLobbyException>(() => sesion.Iniciar(T0));
@@ -222,7 +225,7 @@ public class SesionPartidaTests
     public void IntentarInicioAutomatico_when_due_and_minimums_met_starts()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), SnapshotModo(ModoInicioPartida.Automatico, min: 1, tiempoInicio: TDue));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, TBefore);
+        InscribirYAceptar(sesion, TBefore);
 
         var resultado = sesion.IntentarInicioAutomatico(TDue);
 
@@ -258,7 +261,7 @@ public class SesionPartidaTests
     public void IntentarInicioAutomatico_when_not_in_lobby_is_idempotent_noop()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), SnapshotModo(ModoInicioPartida.ManualYAutomatico, min: 1, tiempoInicio: TDue));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, TBefore);
+        InscribirYAceptar(sesion, TBefore);
         sesion.Iniciar(TDue); // now Iniciada (manual path allowed by ManualYAutomatico)
 
         var resultado = sesion.IntentarInicioAutomatico(TDue);
@@ -276,10 +279,17 @@ public class SesionPartidaTests
         Assert.Throws<ModoInicioNoCompatibleException>(() => sesion.IntentarInicioAutomatico(TDue));
     }
 
+    // HU-19: la inscripción nace Pendiente; para que cuente en mínimos hay que aceptarla.
+    private static void InscribirYAceptar(SesionPartida sesion, DateTime fecha)
+    {
+        var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, fecha);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, fecha);
+    }
+
     private static SesionPartida Iniciada(int juegos)
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(min: 1, max: 5, juegos: juegos));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
         sesion.Iniciar(T0);
         return sesion;
     }

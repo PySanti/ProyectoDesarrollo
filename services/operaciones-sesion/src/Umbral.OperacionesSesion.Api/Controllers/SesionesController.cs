@@ -69,6 +69,17 @@ public sealed class SesionesController : ControllerBase
         return NoContent();
     }
 
+    // HU-19: el operador aprueba/rechaza las solicitudes de inscripción pendientes.
+    [Authorize(Policy = "GestionarPartidas")]
+    [HttpPost("partidas/{partidaId:guid}/inscripciones/{inscripcionId:guid}/aceptacion")]
+    public async Task<IActionResult> AceptarInscripcion(Guid partidaId, Guid inscripcionId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new AceptarInscripcionCommand(partidaId, inscripcionId), cancellationToken));
+
+    [Authorize(Policy = "GestionarPartidas")]
+    [HttpPost("partidas/{partidaId:guid}/inscripciones/{inscripcionId:guid}/rechazo")]
+    public async Task<IActionResult> RechazarInscripcion(Guid partidaId, Guid inscripcionId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new RechazarInscripcionCommand(partidaId, inscripcionId), cancellationToken));
+
     [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("convocatorias/{convocatoriaId:guid}/aceptacion")]
     public async Task<IActionResult> AceptarConvocatoria(Guid convocatoriaId, CancellationToken cancellationToken)

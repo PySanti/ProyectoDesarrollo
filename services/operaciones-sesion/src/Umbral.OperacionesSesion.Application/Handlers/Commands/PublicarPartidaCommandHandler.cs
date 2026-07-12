@@ -71,10 +71,18 @@ public sealed class PublicarPartidaCommandHandler : IRequestHandler<PublicarPart
             sesion.MinimosParticipacion,
             sesion.MaximosParticipacion,
             activas.Count,
-            activas.Select(i => i.ParticipanteId).ToList(),
+            activas.Where(i => i.Modalidad == Modalidad.Individual).Select(i => i.ParticipanteId).ToList(),
             sesion.Inscripciones
                 .Where(i => i.Modalidad == Modalidad.Equipo && i.EsActiva && i.EquipoId is not null)
                 .Select(i => new EquipoLobbyDto(i.EquipoId!.Value, i.Convocatorias.Count, i.ConvocatoriasAceptadas))
+                .ToList(),
+            sesion.Inscripciones
+                .Where(i => i.Modalidad == Modalidad.Individual && i.EstaPendiente)
+                .Select(i => new SolicitudIndividualDto(i.Id.Valor, i.ParticipanteId, i.FechaInscripcion))
+                .ToList(),
+            sesion.Inscripciones
+                .Where(i => i.Modalidad == Modalidad.Equipo && i.EstaPendiente && i.EquipoId is not null)
+                .Select(i => new SolicitudEquipoDto(i.Id.Valor, i.EquipoId!.Value, i.MiembrosSnapshot.Count, i.FechaInscripcion))
                 .ToList());
     }
 

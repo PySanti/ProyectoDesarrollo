@@ -15,6 +15,7 @@ import {
 import { CreateUserPage } from "../features/identity/CreateUserPage";
 import { EquiposPage } from "../features/identity/EquiposPage";
 import { GovernancePage } from "../features/identity/GovernancePage";
+import { TeamsAdminPage } from "../features/identity/TeamsAdminPage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
 import { CreatePartidaPage } from "../features/partidas/CreatePartidaPage";
 import { HistorialPartidaPage } from "../features/partidas/HistorialPartidaPage";
@@ -136,6 +137,14 @@ export function App() {
             element: (
               <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <GovernancePage accessToken={token} />
+              </RequireRole>
+            )
+          },
+          {
+            path: "identidad/equipos",
+            element: (
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
+                <TeamsAdminPage accessToken={token} />
               </RequireRole>
             )
           },

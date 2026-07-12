@@ -96,9 +96,6 @@ public sealed class GetInvitacionesRecibidasQueryHandlerTests
     {
         public Equipo? TeamById { get; set; }
 
-        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
-
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 
@@ -107,6 +104,9 @@ public sealed class GetInvitacionesRecibidasQueryHandlerTests
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamById?.EquipoId == equipoId ? TeamById : null);
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamById is null ? Array.Empty<Equipo>() : new[] { TeamById });
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;

@@ -25,10 +25,12 @@ public class ListarPartidasPublicadasQueryHandlerTests
     {
         var repo = new FakeSesionPartidaRepository();
         var enLobby = PublishedSession(Guid.NewGuid(), "Abierta");
-        enLobby.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        var insLobby = enLobby.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        enLobby.AceptarInscripcion(insLobby.Id.Valor, 0, DateTime.UtcNow); // HU-19: inscribir nace Pendiente; solo Activa cuenta
         repo.Add(enLobby);
         var iniciada = PublishedSession(Guid.NewGuid(), "Cerrada");
-        iniciada.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        var insIniciada = iniciada.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        iniciada.AceptarInscripcion(insIniciada.Id.Valor, 0, DateTime.UtcNow);
         iniciada.Iniciar(DateTime.UtcNow);
         repo.Add(iniciada);
         var handler = new ListarPartidasPublicadasQueryHandler(repo);

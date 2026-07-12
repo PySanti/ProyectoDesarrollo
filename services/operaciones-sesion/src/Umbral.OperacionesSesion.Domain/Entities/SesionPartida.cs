@@ -55,7 +55,7 @@ public sealed class SesionPartida
             throw new SesionNoEnLobbyException(PartidaId);
         if (Modalidad != Modalidad.Individual)
             throw new ModalidadNoSoportadaException(PartidaId);
-        if (_inscripciones.Any(i => i.ParticipanteId == participanteId && i.EsActiva))
+        if (_inscripciones.Any(i => i.ParticipanteId == participanteId && i.OcupaParticipacion))
             throw new ParticipanteYaInscritoException(participanteId);
         if (tieneParticipacionActivaEnOtra)
             throw new ParticipacionActivaExistenteException(participanteId);
@@ -86,7 +86,7 @@ public sealed class SesionPartida
             throw new ModalidadNoSoportadaException(PartidaId);
         if (!callerEsLider)
             throw new NoEsLiderEquipoException(equipoId);
-        if (_inscripciones.Any(i => i.EquipoId == equipoId && i.EsActiva))
+        if (_inscripciones.Any(i => i.EquipoId == equipoId && i.OcupaParticipacion))
             throw new EquipoYaInscritoException(equipoId);
         if (equipoTieneParticipacionActivaEnOtra)
             throw new ParticipacionActivaExistenteException(equipoId);
@@ -96,6 +96,36 @@ public sealed class SesionPartida
         var inscripcion = InscripcionPartida.PreinscribirEquipo(equipoId, miembros, PartidaId, fecha);
         _inscripciones.Add(inscripcion);
         return inscripcion;
+    }
+
+    public IReadOnlyList<Convocatoria> AceptarInscripcion(Guid inscripcionId, int inscritosActivos, DateTime now)
+    {
+        if (Estado != EstadoSesion.Lobby)
+            throw new SesionNoEnLobbyException(PartidaId);
+
+        var inscripcion = _inscripciones.FirstOrDefault(i => i.Id.Valor == inscripcionId)
+            ?? throw new InscripcionNoEncontradaException(inscripcionId);
+        if (!inscripcion.EstaPendiente)
+            throw new InscripcionNoPendienteException(inscripcionId);
+        if (inscritosActivos >= MaximosParticipacion)
+            throw new CupoLlenoException(PartidaId);
+
+        inscripcion.FijarPartidaIdParaConvocar(PartidaId);
+        return inscripcion.Aceptar(now);
+    }
+
+    public (Guid InscripcionId, Guid? EquipoId) RechazarInscripcion(Guid inscripcionId, DateTime now)
+    {
+        if (Estado != EstadoSesion.Lobby)
+            throw new SesionNoEnLobbyException(PartidaId);
+
+        var inscripcion = _inscripciones.FirstOrDefault(i => i.Id.Valor == inscripcionId)
+            ?? throw new InscripcionNoEncontradaException(inscripcionId);
+        if (!inscripcion.EstaPendiente)
+            throw new InscripcionNoPendienteException(inscripcionId);
+
+        inscripcion.Rechazar();
+        return (inscripcion.Id.Valor, inscripcion.EquipoId);
     }
 
     public Convocatoria ResponderConvocatoria(
@@ -129,7 +159,7 @@ public sealed class SesionPartida
         return convocatoria;
     }
 
-    public void CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
+    public Guid CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
     {
         if (Estado != EstadoSesion.Lobby)
             throw new SesionNoEnLobbyException(PartidaId);
@@ -138,6 +168,7 @@ public sealed class SesionPartida
         var inscripcion = _inscripciones.FirstOrDefault(i => i.EquipoId == equipoId && i.EsActiva)
             ?? throw InscripcionNoEncontradaException.ParaEquipo(equipoId);
         inscripcion.Cancelar();
+        return inscripcion.Id.Valor;
     }
 
     public ResultadoInicio Iniciar(DateTime now)

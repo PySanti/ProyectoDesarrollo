@@ -41,4 +41,8 @@ public sealed class RabbitMqIdentityEventsPublisher : IIdentityEventsPublisher
     public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent e, CancellationToken ct) => Publicar("InvitacionEquipoRechazada", e);
     public Task PublishRolUsuarioModificadoAsync(RolUsuarioModificadoIntegrationEvent e, CancellationToken ct) => Publicar("RolUsuarioModificado", e);
     public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent e, CancellationToken ct) => Publicar("PermisosRolActualizados", e);
+    public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent e, CancellationToken ct) => Publicar("EquipoEliminado", e);
+    public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Publicar("LiderazgoEquipoModificado", e);
+    public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Publicar("EquipoDesactivado", e);
+    public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Publicar("EquipoReactivado", e);
 }

@@ -24,7 +24,8 @@ public class TriviaSnapshotPersistenceTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var part = Guid.NewGuid();
-        sesion.Inscribir(part, false, 0, T0);
+        var insc = sesion.Inscribir(part, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0); // Q1 activa
         sesion.ResponderPregunta(part, pregunta.Opciones.Single(o => o.EsCorrecta).OpcionId, T0.AddSeconds(3));
 

@@ -334,6 +334,9 @@ public sealed class Hu02HandlersTests
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.UsuarioId == userId));
 
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.KeycloakId == keycloakId.ToString()));
+
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 

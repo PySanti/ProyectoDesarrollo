@@ -58,6 +58,7 @@ public sealed class ExceptionHandlingMiddleware
             or ParticipanteYaInscritoException
             or ParticipacionActivaExistenteException
             or CupoLlenoException
+            or InscripcionNoPendienteException
             or ModoInicioNoCompatibleException
             or SesionNoIniciadaException
             or JuegoActivoNoEsTriviaException

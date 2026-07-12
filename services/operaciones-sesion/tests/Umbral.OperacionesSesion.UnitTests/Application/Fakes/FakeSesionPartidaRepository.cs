@@ -30,11 +30,13 @@ public sealed class FakeSesionPartidaRepository : ISesionPartidaRepository
         => Task.FromResult(ParticipacionActivaEnOtra);
 
     public Task<SesionPartida?> GetByParticipanteActivoAsync(Guid participanteId, CancellationToken cancellationToken)
+        // HU-19: refleja el repo real (Task 3): la inscripción propia cuenta Pendiente+Activa
+        // (OcupaParticipacion); la convocatoria aceptada sigue exigiendo inscripción activa.
         => Task.FromResult(_store.Values.FirstOrDefault(s =>
             (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada)
-            && s.Inscripciones.Any(i => i.EsActiva
-                && (i.ParticipanteId == participanteId
-                    || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)))));
+            && s.Inscripciones.Any(i =>
+                (i.OcupaParticipacion && i.ParticipanteId == participanteId)
+                || (i.EsActiva && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)))));
 
     public Task<IReadOnlyList<SesionPartida>> GetSesionesConActividadVencidaAsync(DateTime now, CancellationToken cancellationToken)
         => Task.FromResult((IReadOnlyList<SesionPartida>)_store.Values

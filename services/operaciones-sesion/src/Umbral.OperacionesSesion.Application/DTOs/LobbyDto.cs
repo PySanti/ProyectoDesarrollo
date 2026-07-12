@@ -9,6 +9,12 @@ public sealed record LobbyDto(
     int MaximosParticipacion,
     int InscritosActivos,
     IReadOnlyList<Guid> Participantes,
-    IReadOnlyList<EquipoLobbyDto> Equipos);
+    IReadOnlyList<EquipoLobbyDto> Equipos,
+    IReadOnlyList<SolicitudIndividualDto> SolicitudesPendientesIndividual,
+    IReadOnlyList<SolicitudEquipoDto> SolicitudesPendientesEquipo);
 
 public sealed record EquipoLobbyDto(Guid EquipoId, int Convocados, int Aceptados);
+
+public sealed record SolicitudIndividualDto(Guid InscripcionId, Guid ParticipanteId, DateTime FechaInscripcion);
+
+public sealed record SolicitudEquipoDto(Guid InscripcionId, Guid EquipoId, int Miembros, DateTime FechaInscripcion);

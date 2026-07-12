@@ -126,9 +126,6 @@ public sealed class EnviarInvitacionEquipoHandlerTests
         public Equipo? TeamToReturn { get; set; }
         public bool ExistsActiveForInvitadoValue { get; set; }
 
-        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
-            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
-
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             // Return true for invitado checks (not for the actor leader)
@@ -142,6 +139,9 @@ public sealed class EnviarInvitacionEquipoHandlerTests
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn?.EquipoId == equipoId ? TeamToReturn : null);
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamToReturn is null ? Array.Empty<Equipo>() : new[] { TeamToReturn });
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;
@@ -200,6 +200,18 @@ public sealed class EnviarInvitacionEquipoHandlerTests
             => Task.CompletedTask;
 
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
     }
 }

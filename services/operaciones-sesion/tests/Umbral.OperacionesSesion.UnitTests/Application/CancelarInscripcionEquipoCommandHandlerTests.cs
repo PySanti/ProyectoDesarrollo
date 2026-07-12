@@ -32,17 +32,27 @@ public class CancelarInscripcionEquipoCommandHandlerTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5,
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
-        sesion.PreinscribirEquipo(equipoId, true, new[] { lider }, false, 0, T0);
+        var inscPre = sesion.PreinscribirEquipo(equipoId, true, new[] { lider }, false, 0, T0);
+        sesion.AceptarInscripcion(inscPre.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         var directory = new FakeEquipoDirectoryClient
         {
             Equipo = new EquipoSnapshotDto(equipoId, "H", new List<MiembroEquipoDto> { new(lider, true) })
         };
-        var handler = new CancelarInscripcionEquipoCommandHandler(repo, directory, new FakeOperacionesSesionUnitOfWork());
+        var inscripcionId = sesion.Inscripciones.Single(i => i.EquipoId == equipoId).Id.Valor;
+        var events = new FakeSesionEventsPublisher();
+        var handler = new CancelarInscripcionEquipoCommandHandler(
+            repo, directory, events, new FakeOperacionesSesionUnitOfWork(), new FakeTimeProvider(T0));
 
         await handler.Handle(new CancelarInscripcionEquipoCommand(partidaId, lider, "Bearer x"), default);
 
         Assert.DoesNotContain(sesion.Inscripciones, i => i.EsActiva);
+
+        var inscripcionCancelada = Assert.Single(events.InscripcionesEquipoCanceladas);
+        Assert.Equal(partidaId, inscripcionCancelada.PartidaId);
+        Assert.Equal(equipoId, inscripcionCancelada.EquipoId);
+        Assert.Equal(inscripcionId, inscripcionCancelada.InscripcionId);
+        Assert.Equal(T0, inscripcionCancelada.Instante);
     }
 }

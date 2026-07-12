@@ -28,6 +28,7 @@ public class ResponderPreguntaEquipoHandlerTests
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
 
         var ins = sesion.PreinscribirEquipo(equipoALocal, true, new[] { liderALocal }, false, 0, T0);
+        sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == liderALocal).Id.Valor, liderALocal, true, false, T0);
         sesion.Iniciar(T0);
 
@@ -69,7 +70,8 @@ public class ResponderPreguntaEquipoHandlerTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var part = Guid.NewGuid();
-        sesion.Inscribir(part, false, 0, T0);
+        var inscP = sesion.Inscribir(part, false, 0, T0);
+        sesion.AceptarInscripcion(inscP.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
 
         var repo = new FakeSesionPartidaRepository();
