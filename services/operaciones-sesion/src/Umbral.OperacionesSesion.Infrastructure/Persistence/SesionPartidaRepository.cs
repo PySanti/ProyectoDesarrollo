@@ -115,6 +115,14 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .OrderBy(c => c.FechaEnvio)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
+        => await _dbContext.Sesiones
+            .AsNoTracking()
+            .Where(s => s.Estado == EstadoSesion.Lobby)
+            // Solo Inscripciones: el listado cuenta activas; no necesita convocatorias ni juegos.
+            .Include(s => s.Inscripciones)
+            .ToListAsync(cancellationToken);
+
     private static bool TienePasoVencido(SesionPartida sesion, DateTime now)
     {
         var juego = sesion.Juegos.FirstOrDefault(j => j.Estado == EstadoJuego.Activo);

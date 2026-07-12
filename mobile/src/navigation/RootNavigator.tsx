@@ -10,16 +10,10 @@ import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenC
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
-import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
-import { TriviaLobbyScreenContainer } from "../features/trivia/screens/TriviaLobbyScreenContainer";
-import { TriviaLivePlayScreenContainer } from "../features/trivia/live/TriviaLivePlayScreenContainer";
-import { TriviaAnswerScreenContainer } from "../features/trivia/screens/TriviaAnswerScreenContainer";
-import { TriviaResultScreenContainer } from "../features/trivia/screens/TriviaResultScreenContainer";
-import { TriviaScoreScreenContainer } from "../features/trivia/screens/TriviaScoreScreenContainer";
-import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
-import { BdtRankingScreenContainer } from "../features/bdt/ranking/BdtRankingScreenContainer";
-import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
-import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
+import { PartidasPanelScreenContainer } from "../features/partidas/PartidasPanelScreenContainer";
+import { PartidaLobbyScreenContainer } from "../features/partidas/PartidaLobbyScreenContainer";
+import { PartidaLiveScreenContainer } from "../features/partidas/PartidaLiveScreenContainer";
+import { ConvocatoriasScreenContainer } from "../features/partidas/ConvocatoriasScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 import { colors, fonts } from "../shared/theme";
 
@@ -93,54 +87,24 @@ export function RootNavigator() {
         options={{ title: "Salir del equipo" }}
       />
       <AppStack.Screen
-        name="TriviaGamesList"
-        component={TriviaGamesListScreenContainer}
-        options={{ title: "Partidas Trivia" }}
+        name="PartidasPanel"
+        component={PartidasPanelScreenContainer}
+        options={{ title: "Partidas" }}
       />
       <AppStack.Screen
-        name="TriviaLobby"
-        component={TriviaLobbyScreenContainer}
-        options={{ title: "Espera Trivia" }}
+        name="PartidaLobby"
+        component={PartidaLobbyScreenContainer}
+        options={{ title: "Lobby" }}
       />
       <AppStack.Screen
-        name="TriviaLivePlay"
-        component={TriviaLivePlayScreenContainer}
-        options={{ headerShown: false }}
+        name="PartidaLive"
+        component={PartidaLiveScreenContainer}
+        options={{ title: "En vivo" }}
       />
       <AppStack.Screen
-        name="TriviaAnswer"
-        component={TriviaAnswerScreenContainer}
-        options={{ title: "Responder Trivia" }}
-      />
-      <AppStack.Screen
-        name="TriviaResult"
-        component={TriviaResultScreenContainer}
-        options={{ title: "Resultado Trivia" }}
-      />
-      <AppStack.Screen
-        name="TriviaScore"
-        component={TriviaScoreScreenContainer}
-        options={{ title: "Puntaje Trivia" }}
-      />
-      <AppStack.Screen
-        name="BdtPublishedGames"
-        component={BdtPublishedGamesScreenContainer}
-        options={{ title: "Partidas BDT" }}
-      />
-      <AppStack.Screen
-        name="BdtRanking"
-        component={BdtRankingScreenContainer}
-        options={{ headerShown: false }}
-      />
-      <AppStack.Screen
-        name="BdtActiveStage"
-        component={BdtActiveStageScreenContainer}
-        options={{ title: "Etapa activa BDT" }}
-      />
-      <AppStack.Screen
-        name="BdtTreasureUpload"
-        component={BdtTreasureUploadScreenContainer}
-        options={{ title: "Subir tesoro QR" }}
+        name="Convocatorias"
+        component={ConvocatoriasScreenContainer}
+        options={{ title: "Convocatorias" }}
       />
     </AppStack.Navigator>
   );

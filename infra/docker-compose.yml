@@ -1,6 +1,5 @@
 # Docker Compose for the four-service UMBRAL topology, behind the YARP gateway.
 # Target services: gateway, identity-service, partidas, operaciones-sesion, puntuaciones.
-# Legacy (in transit, dismantled in SP-3/SP-4): trivia-game-service, bdt-game-service.
 # Do not add audit-service, scoring-service, or treasure-hunt-service.
 
 services:
@@ -95,6 +94,7 @@ services:
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile,account
       KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
       ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity-service:8080/
       ReverseProxy__Clusters__partidas__Destinations__d1__Address: http://partidas:8080/
       ReverseProxy__Clusters__operaciones-sesion__Destinations__d1__Address: http://operaciones-sesion:8080/
@@ -177,36 +177,6 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
-
-  trivia-game-service:
-    build:
-      context: ../services/trivia-game-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_trivia_game;Username=umbral;Password=16102005
-      RabbitMq__Host: rabbitmq
-      IdentityService__BaseUrl: http://identity-service
-    depends_on:
-      - postgres
-      - rabbitmq
-      - identity-service
-
-  bdt-game-service:
-    build:
-      context: ../services/bdt-game-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__BdtDatabase: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=16102005
-      RabbitMq__Host: rabbitmq
-      IdentityService__BaseUrl: http://identity-service
-      KEYCLOAK_BASE_URL: http://keycloak:8080
-      KEYCLOAK_REALM: UMBRAL-UCAB
-      KEYCLOAK_CLIENT_ID: bdt-game-service
-      KEYCLOAK_VALID_AUDIENCES: bdt-game-service,umbral-web,umbral-mobile,account
-    depends_on:
-      - postgres
-      - rabbitmq
-      - identity-service
 
 volumes:
   umbral-postgres-data:

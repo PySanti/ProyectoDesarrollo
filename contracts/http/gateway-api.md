@@ -25,6 +25,7 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 |---|---|---|---|
 | `/identity/governance/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/users/{**catch-all}` | 1 | `Administrador` | Identity |
+| `/identity/teams` (exacto, solo `GET`) | 0 | `OperadorOAdministrador` | Identity |
 | `/identity/teams/{**catch-all}` | 1 | `Participante` | Identity |
 | `/identity/{**catch-all}` (resto) | 2 | Default (autenticado) | Identity |
 | `/partidas/{**catch-all}` | — | `OperadorOAdministrador` (`RequireRole("Operador","Administrador")`) | Partidas |
@@ -44,6 +45,10 @@ Notas:
   mantiene sin cambios (`/operaciones-sesion/hubs/sesion`).
 - `401` = sin token / token inválido (challenge); `403` = rol insuficiente (Forbid). Body vacío
   default de ASP.NET Core.
+- `/identity/teams` exacto con `Methods: ["GET"]` (Order 0) intercepta el listado para la
+  consola web antes del catch-all de Participante (Order 1); `GET /identity/teams/mine` y
+  `POST /identity/teams` siguen cayendo en la ruta de Participante. Detalle del endpoint en
+  `identity-api.md` §"Teams listing for the web console".
 
 ## Endpoint Registry
 

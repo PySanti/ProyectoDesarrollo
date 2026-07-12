@@ -80,3 +80,16 @@ Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
 | Reject invitation | POST | `/identity/teams/invitations/{invitacionId}/rejection` | Registered | 200; 401/403 per above |
 | Get eligible participants (leader) | GET | `/identity/teams/eligible-participants` | Registered | 200; dynamic list excluding participants already in a team; blocked when team is full; 401/403 per above |
 | Get my active team | GET | `/identity/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, esLider }] }`; 404 if caller has no active team; 401/403 per above |
+
+### Teams listing for the web console (policy `OperadorOAdministrador` — Bloque 3b)
+
+Read-only listing for the admin/operator web view. Unlike the rest of this section, this endpoint
+is NOT under `GestionarEquipos`: it uses the role-based policy `OperadorOAdministrador`
+(`RequireRole("Operador", "Administrador")`), enforced both at the gateway (route
+`identity-teams-listing`, exact path + `GET` only, Order 0) and inside Identity
+(`TeamsAdminController`). `POST /identity/teams` and `GET /identity/teams/mine` keep their
+existing policies. Auth: `401` without a token; `403` without `Operador`/`Administrador`.
+
+| Capability | Method | Path | Status | Notes |
+|---|---|---|---|---|
+| List all teams | GET | `/identity/teams` | Registered | 200 `[{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, nombre, esLider }] }]`; ALL states (`Activo`/`Desactivado`/`Eliminado`), ordered by `nombreEquipo` asc; empty → `200 []`. `usuarioId` is the Keycloak `sub`; `nombre` resolved via the local user reference (`Usuario.KeycloakId`), `""` when no local row exists. |

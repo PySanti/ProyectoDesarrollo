@@ -46,7 +46,7 @@ Notas:
 - **Base fresca:** con el volumen de Postgres recién creado, `infra/postgres-init/01-create-databases.sql` crea las 4 bases (`umbral_identity`, `umbral_partidas`, `umbral_operaciones_sesion`, `umbral_puntuaciones`) y cada servicio aplica su esquema al arrancar — partidas/operaciones/puntuaciones vía migraciones EF (`EF_MIGRATE_ON_STARTUP=true`, solo activo en compose; `dotnet run` local no migra), identity vía su bootstrap propio (`EnsureCreated` + SQL idempotente, incondicional). Para un volumen ya existente sigue valiendo el `CREATE DATABASE` manual del CLAUDE.md.
 - **Orden de arranque:** postgres y rabbitmq tienen healthcheck; los servicios esperan `service_healthy` — no hay carrera contra la DB en el primer arranque.
 - **Dentro de la red Docker** los servicios hablan con Keycloak como `http://keycloak:8080`; los tokens emitidos desde el navegador llevan issuer `http://localhost:8080`, por eso `KEYCLOAK_VALID_ISSUERS` lista ambos.
-- Los servicios legacy (`trivia-game-service`, `bdt-game-service`) no forman parte de este levantamiento (pendientes de retiro, Bloque 3).
+- Los servicios legacy (`trivia-game-service`, `bdt-game-service`) fueron retirados del repositorio (Bloque 3 de cobertura, 2026-07-11). Si tu volumen local de Postgres aún tiene las bases `umbral_trivia_game`/`umbral_bdt_game`, son residuo inocuo; opcional: `docker exec -it umbral-postgres psql -U umbral -d umbral -c "DROP DATABASE umbral_trivia_game;"` (ídem `umbral_bdt_game`).
 
 ## Variables de entorno (.env central)
 
@@ -74,6 +74,15 @@ directos, usan los valores por defecto (localhost).
 
 ## Levantamiento de microservicios
 
+> ⚠️ **Desde el Bloque 2a, web y mobile consumen identity/equipos A TRAVÉS del gateway** (`GATEWAY_PORT`, default 5080). El gateway es parte obligatoria del levantamiento local: `./gateway/run-local.sh` antes de abrir los clientes.
+
+> **Desde el Bloque 2d, el mobile ya no usa los servicios trivia/bdt viejos** (:5015/:5016 — código y vars `EXPO_PUBLIC_BDT/TRIVIA_API_BASE_URL` retirados). El participante descubre partidas con `GET /operaciones-sesion/partidas-publicadas` (solo sesiones en Lobby, participant-safe), se inscribe/preinscribe y responde convocatorias desde el panel "Partidas" y el inbox "Convocatorias"; el lobby recibe `PartidaIniciada`/`PartidaCancelada` por SignalR (`@microsoft/signalr@^8` en mobile, mismo hub vía gateway). Levantamiento del flujo mobile: infra + `identity-service` + `partidas` + `operaciones-sesion` + gateway. El gameplay mobile (responder, QR, pistas, geoloc) llega en 2e.
+
+> **Desde el Bloque 2e-1, el participante mobile juega Trivia en vivo** (`PartidaLive`: pregunta activa con countdown, responder una vez, ranking del juego y consolidado al finalizar). El flujo mobile de gameplay requiere además **`puntuaciones`** (rankings por `GET /puntuaciones/**` con token de participante): incluir `./services/puntuaciones/run-local.sh` en el levantamiento. BDT mobile (QR, pistas, geoloc) llega en 2e-2.
+
+> **Desde el Bloque 2e-2 el participante mobile juega BDT completo** (subir QR por cámara/galería con reintentos ilimitados, pistas del operador en vivo, geolocalización enviada al operador ~cada 2s mientras el juego BDT está activo — requiere permiso de ubicación en el dispositivo). **Bloque 2e completo**: el gameplay mobile (Trivia + BDT) queda operativo end-to-end con el mismo levantamiento del punto anterior.
+
+> **Desde el Bloque 2b, la creación/configuración de partidas multi-juego vive en la web** (`/partidas` contra `services/partidas`): incluir `./services/partidas/run-local.sh` en el levantamiento del flujo de configuración.
 
 * En la raiz del proyecto
 
@@ -82,19 +91,11 @@ directos, usan los valores por defecto (localhost).
 
 ```cmd
 
+# Terminal 0 (OBLIGATORIA: entrada única del backend para los clientes)
+./gateway/run-local.sh
+
 # Terminal 1
 ./services/identity-service/run-local.sh
-
-
-# Terminal 2
-./services/team-service/run-local.sh
-
-# Terminal 3
-./services/bdt-game-service/run-local.sh
-
-
-# Terminal 4
-./services/trivia-game-service/run-local.sh
 
 # Terminal 5  (carga el .env raiz antes de Vite)
 ./frontend/run-local.sh
@@ -110,22 +111,12 @@ directos, usan los valores por defecto (localhost).
 
 ```cmd
 
+# Terminal 0 (OBLIGATORIA: entrada única del backend para los clientes)
+cd ./gateway/
+./run-local.ps1
+
 # Terminal 1
 cd ./services/identity-service/
-./run-local.ps1
-
-
-# Terminal 2
-cd ./services/team-service/
-./run-local.ps1
-
-# Terminal 3
-cd ./services/bdt-game-service/
-./run-local.ps1
-
-
-# Terminal 4
-cd ./services/trivia-game-service/
 ./run-local.ps1
 
 # Terminal 5  (carga el .env raiz antes de Vite)
@@ -225,3 +216,48 @@ KEYCLOAK_REALM=UMBRAL-UCAB
 KEYCLOAK_VALID_AUDIENCES=umbral-web,umbral-mobile,account
 KEYCLOAK_VALID_ISSUERS=http://localhost:8080/realms/UMBRAL-UCAB
 ```
+
+## Consola de sesión del operador (web, Bloque 2c-1)
+
+La consola (`/partidas/:id/sesion`: publicar → lobby → inicio manual/automático) necesita corriendo:
+**gateway** (5080) + **partidas** (5010, config handoff interno) + **operaciones-sesion** (5020) +
+infra (Postgres/Keycloak; RabbitMQ opcional para 2c-1). `services/operaciones-sesion/.env` requiere
+las mismas `KEYCLOAK_*` que Partidas (sección anterior). El tiempo real usa SignalR vía gateway
+(`/operaciones-sesion/hubs/sesion`, WebSocket passthrough); el conteo de inscritos del lobby se
+refresca por polling (5s) porque el hub no pushea inscripciones.
+
+El **runtime Trivia** (Bloque 2c-2: pregunta activa, avance, finalizar juego, ranking del juego en vivo)
+añade dos requisitos al levantar: **puntuaciones** (5030) y **RabbitMQ** arriba — el ranking (`GET
+/puntuaciones/partidas/{id}/juegos/{juegoId}/ranking`) lo sirve una proyección de Puntuaciones
+alimentada por eventos RabbitMQ (best-effort, ADR-0012), y la consola la refetchea al recibir
+`PreguntaActivada`/`PreguntaCerrada` del hub de sesión (sin segundo hub). `services/puntuaciones/.env`
+requiere las mismas `KEYCLOAK_*` y las `RabbitMq__*` (ver §Event Broker).
+
+El **runtime BDT** (Bloque 2c-3: etapas, avance, pistas, mapa de geolocalización, ranking) usa el
+mismo stack de servicios que 2c-2 (gateway + operaciones + partidas + **puntuaciones** + RabbitMQ).
+Añade en el cliente el **mapa de leaflet**: `GeoMapPanel` carga tiles de OpenStreetMap desde un
+servidor externo (`https://tile.openstreetmap.org/...`), por lo que la máquina que abre la web
+necesita **internet** para ver el fondo del mapa (los marcadores de participantes funcionan sin
+internet, pero sin fondo geográfico). La geolocalización llega por SignalR (`UbicacionActualizada`,
+solo al operador vía el grupo `operador:partida:{id}`); las pistas se envían por `POST
+/operaciones-sesion/partidas/{id}/pistas` a un participante o equipo del roster.
+
+El **cierre de la partida** (Bloque 2c-4) muestra el **ranking consolidado** en la vista terminada
+de la consola: `GET /puntuaciones/partidas/{id}/ranking-consolidado` (mismo stack que 2c-2/2c-3;
+requiere la partida `Terminada` — antes responde 409, y la consola reintenta hasta 3 veces con
+1.5s para cubrir el lag de proyección). Las páginas legacy `trivia/operar` y `bdt/partidas`
+fueron retiradas: toda la operación en vivo pasa por `/partidas/:id/sesion`.
+
+## Consultas web de Puntuaciones (Bloque 2f)
+
+La web consulta el historial cronológico de una partida en `/partidas/:id/historial` y el
+rendimiento histórico de un equipo en `/puntuaciones/equipos`. Ambas vistas consumen Puntuaciones
+exclusivamente a través del gateway: `GET /puntuaciones/partidas/{id}/historial` y
+`GET /puntuaciones/equipos/{equipoId}/rendimiento`. Requieren el mismo stack completo de 2c-2/2c-3;
+el historial exige rol `Operador` o `Administrador` y devuelve `403` a `Participante`.
+
+Con Bloque 2f queda **BLOQUE 2 COMPLETO**: configuración y operación web, participación y gameplay
+mobile, y consultas web de historial/rendimiento funcionan sobre los cuatro servicios detrás del
+gateway obligatorio.
+
+> **Desde el Bloque 3a los rankings se actualizan en vivo por push** (hub `puntuaciones/hubs/ranking`, SP-4c): la consola web del operador y el live mobile del participante reciben `RankingTriviaActualizado`/`RankingBDTActualizado` intra-pregunta/etapa y `RankingConsolidadoCalculado` al finalizar. El push es aditivo: los GET HTTP siguen siendo la fuente recuperable (un push perdido no se reintenta). Mismo levantamiento; el hub viaja por el gateway como el de sesión.

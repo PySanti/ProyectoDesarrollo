@@ -18,8 +18,20 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("OperadorOAdministrador", p => p.RequireRole("Operador", "Administrador"))
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
+// CORS del borde: el navegador (web :5173) llama al gateway; los orígenes vienen de env.
+// AllowCredentials: lo requerirá la negociación SignalR de los slices 2c/2f.
+var corsOrigins = (builder.Configuration["CORS_ALLOWED_ORIGINS"] ?? "http://localhost:5173")
+    .Split(',', StringSplitOptions.RemoveEmptyEntries | StringSplitOptions.TrimEntries);
+
+builder.Services.AddCors(options => options.AddDefaultPolicy(policy => policy
+    .WithOrigins(corsOrigins)
+    .AllowAnyHeader()
+    .AllowAnyMethod()
+    .AllowCredentials()));
+
 var app = builder.Build();
 
+app.UseCors();
 app.UseAuthentication();
 app.UseAuthorization();
 

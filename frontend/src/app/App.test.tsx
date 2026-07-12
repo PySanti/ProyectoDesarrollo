@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import { render, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
-import * as bdtApi from "../api/bdtApi";
 import * as identityApi from "../api/identityApi";
-import * as triviaApi from "../api/triviaApi";
+import * as partidasApi from "../api/partidasApi";
+import * as puntuacionesApi from "../api/puntuacionesApi";
 
 const { initMock } = vi.hoisted(() => ({
   initMock: vi.fn()
@@ -14,10 +14,17 @@ vi.mock("../auth/keycloak", () => {
     authProvider: {
       init: initMock,
       login: vi.fn(),
-      logout: vi.fn()
+      logout: vi.fn(),
+      refresh: vi.fn().mockResolvedValue("tok")
     }
   };
 });
+
+// La consola de sesion abre conexiones SignalR reales (useSesionHub/useRankingHub)
+// que requieren VITE_GATEWAY_BASE_URL; sin mock, el efecto lanza sincronicamente
+// y rompe el render. Mismo patron que SesionOperadorPage.test.tsx.
+vi.mock("../features/partidas/useSesionHub", () => ({ useSesionHub: vi.fn() }));
+vi.mock("../features/partidas/useRankingHub", () => ({ useRankingHub: vi.fn() }));
 
 import { App } from "./App";
 
@@ -42,8 +49,8 @@ describe("App shell + auth guard", () => {
     ).toBeInTheDocument();
   });
 
-  it("lands an operator on Operar Trivia and navigates to Crear BDT", async () => {
-    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
+  it("lands an operator on Partidas and navigates to Nueva partida", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
@@ -52,30 +59,12 @@ describe("App shell + auth guard", () => {
 
     render(<App />);
 
-    // Operador landing = Operar Trivia.
-    expect(await screen.findByRole("heading", { name: /operaci[oó]n trivia/i })).toBeInTheDocument();
+    // Operador landing = Partidas.
+    expect(await screen.findByRole("heading", { name: /^partidas$/i })).toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole("link", { name: /crear bdt/i }));
+    await userEvent.click(screen.getByRole("link", { name: /nueva partida/i }));
 
-    expect(await screen.findByRole("heading", { name: /crear partida bdt/i })).toBeInTheDocument();
-  });
-
-  it("navigates an operator to published BDT games", async () => {
-    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
-    vi.spyOn(bdtApi, "getOperatorPublishedBdtGames").mockResolvedValue([]);
-    initMock.mockResolvedValueOnce({
-      username: "operador",
-      roles: ["Operador"],
-      token: "token"
-    });
-
-    render(<App />);
-
-    await userEvent.click(await screen.findByRole("link", { name: /partidas bdt/i }));
-
-    expect(
-      await screen.findByRole("heading", { name: /partidas bdt publicadas/i })
-    ).toBeInTheDocument();
+    expect(await screen.findByRole("heading", { name: /crear partida/i })).toBeInTheDocument();
   });
 
   it("lands an admin on user management and navigates to Crear usuario", async () => {
@@ -99,7 +88,7 @@ describe("App shell + auth guard", () => {
   });
 
   it("does not show admin areas to an operator", async () => {
-    vi.spyOn(triviaApi, "getOperatorTriviaGamesForSupervision").mockResolvedValue([]);
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
@@ -108,8 +97,102 @@ describe("App shell + auth guard", () => {
 
     render(<App />);
 
-    await screen.findByRole("heading", { name: /operaci[oó]n trivia/i });
+    await screen.findByRole("heading", { name: /^partidas$/i });
 
     expect(screen.queryByRole("link", { name: /gestión de usuarios/i })).not.toBeInTheDocument();
+  });
+
+  it("allows an admin to reach a partida history", async () => {
+    vi.spyOn(puntuacionesApi, "getHistorialPartida").mockResolvedValue({
+      partidaId: "p1",
+      total: 0,
+      entradas: []
+    });
+    window.history.pushState({}, "", "/partidas/p1/historial");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: /historial de la partida/i })
+    ).toBeInTheDocument();
+  });
+
+  it("allows an admin to reach team performance", async () => {
+    window.history.pushState({}, "", "/puntuaciones/equipos");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: /rendimiento de equipo/i })
+    ).toBeInTheDocument();
+  });
+
+  it("allows an operator to reach the teams list", async () => {
+    vi.spyOn(identityApi, "getEquipos").mockResolvedValue([]);
+    window.history.pushState({}, "", "/equipos");
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /equipos/i })).toBeInTheDocument();
+  });
+
+  it("allows an admin to reach the partidas list in read-only mode", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByTestId("lista-partidas")).toBeInTheDocument();
+    expect(screen.queryByTestId("btn-nueva-partida")).toBeNull();
+  });
+
+  it("allows an admin to reach the sesion console", async () => {
+    window.history.pushState({}, "", "/partidas/11111111-1111-1111-1111-111111111111/sesion");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByTestId("sesion-operador")).toBeInTheDocument();
+  });
+
+  it("keeps partida creation unavailable to an admin without the operator role", async () => {
+    vi.spyOn(identityApi, "getIdentityUsers").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas/crear");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByRole("heading", { name: /gesti[oó]n de usuarios/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("heading", { name: /crear partida/i })).not.toBeInTheDocument();
   });
 });

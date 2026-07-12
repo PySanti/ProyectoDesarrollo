@@ -36,6 +36,7 @@ Requests enter through the YARP gateway.
 | Start a partida (automatic, idempotent) | POST | `/operaciones-sesion/partidas/{partidaId}/inicio-automatico` | Policy `GestionarPartidas` (llamado también por el worker interno vía `ISender` in-process, sin HTTP) | 200 + InicioPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 modo incompatible |
 | Finalize current game (advance) | POST | `/operaciones-sesion/partidas/{partidaId}/juego-actual/finalizacion` | Policy `GestionarPartidas` | 200 + AvanceJuegoResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 no iniciada |
 | Session state | GET | `/operaciones-sesion/partidas/{partidaId}/estado` | Autenticado (cualquier rol; sin policy de permiso) | 200 + EstadoSesionDto | 401 sin token · 404 sesión no existe |
+| Partidas publicadas (descubrimiento) | GET | `/operaciones-sesion/partidas-publicadas` | Autenticado (cualquier rol; sin policy de permiso) | 200 + PartidaPublicadaDto[] (solo sesiones en `Lobby`; vacía si no hay) | 401 sin token |
 | Answer active question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/respuesta` | Policy `ParticiparEnPartidas` | 200 + RespuestaTriviaResponse | 401 sin identidad · 403 sin el permiso / no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no Trivia / sin pregunta activa / duplicada (individual o, en Equipo, por equipo) / fuera de tiempo |
 | Advance current question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/avance` | Policy `GestionarPartidas` | 200 + AvancePreguntaResponse | 401 sin token · 403 sin el permiso · 404 · 409 no iniciada / juego no Trivia / sin pregunta activa |
 | Current question | GET | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual` | Autenticado (cualquier rol; sin policy de permiso) | 200 + PreguntaActualDto | 401 sin token · 404 sesión no existe · 409 sin pregunta activa |
@@ -49,6 +50,7 @@ Requests enter through the YARP gateway.
 ### DTOs
 
 - `LobbyDto { partidaId, sesionPartidaId, estado, modalidad, minimosParticipacion, maximosParticipacion, inscritosActivos, participantes[], equipos[] }`
+- `PartidaPublicadaDto { partidaId, nombre, modalidad, modoInicioPartida, tiempoInicio (nullable), minimosParticipacion, maximosParticipacion, inscritosActivos }` — listado participant-safe para el panel mobile (Bloque 2d): solo sesiones cuyo estado es `Lobby`; sin juegos, preguntas ni códigos QR. `inscritosActivos` cuenta inscripciones activas (participantes en Individual, equipos en Equipo).
 - `InscripcionResponse { inscripcionId, partidaId, participanteId }`
 - `InicioPartidaResponse { partidaId, estado, juegoActivadoId?, juegoActivadoOrden? }` (estado ∈ {Iniciada, Cancelada, Lobby}; Lobby = automatic no-op)
 - `AvanceJuegoResponse { partidaId, estado, juegoFinalizadoOrden?, juegoActivadoOrden?, terminada }`
@@ -82,7 +84,7 @@ sin el permiso requerido.
 |---|---|---|
 | Operación de la partida (7) | `GestionarPartidas` | `publicacion` (POST) · `inicio` (POST) · `inicio-automatico` (POST) · `juego-actual/finalizacion` (POST) · `pregunta-actual/avance` (POST) · `etapa-actual/avance` (POST) · `pistas` (POST) |
 | Participación (10) | `ParticiparEnPartidas` | `inscripciones` (POST, Individual) · `inscripciones/mia` (DELETE) · `inscripciones-equipo` (POST, líder) · `inscripciones-equipo/mia` (DELETE, líder) · `convocatorias/{id}/aceptacion` (POST, convocado) · `convocatorias/{id}/rechazo` (POST, convocado) · `pregunta-actual/respuesta` (POST) · `etapa-actual/tesoro` (POST) · `mi-sesion` (GET) · `mis-convocatorias` (GET) |
-| Lectura compartida (4) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) |
+| Lectura compartida (5) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) · `partidas-publicadas` (GET) |
 | Infraestructura | Anónimo | `health` (GET) |
 
 Notas: los calificadores "líder"/"convocado" en el grupo `ParticiparEnPartidas` son reglas de

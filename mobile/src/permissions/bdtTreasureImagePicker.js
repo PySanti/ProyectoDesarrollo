@@ -34,6 +34,7 @@ export async function pickBdtTreasureImage(imagePickerModuleLoader = () => impor
   const result = await launch({
     mediaTypes: ImagePicker.MediaTypeOptions?.Images ?? "Images",
     quality: 0.9,
+    base64: true,
   });
 
   if (result?.canceled || result?.cancelled) {
@@ -48,6 +49,7 @@ export async function pickBdtTreasureImage(imagePickerModuleLoader = () => impor
   return {
     image: {
       uri: asset.uri,
+      base64: asset.base64,
       name: asset.fileName || buildFileName(asset.uri, asset.mimeType),
       type: asset.mimeType || inferContentType(asset.uri),
       size: asset.fileSize,

@@ -45,6 +45,9 @@ public class CambiarRolUsuarioHandlerTests
     {
         public bool Existe;
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(Existe);
 

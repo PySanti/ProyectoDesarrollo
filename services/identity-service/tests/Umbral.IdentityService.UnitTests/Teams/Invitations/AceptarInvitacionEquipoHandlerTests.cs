@@ -163,6 +163,9 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         public bool InvitadoAlreadyHasTeam { get; set; }
         public bool UpdateWasCalled { get; private set; }
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(InvitadoAlreadyHasTeam);
 

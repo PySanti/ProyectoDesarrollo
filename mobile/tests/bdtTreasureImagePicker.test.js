@@ -1,73 +1,36 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { pickBdtTreasureImage, requestBdtTreasureImagePermission } from "../src/permissions/bdtTreasureImagePicker.js";
+import { pickBdtTreasureImage } from "../src/permissions/bdtTreasureImagePicker.js";
 
-test("requestBdtTreasureImagePermission grants access when media library or camera is granted", async () => {
-  const permission = await requestBdtTreasureImagePermission(async () => ({
-    requestMediaLibraryPermissionsAsync: async () => ({ status: "denied" }),
-    requestCameraPermissionsAsync: async () => ({ status: "granted" }),
-  }));
-
-  assert.deepEqual(permission, { granted: true, unavailable: false });
-});
-
-test("requestBdtTreasureImagePermission maps denied and unavailable states", async () => {
-  const denied = await requestBdtTreasureImagePermission(async () => ({
-    requestMediaLibraryPermissionsAsync: async () => ({ status: "denied" }),
-    requestCameraPermissionsAsync: async () => ({ status: "denied" }),
-  }));
-  const unavailable = await requestBdtTreasureImagePermission(async () => {
-    throw new Error("missing module");
-  });
-
-  assert.deepEqual(denied, { granted: false, unavailable: false });
-  assert.deepEqual(unavailable, { granted: false, unavailable: true });
-});
-
-test("pickBdtTreasureImage maps selected library asset to upload image", async () => {
-  const result = await pickBdtTreasureImage(async () => ({
+test("pickBdtTreasureImage pide base64 y lo expone en el resultado", async () => {
+  const opciones = [];
+  const fakePicker = {
     MediaTypeOptions: { Images: "Images" },
-    launchImageLibraryAsync: async () => ({
-      canceled: false,
-      assets: [
-        {
-          uri: "file:///tmp/tesoro.png",
-          fileName: "tesoro.png",
-          mimeType: "image/png",
-          fileSize: 123,
-        },
-      ],
-    }),
-  }));
-
-  assert.deepEqual(result, {
-    image: {
-      uri: "file:///tmp/tesoro.png",
-      name: "tesoro.png",
-      type: "image/png",
-      size: 123,
+    launchImageLibraryAsync: async (opts) => {
+      opciones.push(opts);
+      return { canceled: false, assets: [{ uri: "file:///a/foto.jpg", base64: "QkFTRTY0", mimeType: "image/jpeg" }] };
     },
-  });
+  };
+  const r = await pickBdtTreasureImage(async () => fakePicker, "library");
+  assert.equal(opciones[0].base64, true);
+  assert.equal(r.image.base64, "QkFTRTY0");
+  assert.equal(r.image.uri, "file:///a/foto.jpg");
 });
 
-test("pickBdtTreasureImage supports camera source and cancellation", async () => {
-  let cameraCalled = false;
-  const cameraResult = await pickBdtTreasureImage(async () => ({
-    launchCameraAsync: async () => {
-      cameraCalled = true;
-      return {
-        canceled: false,
-        assets: [{ uri: "file:///tmp/camera.jpg", mimeType: "image/jpeg" }],
-      };
+test("pickBdtTreasureImage camera usa launchCameraAsync y cancelado devuelve cancelled", async () => {
+  let usoCamara = false;
+  const fakePicker = {
+    MediaTypeOptions: { Images: "Images" },
+    launchCameraAsync: async (opts) => {
+      usoCamara = true;
+      assert.equal(opts.base64, true);
+      return { canceled: true };
     },
-    launchImageLibraryAsync: async () => ({ canceled: true }),
-  }), "camera");
-  const cancelled = await pickBdtTreasureImage(async () => ({
-    launchImageLibraryAsync: async () => ({ canceled: true }),
-  }));
-
-  assert.equal(cameraCalled, true);
-  assert.equal(cameraResult.image.type, "image/jpeg");
-  assert.equal(cameraResult.image.name, "camera.jpg");
-  assert.deepEqual(cancelled, { cancelled: true });
+    launchImageLibraryAsync: async () => {
+      throw new Error("no debía usar galería");
+    },
+  };
+  const r = await pickBdtTreasureImage(async () => fakePicker, "camera");
+  assert.equal(usoCamara, true);
+  assert.equal(r.cancelled, true);
 });

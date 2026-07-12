@@ -12,16 +12,6 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddIdentityApplication();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendDev", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
@@ -106,6 +96,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
+    options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
 });
 
 var app = builder.Build();
@@ -145,7 +136,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-app.UseCors("FrontendDev");
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

@@ -154,6 +154,9 @@ public sealed class GetParticipantesElegiblesHandlerTests
         public Equipo? TeamToReturn { get; set; }
         public HashSet<Guid> UsersWithActiveTeam { get; set; } = new();
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(UsersWithActiveTeam.Contains(userId));
 

@@ -126,6 +126,9 @@ public sealed class EnviarInvitacionEquipoHandlerTests
         public Equipo? TeamToReturn { get; set; }
         public bool ExistsActiveForInvitadoValue { get; set; }
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             // Return true for invitado checks (not for the actor leader)

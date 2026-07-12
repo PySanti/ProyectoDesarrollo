@@ -58,6 +58,9 @@ public sealed class CrearEquipoHandlerTests
         public bool AddWasCalled { get; private set; }
         public Exception? AddExceptionToThrow { get; set; }
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(ExistsActiveTeamByUserIdValue);
 

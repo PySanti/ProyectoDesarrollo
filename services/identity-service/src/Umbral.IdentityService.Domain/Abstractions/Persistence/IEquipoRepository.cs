@@ -4,6 +4,7 @@ namespace Umbral.IdentityService.Domain.Abstractions.Persistence;
 
 public interface IEquipoRepository
 {
+    Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken);
     Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task<Equipo?> GetActiveByMemberUserIdAsync(Guid userId, CancellationToken cancellationToken);
     Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken);

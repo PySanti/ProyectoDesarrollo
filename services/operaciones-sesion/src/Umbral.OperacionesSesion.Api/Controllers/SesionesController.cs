@@ -96,6 +96,10 @@ public sealed class SesionesController : ControllerBase
         return Ok(lobby);
     }
 
+    [HttpGet("partidas-publicadas")]
+    public async Task<IActionResult> ListarPartidasPublicadas(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new ListarPartidasPublicadasQuery(), cancellationToken));
+
     [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inicio")]
     public async Task<IActionResult> Iniciar(Guid partidaId, CancellationToken cancellationToken)

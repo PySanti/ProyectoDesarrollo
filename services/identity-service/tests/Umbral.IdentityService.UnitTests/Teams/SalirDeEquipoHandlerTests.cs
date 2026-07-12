@@ -116,6 +116,9 @@ public sealed class SalirDeEquipoHandlerTests
         public Equipo? TeamToReturn { get; set; }
         public bool UpdateWasCalled { get; private set; }
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken ct) =>
+            Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn is not null);
 

@@ -17,4 +17,5 @@ public interface ISesionPartidaRepository
     Task<SesionPartida?> GetByConvocatoriaIdAsync(Guid convocatoriaId, CancellationToken cancellationToken);
     Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken);
 }

@@ -14,7 +14,7 @@ export function TransferLeadershipScreenContainer() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <TransferLeadershipScreen
-        apiBaseUrl={mobileEnv.identityApiBaseUrl}
+        apiBaseUrl={mobileEnv.gatewayApiBaseUrl}
         token={session.token}
         currentLeaderUserId={session.user.sub}
       />

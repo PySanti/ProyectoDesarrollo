@@ -1,6 +1,6 @@
-/* Shared styles for the operator "create" surfaces: Crear formulario, Crear Trivia,
-   Crear BDT. One form card grouped into labeled sections; numbered item editors
-   (Trivia questions / BDT stages) share the same vocabulary. */
+/* Shared styles for the operator "create" surface: the multi-game Crear partida
+   wizard (header + Trivia/BDT games). One form card grouped into labeled sections;
+   numbered item editors (Trivia questions / BDT stages) share the same vocabulary. */
 
 /* Header with a live count / status chip on the right */
 .create-head {

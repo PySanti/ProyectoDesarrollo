@@ -24,18 +24,18 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={styles.group}>
         <NavCard
-          icon="zap"
-          label="Jugar Trivia"
-          sublabel="Responde y suma puntos"
+          icon="flag"
+          label="Partidas"
+          sublabel="Descubre y únete a una partida"
           feature
-          onPress={() => navigation.navigate("TriviaGamesList")}
+          onPress={() => navigation.navigate("PartidasPanel")}
         />
         <NavCard
-          icon="map"
-          label="Buscar tesoro"
-          sublabel="Encuentra los QR en cada etapa"
+          icon="mail"
+          label="Convocatorias"
+          sublabel="Responde el llamado de tu equipo"
           feature
-          onPress={() => navigation.navigate("BdtPublishedGames")}
+          onPress={() => navigation.navigate("Convocatorias")}
         />
       </View>
 

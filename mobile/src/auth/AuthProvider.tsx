@@ -1,6 +1,16 @@
-import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import React, { createContext, useContext, useEffect, useMemo, useRef, useState } from "react";
+import { Alert, View } from "react-native";
 import { AuthSessionState } from "./authTypes";
-import { loginWithKeycloakAsync, logoutAsync, restoreSessionAsync } from "./keycloakMobileAuth";
+import {
+  loginWithKeycloakAsync,
+  logoutAsync,
+  refreshSessionAsync,
+  restoreSessionAsync,
+} from "./keycloakMobileAuth";
+import { crearSessionRefreshCore } from "./sessionRefreshCore.js";
+import { SessionExpiryModal } from "./SessionExpiryModal";
+
+const REFRESH_INTERVAL_MS = 270_000;
 
 type AuthContextValue = {
   loading: boolean;
@@ -14,6 +24,10 @@ const AuthContext = createContext<AuthContextValue | null>(null);
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [session, setSession] = useState<AuthSessionState | null>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+  const coreRef = useRef<ReturnType<typeof crearSessionRefreshCore> | null>(null);
+  // logout se recrea en cada render: el core lo alcanza por ref.
+  const logoutRef = useRef<() => Promise<void>>(async () => {});
 
   useEffect(() => {
     restoreSessionAsync()
@@ -44,6 +58,36 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setLoading(false);
     }
   }
+  logoutRef.current = logout;
+
+  const haySesion = session != null;
+  useEffect(() => {
+    if (!haySesion) return;
+
+    const core = crearSessionRefreshCore({
+      refrescar: async () => {
+        const nueva = await refreshSessionAsync();
+        if (nueva) {
+          setSession(nueva);
+          return true;
+        }
+        return false;
+      },
+      onModal: setModalVisible,
+      onExpirada: () => {
+        Alert.alert("Sesión expirada", "Tu sesión expiró. Inicia sesión de nuevo.");
+        void logoutRef.current();
+      },
+    });
+    coreRef.current = core;
+    const interval = setInterval(() => void core.tick(), REFRESH_INTERVAL_MS);
+
+    return () => {
+      clearInterval(interval);
+      coreRef.current = null;
+      setModalVisible(false);
+    };
+  }, [haySesion]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -55,7 +99,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     [loading, session],
   );
 
-  return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
+  return (
+    <AuthContext.Provider value={value}>
+      <View
+        style={{ flex: 1 }}
+        onStartShouldSetResponderCapture={() => {
+          coreRef.current?.marcarActividad();
+          return false;
+        }}
+      >
+        {children}
+        <SessionExpiryModal
+          visible={modalVisible}
+          onContinuar={() => void coreRef.current?.continuar()}
+          onSalir={() => void logout()}
+        />
+      </View>
+    </AuthContext.Provider>
+  );
 }
 
 export function useAuth() {

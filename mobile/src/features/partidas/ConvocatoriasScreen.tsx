@@ -1,0 +1,105 @@
+import React, { useCallback, useEffect, useState } from "react";
+import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
+import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
+import { colors, spacing } from "../../shared/theme";
+import { fetchConvocatorias, responderConvocatoria } from "./convocatoriasFlow.js";
+
+type Convocatoria = {
+  convocatoriaId: string;
+  partidaId: string;
+  equipoId: string;
+  fechaEnvio: string;
+};
+
+type Props = { apiBaseUrl: string; token: string };
+
+// fetchConvocatorias/responderConvocatoria viven en un .js sin checkJs: TS pierde el discriminante
+// literal de "ok" al inferir su tipo exportado (mismo patrón que PartidaLobbyScreen).
+type ConvocatoriasResult =
+  | { ok: true; data: Convocatoria[] }
+  | { ok: false; type: string; message?: string };
+
+type ResponderResult = { ok: true; data?: unknown } | { ok: false; type: string; message?: string };
+
+export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
+  const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [actionId, setActionId] = useState<string | null>(null);
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    setErrorMessage(null);
+    const r = (await fetchConvocatorias({ apiBaseUrl, token, fetchImpl: undefined })) as ConvocatoriasResult;
+    if (!r.ok) {
+      setErrorMessage(r.message ?? "No se pudieron cargar las convocatorias.");
+      return;
+    }
+    setConvocatorias(r.data);
+  }, [apiBaseUrl, token]);
+
+  useEffect(() => {
+    (async () => {
+      setLoading(true);
+      await load();
+      setLoading(false);
+    })();
+  }, [load]);
+
+  async function onResponder(convocatoriaId: string, aceptar: boolean) {
+    setActionId(convocatoriaId);
+    setErrorMessage(null);
+    setFeedback(null);
+    const r = (await responderConvocatoria({
+      apiBaseUrl, token, convocatoriaId, aceptar, fetchImpl: undefined,
+    })) as ResponderResult;
+    setActionId(null);
+    if (!r.ok) {
+      setErrorMessage(r.message ?? "No se pudo responder la convocatoria.");
+      return;
+    }
+    setFeedback(aceptar ? "Convocatoria aceptada. ¡Nos vemos en el lobby!" : "Convocatoria rechazada.");
+    setConvocatorias((prev) => prev.filter((c) => c.convocatoriaId !== convocatoriaId));
+  }
+
+  return (
+    <ScrollView style={styles.container} contentContainerStyle={styles.content}>
+      <ScreenHeader title="Convocatorias" subtitle="Tu equipo te espera" />
+      {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
+      {feedback ? <Notice variant="success">{feedback}</Notice> : null}
+      {loading ? <ActivityIndicator color={colors.primaryBright} style={styles.spinner} /> : null}
+      {!loading && convocatorias.length === 0 ? (
+        <Card>
+          <AppText style={styles.empty}>No tienes convocatorias pendientes.</AppText>
+        </Card>
+      ) : null}
+      {convocatorias.map((c) => (
+        <Card key={c.convocatoriaId}>
+          <AppText variant="bodyStrong">Partida {c.partidaId.slice(0, 8)}</AppText>
+          <AppText>Equipo {c.equipoId.slice(0, 8)}</AppText>
+          <View style={styles.acciones}>
+            <Button
+              label="Aceptar"
+              onPress={() => void onResponder(c.convocatoriaId, true)}
+              disabled={actionId === c.convocatoriaId}
+            />
+            <Button
+              label="Rechazar"
+              variant="secondary"
+              onPress={() => void onResponder(c.convocatoriaId, false)}
+              disabled={actionId === c.convocatoriaId}
+            />
+          </View>
+        </Card>
+      ))}
+    </ScrollView>
+  );
+}
+
+const styles = StyleSheet.create({
+  container: { flex: 1, backgroundColor: colors.bg },
+  content: { padding: spacing.xl, gap: spacing.lg },
+  spinner: { marginTop: spacing.lg },
+  empty: { color: colors.muted, textAlign: "center" },
+  acciones: { flexDirection: "row", gap: spacing.sm, marginTop: spacing.sm },
+});

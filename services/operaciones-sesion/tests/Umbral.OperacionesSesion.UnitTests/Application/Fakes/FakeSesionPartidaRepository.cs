@@ -70,4 +70,8 @@ public sealed class FakeSesionPartidaRepository : ISesionPartidaRepository
             .Where(c => c.UsuarioId == usuarioId && c.EstaPendiente)
             .OrderBy(c => c.FechaEnvio)
             .ToList());
+
+    public Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<SesionPartida>>(
+            _store.Values.Where(s => s.Estado == EstadoSesion.Lobby).ToList());
 }

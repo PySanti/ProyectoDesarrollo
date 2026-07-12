@@ -7,7 +7,7 @@ describe("identityApi governance", () => {
   });
 
   it("GET governance roles con bearer token", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test/");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test/");
     const { getGovernanceRoles } = await import("./identityApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -39,7 +39,7 @@ describe("identityApi governance", () => {
   });
 
   it("PUT permisos de un rol con set completo en el body", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { updateRolePermissions } = await import("./identityApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -69,7 +69,7 @@ describe("identityApi governance", () => {
   });
 
   it("PUT no-ok mapea a IdentityApiError con statusCode", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { IdentityApiError, updateRolePermissions } = await import("./identityApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
@@ -87,7 +87,7 @@ describe("identityApi governance", () => {
   });
 
   it("PATCH cambio de rol con body { rol }", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { changeUserRole } = await import("./identityApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -109,7 +109,7 @@ describe("identityApi governance", () => {
   });
 
   it("PATCH 409 conserva el mensaje del backend", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { changeUserRole } = await import("./identityApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
@@ -120,5 +120,56 @@ describe("identityApi governance", () => {
     await expect(
       changeUserRole("u1", "Operador", "admin-token", fetchMock as unknown as typeof fetch)
     ).rejects.toMatchObject({ statusCode: 409, message: "El usuario tiene un equipo activo" });
+  });
+});
+
+describe("getEquipos", () => {
+  beforeEach(() => {
+    vi.resetModules();
+    vi.unstubAllEnvs();
+  });
+
+  it("GET a /identity/teams con bearer y devuelve la lista", async () => {
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
+    const { getEquipos } = await import("./identityApi");
+    const equipos = [
+      {
+        equipoId: "e1",
+        nombreEquipo: "Los Halcones",
+        estado: "Activo",
+        participantes: [{ usuarioId: "u1", nombre: "Ana", esLider: true }]
+      }
+    ];
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: true,
+      status: 200,
+      json: async () => equipos
+    });
+
+    const result = await getEquipos("tok", fetchMock as unknown as typeof fetch);
+
+    expect(fetchMock).toHaveBeenCalledWith("https://gw.example.test/identity/teams", {
+      method: "GET",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: "Bearer tok"
+      }
+    });
+    expect(result).toEqual(equipos);
+  });
+
+  it("lanza IdentityApiError en error HTTP", async () => {
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
+    const { getEquipos } = await import("./identityApi");
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 403,
+      json: async () => ({ message: "prohibido" })
+    });
+
+    await expect(getEquipos("tok", fetchMock as unknown as typeof fetch)).rejects.toMatchObject({
+      name: "IdentityApiError",
+      statusCode: 403
+    });
   });
 });
