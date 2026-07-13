@@ -243,5 +243,8 @@ public sealed class AceptarInvitacionEquipoHandlerTests
 
         public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }

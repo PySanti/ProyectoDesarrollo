@@ -27,7 +27,9 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
     public BdtRuntimeEndpointsTests(OperacionesSesionWebFactory factory)
     {
         _factory = factory;
-        _client = factory.CreateClientAs(Guid.NewGuid());
+        // Operador además de los permisos funcionales por defecto: envios-tesoro (HU-38) usa la
+        // policy por rol base OperadorOAdministrador, no GestionarPartidas.
+        _client = factory.CreateClientAs(Guid.NewGuid(), "GestionarPartidas,ParticiparEnPartidas,Operador");
     }
 
     // HU-19: una inscripción nace Pendiente; el operador debe aceptarla para que el jugador
@@ -225,5 +227,79 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         // Intentar finalizar con etapa activa (no cerrada) → JuegoConEtapasPendientesException → 409
         var fin = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
         Assert.Equal(HttpStatusCode.Conflict, fin.StatusCode);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test 6: GET envios-tesoro (HU-38) — devuelve los intentos agrupados por etapa
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Envios_tesoro_returns_attempts_grouped_by_stage()
+    {
+        var partidaId = Guid.NewGuid();
+        var jugador = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = BuildBdtConfig(1, ("QR-1", 50), ("QR-2", 70));
+        var jugadorClient = _factory.CreateClientAs(jugador);
+
+        Assert.Equal(HttpStatusCode.Created,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
+
+        // Envío incorrecto en la etapa 1 (activa): queda registrado sin ganar, la etapa no avanza.
+        await jugadorClient.PostAsJsonAsync(
+            $"{Rutas.Base}/partidas/{partidaId}/etapa-actual/tesoro",
+            new ValidarTesoroRequest(Tesoro("QR-EQUIVOCADO")));
+
+        var resp = await _client.GetAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/envios-tesoro");
+        Assert.Equal(HttpStatusCode.OK, resp.StatusCode);
+        var dto = await resp.Content.ReadFromJsonAsync<EnviosTesoroDto>();
+        Assert.Equal(partidaId, dto!.PartidaId);
+        // Las 2 etapas configuradas aparecen; solo la etapa 1 (activa) tiene el intento registrado.
+        Assert.Equal(2, dto.Etapas.Count);
+        Assert.Equal(1, dto.Etapas[0].Orden);
+        Assert.Single(dto.Etapas[0].Intentos);
+        Assert.Equal(jugador, dto.Etapas[0].Intentos[0].ParticipanteId);
+        Assert.Equal("Invalido", dto.Etapas[0].Intentos[0].Resultado);
+        Assert.Equal(2, dto.Etapas[1].Orden);
+        Assert.Empty(dto.Etapas[1].Intentos);
+    }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test 7: GET envios-tesoro con juego activo Trivia → 409
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Envios_tesoro_on_trivia_juego_returns_409()
+    {
+        var partidaId = Guid.NewGuid();
+        var jugador = Guid.NewGuid();
+        var pregId = Guid.NewGuid();
+        var correctaId = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = new ConfiguracionPartidaDto(
+            "Copa", "Individual", "Manual", null, 1, 10,
+            new List<JuegoResumenDto>
+            {
+                new(Guid.NewGuid(), 1, "Trivia",
+                    Trivia: new TriviaConfigDto(new List<PreguntaConfigDto>
+                    {
+                        new(pregId, "Pregunta 1", 10, 3600, new List<OpcionConfigDto>
+                        {
+                            new(correctaId, "Opcion correcta", true),
+                            new(Guid.NewGuid(), "Opcion incorrecta", false)
+                        })
+                    })),
+            });
+        var jugadorClient = _factory.CreateClientAs(jugador);
+
+        Assert.Equal(HttpStatusCode.Created,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
+
+        var resp = await _client.GetAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/envios-tesoro");
+        Assert.Equal(HttpStatusCode.Conflict, resp.StatusCode);
     }
 }

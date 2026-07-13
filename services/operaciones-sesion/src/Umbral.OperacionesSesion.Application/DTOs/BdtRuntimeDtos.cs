@@ -12,5 +12,11 @@ public sealed record EtapaActualDto(
 
 public sealed record ValidarTesoroRequest(string ImagenBase64);
 
+public sealed record IntentoTesoroDto(Guid ParticipanteId, Guid? EquipoId, string Resultado, DateTime Instante);
+
+public sealed record EtapaEnviosDto(Guid EtapaId, int Orden, IReadOnlyList<IntentoTesoroDto> Intentos);
+
+public sealed record EnviosTesoroDto(Guid PartidaId, Guid JuegoId, IReadOnlyList<EtapaEnviosDto> Etapas);
+
 public sealed record EnviarPistaRequest(Guid? ParticipanteDestinoId, string Texto, Guid? EquipoDestinoId = null);
 public sealed record PistaEnviadaResponse(Guid PartidaId, Guid JuegoId, Guid? ParticipanteDestinoId, DateTime TimestampUtc, Guid? EquipoDestinoId = null);

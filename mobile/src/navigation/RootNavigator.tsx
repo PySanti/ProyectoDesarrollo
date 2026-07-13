@@ -16,6 +16,8 @@ import { PartidasPanelScreenContainer } from "../features/partidas/PartidasPanel
 import { PartidaLobbyScreenContainer } from "../features/partidas/PartidaLobbyScreenContainer";
 import { PartidaLiveScreenContainer } from "../features/partidas/PartidaLiveScreenContainer";
 import { ConvocatoriasScreenContainer } from "../features/partidas/ConvocatoriasScreenContainer";
+import { HistorialPartidasScreenContainer } from "../features/puntuaciones/HistorialPartidasScreenContainer";
+import { RendimientoEquipoScreenContainer } from "../features/puntuaciones/RendimientoEquipoScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 import { colors, fonts } from "../shared/theme";
 
@@ -117,6 +119,16 @@ export function RootNavigator() {
         name="Convocatorias"
         component={ConvocatoriasScreenContainer}
         options={{ title: "Convocatorias" }}
+      />
+      <AppStack.Screen
+        name="HistorialPartidas"
+        component={HistorialPartidasScreenContainer}
+        options={{ title: "Mi historial" }}
+      />
+      <AppStack.Screen
+        name="RendimientoEquipo"
+        component={RendimientoEquipoScreenContainer}
+        options={{ title: "Rendimiento del equipo" }}
       />
     </AppStack.Navigator>
   );

@@ -106,4 +106,44 @@ describe("BdtRuntimePanel", () => {
     expect(await screen.findByTestId("sin-etapa-activa")).toBeInTheDocument();
     expect(screen.queryByTestId("btn-finalizar-juego")).toBeNull();
   });
+
+  it("resultadosEtapas con ganadorEquipoId muestra 'Ganada por' el equipo", async () => {
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(ranking);
+    renderPanel({
+      resultadosEtapas: [{ etapaId: "e0", juegoId: "j1", ganadorEquipoId: "eq-1" }]
+    });
+    const fila = await screen.findByTestId("resultado-etapa");
+    expect(fila).toHaveTextContent("Ganada por eq-1");
+  });
+
+  it("resultadosEtapas con ganadorParticipanteId (sin equipo) muestra 'Ganada por' el participante", async () => {
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(ranking);
+    renderPanel({
+      resultadosEtapas: [{ etapaId: "e0", juegoId: "j1", ganadorParticipanteId: "part-1" }]
+    });
+    const fila = await screen.findByTestId("resultado-etapa");
+    expect(fila).toHaveTextContent("Ganada por part-1");
+  });
+
+  it("resultadosEtapas sin ganador (timeout) muestra 'Nadie consiguió el tesoro'", async () => {
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(ranking);
+    renderPanel({
+      resultadosEtapas: [{ etapaId: "e0", juegoId: "j1" }]
+    });
+    const fila = await screen.findByTestId("resultado-etapa");
+    expect(fila).toHaveTextContent("Nadie consiguió el tesoro");
+  });
+
+  it("resultadosEtapas de otro juego no se muestran (filtra por juegoId)", async () => {
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(ranking);
+    renderPanel({
+      resultadosEtapas: [{ etapaId: "e0", juegoId: "otro-juego", ganadorEquipoId: "eq-1" }]
+    });
+    await screen.findByTestId("etapa-activa");
+    expect(screen.queryByTestId("resultado-etapa")).toBeNull();
+  });
 });

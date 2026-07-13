@@ -24,7 +24,10 @@ export async function cargarLobby({ apiBaseUrl, token, partidaId, fetchImpl }) {
     return mapCommonError(response.status, body);
   }
   const mia = await getMiSesion(apiBaseUrl, token, f);
-  const inscrito = mia.ok && mia.sesion != null && mia.sesion.partidaId === partidaId;
+  const sesionActual =
+    mia.ok && mia.sesion != null && mia.sesion.partidaId === partidaId ? mia.sesion : null;
+  const inscrito = sesionActual != null;
+  const estadoInscripcion = sesionActual?.inscripcion?.estado ?? null;
   let esLider = true;
   if (body.modalidad === "Equipo") {
     esLider = false;
@@ -43,7 +46,16 @@ export async function cargarLobby({ apiBaseUrl, token, partidaId, fetchImpl }) {
       // sin red hacia identity: tratar como miembro (el backend protege igual con 403)
     }
   }
-  return { ok: true, lobby: body, inscrito, esLider };
+  return { ok: true, lobby: body, inscrito, estadoInscripcion, esLider };
+}
+
+// HU-12: en Equipo, solo el líder preinscribe. Sin participación activa el aviso debe ser
+// explícito; con participación ya en curso el copy existente ("el líder gestiona") basta.
+export function avisoLiderEquipo(modalidad, esLider, inscrito) {
+  if (modalidad !== "Equipo" || esLider) return null;
+  return inscrito
+    ? "El líder gestiona la preinscripción del equipo."
+    : "Solo el líder del equipo puede preinscribir al equipo.";
 }
 
 export function accionParticipacion({ apiBaseUrl, token, partidaId, modalidad, inscrito, fetchImpl }) {

@@ -172,6 +172,21 @@ public class SesionesControllerTests
     }
 
     [Fact]
+    public async Task CancelarPartida_returns_200_and_dispatches_command()
+    {
+        var partidaId = Guid.NewGuid();
+        var sender = new FakeSender(new CancelacionPartidaResponse(partidaId, "Cancelada"));
+        var controller = ControllerWith(sender);
+
+        var result = await controller.CancelarPartida(partidaId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var command = Assert.IsType<CancelarPartidaCommand>(sender.LastRequest);
+        Assert.Equal(partidaId, command.PartidaId);
+    }
+
+    [Fact]
     public async Task ObtenerEstado_returns_200_and_dispatches_query()
     {
         var partidaId = Guid.NewGuid();

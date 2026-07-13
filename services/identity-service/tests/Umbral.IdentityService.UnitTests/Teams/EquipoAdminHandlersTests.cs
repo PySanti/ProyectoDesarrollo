@@ -495,6 +495,9 @@ public sealed class EquipoAdminHandlersTests
             EquipoReactivadoWasCalled = true;
             return Task.CompletedTask;
         }
+
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeTeamLifecycleNotifier : ITeamLifecycleNotifier

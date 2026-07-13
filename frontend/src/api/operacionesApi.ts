@@ -8,6 +8,19 @@ export interface LobbyEquipo {
   aceptados: number;
 }
 
+export interface SolicitudIndividual {
+  inscripcionId: string;
+  participanteId: string;
+  fechaInscripcion: string;
+}
+
+export interface SolicitudEquipo {
+  inscripcionId: string;
+  equipoId: string;
+  miembros: number;
+  fechaInscripcion: string;
+}
+
 export interface LobbyDto {
   partidaId: string;
   sesionPartidaId: string;
@@ -18,6 +31,8 @@ export interface LobbyDto {
   inscritosActivos: number;
   participantes: string[];
   equipos: LobbyEquipo[];
+  solicitudesPendientesIndividual: SolicitudIndividual[];
+  solicitudesPendientesEquipo: SolicitudEquipo[];
 }
 
 export interface InicioPartidaResponse {
@@ -25,6 +40,11 @@ export interface InicioPartidaResponse {
   estado: EstadoSesion;
   juegoActivadoId?: string;
   juegoActivadoOrden?: number;
+}
+
+export interface CancelacionPartidaResponse {
+  partidaId: string;
+  estado: EstadoSesion;
 }
 
 export interface JuegoEstado {
@@ -98,6 +118,44 @@ export async function getLobby(
   return request<LobbyDto>(
     `/operaciones-sesion/partidas/${partidaId}/lobby`,
     { method: "GET", headers: buildAuthHeaders(accessToken) },
+    fetchImpl
+  );
+}
+
+export async function aceptarInscripcion(
+  partidaId: string,
+  inscripcionId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<LobbyDto> {
+  return request<LobbyDto>(
+    `/operaciones-sesion/partidas/${partidaId}/inscripciones/${inscripcionId}/aceptacion`,
+    { method: "POST", headers: buildAuthHeaders(accessToken) },
+    fetchImpl
+  );
+}
+
+export async function rechazarInscripcion(
+  partidaId: string,
+  inscripcionId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<LobbyDto> {
+  return request<LobbyDto>(
+    `/operaciones-sesion/partidas/${partidaId}/inscripciones/${inscripcionId}/rechazo`,
+    { method: "POST", headers: buildAuthHeaders(accessToken) },
+    fetchImpl
+  );
+}
+
+export async function cancelarPartida(
+  partidaId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<CancelacionPartidaResponse> {
+  return request<CancelacionPartidaResponse>(
+    `/operaciones-sesion/partidas/${partidaId}/cancelacion`,
+    { method: "POST", headers: buildAuthHeaders(accessToken) },
     fetchImpl
   );
 }
@@ -244,6 +302,39 @@ export async function avanzarEtapa(
   return request<AvanceEtapaResponse>(
     `/operaciones-sesion/partidas/${partidaId}/etapa-actual/avance`,
     { method: "POST", headers: buildAuthHeaders(accessToken) },
+    fetchImpl
+  );
+}
+
+export type ResultadoTesoro = "Valido" | "Invalido" | "NoLegible" | "NoCorrespondeEtapaActiva";
+
+export interface IntentoTesoroDto {
+  participanteId: string;
+  equipoId?: string;
+  resultado: ResultadoTesoro;
+  instante: string;
+}
+
+export interface EtapaEnviosDto {
+  etapaId: string;
+  orden: number;
+  intentos: IntentoTesoroDto[];
+}
+
+export interface EnviosTesoroDto {
+  partidaId: string;
+  juegoId: string;
+  etapas: EtapaEnviosDto[];
+}
+
+export async function getEnviosTesoro(
+  partidaId: string,
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<EnviosTesoroDto> {
+  return request<EnviosTesoroDto>(
+    `/operaciones-sesion/partidas/${partidaId}/juego-actual/envios-tesoro`,
+    { method: "GET", headers: buildAuthHeaders(accessToken) },
     fetchImpl
   );
 }

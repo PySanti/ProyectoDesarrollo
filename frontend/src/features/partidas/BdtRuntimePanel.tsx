@@ -10,6 +10,13 @@ import {
 import { getRankingJuego, type RankingJuegoDto } from "../../api/puntuacionesApi";
 import { Countdown, RankingView } from "./runtimeShared";
 
+export interface EtapaResultadoDto {
+  etapaId: string;
+  juegoId: string;
+  ganadorParticipanteId?: string;
+  ganadorEquipoId?: string;
+}
+
 export interface BdtRuntimePanelProps {
   partidaId: string;
   juegoId: string;
@@ -19,6 +26,7 @@ export interface BdtRuntimePanelProps {
   onTerminada: () => void;
   onJuegoAvanzado: () => void;
   rankingPush?: RankingJuegoDto | null;
+  resultadosEtapas?: EtapaResultadoDto[];
 }
 
 type EtapaVista =
@@ -28,7 +36,17 @@ type EtapaVista =
   | { status: "error"; message: string };
 
 export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
-  const { partidaId, juegoId, accessToken, puedeOperar, refetchSignal, onTerminada, onJuegoAvanzado, rankingPush } = props;
+  const {
+    partidaId,
+    juegoId,
+    accessToken,
+    puedeOperar,
+    refetchSignal,
+    onTerminada,
+    onJuegoAvanzado,
+    rankingPush,
+    resultadosEtapas
+  } = props;
   const [etapaVista, setEtapaVista] = useState<EtapaVista>({ status: "cargando" });
   const [ranking, setRanking] = useState<RankingJuegoDto | null>(null);
   const [posteando, setPosteando] = useState(false);
@@ -128,7 +146,34 @@ export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
           ) : null}
         </div>
       ) : null}
+      <ResultadoPorEtapa resultadosEtapas={resultadosEtapas} juegoId={juegoId} />
       <RankingView ranking={ranking} />
+    </div>
+  );
+}
+
+// HU-35: historial simple de cierres de etapa (EtapaCerrada/EtapaGanada), acumulado en la pagina
+// padre y filtrado aqui por juego (el mismo etapaId nunca se repite entre juegos).
+function ResultadoPorEtapa({
+  resultadosEtapas,
+  juegoId
+}: {
+  resultadosEtapas?: EtapaResultadoDto[];
+  juegoId: string;
+}) {
+  const delJuego = (resultadosEtapas ?? []).filter((r) => r.juegoId === juegoId);
+  if (delJuego.length === 0) return null;
+  return (
+    <div className="stack">
+      <h3 className="q-title">Resultado por etapa</h3>
+      {delJuego.map((r) => {
+        const ganador = r.ganadorEquipoId ?? r.ganadorParticipanteId;
+        return (
+          <p key={r.etapaId} data-testid="resultado-etapa">
+            {ganador ? `Ganada por ${ganador}` : "Nadie consiguió el tesoro"}
+          </p>
+        );
+      })}
     </div>
   );
 }

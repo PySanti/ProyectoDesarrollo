@@ -7,7 +7,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("GET lista de equipos con bearer token", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test/");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test/");
     const { listAdminTeams } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -37,7 +37,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("GET equipo por id 404 lanza IdentityApiError con statusCode 404", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { IdentityApiError, getAdminTeam } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
@@ -63,7 +63,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("POST crea equipo con { nombreEquipo, liderUserId }", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { createAdminTeam } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -95,7 +95,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("PATCH renombra equipo con { nombreEquipo }", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { renameAdminTeam } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -128,7 +128,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("PATCH reasigna liderazgo con { nuevoLiderUserId }", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { reassignAdminTeamLeader } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -167,7 +167,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("PATCH cambia estado con { estado }", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { setAdminTeamEstado } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -203,7 +203,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("DELETE 204 resuelve sin body", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { deleteAdminTeam } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
@@ -227,7 +227,7 @@ describe("adminTeamsApi", () => {
   });
 
   it("DELETE 409 lanza IdentityApiError con statusCode 409 (participacion activa)", async () => {
-    vi.stubEnv("VITE_IDENTITY_API_BASE_URL", "https://gw.example.test");
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { IdentityApiError, deleteAdminTeam } = await import("./adminTeamsApi");
     const fetchMock = vi.fn().mockResolvedValue({
       ok: false,
@@ -246,5 +246,14 @@ describe("adminTeamsApi", () => {
     await expect(
       deleteAdminTeam("e1", "admin-token", fetchMock as unknown as typeof fetch)
     ).rejects.toBeInstanceOf(IdentityApiError);
+  });
+
+  it("falla claramente cuando falta VITE_GATEWAY_BASE_URL", async () => {
+    vi.stubEnv("VITE_GATEWAY_BASE_URL", "");
+    const { listAdminTeams } = await import("./adminTeamsApi");
+
+    await expect(listAdminTeams("admin-token", vi.fn() as unknown as typeof fetch)).rejects.toThrow(
+      "Missing VITE_GATEWAY_BASE_URL environment variable."
+    );
   });
 });

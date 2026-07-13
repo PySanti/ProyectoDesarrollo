@@ -15,6 +15,7 @@ public static class IdentityEventRouting
         ["LiderazgoEquipoModificado"] = "identity.liderazgo-equipo-modificado.v1",
         ["EquipoDesactivado"] = "identity.equipo-desactivado.v1",
         ["EquipoReactivado"] = "identity.equipo-reactivado.v1",
+        ["CredencialTemporalEmitida"] = "identity.credencial-temporal-emitida.v1",
     };
 
     public static string RoutingKeyFor(string eventType) => Keys[eventType];

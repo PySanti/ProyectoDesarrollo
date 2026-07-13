@@ -295,4 +295,43 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         var finalizar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
         Assert.Equal(HttpStatusCode.Conflict, finalizar.StatusCode);
     }
+
+    // ─────────────────────────────────────────────────────────────────────────
+    // Test 6 (7c review, Important): cancel from Iniciada closes the active question →
+    // GET pregunta-actual must stop exposing "live" content on a cancelled partida (409).
+    // ─────────────────────────────────────────────────────────────────────────
+
+    [Fact]
+    public async Task Cancel_from_iniciada_closes_active_question_pregunta_actual_returns_409()
+    {
+        var partidaId = Guid.NewGuid();
+        var jugadorId = Guid.NewGuid();
+        var pregId = Guid.NewGuid();
+        var correctaId = Guid.NewGuid();
+
+        _factory.Stub.Respuestas[partidaId] = BuildTriviaConfig(1, (pregId, correctaId, 10));
+        var jugadorClient = _factory.CreateClientAs(jugadorId);
+
+        // Publish → inscribe → inicio (Q1 becomes Activa)
+        Assert.Equal(HttpStatusCode.Created,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+        await InscribirYAceptar(jugadorClient, partidaId);
+        Assert.Equal(HttpStatusCode.OK,
+            (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null)).StatusCode);
+
+        // Confirma que hay pregunta viva antes de cancelar
+        var pregunta = await jugadorClient.GetFromJsonAsync<PreguntaActualDto>(
+            $"{Rutas.Base}/partidas/{partidaId}/pregunta-actual");
+        Assert.Equal(1, pregunta!.Orden);
+
+        // Cancelar la partida Iniciada
+        var cancelar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.OK, cancelar.StatusCode);
+        var response = await cancelar.Content.ReadFromJsonAsync<CancelacionPartidaResponse>();
+        Assert.Equal("Cancelada", response!.Estado);
+
+        // La pregunta "activa" ya no debe estar disponible: 409, no 200 con contenido vivo
+        var preguntaTrasCancelar = await jugadorClient.GetAsync($"{Rutas.Base}/partidas/{partidaId}/pregunta-actual");
+        Assert.Equal(HttpStatusCode.Conflict, preguntaTrasCancelar.StatusCode);
+    }
 }

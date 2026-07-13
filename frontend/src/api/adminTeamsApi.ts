@@ -38,11 +38,11 @@ export interface SetAdminTeamEstadoRequest {
   estado: "Activo" | "Desactivado";
 }
 
-const baseUrl = import.meta.env.VITE_IDENTITY_API_BASE_URL as string | undefined;
+const baseUrl = import.meta.env.VITE_GATEWAY_BASE_URL as string | undefined;
 
 function resolveBaseUrl(): string {
   if (!baseUrl) {
-    throw new Error("Missing VITE_IDENTITY_API_BASE_URL environment variable.");
+    throw new Error("Missing VITE_GATEWAY_BASE_URL environment variable.");
   }
 
   return baseUrl.replace(/\/$/, "");

@@ -55,6 +55,24 @@ public class BarrerTimeoutsCommandHandlerTests
     }
 
     [Fact]
+    public async Task Cierra_vencida_publica_texto_opcion_correcta_en_cierre()
+    {
+        var sesion = TriviaIniciada(30);
+        var correcta = sesion.Juegos.Single().Preguntas.Single(p => p.Orden == 1).Opciones.First(o => o.EsCorrecta);
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(sesion);
+        var uow = new FakeOperacionesSesionUnitOfWork();
+        var events = new FakeSesionEventsPublisher();
+        var handler = Build(repo, uow, events, T0.AddSeconds(31));
+
+        await handler.Handle(new BarrerTimeoutsCommand(), CancellationToken.None);
+
+        var cerrada = Assert.Single(events.PreguntasCerradas);
+        Assert.Equal(correcta.OpcionId, cerrada.OpcionCorrectaId);
+        Assert.Equal("ok", cerrada.TextoOpcionCorrecta);
+    }
+
+    [Fact]
     public async Task No_vencida_no_guarda_ni_emite()
     {
         var repo = new FakeSesionPartidaRepository();

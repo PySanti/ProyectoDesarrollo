@@ -7,6 +7,8 @@ import {
   getRankingConsolidado,
   getEtapaActual,
   validarTesoro,
+  formatRespuestaCorrecta,
+  seleccionarRespuestaCorrecta,
 } from "../src/features/partidas/gameplayApi.js";
 
 const jsonResponse = (status, body) => ({
@@ -110,4 +112,25 @@ test("validarTesoro POST body imagenBase64; Invalido es 200 ok:true", async () =
   const errImpl = async () => jsonResponse(403, { message: "No inscrito." });
   const r2 = await validarTesoro("http://gw", "tok", "p1", "QkFTRTY0", errImpl);
   assert.equal(r2.ok, false);
+});
+
+test("formatRespuestaCorrecta arma el aviso de cierre o null si no hay texto (HU-24)", () => {
+  assert.equal(formatRespuestaCorrecta("Madrid"), "La respuesta correcta era: Madrid");
+  assert.equal(formatRespuestaCorrecta(null), null);
+  assert.equal(formatRespuestaCorrecta(undefined), null);
+  assert.equal(formatRespuestaCorrecta(""), null);
+});
+
+test("seleccionarRespuestaCorrecta filtra por juegoId (anti-leak al cambiar de juego, 7d review)", () => {
+  // Mismo juego → pasa el texto.
+  assert.equal(
+    seleccionarRespuestaCorrecta({ texto: "Madrid", juegoId: "j1" }, "j1"),
+    "Madrid",
+  );
+  // PreguntaCerrada de un juego anterior sigue en memoria pero el juego activo cambió: no debe filtrar.
+  assert.equal(seleccionarRespuestaCorrecta({ texto: "Madrid", juegoId: "j1" }, "j2"), null);
+  // Sin cierre todavía.
+  assert.equal(seleccionarRespuestaCorrecta(null, "j1"), null);
+  // Cierre del juego actual sin texto (payload aditivo, backend no lo mandó).
+  assert.equal(seleccionarRespuestaCorrecta({ texto: null, juegoId: "j1" }, "j1"), null);
 });

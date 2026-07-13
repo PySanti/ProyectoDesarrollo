@@ -45,6 +45,21 @@ export async function responderPregunta(apiBaseUrl, token, partidaId, opcionId, 
   return { ok: true, data: body };
 }
 
+// HU-24/BR-T06: aviso de cierre de pregunta con la respuesta correcta (PreguntaCerrada.textoOpcionCorrecta).
+// null cuando el backend no envía el texto (payload aditivo, opcional).
+export function formatRespuestaCorrecta(texto) {
+  return texto ? `La respuesta correcta era: ${texto}` : null;
+}
+
+// HU-24/BR-T06 (7d review fix): guard anti-leak. `preguntaCerrada` vive a nivel de partida y
+// sobrevive al cambiar de JuegoTrivia; sin este filtro por juegoId, la respuesta correcta de la
+// última pregunta del juego anterior aparecería sobre la primera pregunta del juego nuevo antes
+// de que cierre (contracts/http/operaciones-sesion-api.md: "revelado únicamente al cerrar, nunca antes").
+export function seleccionarRespuestaCorrecta(preguntaCerrada, juegoId) {
+  if (!preguntaCerrada || preguntaCerrada.juegoId !== juegoId) return null;
+  return preguntaCerrada.texto ?? null;
+}
+
 export async function getRankingJuego(apiBaseUrl, token, partidaId, juegoId, fetchImpl = fetch) {
   const { response, body, error } = await get(
     apiBaseUrl, token, `/puntuaciones/partidas/${partidaId}/juegos/${juegoId}/ranking`, fetchImpl,

@@ -21,6 +21,14 @@ public sealed class ObtenerMiSesionQueryHandler : IRequestHandler<ObtenerMiSesio
         var inscripcion = sesion.Inscripciones.FirstOrDefault(
             i => i.OcupaParticipacion && i.ParticipanteId == request.ParticipanteId);
 
+        // 7b-bis: en Equipo la inscripción del caller no tiene su ParticipanteId (es del equipo);
+        // se resuelve por su convocatoria para exponer el estado real (Pendiente/Activa) — HU-19.
+        if (inscripcion is null && sesion.Modalidad == Modalidad.Equipo)
+        {
+            inscripcion = sesion.Inscripciones.FirstOrDefault(
+                i => i.OcupaParticipacion && i.Convocatorias.Any(c => c.UsuarioId == request.ParticipanteId));
+        }
+
         var convocatoria = sesion.Inscripciones
             .Where(i => i.EsActiva)
             .SelectMany(i => i.Convocatorias)

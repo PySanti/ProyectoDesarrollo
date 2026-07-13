@@ -3,7 +3,9 @@ import React, { useCallback, useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice } from "../../shared/ui";
 import { spacing } from "../../shared/theme";
-import { getPreguntaActual, responderPregunta, getRankingJuego } from "./gameplayApi.js";
+import {
+  getPreguntaActual, responderPregunta, getRankingJuego, formatRespuestaCorrecta, seleccionarRespuestaCorrecta,
+} from "./gameplayApi.js";
 import { Countdown, RankingTable, type RankingEntrada } from "./liveShared";
 
 type Pregunta = {
@@ -37,10 +39,16 @@ type Props = {
   resetSignal: number; // bump = PreguntaActivada (nueva pregunta → limpiar respondido)
   miSub: string;
   rankingPush: { juegoId: string; entradas: RankingEntrada[] } | null;
+  // HU-24/BR-T06: payload de PreguntaCerrada (nueva referencia en cada cierre, aunque el
+  // texto se repita, para que el efecto siempre dispare). texto null = backend no lo mandó.
+  // juegoId (7d review fix): filtra cierres de un juego que ya no es el activo — este estado
+  // vive a nivel de partida en el padre y no se limpia al cambiar de juego.
+  preguntaCerrada?: { texto: string | null; juegoId: string } | null;
 };
 
 export function TriviaPlayPanel({
   apiBaseUrl, token, partidaId, juegoId, yaRespondioInicial, refetchSignal, resetSignal, miSub, rankingPush,
+  preguntaCerrada,
 }: Props) {
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
   const [sinPregunta, setSinPregunta] = useState(false);
@@ -49,6 +57,7 @@ export function TriviaPlayPanel({
   const [entradas, setEntradas] = useState<RankingEntrada[]>([]);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [textoCorrecta, setTextoCorrecta] = useState<string | null>(null);
 
   // Nueva pregunta activada → limpiar estado de respuesta local.
   useEffect(() => {
@@ -56,8 +65,16 @@ export function TriviaPlayPanel({
       setRespondida(false);
       setResultado(null);
       setError(null);
+      setTextoCorrecta(null);
     }
   }, [resetSignal]);
+
+  // Cierre de pregunta: guardar la respuesta correcta si el backend la mandó (aditivo) y si
+  // pertenece a este juego (7d review fix: preguntaCerrada puede ser del juego anterior).
+  useEffect(() => {
+    const texto = seleccionarRespuestaCorrecta(preguntaCerrada, juegoId);
+    if (texto) setTextoCorrecta(texto);
+  }, [preguntaCerrada, juegoId]);
 
   // Push SP-4c aditivo: ranking en vivo sin esperar señal de cierre.
   useEffect(() => {
@@ -107,10 +124,12 @@ export function TriviaPlayPanel({
   const target = pregunta
     ? new Date(new Date(pregunta.fechaActivacion).getTime() + pregunta.tiempoLimiteSegundos * 1000).toISOString()
     : null;
+  const avisoRespuestaCorrecta = formatRespuestaCorrecta(textoCorrecta);
 
   return (
     <View style={styles.stack}>
       {error ? <Notice variant="error">{error}</Notice> : null}
+      {avisoRespuestaCorrecta ? <Notice variant="info">{avisoRespuestaCorrecta}</Notice> : null}
       {pregunta ? (
         <Card style={styles.card}>
           <AppText variant="bodyStrong">

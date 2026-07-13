@@ -218,6 +218,9 @@ public sealed class EliminarMiEquipoHandlerTests
 
         public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
+
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeTeamLifecycleNotifier : ITeamLifecycleNotifier

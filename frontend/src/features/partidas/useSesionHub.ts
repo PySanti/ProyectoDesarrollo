@@ -27,8 +27,20 @@ export interface SesionHubHandlers {
     orden: number;
     fechaLimiteUtc: string;
   }) => void;
-  onEtapaCerrada?: (payload: { partidaId: string; juegoId: string; etapaId: string }) => void;
-  onEtapaGanada?: (payload: { partidaId: string; juegoId: string; etapaId: string }) => void;
+  onEtapaCerrada?: (payload: {
+    partidaId: string;
+    juegoId: string;
+    etapaId: string;
+    ganadorParticipanteId?: string;
+    ganadorEquipoId?: string;
+  }) => void;
+  onEtapaGanada?: (payload: {
+    partidaId: string;
+    juegoId: string;
+    etapaId: string;
+    ganadorParticipanteId?: string;
+    ganadorEquipoId?: string;
+  }) => void;
   onUbicacionActualizada?: (payload: {
     partidaId: string;
     participanteId: string;

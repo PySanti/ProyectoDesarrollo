@@ -12,7 +12,8 @@ vi.mock("../../api/operacionesApi", async (importOriginal) => {
 const lobbyIndividual: LobbyDto = {
   partidaId: "p1", sesionPartidaId: "s1", estado: "Iniciada", modalidad: "Individual",
   minimosParticipacion: 1, maximosParticipacion: 10, inscritosActivos: 2,
-  participantes: ["11111111-aaaa", "22222222-bbbb"], equipos: []
+  participantes: ["11111111-aaaa", "22222222-bbbb"], equipos: [],
+  solicitudesPendientesIndividual: [], solicitudesPendientesEquipo: []
 };
 const lobbyEquipo: LobbyDto = {
   ...lobbyIndividual, modalidad: "Equipo", participantes: [],

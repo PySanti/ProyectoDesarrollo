@@ -15,4 +15,6 @@ export type AppStackParamList = {
   PartidaLobby: { partidaId: string; nombre: string };
   PartidaLive: { partidaId: string; nombre: string };
   Convocatorias: undefined;
+  HistorialPartidas: undefined;
+  RendimientoEquipo: undefined;
 };

@@ -268,4 +268,38 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
         Assert.Equal("http://localhost:5173",
             Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
     }
+
+    [Fact]
+    public async Task IdentityAdminTeams_sin_token_es_401()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Participante_es_403()
+    {
+        // Sin la ruta explícita, /identity/admin/teams caía en el catch-all identity (policy
+        // Default = cualquier autenticado); este 403 pinnea la RBAC gruesa Administrador-only.
+        var client = CreateClientWithRoles("Participante");
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Operador_es_403()
+    {
+        var client = CreateClientWithRoles("Operador");
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Administrador_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/identity/admin/teams/cualquier-cosa");
+        AssertPolicyPassed(response);
+    }
 }

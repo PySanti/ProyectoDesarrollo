@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
-import { cargarLobby, accionParticipacion } from "./partidaLobbyFlow.js";
+import { cargarLobby, accionParticipacion, avisoLiderEquipo } from "./partidaLobbyFlow.js";
 import { crearSesionHub } from "./sesionHub.js";
 
 type Lobby = {
@@ -28,7 +28,7 @@ type Aviso = { variant: "info" | "error" | "success"; texto: string } | null;
 // literal de "ok" al inferir su tipo exportado. Se declara aquí la forma real (ver
 // partidaLobbyFlow.js) y se castea una vez por llamada en lugar de perder narrowing.
 type LobbyResult =
-  | { ok: true; lobby: Lobby; inscrito: boolean; esLider: boolean }
+  | { ok: true; lobby: Lobby; inscrito: boolean; estadoInscripcion: "Pendiente" | "Activa" | null; esLider: boolean }
   | { ok: false; type: string; message?: string };
 
 type AccionResult = { ok: true; data?: unknown } | { ok: false; type: string; message?: string };
@@ -36,6 +36,7 @@ type AccionResult = { ok: true; data?: unknown } | { ok: false; type: string; me
 export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIniciada }: Props) {
   const [lobby, setLobby] = useState<Lobby | null>(null);
   const [inscrito, setInscrito] = useState(false);
+  const [estadoInscripcion, setEstadoInscripcion] = useState<"Pendiente" | "Activa" | null>(null);
   const [esLider, setEsLider] = useState(true);
   const [loading, setLoading] = useState(true);
   const [posting, setPosting] = useState(false);
@@ -61,6 +62,7 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
     }
     setLobby(r.lobby);
     setInscrito(r.inscrito);
+    setEstadoInscripcion(r.estadoInscripcion);
     setEsLider(r.esLider);
   }, [apiBaseUrl, token, partidaId]);
 
@@ -103,13 +105,17 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
       setAviso({ variant: "error", texto: r.message ?? "No se pudo completar la acción." });
       return;
     }
-    setAviso({ variant: "success", texto: inscrito ? "Participación cancelada." : "¡Listo! Estás dentro." });
+    setAviso({
+      variant: "success",
+      texto: inscrito ? "Participación cancelada." : "Solicitud enviada. Pendiente de aprobación del operador.",
+    });
     await load();
   }
 
   const labelAccion = lobby?.modalidad === "Equipo"
     ? (inscrito ? "Cancelar preinscripción del equipo" : "Preinscribir mi equipo")
     : (inscrito ? "Cancelar mi inscripción" : "Inscribirme");
+  const avisoLider = lobby ? avisoLiderEquipo(lobby.modalidad, esLider, inscrito) : null;
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
@@ -122,10 +128,18 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
           <AppText>
             Inscritos: {lobby.inscritosActivos} / max {lobby.maximosParticipacion} (min {lobby.minimosParticipacion})
           </AppText>
-          {lobby.modalidad !== "Equipo" || esLider ? (
-            <Button label={labelAccion} onPress={() => void onAccion()} disabled={posting} />
+          {estadoInscripcion === "Pendiente" ? (
+            <AppText style={styles.avisoPendiente}>
+              Tu solicitud está pendiente de aprobación del operador.
+            </AppText>
+          ) : null}
+          {estadoInscripcion === "Activa" ? (
+            <AppText style={styles.avisoActiva}>Inscripción confirmada. Estás dentro.</AppText>
+          ) : null}
+          {avisoLider ? (
+            <Notice variant="info">{avisoLider}</Notice>
           ) : (
-            <AppText>El líder gestiona la preinscripción del equipo.</AppText>
+            <Button label={labelAccion} onPress={() => void onAccion()} disabled={posting} />
           )}
           <Button label="Recargar" variant="secondary" onPress={() => void load()} disabled={posting} />
         </Card>
@@ -139,4 +153,6 @@ const styles = StyleSheet.create({
   content: { padding: spacing.xl, gap: spacing.lg },
   spinner: { marginTop: spacing.lg },
   card: { gap: spacing.sm },
+  avisoPendiente: { color: colors.warningInk },
+  avisoActiva: { color: '#136530' },
 });

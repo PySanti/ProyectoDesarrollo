@@ -62,7 +62,12 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
         DateTime now, CancellationToken cancellationToken)
     {
         var iniciadas = await _dbContext.Sesiones
-            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas)
+            // Opciones es obligatorio: BarrerTimeoutsCommandHandler lee
+            // preguntaCerrada.Opciones.First(o => o.EsCorrecta) sobre este mismo grafo para
+            // publicar el cierre; sin Include quedaría vacía en Npgsql (sin lazy loading) →
+            // InvalidOperationException en todo cierre de pregunta Trivia por timeout (mismo
+            // patrón que GetByPartidaIdAsync).
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Opciones)
             .Include(s => s.Juegos).ThenInclude(j => j.Etapas)
             .Where(s => s.Estado == EstadoSesion.Iniciada)
             .ToListAsync(cancellationToken);

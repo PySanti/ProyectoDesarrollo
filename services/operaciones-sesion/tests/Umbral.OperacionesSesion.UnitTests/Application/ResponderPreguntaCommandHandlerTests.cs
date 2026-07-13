@@ -53,6 +53,23 @@ public class ResponderPreguntaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Correct_answer_publishes_texto_opcion_correcta_en_cierre()
+    {
+        var partidaId = Guid.NewGuid();
+        var (sesion, part, correcta) = Iniciada(partidaId);
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(sesion);
+        var events = new FakeSesionEventsPublisher();
+        var handler = new ResponderPreguntaCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), events, new FakeTimeProvider(T0.AddSeconds(4)));
+
+        await handler.Handle(new ResponderPreguntaCommand(partidaId, part, correcta), CancellationToken.None);
+
+        var cerrada = Assert.Single(events.PreguntasCerradas);
+        Assert.Equal(correcta, cerrada.OpcionCorrectaId);
+        Assert.Equal("ok", cerrada.TextoOpcionCorrecta);
+    }
+
+    [Fact]
     public async Task Wrong_answer_publishes_only_validada()
     {
         var partidaId = Guid.NewGuid();

@@ -334,6 +334,38 @@ public sealed class SesionPartida
         return juego.JuegoId;
     }
 
+    // HU-40: cancelación manual por el operador — válida en Lobby e Iniciada.
+    public void Cancelar(DateTime now)
+    {
+        if (Estado != EstadoSesion.Lobby && Estado != EstadoSesion.Iniciada)
+            throw new PartidaNoCancelableException(PartidaId, Estado.ToString());
+
+        // 7c review (Important): si veníamos de Iniciada, el juego activo (y su pregunta/etapa
+        // activa) no puede quedar "vivo" para siempre — se cierra antes de mutar el estado de
+        // la sesión, para que GET /pregunta-actual y /etapa-actual dejen de exponer contenido
+        // sobre una partida Cancelada. Sin activar el siguiente ni publicar eventos de
+        // juego/pregunta/etapa: la cancelación es partida-level (PartidaCancelada ya basta).
+        if (Estado == EstadoSesion.Iniciada)
+            CerrarJuegoActivoPorCancelacion(now);
+
+        Estado = EstadoSesion.Cancelada;
+        FechaFin = now;
+    }
+
+    private void CerrarJuegoActivoPorCancelacion(DateTime now)
+    {
+        var juego = _juegos.SingleOrDefault(j => j.Estado == EstadoJuego.Activo);
+        if (juego is null)
+            return;
+
+        if (juego.TipoJuego == TipoJuego.Trivia)
+            juego.PreguntaActiva?.Cerrar(MotivoCierrePregunta.AvanceOperador, now, ganador: null);
+        else if (juego.TipoJuego == TipoJuego.BusquedaDelTesoro)
+            juego.EtapaActiva?.CerrarPorOperador(now);
+
+        juego.Finalizar();
+    }
+
     public ResultadoCierreVencido CerrarActividadVencida(DateTime now)
     {
         if (Estado != EstadoSesion.Iniciada)

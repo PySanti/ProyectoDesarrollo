@@ -25,6 +25,7 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 |---|---|---|---|
 | `/identity/governance/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/users/{**catch-all}` | 1 | `Administrador` | Identity |
+| `/identity/admin/teams/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/teams` (exacto, solo `GET`) | 0 | `OperadorOAdministrador` | Identity |
 | `/identity/teams/{**catch-all}` | 1 | `Participante` | Identity |
 | `/identity/{**catch-all}` (resto) | 2 | Default (autenticado) | Identity |
@@ -34,6 +35,8 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 | `/health` | — | Anónimo (endpoint propio del gateway) | Gateway |
 
 Notas:
+- `/identity/admin/teams/{**catch-all}` cubre el CRUD administrativo de equipos (HU-09,
+  Bloque 4A); su RBAC gruesa `Administrador` se añadió en Bloque 7a.
 - `/identity/governance` (Administrador, SP-5b), `/identity/users` (Administrador) y
   `/identity/teams` (Participante) son sub-rutas más específicas que ganan sobre
   `/identity/{**catch-all}` (Default) por `Order` explícito (1 < 2).

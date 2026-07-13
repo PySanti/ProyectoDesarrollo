@@ -62,9 +62,13 @@ public sealed class BarrerTimeoutsCommandHandler : IRequestHandler<BarrerTimeout
         if (r.Tipo == TipoCierreVencido.Trivia)
         {
             var p = r.Pregunta!;
+            var juegoCerrado = sesion.Juegos.First(j => j.JuegoId == p.JuegoId);
+            var preguntaCerrada = juegoCerrado.Preguntas.First(preg => preg.PreguntaId == p.PreguntaCerradaId);
+            var opcionCorrectaCerrada = preguntaCerrada.Opciones.First(o => o.EsCorrecta);
             await _events.PublicarPreguntaTriviaCerradaAsync(
                 new PreguntaTriviaCerradaEvent(sesion.PartidaId, sesion.Id.Valor, p.JuegoId, p.PreguntaCerradaId,
-                    p.MotivoCierre.ToString(), now, null), ct);
+                    p.MotivoCierre.ToString(), now, null, null,
+                    opcionCorrectaCerrada.OpcionId, opcionCorrectaCerrada.Texto), ct);
             if (p.PreguntaActivadaId is not null)
                 await _events.PublicarPreguntaTriviaActivadaAsync(
                     new PreguntaTriviaActivadaEvent(sesion.PartidaId, sesion.Id.Valor, p.JuegoId, p.PreguntaActivadaId.Value,

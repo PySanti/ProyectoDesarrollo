@@ -1,16 +1,20 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import {
+  aceptarInscripcion,
   avanzarEtapa,
   avanzarPregunta,
+  cancelarPartida,
   enviarPista,
   finalizarJuegoActual,
+  getEnviosTesoro,
   getEtapaActual,
   getEstadoSesion,
   getLobby,
   getPreguntaActual,
   iniciarPartida,
   OperacionesApiError,
-  publicarPartida
+  publicarPartida,
+  rechazarInscripcion
 } from "./operacionesApi";
 
 const okJson = (body: unknown, status = 200) =>
@@ -135,5 +139,127 @@ describe("operacionesApi", () => {
     expect(f.mock.calls[0][0]).toBe("https://gw.example.test/operaciones-sesion/partidas/p1/pistas");
     expect(f.mock.calls[0][1].method).toBe("POST");
     expect(JSON.parse(f.mock.calls[0][1].body as string)).toMatchObject({ texto: "busca cerca del arbol", participanteDestinoId: "u1" });
+  });
+
+  it("aceptarInscripcion hace POST a la ruta de aceptación y devuelve el LobbyDto", async () => {
+    const lobby = {
+      partidaId: "p1",
+      sesionPartidaId: "s1",
+      estado: "Lobby",
+      modalidad: "Individual",
+      minimosParticipacion: 1,
+      maximosParticipacion: 10,
+      inscritosActivos: 1,
+      participantes: ["u1"],
+      equipos: [],
+      solicitudesPendientesIndividual: [],
+      solicitudesPendientesEquipo: []
+    };
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify(lobby), { status: 200 })
+    );
+
+    const result = await aceptarInscripcion("p1", "i1", "token-abc", fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://gw.example.test/operaciones-sesion/partidas/p1/inscripciones/i1/aceptacion",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect(result.inscritosActivos).toBe(1);
+  });
+
+  it("rechazarInscripcion hace POST a la ruta de rechazo", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ solicitudesPendientesIndividual: [], solicitudesPendientesEquipo: [] }), { status: 200 })
+    );
+
+    await rechazarInscripcion("p1", "i1", "token-abc", fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://gw.example.test/operaciones-sesion/partidas/p1/inscripciones/i1/rechazo",
+      expect.objectContaining({ method: "POST" })
+    );
+  });
+
+  it("aceptarInscripcion propaga el error del backend (409 solicitud no pendiente)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "La inscripción no está pendiente." }), { status: 409 })
+    );
+
+    await expect(aceptarInscripcion("p1", "i1", "t", fetchMock)).rejects.toMatchObject({
+      name: "OperacionesApiError",
+      statusCode: 409
+    });
+  });
+
+  it("cancelarPartida hace POST a la ruta de cancelacion y devuelve el estado", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ partidaId: "p1", estado: "Cancelada" }), { status: 200 })
+    );
+
+    const result = await cancelarPartida("p1", "token-abc", fetchMock);
+
+    expect(fetchMock).toHaveBeenCalledWith(
+      "https://gw.example.test/operaciones-sesion/partidas/p1/cancelacion",
+      expect.objectContaining({ method: "POST" })
+    );
+    expect((fetchMock.mock.calls[0][1].headers as Record<string, string>).Authorization).toBe(
+      "Bearer token-abc"
+    );
+    expect(result).toEqual({ partidaId: "p1", estado: "Cancelada" });
+  });
+
+  it("cancelarPartida propaga el error del backend (409 estado terminal)", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "La partida ya está en un estado terminal." }), { status: 409 })
+    );
+
+    await expect(cancelarPartida("p1", "t", fetchMock)).rejects.toMatchObject({
+      name: "OperacionesApiError",
+      statusCode: 409
+    });
+  });
+
+  it("getEnviosTesoro hace GET a juego-actual/envios-tesoro y devuelve etapas con intentos", async () => {
+    const dto = {
+      partidaId: "p1",
+      juegoId: "j1",
+      etapas: [
+        {
+          etapaId: "e1",
+          orden: 1,
+          intentos: [
+            { participanteId: "u1", equipoId: null, resultado: "Invalido", instante: "2026-07-12T10:00:00Z" },
+            { participanteId: "u2", equipoId: null, resultado: "Valido", instante: "2026-07-12T10:01:00Z" }
+          ]
+        }
+      ]
+    };
+    const fetchImpl = okJson(dto);
+    const r = await getEnviosTesoro("p1", "tok", fetchImpl);
+    expect(r.etapas[0].intentos).toHaveLength(2);
+    expect(fetchImpl.mock.calls[0][0]).toBe(
+      "https://gw.example.test/operaciones-sesion/partidas/p1/juego-actual/envios-tesoro"
+    );
+    expect(fetchImpl.mock.calls[0][1].method).toBe("GET");
+  });
+
+  it("getEnviosTesoro propaga 409 cuando el juego activo no es BDT", async () => {
+    const fetchImpl = okJson({ message: "juego activo no es BDT" }, 409);
+    await expect(getEnviosTesoro("p1", "tok", fetchImpl)).rejects.toMatchObject({
+      name: "OperacionesApiError",
+      statusCode: 409
+    });
+  });
+
+  it("cancelarPartida propaga 404 cuando la sesion no existe", async () => {
+    const fetchMock = vi.fn().mockResolvedValue(
+      new Response(JSON.stringify({ message: "no publicada" }), { status: 404 })
+    );
+
+    await expect(cancelarPartida("p1", "t", fetchMock)).rejects.toMatchObject({
+      name: "OperacionesApiError",
+      statusCode: 404
+    });
   });
 });

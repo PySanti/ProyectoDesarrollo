@@ -51,6 +51,24 @@ public class AvanzarPreguntaCommandHandlerTests
     }
 
     [Fact]
+    public async Task Advance_publishes_texto_opcion_correcta_en_cierre()
+    {
+        var partidaId = Guid.NewGuid();
+        var p1 = P(1);
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(Iniciada(partidaId, p1, P(2)));
+        var events = new FakeSesionEventsPublisher();
+        var handler = new AvanzarPreguntaCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), events, new FakeTimeProvider(T0.AddSeconds(5)));
+        var correcta = p1.Opciones.First(o => o.EsCorrecta);
+
+        await handler.Handle(new AvanzarPreguntaCommand(partidaId), CancellationToken.None);
+
+        var cerrada = Assert.Single(events.PreguntasCerradas);
+        Assert.Equal(correcta.OpcionId, cerrada.OpcionCorrectaId);
+        Assert.Equal("ok", cerrada.TextoOpcionCorrecta);
+    }
+
+    [Fact]
     public async Task Advance_on_last_publishes_only_cerrada()
     {
         var partidaId = Guid.NewGuid();

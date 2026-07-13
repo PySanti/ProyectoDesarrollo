@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { cargarLobby, accionParticipacion } from "../src/features/partidas/partidaLobbyFlow.js";
+import { cargarLobby, accionParticipacion, avisoLiderEquipo } from "../src/features/partidas/partidaLobbyFlow.js";
 
 const jsonResponse = (status, body) => ({
   ok: status >= 200 && status < 300,
@@ -33,6 +33,35 @@ test("cargarLobby con mi-sesion en otra partida marca inscrito false", async () 
   };
   const r = await cargarLobby({ apiBaseUrl: "http://gw", token: "tok", partidaId: "p1", fetchImpl });
   assert.equal(r.inscrito, false);
+});
+
+test("cargarLobby expone estadoInscripcion Pendiente desde mi-sesion.inscripcion.estado", async () => {
+  const fetchImpl = async (url) => {
+    if (url.endsWith("/lobby")) {
+      return jsonResponse(200, { partidaId: "p1", estado: "Lobby", modalidad: "Individual", inscritosActivos: 1 });
+    }
+    if (url.endsWith("/mi-sesion")) {
+      return jsonResponse(200, {
+        partidaId: "p1",
+        inscripcion: { inscripcionId: "i1", estado: "Pendiente" },
+      });
+    }
+    throw new Error(`URL inesperada: ${url}`);
+  };
+  const r = await cargarLobby({ apiBaseUrl: "http://gw", token: "tok", partidaId: "p1", fetchImpl });
+  assert.equal(r.estadoInscripcion, "Pendiente");
+  assert.equal(r.inscrito, true);
+});
+
+test("cargarLobby sin sesion activa deja estadoInscripcion en null", async () => {
+  const fetchImpl = async (url) => {
+    if (url.endsWith("/lobby")) {
+      return jsonResponse(200, { partidaId: "p1", estado: "Lobby", modalidad: "Individual", inscritosActivos: 0 });
+    }
+    return { ok: true, status: 204, json: async () => ({}) };
+  };
+  const r = await cargarLobby({ apiBaseUrl: "http://gw", token: "tok", partidaId: "p1", fetchImpl });
+  assert.equal(r.estadoInscripcion, null);
 });
 
 test("accionParticipacion Individual no inscrito hace POST inscripciones", async () => {
@@ -106,4 +135,23 @@ test("cargarLobby Individual no consulta teams/mine y esLider es true", async ()
   const r = await cargarLobby({ apiBaseUrl: "http://gw", token, partidaId: "p1", fetchImpl });
   assert.equal(r.esLider, true);
   assert.equal(urls.some((u) => u.includes("teams/mine")), false);
+});
+
+test("avisoLiderEquipo: Equipo, no lider, sin participacion -> aviso explicito (HU-12)", () => {
+  assert.equal(
+    avisoLiderEquipo("Equipo", false, false),
+    "Solo el líder del equipo puede preinscribir al equipo.",
+  );
+});
+
+test("avisoLiderEquipo: Equipo, no lider, con participacion -> el lider gestiona", () => {
+  assert.equal(
+    avisoLiderEquipo("Equipo", false, true),
+    "El líder gestiona la preinscripción del equipo.",
+  );
+});
+
+test("avisoLiderEquipo: lider o Individual -> sin aviso (null, se muestra el boton)", () => {
+  assert.equal(avisoLiderEquipo("Equipo", true, false), null);
+  assert.equal(avisoLiderEquipo("Individual", false, false), null);
 });

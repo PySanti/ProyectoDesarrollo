@@ -82,6 +82,7 @@ public class ActualizarPermisosRolHandlerTests
         public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static (ActualizarPermisosRolCommandHandler Handler, RepoFake Repo, KeycloakFake Kc, PublisherFake Pub) Crear()

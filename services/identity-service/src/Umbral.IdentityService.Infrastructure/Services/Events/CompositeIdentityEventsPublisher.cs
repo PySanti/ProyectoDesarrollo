@@ -45,4 +45,5 @@ public sealed class CompositeIdentityEventsPublisher : IIdentityEventsPublisher
     public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => FanOut(p => p.PublishLiderazgoEquipoModificadoAsync(e, ct));
     public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => FanOut(p => p.PublishEquipoDesactivadoAsync(e, ct));
     public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => FanOut(p => p.PublishEquipoReactivadoAsync(e, ct));
+    public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent e, CancellationToken ct) => FanOut(p => p.PublishCredencialTemporalEmitidaAsync(e, ct));
 }

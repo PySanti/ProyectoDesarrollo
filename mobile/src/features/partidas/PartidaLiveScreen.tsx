@@ -56,6 +56,10 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
   const [pistas, setPistas] = useState<Pista[]>([]);
   const [avisoGeo, setAvisoGeo] = useState<string | null>(null);
   const [rankingPush, setRankingPush] = useState<{ juegoId: string; entradas: RankingEntrada[] } | null>(null);
+  // HU-24/BR-T06: última PreguntaCerrada, para mostrar la respuesta correcta en el panel Trivia.
+  // juegoId viaja en el payload (7d review fix): el panel descarta cierres de un juego que ya no
+  // es el activo, porque este estado vive a nivel de partida y no se limpia al cambiar de juego.
+  const [preguntaCerrada, setPreguntaCerrada] = useState<{ texto: string | null; juegoId: string } | null>(null);
   const hubRef = useRef<ReturnType<typeof crearSesionHub> | null>(null);
   // El token va por ref: un refresh de sesión (RNF-24) no debe derribar la conexión viva
   // (solo se usa en el handshake de conexión/reconexión).
@@ -100,7 +104,10 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
       setResetSignal((s) => s + 1);
       setRefetchSignal((s) => s + 1);
     });
-    hub.on("PreguntaCerrada", () => setRefetchSignal((s) => s + 1));
+    hub.on("PreguntaCerrada", (p: { juegoId?: string; textoOpcionCorrecta?: string | null }) => {
+      setRefetchSignal((s) => s + 1);
+      setPreguntaCerrada({ texto: p?.textoOpcionCorrecta ?? null, juegoId: p?.juegoId ?? "" });
+    });
     hub.on("EtapaActivada", () => {
       setResetSignal((s) => s + 1);
       setRefetchSignal((s) => s + 1);
@@ -212,6 +219,7 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
           resetSignal={resetSignal}
           miSub={miSub}
           rankingPush={rankingPush}
+          preguntaCerrada={preguntaCerrada}
         />
       ) : null}
       {fase.status === "iniciada" && fase.juegoActivo?.tipoJuego === "BusquedaDelTesoro" ? (

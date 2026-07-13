@@ -28,8 +28,8 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `PistaEnviada` (SP-3f-4, SP-3e-4) | El operador envía una pista a un participante o equipo durante un juego BDT activo. | Defined by SDD | Payload registered (SP-3f-4 / SP-3e-4) |
 | `ConvocatoriaCreada` (SP-3e-1) | Se preinscribe un equipo: cada miembro del snapshot recibe una convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
-| `InscripcionEquipoCreada` (SP-Bloque4A) | Un líder preinscribe su equipo en una partida. | Identity (proyección guard BR-E10) | Registered — `{ partidaId, sesionPartidaId, inscripcionId, equipoId, instante }` |
-| `InscripcionEquipoCancelada` (SP-Bloque4A) | Se cancela la preinscripción de un equipo (también al **rechazar**, HU-19). | Identity (proyección guard BR-E10) | Registered — `{ partidaId, inscripcionId, equipoId, instante }` |
+| `InscripcionEquipoCreada` (SP-Bloque4A) | Un líder preinscribe su equipo en una partida. | Identity (proyección guard BR-E10) + Historial (Puntuaciones, 7e) | Registered — `{ partidaId, sesionPartidaId, inscripcionId, equipoId, instante }` |
+| `InscripcionEquipoCancelada` (SP-Bloque4A) | Se cancela la preinscripción de un equipo (también al **rechazar**, HU-19). | Identity (proyección guard BR-E10) + Historial (Puntuaciones, 7e) | Registered — `{ partidaId, inscripcionId, equipoId, instante }` |
 | `InscripcionSolicitada` (SP-Bloque4B) | Un participante/equipo solicita inscripción (nace `Pendiente`). | Historial (Puntuaciones) | Registered — forma común (abajo) |
 | `InscripcionAceptada` (SP-Bloque4B) | El operador acepta una inscripción `Pendiente` (pasa a `Activa`). | Historial (Puntuaciones) | Registered — forma común (abajo) |
 | `InscripcionRechazada` (SP-Bloque4B) | El operador rechaza una inscripción `Pendiente` (pasa a `Rechazada`, re-solicitable). | Historial (Puntuaciones) | Registered — forma común (abajo) |
@@ -171,7 +171,7 @@ Emitted when a Trivia question becomes active: at game start (first question), o
 
 ### `PreguntaTriviaCerrada` (SP-3c)
 
-Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId` is present only when the question closed by a correct answer. Published to the broker since SP-3i (best-effort, ADR-0012).
+Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId`/`ganadorEquipoId` are present only when the question closed by a correct answer. `opcionCorrectaId`/`textoOpcionCorrecta` (added 7d, additive trailing fields, default `null`) identify the question's correct option and are populated on **every** close reason (correct answer, timeout, and operator advance alike), so consuming clients can always reveal the right answer once a question is closed. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -182,7 +182,9 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
   "motivo": "RespuestaCorrecta | AvanceOperador | Tiempo",
   "fechaCierre": "datetime",
   "ganadorParticipanteId": "guid?",
-  "ganadorEquipoId": "guid?"
+  "ganadorEquipoId": "guid?",
+  "opcionCorrectaId": "guid?",
+  "textoOpcionCorrecta": "string?"
 }
 ```
 
@@ -319,7 +321,7 @@ Emitted to the broker for deferred audit each time a participant sends their loc
 
 ### `InscripcionEquipoCreada` (SP-Bloque4A)
 
-Emitted (best-effort, after `SaveChanges`) when a leader preinscribes their team in a partida. Consumed by Identity to project `participaciones_activas_equipo` for the BR-E10 team-delete guard.
+Emitted (best-effort, after `SaveChanges`) when a leader preinscribes their team in a partida. Consumed by Identity to project `participaciones_activas_equipo` for the BR-E10 team-delete guard, and archived to the Puntuaciones historial via the same catch-all `puntuaciones.operaciones-sesion.historial` queue (7e, HU-43).
 
 ```json
 {
@@ -333,7 +335,7 @@ Emitted (best-effort, after `SaveChanges`) when a leader preinscribes their team
 
 ### `InscripcionEquipoCancelada` (SP-Bloque4A)
 
-Emitted (best-effort, after `SaveChanges`) when a team's preinscription is cancelled. Consumed by Identity to remove the `(equipoId, partidaId)` row from the BR-E10 guard projection.
+Emitted (best-effort, after `SaveChanges`) when a team's preinscription is cancelled. Consumed by Identity to remove the `(equipoId, partidaId)` row from the BR-E10 guard projection, and archived to the Puntuaciones historial via the same catch-all `puntuaciones.operaciones-sesion.historial` queue (7e, HU-43).
 
 ```json
 {

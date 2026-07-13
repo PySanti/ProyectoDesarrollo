@@ -153,7 +153,9 @@ describe("PartidaDetailPage", () => {
       maximosParticipacion: 10,
       inscritosActivos: 0,
       participantes: [],
-      equipos: []
+      equipos: [],
+      solicitudesPendientesIndividual: [],
+      solicitudesPendientesEquipo: []
     });
     renderPageConSesion();
     await screen.findByTestId("detalle-partida");

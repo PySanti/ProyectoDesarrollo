@@ -45,4 +45,5 @@ public sealed class RabbitMqIdentityEventsPublisher : IIdentityEventsPublisher
     public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Publicar("LiderazgoEquipoModificado", e);
     public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Publicar("EquipoDesactivado", e);
     public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Publicar("EquipoReactivado", e);
+    public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent e, CancellationToken ct) => Publicar("CredencialTemporalEmitida", e);
 }

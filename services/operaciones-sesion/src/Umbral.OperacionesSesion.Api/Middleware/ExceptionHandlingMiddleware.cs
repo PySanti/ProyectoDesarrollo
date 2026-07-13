@@ -70,7 +70,8 @@ public sealed class ExceptionHandlingMiddleware
             or NoHayEtapaActivaException
             or JuegoConEtapasPendientesException
             or EquipoYaInscritoException
-            or SinEquipoActivoException => HttpStatusCode.Conflict,
+            or SinEquipoActivoException
+            or PartidaNoCancelableException => HttpStatusCode.Conflict,
         ValidationException or ArgumentException => HttpStatusCode.BadRequest,
         _ => HttpStatusCode.InternalServerError
     };

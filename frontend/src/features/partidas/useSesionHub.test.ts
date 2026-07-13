@@ -81,8 +81,8 @@ describe("useSesionHub", () => {
     expect(onEtapaActivada).toHaveBeenCalledWith(expect.objectContaining({ etapaId: "e1", fechaLimiteUtc: "2026-07-08T12:02:00Z" }));
     conn.handlers["EtapaCerrada"]({ partidaId: "p1", juegoId: "j1", etapaId: "e1" });
     expect(onEtapaCerrada).toHaveBeenCalledWith(expect.objectContaining({ etapaId: "e1" }));
-    conn.handlers["EtapaGanada"]({ partidaId: "p1", juegoId: "j1", etapaId: "e1" });
-    expect(onEtapaGanada).toHaveBeenCalledWith(expect.objectContaining({ etapaId: "e1" }));
+    conn.handlers["EtapaGanada"]({ partidaId: "p1", juegoId: "j1", etapaId: "e1", ganadorEquipoId: "eq1" });
+    expect(onEtapaGanada).toHaveBeenCalledWith(expect.objectContaining({ etapaId: "e1", ganadorEquipoId: "eq1" }));
     conn.handlers["UbicacionActualizada"]({ partidaId: "p1", participanteId: "u1", latitud: 10.5, longitud: -66.9, timestampUtc: "2026-07-08T12:00:00Z" });
     expect(onUbicacionActualizada).toHaveBeenCalledWith(expect.objectContaining({ participanteId: "u1", latitud: 10.5, longitud: -66.9 }));
   });

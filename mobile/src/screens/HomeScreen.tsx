@@ -37,6 +37,13 @@ export function HomeScreen({ navigation }: Props) {
           feature
           onPress={() => navigation.navigate("Convocatorias")}
         />
+        <NavCard
+          icon="award"
+          label="Mi historial"
+          sublabel="Partidas jugadas, puntos y posición"
+          feature
+          onPress={() => navigation.navigate("HistorialPartidas")}
+        />
       </View>
 
       <AppText variant="label" color={game.onStageMuted} style={styles.sectionLabel}>
@@ -50,6 +57,7 @@ export function HomeScreen({ navigation }: Props) {
         <NavCard icon="log-out" label="Salir del equipo" onPress={() => navigation.navigate("LeaveTeam")} />
         <NavCard icon="trash-2" label="Eliminar equipo" onPress={() => navigation.navigate("DeleteTeam")} />
         <NavCard icon="clock" label="Historial de equipos" onPress={() => navigation.navigate("TeamHistory")} />
+        <NavCard icon="award" label="Rendimiento de mi equipo" onPress={() => navigation.navigate("RendimientoEquipo")} />
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>

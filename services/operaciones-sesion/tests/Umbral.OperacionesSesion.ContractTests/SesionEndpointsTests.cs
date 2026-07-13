@@ -275,6 +275,38 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
     }
 
     [Fact]
+    public async Task Cancel_partida_from_lobby_returns_200_cancelada()
+    {
+        var partidaId = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = Config(juegos: 1);
+        Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+
+        var cancelar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.OK, cancelar.StatusCode);
+        var response = await cancelar.Content.ReadFromJsonAsync<CancelacionPartidaResponse>();
+        Assert.Equal("Cancelada", response!.Estado);
+    }
+
+    [Fact]
+    public async Task Cancel_partida_unknown_returns_404()
+    {
+        var cancelar = await _client.PostAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.NotFound, cancelar.StatusCode);
+    }
+
+    [Fact]
+    public async Task Cancel_partida_ya_cancelada_returns_409()
+    {
+        var partidaId = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = Config(juegos: 1);
+        Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null)).StatusCode);
+
+        var second = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
+    }
+
+    [Fact]
     public async Task Automatic_start_not_due_is_noop_lobby()
     {
         var partidaId = Guid.NewGuid();

@@ -25,6 +25,15 @@ var rabbitConsumerOptions = builder.Configuration
 builder.Services.AddSingleton(rabbitConsumerOptions);
 builder.Services.AddHostedService<OperacionesInscripcionesConsumer>();
 
+// Segundo consumidor RabbitMQ de Identity (7f, RNF-23): se autoconsume CredencialTemporalEmitida
+// (exchange umbral.identity) para disparar el correo SMTP de bienvenida de forma asíncrona.
+var rabbitCredencialesConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqCredencialesConsumerOptions.SectionName)
+    .Get<RabbitMqCredencialesConsumerOptions>()
+    ?? new RabbitMqCredencialesConsumerOptions();
+builder.Services.AddSingleton(rabbitCredencialesConsumerOptions);
+builder.Services.AddHostedService<CredencialesTemporalesConsumer>();
+
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
     var configuredValue = configuration[key];
