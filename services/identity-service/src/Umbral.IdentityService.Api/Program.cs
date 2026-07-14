@@ -126,8 +126,10 @@ using (var scope = app.Services.CreateScope())
 {
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
-    await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
 
+    // EnsureCreated no evoluciona esquemas existentes: si la BD ya tiene alguna tabla,
+    // no crea las que falten. Estos parches cubren la deriva y deben correr ANTES del
+    // backfill, que consulta historial_nombre_equipo.
     if (dbContext.Database.IsRelational())
     {
         await dbContext.Database.ExecuteSqlRawAsync("""
@@ -155,7 +157,55 @@ using (var scope = app.Services.CreateScope())
             FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
             WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
             """);
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS equipos (
+                equipoid uuid PRIMARY KEY,
+                nombreequipo varchar(120) NOT NULL,
+                estado integer NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS equipos_participantes (
+                participanteequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                usuarioid uuid NOT NULL,
+                fechaunionutc timestamp with time zone NOT NULL,
+                eslider boolean NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_usuarioid ON equipos_participantes (usuarioid);
+
+            CREATE TABLE IF NOT EXISTS invitaciones_equipo (
+                invitacionequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                invitadouserid uuid NOT NULL,
+                invitadoporuserid uuid NOT NULL,
+                estado integer NOT NULL,
+                fechacreacionutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadouserid ON invitaciones_equipo (invitadouserid);
+
+            CREATE TABLE IF NOT EXISTS historial_nombre_equipo (
+                id uuid PRIMARY KEY,
+                usuarioid uuid NOT NULL,
+                equipoid uuid NOT NULL,
+                nombreequipo varchar(120) NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_usuarioid ON historial_nombre_equipo (usuarioid);
+
+            CREATE TABLE IF NOT EXISTS participaciones_activas_equipo (
+                equipoid uuid NOT NULL,
+                partidaid uuid NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL,
+                PRIMARY KEY (equipoid, partidaid)
+            );
+            """);
     }
+
+    await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
 }
 
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();
