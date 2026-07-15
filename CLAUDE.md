@@ -193,10 +193,17 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # vitest run
 npm run test:watch
-npm run build      # vite build (tsc + bundle)
+npm run build      # vite build — NO hace typecheck (vite sólo transpila, no comprueba tipos)
+npx tsc --noEmit -p tsconfig.app.json   # el typecheck de verdad
 ```
 
 `src/` is organized as `api/`, `auth/`, `app/`, `features/`. Requires `.env` with `VITE_*` vars (see `GUIA-LEVANTAMIENTO.md`).
+
+> ⚠️ **`npx tsc --noEmit` without `-p tsconfig.app.json` is a no-op and always exits 0.**
+> `tsconfig.json` is a project-references stub (`"files": []`), so the bare command checks no files
+> at all — verified by planting a type error and watching it exit 0. Always pass
+> `-p tsconfig.app.json`. Note also that `npm run build` (`vite build`) does **not** typecheck: Vite
+> transpiles without checking types. Nothing in this project typechecks unless you run that command.
 
 ### Mobile
 

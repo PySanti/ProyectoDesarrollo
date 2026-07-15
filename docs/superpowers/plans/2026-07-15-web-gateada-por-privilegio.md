@@ -238,8 +238,12 @@ Expected: PASS (4 tests).
 
 - [ ] **Step 8: Comprobar el alcance de la rotura**
 
-Run: `cd frontend && npx tsc --noEmit`
+Run: `cd frontend && npx tsc --noEmit -p tsconfig.app.json`
 Expected: **errores esperados** en `useSessionRefresh.ts` y `App.tsx` — consumen `refresh()` como `string` y no pasan `permisos`. **Los arregla la Task 2. No los toques aquí.** Anota en tu reporte qué archivos salen.
+
+> ⚠️ **`-p tsconfig.app.json` no es opcional.** `tsconfig.json` tiene `"files": []` y sólo
+> referencias: `npx tsc --noEmit` a secas no mira ningún archivo y **siempre sale con 0**. Sin `-p`
+> este paso no detectaría nada y creerías que no rompiste nada.
 
 - [ ] **Step 9: Commit**
 
@@ -356,8 +360,13 @@ privilegios frescos, y conservar los viejos es justo el bug.
 
 - [ ] **Step 5: Ejecutar los tests y el typecheck**
 
-Run: `cd frontend && npm test && npx tsc --noEmit`
+Run: `cd frontend && npm test && npx tsc --noEmit -p tsconfig.app.json`
 Expected: PASS y typecheck limpio.
+
+> ⚠️ **`-p tsconfig.app.json` no es opcional.** `tsconfig.json` tiene `"files": []` y sólo
+> referencias, así que `npx tsc --noEmit` a secas **no mira ningún archivo y siempre sale con 0**,
+> haya errores o no. Verificado metiendo un error de tipo a propósito: el comando pelado dio exit 0.
+> Si usas el comando sin `-p`, tu "typecheck limpio" no significa nada.
 
 Si `App.test.tsx` falla porque sus mocks de `authProvider.init` no devuelven `permisos`, **añade
 `permisos: []`** a esos mocks (o el valor que corresponda al rol que simulan: `["GestionarPartidas"]`
@@ -687,8 +696,13 @@ Verifica que `AppShell` sigue haciendo `roles.join(" · ")` para `roleLabel` (s�
 
 - [ ] **Step 7: Ejecutar todo**
 
-Run: `cd frontend && npm test && npx tsc --noEmit`
+Run: `cd frontend && npm test && npx tsc --noEmit -p tsconfig.app.json`
 Expected: PASS y typecheck limpio.
+
+> ⚠️ **`-p tsconfig.app.json` no es opcional.** `tsconfig.json` tiene `"files": []` y sólo
+> referencias, así que `npx tsc --noEmit` a secas **no mira ningún archivo y siempre sale con 0**,
+> haya errores o no. Verificado metiendo un error de tipo a propósito: el comando pelado dio exit 0.
+> Si usas el comando sin `-p`, tu "typecheck limpio" no significa nada.
 
 - [ ] **Step 8: Commit**
 
