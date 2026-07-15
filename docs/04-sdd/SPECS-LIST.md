@@ -8,3 +8,5 @@ Add a spec row only after the feature has been selected from the current source 
 
 | Feature | Owning service | Client target | Actor | SDD folder | Status |
 |---|---|---|---|---|---|
+| Equipos-admin — ciclo de vida + CRUD admin + historial (Bloque 4A) | Identity | web (HU-09) + mobile (HU-06/HU-48) | Líder de equipo / Administrador / Participante | docs/superpowers/specs/2026-07-08-bloque4a-equipos-admin-design.md | Implemented (23 tasks A1..I3, review-clean; HU-06/09/48 · BR-E06/E10/E11). HU-19 diferida al slice 4B. |
+| Nombres de competidores en pantallas de operador y participante (refinamiento transversal) | Identity | web + mobile | Operador / Participante | docs/superpowers/specs/2026-07-14-nombres-competidores-design.md | Implemented (12 tasks). Refinamiento transversal de usabilidad sobre HU ya implementadas de lobby, ranking en vivo, consolidado, pistas, geolocalización BDT e historial — no introduce HU nueva. Endpoint nuevo `POST /identity/directory/names`. **Diferido:** nombres de partida y de juego (servicio Partidas)→slice propio. |
