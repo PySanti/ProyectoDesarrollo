@@ -18,7 +18,7 @@ describe("identityApi governance", () => {
           { rol: "Operador", permisos: ["GestionarPartidas"], privilegiosGobernanza: false },
           {
             rol: "Participante",
-            permisos: ["GestionarEquipos", "ParticiparEnPartidas"],
+            permisos: ["GestionarEquipos"],
             privilegiosGobernanza: false
           }
         ]

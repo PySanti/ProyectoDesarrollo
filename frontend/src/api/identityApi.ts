@@ -165,11 +165,14 @@ export async function deactivateIdentityUser(
   return body as DeactivateUserResponse;
 }
 
-export type PermisoFuncional = "GestionarPartidas" | "GestionarEquipos" | "ParticiparEnPartidas";
+/* Lo que el panel de gobernanza puede mover entre roles. El dominio tiene un tercer permiso
+   funcional (ParticiparEnPartidas), pero esta fijo al rol Participante y no es asignable: el
+   backend lo rechaza. El nombre dice "gobernable" para que el tipo no mienta. */
+export type PermisoGobernable = "GestionarPartidas" | "GestionarEquipos";
 
 export interface RolePermissions {
   rol: "Administrador" | "Operador" | "Participante";
-  permisos: PermisoFuncional[];
+  permisos: PermisoGobernable[];
   privilegiosGobernanza: boolean;
 }
 
@@ -198,7 +201,7 @@ export async function getGovernanceRoles(
 
 export async function updateRolePermissions(
   rol: string,
-  permisos: PermisoFuncional[],
+  permisos: PermisoGobernable[],
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<RolePermissions> {
