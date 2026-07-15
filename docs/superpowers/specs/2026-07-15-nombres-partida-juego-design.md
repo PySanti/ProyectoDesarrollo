@@ -62,6 +62,14 @@ Anclan el diseño; no repetir la verificación al implementar.
   compone sin datos nuevos.
 - **`SesionPartida.Nombre` (Operaciones) ya existe** — Operaciones snapshotea el nombre al publicar.
   `PartidaPublicadaDto` ya lo expone como `nombre` para el panel móvil.
+- **Corrección (2026-07-15, hallada al escribir el plan):** el handler de convocatorias **no** tiene
+  el nombre a mano. `ISesionPartidaRepository.GetConvocatoriasPendientesByUsuarioAsync` devuelve
+  `IReadOnlyList<Convocatoria>`: hace `SelectMany` de `Sesiones` → `Inscripciones` → `Convocatorias`,
+  así que la `SesionPartida` (y con ella el `Nombre`) se pierde por el camino. Hay que **cambiar la
+  firma del repositorio** para que proyecte también el nombre. Solo 4 archivos fuente referencian la
+  interfaz (`FakeSesionPartidaRepository.cs`, `SesionHubTests.cs`,
+  `BarrerIniciosAutomaticosCommandHandlerTests.cs`, `BarrerTimeoutsCommandHandlerTests.cs`) y un
+  único caller de producción, así que el costo está acotado.
 - **`PartidaProyectada` (Puntuaciones) NO tiene nombre**, y `PartidaPublicadaEnLobby` no lo lleva en
   su payload (`{ partidaId, sesionPartidaId, modalidad, minimosParticipacion, maximosParticipacion }`).
 - **`GET /partidas` devuelve un resumen ligero**: `{ partidaId, nombrePartida, modalidad,
@@ -82,7 +90,7 @@ Partidas y cero en el gateway.**
 | Servicio | Cambio |
 |---|---|
 | **Puntuaciones** | `EntradaHistorialDto` gana `JuegoOrden` (int?) y `TipoJuego` (enum?), unidos desde `JuegoProyectado` por `JuegoId` |
-| **Operaciones de Sesión** | `ConvocatoriaPendienteDto` gana `NombrePartida`, leído de `SesionPartida.Nombre` en el agregado que el handler ya carga |
+| **Operaciones de Sesión** | `ConvocatoriaPendienteDto` gana `NombrePartida`. Requiere que `GetConvocatoriasPendientesByUsuarioAsync` proyecte el nombre: cambia de `IReadOnlyList<Convocatoria>` a `IReadOnlyList<ConvocatoriaPendienteProyeccion>`, un record de lectura junto a la interfaz — mismo patrón que `ParticipacionEquipoHistorial` en Puntuaciones |
 
 `JuegoOrden`/`TipoJuego` son nullable porque hay eventos de partida (`PartidaIniciada`,
 `PartidaFinalizada`) que no tienen juego.
