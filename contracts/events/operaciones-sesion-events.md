@@ -351,7 +351,11 @@ Emitted (best-effort, after `SaveChanges`) when a team's preinscription is cance
 Ciclo de aprobación de inscripciones por el operador. Los tres comparten la **forma común** de 7 campos.
 `InscripcionSolicitada` se emite al inscribir/preinscribir (la inscripción nace `Pendiente`); `InscripcionAceptada` cuando el operador la acepta (pasa a `Activa`); `InscripcionRechazada` cuando la rechaza (pasa a `Rechazada`, terminal y re-solicitable). En modalidad `Individual` viaja `participanteId` (y `equipoId: null`); en `Equipo`, `equipoId` (y `participanteId: null`). Publicados al broker (best-effort, después de `SaveChanges`, ADR-0012).
 
-Los tres **no difunden por SignalR** (No-Op — el operador consulta el lobby por polling, coherente con la lista de no-broadcast de SP-3f-2) y se archivan en el historial de Puntuaciones vía la cola `puntuaciones.operaciones-sesion.historial` ligada a `operaciones-sesion.#` (sin consumidor nuevo).
+`InscripcionSolicitada` **no difunde por SignalR** (No-Op — el operador consulta el lobby por polling, coherente con la lista de no-broadcast de SP-3f-2). `InscripcionAceptada` e `InscripcionRechazada` **sí difunden** desde el slice de tiempo real del participante (2026-07-15): el solicitante espera la resolución en vivo, y la decisión original de no difundir se tomó mirando solo al operador. Los tres se archivan en el historial de Puntuaciones vía la cola `puntuaciones.operaciones-sesion.historial` ligada a `operaciones-sesion.#` (sin consumidor nuevo).
+
+**Realtime — `InscripcionResuelta`.** Entrega a los grupos `participante:{id}` de los destinatarios: en `Individual` el solicitante; en `Equipo` el `MiembrosSnapshot` de la inscripción (el líder no se guarda —`InscripcionPartida.ParticipanteId` es `Guid.Empty` en `Equipo`— así que se notifica al conjunto). Payload `{ partidaId, inscripcionId, modalidad, aceptada }`: un solo mensaje con booleano en vez de dos, porque el cliente hace lo mismo en ambos casos. Los destinatarios viajan como **parámetro del publisher**, no dentro del evento: la forma del evento en el broker (abajo) no cambia y el `detalle` del historial no se ensucia. Sin destinatarios no se difunde.
+
+> **Precondición (canal personal):** el participante entra a `participante:{sub}` en `OnConnectedAsync`, por identidad del JWT y sin depender de partida. Antes solo se entraba dentro de `SuscribirAPartida`, que exige participación previa — y la aceptación ocurre justo antes de que esa condición se cumpla.
 
 ```json
 {
