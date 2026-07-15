@@ -41,6 +41,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "participante",
       roles: ["Participante"],
+      permisos: [],
       token: "token"
     });
 
@@ -56,6 +57,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -74,6 +76,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -94,6 +97,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -114,6 +118,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -129,6 +134,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: ["GestionarEquipos"],
       token: "token"
     });
 
@@ -145,6 +151,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarEquipos"],
       token: "token"
     });
 
@@ -153,19 +160,22 @@ describe("App shell + auth guard", () => {
     expect(await screen.findByRole("heading", { name: /equipos/i })).toBeInTheDocument();
   });
 
-  it("allows an admin to reach the partidas list in read-only mode", async () => {
+  /* El privilegio, no el rol, decide dentro del área: el área Partidas exige GestionarPartidas para
+     entrar, así que quien entra siempre puede operar. Ya no existe un admin "de sólo lectura" ahí. */
+  it("allows an admin with GestionarPartidas to reach the partidas list and operate", async () => {
     vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
     window.history.pushState({}, "", "/partidas");
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
     render(<App />);
 
     expect(await screen.findByTestId("lista-partidas")).toBeInTheDocument();
-    expect(screen.queryByTestId("btn-nueva-partida")).toBeNull();
+    expect(await screen.findByTestId("btn-nueva-partida")).toBeInTheDocument();
   });
 
   it("allows an admin to reach the sesion console", async () => {
@@ -173,6 +183,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -181,12 +192,13 @@ describe("App shell + auth guard", () => {
     expect(await screen.findByTestId("sesion-operador")).toBeInTheDocument();
   });
 
-  it("keeps partida creation unavailable to an admin without the operator role", async () => {
+  it("keeps partida creation unavailable to an admin without GestionarPartidas", async () => {
     vi.spyOn(identityApi, "getIdentityUsers").mockResolvedValue([]);
     window.history.pushState({}, "", "/partidas/crear");
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -207,7 +219,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
-      permisos: [],
+      permisos: ["GestionarPartidas"],
       token: "token-login"
     });
     vi.mocked(authProvider.refresh).mockResolvedValueOnce({
@@ -240,5 +252,70 @@ describe("App shell + auth guard", () => {
       await screen.findByRole("link", { name: /gesti[oó]n de usuarios/i })
     ).toBeInTheDocument();
     expect(screen.queryByRole("link", { name: /nueva partida/i })).not.toBeInTheDocument();
+  });
+
+  /* El síntoma que originó todo: el privilegio autoriza, no el rol base. El backend ya lo aplica;
+     la web debe coincidir. */
+  it("deja entrar a la creación de partidas a un admin con GestionarPartidas", async () => {
+    window.history.pushState({}, "", "/partidas/crear");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /crear partida/i })).toBeInTheDocument();
+  });
+
+  it("muestra el área Partidas en el nav a un admin con GestionarPartidas", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    // Antes de este privilegio el área ni existía para el admin. "Nueva partida" sigue siendo un
+    // item exclusivo de Operador dentro del área (ver el test de refresco de rol, arriba), así que
+    // aquí sólo se afirma que el área en sí es navegable.
+    expect(await screen.findByRole("link", { name: /^partidas$/i })).toBeInTheDocument();
+  });
+
+  it("oculta el área Partidas a un operador sin GestionarPartidas", async () => {
+    vi.spyOn(identityApi, "getEquipos").mockResolvedValue([]);
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      permisos: ["GestionarEquipos"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    // Sin GestionarPartidas, Equipos es la única área del operador: aterriza ahí.
+    expect(await screen.findByRole("heading", { name: /^equipos$/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /^partidas$/i })).not.toBeInTheDocument();
+  });
+
+  it("muestra la pantalla de sin accesos a un operador sin ningún privilegio", async () => {
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      permisos: [],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(
+      await screen.findByText(/el panel web es exclusivo para administradores y operadores/i)
+    ).toBeInTheDocument();
   });
 });
