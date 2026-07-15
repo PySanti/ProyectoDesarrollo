@@ -1,13 +1,13 @@
 // Ciclo RNF-24 en la web: interval de 270s + listeners de actividad + núcleo puro.
 import { useEffect, useRef, useState } from "react";
-import { authProvider } from "./keycloak";
+import { authProvider, type AuthUser } from "./keycloak";
 import { crearSessionRefreshCore, type SessionRefreshCore } from "./sessionRefreshCore";
 
 export const REFRESH_INTERVAL_MS = 270_000;
 
 export function useSessionRefresh(opts: {
   enabled: boolean;
-  onToken: (token: string) => void;
+  onToken: (user: AuthUser) => void;
   onExpired: () => void;
 }): { modalVisible: boolean; continuar: () => void } {
   const [modalVisible, setModalVisible] = useState(false);
@@ -23,8 +23,8 @@ export function useSessionRefresh(opts: {
     const core = crearSessionRefreshCore({
       refrescar: () =>
         authProvider.refresh().then(
-          (token) => {
-            onTokenRef.current(token);
+          (user) => {
+            onTokenRef.current(user);
             return true;
           },
           () => false

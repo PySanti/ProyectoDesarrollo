@@ -13,7 +13,13 @@ afterEach(() => {
 
 describe("useSessionRefresh", () => {
   it("con actividad reciente, refresca en silencio y entrega el token nuevo", async () => {
-    const refresh = vi.mocked(authProvider.refresh).mockResolvedValue("nuevo-token");
+    const usuarioRefrescado = {
+      username: "op",
+      roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
+      token: "nuevo-token"
+    };
+    const refresh = vi.mocked(authProvider.refresh).mockResolvedValue(usuarioRefrescado);
     const onToken = vi.fn();
     const onExpired = vi.fn();
 
@@ -26,9 +32,33 @@ describe("useSessionRefresh", () => {
     });
 
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(onToken).toHaveBeenCalledWith("nuevo-token");
+    expect(onToken).toHaveBeenCalledWith(usuarioRefrescado);
     expect(onExpired).not.toHaveBeenCalled();
     expect(result.current.modalVisible).toBe(false);
+  });
+
+  /* El admin puede cambiar los privilegios de un rol en cualquier momento. Si el refresh sólo
+     renovara el string del token, la sesión seguiría con los privilegios del login y el cambio no
+     surtiría efecto hasta cerrar sesión. */
+  it("propaga los privilegios nuevos del token refrescado", async () => {
+    const usuarioRefrescado = {
+      username: "admin",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token-nuevo"
+    };
+    vi.mocked(authProvider.refresh).mockResolvedValue(usuarioRefrescado);
+    const onToken = vi.fn();
+
+    renderHook(() => useSessionRefresh({ enabled: true, onToken, onExpired: vi.fn() }));
+
+    window.dispatchEvent(new Event("pointerdown"));
+
+    await act(async () => {
+      await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    });
+
+    expect(onToken).toHaveBeenCalledWith(usuarioRefrescado);
   });
 
   it("sin actividad, no refresca y muestra el modal", async () => {
@@ -46,7 +76,12 @@ describe("useSessionRefresh", () => {
   });
 
   it("al desmontar limpia listeners e interval: no vuelve a refrescar", async () => {
-    const refresh = vi.mocked(authProvider.refresh).mockResolvedValue("tok");
+    const refresh = vi.mocked(authProvider.refresh).mockResolvedValue({
+      username: "op",
+      roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
+      token: "tok"
+    });
     const { unmount } = renderHook(() =>
       useSessionRefresh({ enabled: true, onToken: vi.fn(), onExpired: vi.fn() })
     );
