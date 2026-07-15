@@ -96,7 +96,11 @@ There are **two levels** of ranking. Use these concepts; do not invent others.
 
 - Exactly three base roles exist — `Administrador`, `Operador`, `Participante`. **No new roles are ever created.**
 - Two authorization levels: **governance privileges** (system administration) and **functional permissions** (`GestionarPartidas`, `GestionarEquipos`, `ParticiparEnPartidas`). Both are managed **per role**, never per user, from the admin **governance panel**.
-- Defaults: Administrador → governance privileges; Operador → `GestionarPartidas`; Participante → `GestionarEquipos` + `ParticiparEnPartidas`.
+- **The panel governs exactly two privileges: `GestionarPartidas` and `GestionarEquipos`.** Each opens its whole area in whichever client the role uses. `GestionarEquipos` governs only the **web panels for administering other people's teams** — a participant's own team (create, invite, lead, leave) comes with the `Participante` role.
+- **`ParticiparEnPartidas` is not governable.** It still exists in the domain, fixed to `Participante` as a composite declared in `umbral-realm.json`; the PUT rejects it with 400. Only that role has a client to play in, so moving it would enable nothing and removing it would take down all gameplay.
+- **The área Identidad is not a privilege either** — it comes with the `Administrador` role and is protected. If it were governable, revoking it would lock everyone out of governance permanently.
+- Defaults: Administrador → `GestionarEquipos`; Operador → `GestionarPartidas`; Participante → none (plus playing and own-team, which come with the role).
+- **The realm declares what is fixed; `permisos_rol` governs what is variable.** They must not overlap: `keycloak-config` reapplies the realm on every `docker compose up`, so any governable privilege declared there would erase what the panel assigned. Identity's `PermisosRolKeycloakReconciler` converges Keycloak toward `permisos_rol` at startup.
 - The admin may modify the role of operators/participants — **including promotion to admin** — but **never the role of an admin**, and the change is **propagated to Keycloak**. The Administrador role's governance privileges are protected and cannot be withdrawn.
 - On user creation, a **temporary password** is generated and **emailed asynchronously (RabbitMQ)**; mandatory change on first login is handled by Keycloak. Changing the email while the credential is still temporary re-issues a new temporary password.
 

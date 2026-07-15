@@ -70,10 +70,13 @@ public sealed class PermisosRolKeycloakReconciler
         }
         catch (Exception ex)
         {
-            _logger.LogWarning(
+            // LogError, no LogWarning: el realm ya no declara los privilegios gobernables, así que si
+            // esto falla no quedan "stale" — quedan ausentes de todos los tokens hasta el próximo
+            // arranque o un PUT de gobernanza. Sigue siendo best-effort: no relanza, Identity arranca.
+            _logger.LogError(
                 ex,
-                "No se pudieron reconciliar los permisos por rol contra Keycloak. Los tokens pueden "
-                + "no reflejar la matriz de permisos_rol hasta el próximo arranque o un PUT de gobernanza.");
+                "No se pudieron reconciliar los permisos por rol contra Keycloak. Los tokens no "
+                + "reflejarán la matriz de permisos_rol hasta el próximo arranque o un PUT de gobernanza.");
         }
     }
 }

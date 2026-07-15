@@ -56,16 +56,37 @@ Role/permission governance (`GovernanceController`) plus the role-change endpoin
 > back and the local `permisos_rol` table is **not** updated — Keycloak and the DB can drift
 > apart for that role. Recovery is re-issuing the **same** PUT: the diff is recomputed against
 > the (unchanged) DB state, so only the still-missing composites are (re)applied — the operation
-> is idempotent and self-healing by construction. No automatic reconciliation runs at startup.
+> is idempotent and self-healing by construction.
 
-### Teams and invitations (policy `GestionarEquipos` — functional permission, not a role) (SP-5a re-homed + swap)
+> **Where each permission lives.** The realm (`umbral-realm.json`) declares only the **fixed**
+> composite `Participante → ParticiparEnPartidas`, which is why that permission is not assignable
+> (the PUT rejects it with 400). The two **governable** privileges — `GestionarPartidas` and
+> `GestionarEquipos` — are declared nowhere in the realm: `permisos_rol` is their source of truth,
+> and Identity's `PermisosRolKeycloakReconciler` converges Keycloak toward that table **at
+> startup**. The two sets do not overlap, so `keycloak-config` can reapply the realm on every
+> `docker compose up` without erasing what the panel assigned — which it previously did.
 
-Paths re-homed under `identity/teams` (was `api/teams`), same SP-3g convention. **Policy swap
-(SP-5a):** was `ParticipantOnly` (role `Participante`); now `GestionarEquipos` — the functional
-permission (BR-R02 literal: the permission, not the role, authorizes team management). By the
-BR-R03 default composite, `Participante` carries `GestionarEquipos`, so behavior for today's
-users is unchanged; the enforcement point moved from role to permission.
-Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
+### Teams and invitations (policy `Participante` — the base role)
+
+Paths re-homed under `identity/teams` (was `api/teams`), same SP-3g convention.
+
+**Policy history — read this before changing it again.** SP-5a swapped these endpoints from the
+role (`ParticipantOnly`) to the functional permission `GestionarEquipos`, reading BR-R02 literally:
+*the permission, not the role, authorizes*. The two-privileges rework **supersedes that swap and
+returns these endpoints to the role.**
+
+Why the reversal: `GestionarEquipos` now governs **only the web panels for administering other
+people's teams**. A participant's own team — creating it, inviting, leading, transferring, leaving —
+is their core function per the SRS ("crea equipos o se une a ellos por invitación, y puede ser
+líder"), so it must not depend on a privilege the governance panel can revoke. SP-5a's swap was
+safe only because the BR-R03 default composite handed `Participante` a `GestionarEquipos` it never
+needed; under the new defaults `Participante` carries **no** governable privilege, so keeping the
+permission as the enforcement point would leave participants unable to create a team at all.
+
+BR-R02 still holds for what it governs. The participant's own-team flow simply is not one of those
+things: it is not a privilege the admin grants, it is what being a participant *means*.
+
+Auth: `401` without a token; `403` without the `Participante` role.
 
 > **There is no team access code (`codigoAcceso`).** Members join only via `InvitacionEquipo` sent by the team leader from a dynamic participant list (see `GET /identity/teams/eligible-participants`). Access-code join is not supported.
 
