@@ -10,6 +10,7 @@ type Convocatoria = {
   partidaId: string;
   equipoId: string;
   fechaEnvio: string;
+  nombrePartida: string;
 };
 
 type Props = { apiBaseUrl: string; token: string };
@@ -81,7 +82,7 @@ export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
       ) : null}
       {convocatorias.map((c) => (
         <Card key={c.convocatoriaId}>
-          <AppText variant="bodyStrong">Partida {c.partidaId.slice(0, 8)}</AppText>
+          <AppText variant="bodyStrong">{c.nombrePartida}</AppText>
           <AppText>Equipo {nombreDe(c.equipoId)}</AppText>
           <View style={styles.acciones}>
             <Button
