@@ -157,6 +157,9 @@ public sealed class Equipo
 
         var afectados = Participantes.Select(p => p.UsuarioId).ToList();
         Estado = EstadoEquipo.Eliminado;
+        // Libera el slot unico de usuarioid (equipos_participantes), igual que Salir():
+        // sin esto, un ex-miembro queda bloqueado para crear/unirse a otro equipo.
+        Participantes.Clear();
         return afectados;
     }
 
@@ -167,6 +170,7 @@ public sealed class Equipo
 
         var afectados = Participantes.Select(p => p.UsuarioId).ToList();
         Estado = EstadoEquipo.Eliminado;
+        Participantes.Clear();
         return afectados;
     }
 
