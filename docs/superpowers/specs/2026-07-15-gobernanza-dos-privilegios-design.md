@@ -170,13 +170,20 @@ aceptado.
 ## 6. Verificación
 
 1. Tests del reconciliador (del respaldo), **más uno nuevo**: no toca el composite fijo (R2).
-2. Test de que la migración corre **una sola vez** y un segundo arranque respeta lo asignado.
-3. Test del validador: `PUT` con `ParticiparEnPartidas` → 400 (R4).
-4. Tests de `TeamsController` con el rol `Participante`.
-5. Panel web con 2 privilegios.
-6. **Prueba en vivo, obligatoria**: arrancar, asignar un privilegio en el panel, reiniciar con
+2. Test del validador: `PUT` con `ParticiparEnPartidas` → 400 (R4).
+3. Tests de `TeamsController` con el rol `Participante`.
+4. Panel web con 2 privilegios.
+
+> **El guardia de la migración (R3) no se puede cubrir con un test automatizado.** Los
+> `IntegrationTests` usan `UseInMemoryDatabase`, que no ejecuta SQL crudo ni bloques `DO $$`. Un test
+> ahí no probaría nada. Se verifica en vivo (punto 6b), que es la única prueba que lo ejercita de
+> verdad. Cubrirlo con un test exigiría Testcontainers, fuera del alcance de este sub-proyecto.
+5. **Prueba en vivo, obligatoria**: arrancar, asignar un privilegio en el panel, reiniciar con
    `docker compose -f infra/docker-compose.yml --env-file .env up -d`, confirmar que el privilegio
    **sobrevive** y que el token lo lleva. Es exactamente lo que hoy falla.
+6. **Prueba en vivo del guardia (R3)**: insertar una fila en `permisos_rol`, reiniciar Identity, y
+   confirmar que **sigue ahí**. Si desaparece, la migración está borrando la gobernanza en cada
+   arranque y hay que parar.
 7. **Prueba en vivo del gameplay**: un participante entra al móvil, crea un equipo y juega. Descarta
    R1 y R2, que son los dos fallos que romperían el móvil entero.
 
