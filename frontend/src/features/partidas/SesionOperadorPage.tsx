@@ -614,6 +614,11 @@ function IniciadaView({
 }: IniciadaViewProps) {
   const juegos = [...estado.juegos].sort((a, b) => a.orden - b.orden);
   const juegoActual = juegos.find((j) => j.orden === estado.juegoActualOrden);
+  // La geolocalización BDT es siempre por persona: nunca hay equipos que resolver aquí.
+  const nombreDeUbicacion = useNombres(
+    { participanteIds: ubicaciones.map((u) => u.participanteId), equipoIds: [] },
+    accessToken
+  );
   return (
     <div className="card stack" data-testid="sesion-iniciada">
       <header className="create-head">
@@ -670,7 +675,7 @@ function IniciadaView({
           />
           {puedeOperar ? <PistasPanel partidaId={partidaId} accessToken={accessToken} /> : null}
           <EnviosTesoroPanel partidaId={partidaId} accessToken={accessToken} refetchSignal={refetchSignal} />
-          <GeoMapPanel ubicaciones={ubicaciones} />
+          <GeoMapPanel ubicaciones={ubicaciones} nombreDe={nombreDeUbicacion} />
         </div>
       ) : null}
     </div>

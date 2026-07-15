@@ -24,6 +24,17 @@ export function nombreCorto(id: string): string {
   return id.slice(0, 8);
 }
 
+// Reparte las entradas de un ranking en las dos listas que pide useNombres. Los DTOs de
+// Puntuaciones ya traen tipoCompetidor, así que se reparte por él y no se adivina.
+export function idsDeCompetidores(
+  entradas: readonly { competidorId: string; tipoCompetidor: string }[]
+): { participanteIds: string[]; equipoIds: string[] } {
+  return {
+    participanteIds: entradas.filter((e) => e.tipoCompetidor === "Participante").map((e) => e.competidorId),
+    equipoIds: entradas.filter((e) => e.tipoCompetidor === "Equipo").map((e) => e.competidorId)
+  };
+}
+
 function trocear(participanteIds: string[], equipoIds: string[]): ResolverNombresPayload[] {
   const lotes: ResolverNombresPayload[] = [];
   let p = 0;
