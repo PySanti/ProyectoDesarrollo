@@ -13,18 +13,18 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly IKeycloakIdentityPort _keycloakIdentityPort;
     private readonly ITemporaryPasswordGenerator _temporaryPasswordGenerator;
-    private readonly IUserWelcomeEmailSender _welcomeEmailSender;
+    private readonly IIdentityEventsPublisher _identityEventsPublisher;
 
     public UpdateUserGeneralDataCommandHandler(
         IUsuarioRepository usuarioRepository,
         IKeycloakIdentityPort keycloakIdentityPort,
         ITemporaryPasswordGenerator temporaryPasswordGenerator,
-        IUserWelcomeEmailSender welcomeEmailSender)
+        IIdentityEventsPublisher identityEventsPublisher)
     {
         _usuarioRepository = usuarioRepository;
         _keycloakIdentityPort = keycloakIdentityPort;
         _temporaryPasswordGenerator = temporaryPasswordGenerator;
-        _welcomeEmailSender = welcomeEmailSender;
+        _identityEventsPublisher = identityEventsPublisher;
     }
 
     public async Task<UpdateUserGeneralDataResponse> Handle(UpdateUserGeneralDataCommand request, CancellationToken cancellationToken)
@@ -64,8 +64,11 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
                 var newTemporaryPassword = _temporaryPasswordGenerator.Generate();
                 await _keycloakIdentityPort.ResetTemporaryPasswordAsync(user.KeycloakId, newTemporaryPassword, cancellationToken);
 
-                await _welcomeEmailSender.SendWelcomeEmailAsync(
-                    new UserWelcomeEmailMessage(user.Nombre, user.Correo, user.Rol.ToString(), newTemporaryPassword),
+                // Re-emisión vía evento async (RabbitMQ), no correo inline (7f, BR-R05): best-effort
+                // (ADR-0012) — un fallo de publicación se loguea pero no revierte este cambio, que ya
+                // quedó consumado en Keycloak (email + password reseteada).
+                await _identityEventsPublisher.PublishCredencialTemporalEmitidaAsync(
+                    new CredencialTemporalEmitidaIntegrationEvent(user.Nombre, user.Correo, user.Rol.ToString(), newTemporaryPassword, DateTime.UtcNow),
                     cancellationToken);
             }
             catch

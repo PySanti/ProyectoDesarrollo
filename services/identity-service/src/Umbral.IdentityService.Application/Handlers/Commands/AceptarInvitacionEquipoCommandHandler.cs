@@ -3,6 +3,7 @@ using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Application.Interfaces;
 
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
+using Umbral.IdentityService.Domain.Entities;
 using Umbral.IdentityService.Domain.Enums;
 using Umbral.IdentityService.Domain.Exceptions;
 
@@ -15,15 +16,21 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
     private readonly IInvitacionEquipoRepository _invitacionRepository;
     private readonly IEquipoRepository _equipoRepository;
     private readonly IIdentityEventsPublisher _eventsPublisher;
+    private readonly IHistorialNombreEquipoRepository _historialRepository;
+    private readonly TimeProvider _timeProvider;
 
     public AceptarInvitacionEquipoCommandHandler(
         IInvitacionEquipoRepository invitacionRepository,
         IEquipoRepository equipoRepository,
-        IIdentityEventsPublisher eventsPublisher)
+        IIdentityEventsPublisher eventsPublisher,
+        IHistorialNombreEquipoRepository historialRepository,
+        TimeProvider timeProvider)
     {
         _invitacionRepository = invitacionRepository;
         _equipoRepository = equipoRepository;
         _eventsPublisher = eventsPublisher;
+        _historialRepository = historialRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<AceptarInvitacionEquipoResponse> Handle(AceptarInvitacionEquipoCommand request, CancellationToken cancellationToken)
@@ -54,6 +61,12 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
 
         equipo.AgregarParticipante(invitacion.InvitadoUserId);
         await _equipoRepository.UpdateAsync(equipo, cancellationToken);
+
+        await _historialRepository.AddRangeAsync(new[]
+        {
+            HistorialNombreEquipo.Registrar(
+                invitacion.InvitadoUserId, equipo.EquipoId, equipo.NombreEquipo, _timeProvider.GetUtcNow().UtcDateTime)
+        }, cancellationToken);
 
         var lider = equipo.Participantes.Single(p => p.EsLider);
 

@@ -13,7 +13,7 @@ export function LeaveTeamScreenContainer() {
 
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
-      <LeaveTeamScreen apiBaseUrl={mobileEnv.identityApiBaseUrl} token={session.token} />
+      <LeaveTeamScreen apiBaseUrl={mobileEnv.gatewayApiBaseUrl} token={session.token} />
     </ScrollView>
   );
 }

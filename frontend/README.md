@@ -12,7 +12,7 @@ Copy `env.example` into `.env`.
 
 2. Configure values in `.env`:
 
-- `VITE_IDENTITY_API_BASE_URL`
+- `VITE_GATEWAY_BASE_URL`
 - `VITE_KEYCLOAK_URL`
 - `VITE_KEYCLOAK_REALM`
 - `VITE_KEYCLOAK_CLIENT_ID`

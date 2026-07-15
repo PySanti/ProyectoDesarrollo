@@ -163,6 +163,9 @@ public sealed class GetParticipantesElegiblesHandlerTests
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn?.EquipoId == equipoId ? TeamToReturn : null);
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamToReturn is null ? Array.Empty<Equipo>() : new[] { TeamToReturn });
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
@@ -179,6 +182,9 @@ public sealed class GetParticipantesElegiblesHandlerTests
 
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.UsuarioId == userId));
+
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
 
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(false);

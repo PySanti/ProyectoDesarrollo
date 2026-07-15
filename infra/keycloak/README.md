@@ -16,7 +16,12 @@ El `docker-compose.yml`:
 - monta `./keycloak/import` en `/opt/keycloak/data/import`,
 - arranca con `start-dev --import-realm` (importa si el realm no existe; estrategia `IGNORE_EXISTING`),
 - persiste `/opt/keycloak/data` en el volumen `umbral-keycloak-data` para que los cambios
-  hechos en runtime sobrevivan a una recreación.
+  hechos en runtime sobrevivan a una recreación,
+- corre el one-shot **`keycloak-config`** ([keycloak-config-cli](https://github.com/adorsys/keycloak-config-cli))
+  en cada `up`: aplica `umbral-realm.json` sobre el realm **existente** de forma idempotente
+  (config-as-code), creando/actualizando roles, clientes, audience mappers y usuarios sembrados
+  **sin borrar** los usuarios creados en runtime. Esto corrige la deriva que `--import-realm`
+  no cubre (volumen persistido con un realm viejo → tokens sin audiencia/permisos → 401/403).
 
 El import ya define `loginTheme=umbral`, así que la página de credenciales **sale con la marca
 UMBRAL sin pasos manuales**.
@@ -24,16 +29,22 @@ UMBRAL sin pasos manuales**.
 Usuarios de prueba sembrados (password no temporal): `admin`/`admin` (Administrador),
 `operador`/`operador` (Operador), `participante`/`participante` (Participante).
 
-**Re-sembrar desde el JSON** (descarta datos de runtime de Keycloak):
+**Aplicar cambios del JSON a un realm ya importado** (conserva usuarios de runtime):
+
+```powershell
+docker compose -f "infra/docker-compose.yml" --env-file .env up keycloak-config
+```
+
+(Corre solo también en cada `up -d` del stack; termina con exit 0 y no queda corriendo.)
+
+**Re-sembrar desde cero** (descarta TODOS los datos de runtime de Keycloak, incluidos
+usuarios creados durante las pruebas):
 
 ```powershell
 docker compose -f "infra/docker-compose.yml" rm -sfv keycloak
 docker volume rm infra_umbral-keycloak-data
-docker compose -f "infra/docker-compose.yml" up -d keycloak
+docker compose -f "infra/docker-compose.yml" --env-file .env up -d keycloak
 ```
-
-> Editar `umbral-realm.json` y reiniciar **no** reimporta si el realm ya existe (estrategia
-> `IGNORE_EXISTING`). Para aplicar cambios del JSON, re-siembra con los comandos de arriba.
 
 ## Permisos funcionales (SP-5a, ADR-0013)
 

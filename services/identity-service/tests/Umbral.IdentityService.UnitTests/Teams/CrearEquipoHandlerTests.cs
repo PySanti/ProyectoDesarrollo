@@ -15,7 +15,8 @@ public sealed class CrearEquipoHandlerTests
     {
         var repo = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = false };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new CrearEquipoCommandHandler(repo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new CrearEquipoCommandHandler(repo, publisher, historial, TimeProvider.System);
 
         var response = await handler.Handle(new CrearEquipoCommand(Guid.NewGuid(), "Equipo A"), CancellationToken.None);
 
@@ -31,7 +32,8 @@ public sealed class CrearEquipoHandlerTests
     {
         var repo = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = true };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new CrearEquipoCommandHandler(repo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new CrearEquipoCommandHandler(repo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<AlreadyBelongsToActiveTeamException>(() =>
             handler.Handle(new CrearEquipoCommand(Guid.NewGuid(), "Equipo A"), CancellationToken.None));
@@ -46,7 +48,8 @@ public sealed class CrearEquipoHandlerTests
             AddExceptionToThrow = new ConcurrentTeamCreationException(Guid.NewGuid())
         };
         var publisher = new FakeEquipoEventsPublisher();
-        var handler = new CrearEquipoCommandHandler(repo, publisher);
+        var historial = new FakeHistorialNombreEquipoRepository();
+        var handler = new CrearEquipoCommandHandler(repo, publisher, historial, TimeProvider.System);
 
         await Assert.ThrowsAsync<AlreadyBelongsToActiveTeamException>(() =>
             handler.Handle(new CrearEquipoCommand(Guid.NewGuid(), "Equipo A"), CancellationToken.None));
@@ -67,6 +70,9 @@ public sealed class CrearEquipoHandlerTests
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult<Equipo?>(null);
 
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(Array.Empty<Equipo>());
+
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
         {
             AddWasCalled = true;
@@ -81,6 +87,22 @@ public sealed class CrearEquipoHandlerTests
 
         public Task UpdateAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;
+    }
+
+    private sealed class FakeHistorialNombreEquipoRepository : IHistorialNombreEquipoRepository
+    {
+        public List<HistorialNombreEquipo> Registros { get; } = new();
+
+        public Task AddRangeAsync(IEnumerable<HistorialNombreEquipo> registros, CancellationToken cancellationToken)
+        {
+            Registros.AddRange(registros);
+            return Task.CompletedTask;
+        }
+
+        public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+
+        public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }
 
     private sealed class FakeEquipoEventsPublisher : IIdentityEventsPublisher
@@ -106,6 +128,21 @@ public sealed class CrearEquipoHandlerTests
             => Task.CompletedTask;
 
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
     }
 }

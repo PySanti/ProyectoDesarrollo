@@ -1,0 +1,635 @@
+import { FormEvent, useEffect, useState } from "react";
+import {
+  AdminTeam,
+  createAdminTeam,
+  deleteAdminTeam,
+  IdentityApiError,
+  listAdminTeams,
+  reassignAdminTeamLeader,
+  renameAdminTeam,
+  setAdminTeamEstado
+} from "../../api/adminTeamsApi";
+import { getIdentityUsers, IdentityUserSummary } from "../../api/identityApi";
+import { Flag } from "../../shell/icons";
+
+interface TeamsAdminPageProps {
+  accessToken: string;
+}
+
+export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
+  const [teams, setTeams] = useState<AdminTeam[]>([]);
+  const [users, setUsers] = useState<IdentityUserSummary[]>([]);
+  const [listError, setListError] = useState<string | null>(null);
+  const [isLoadingList, setIsLoadingList] = useState(false);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+
+  const [createName, setCreateName] = useState("");
+  const [createLiderUserId, setCreateLiderUserId] = useState("");
+  const [createError, setCreateError] = useState<string | null>(null);
+  const [createSuccessMessage, setCreateSuccessMessage] = useState<string | null>(null);
+  const [isCreating, setIsCreating] = useState(false);
+
+  const [renameTeam, setRenameTeam] = useState<AdminTeam | null>(null);
+  const [renameValue, setRenameValue] = useState("");
+  const [renameError, setRenameError] = useState<string | null>(null);
+  const [renameSaving, setRenameSaving] = useState(false);
+
+  const [reassignTeam, setReassignTeam] = useState<AdminTeam | null>(null);
+  const [reassignValue, setReassignValue] = useState("");
+  const [reassignError, setReassignError] = useState<string | null>(null);
+  const [reassignSaving, setReassignSaving] = useState(false);
+
+  const [estadoSavingId, setEstadoSavingId] = useState<string | null>(null);
+  const [estadoError, setEstadoError] = useState<string | null>(null);
+
+  const [deleteTeam, setDeleteTeam] = useState<AdminTeam | null>(null);
+  const [deleteError, setDeleteError] = useState<string | null>(null);
+  const [deleteSaving, setDeleteSaving] = useState(false);
+
+  useEffect(() => {
+    void loadAll();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  async function loadAll() {
+    setIsLoadingList(true);
+    setListError(null);
+    try {
+      const [teamsResponse, usersResponse] = await Promise.all([
+        listAdminTeams(accessToken),
+        getIdentityUsers(accessToken)
+      ]);
+      setTeams(teamsResponse);
+      setUsers(usersResponse);
+    } catch (caught) {
+      setListError(mapAdminTeamErrorMessage(caught, "list"));
+    } finally {
+      setIsLoadingList(false);
+    }
+  }
+
+  async function onCreateTeam(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault();
+    setCreateError(null);
+    setCreateSuccessMessage(null);
+
+    if (!createName.trim()) {
+      setCreateError("El nombre del equipo es obligatorio.");
+      return;
+    }
+
+    if (!createLiderUserId) {
+      setCreateError("Selecciona un líder para el equipo.");
+      return;
+    }
+
+    setIsCreating(true);
+    try {
+      await createAdminTeam(
+        { nombreEquipo: createName.trim(), liderUserId: createLiderUserId },
+        accessToken
+      );
+      setCreateName("");
+      setCreateLiderUserId("");
+      setCreateSuccessMessage("Equipo creado correctamente.");
+      await loadAll();
+    } catch (caught) {
+      setCreateError(mapAdminTeamErrorMessage(caught, "create"));
+    } finally {
+      setIsCreating(false);
+    }
+  }
+
+  function openRenameModal(team: AdminTeam) {
+    setRenameTeam(team);
+    setRenameValue(team.nombreEquipo);
+    setRenameError(null);
+  }
+
+  function closeRenameModal() {
+    if (renameSaving) {
+      return;
+    }
+    setRenameTeam(null);
+  }
+
+  async function onConfirmRename() {
+    if (!renameTeam) {
+      return;
+    }
+
+    if (!renameValue.trim()) {
+      setRenameError("El nombre del equipo es obligatorio.");
+      return;
+    }
+
+    setRenameSaving(true);
+    setRenameError(null);
+    try {
+      const updated = await renameAdminTeam(
+        renameTeam.equipoId,
+        { nombreEquipo: renameValue.trim() },
+        accessToken
+      );
+      setTeams((current) =>
+        current.map((team) => (team.equipoId === updated.equipoId ? updated : team))
+      );
+      setSuccessMessage(`Equipo renombrado a "${updated.nombreEquipo}".`);
+      setRenameTeam(null);
+    } catch (caught) {
+      setRenameError(mapAdminTeamErrorMessage(caught, "rename"));
+    } finally {
+      setRenameSaving(false);
+    }
+  }
+
+  function openReassignModal(team: AdminTeam) {
+    setReassignTeam(team);
+    setReassignValue("");
+    setReassignError(null);
+  }
+
+  function closeReassignModal() {
+    if (reassignSaving) {
+      return;
+    }
+    setReassignTeam(null);
+  }
+
+  async function onConfirmReassign() {
+    if (!reassignTeam || !reassignValue) {
+      return;
+    }
+
+    setReassignSaving(true);
+    setReassignError(null);
+    try {
+      const updated = await reassignAdminTeamLeader(
+        reassignTeam.equipoId,
+        { nuevoLiderUserId: reassignValue },
+        accessToken
+      );
+      setTeams((current) =>
+        current.map((team) => (team.equipoId === updated.equipoId ? updated : team))
+      );
+      setSuccessMessage("Liderazgo reasignado correctamente.");
+      setReassignTeam(null);
+    } catch (caught) {
+      setReassignError(mapAdminTeamErrorMessage(caught, "reassign"));
+    } finally {
+      setReassignSaving(false);
+    }
+  }
+
+  async function onToggleEstado(team: AdminTeam) {
+    if (team.estado === "Eliminado") {
+      return;
+    }
+
+    const nuevoEstado = team.estado === "Activo" ? "Desactivado" : "Activo";
+    setEstadoSavingId(team.equipoId);
+    setEstadoError(null);
+    setSuccessMessage(null);
+    try {
+      const updated = await setAdminTeamEstado(team.equipoId, { estado: nuevoEstado }, accessToken);
+      setTeams((current) =>
+        current.map((current_) => (current_.equipoId === updated.equipoId ? updated : current_))
+      );
+      setSuccessMessage(`Equipo ${updated.nombreEquipo} ahora está ${updated.estado.toLowerCase()}.`);
+    } catch (caught) {
+      setEstadoError(mapAdminTeamErrorMessage(caught, "estado"));
+    } finally {
+      setEstadoSavingId(null);
+    }
+  }
+
+  function openDeleteModal(team: AdminTeam) {
+    setDeleteTeam(team);
+    setDeleteError(null);
+  }
+
+  function closeDeleteModal() {
+    if (deleteSaving) {
+      return;
+    }
+    setDeleteTeam(null);
+  }
+
+  async function onConfirmDelete() {
+    if (!deleteTeam) {
+      return;
+    }
+
+    setDeleteSaving(true);
+    setDeleteError(null);
+    try {
+      await deleteAdminTeam(deleteTeam.equipoId, accessToken);
+      setSuccessMessage(`Equipo ${deleteTeam.nombreEquipo} eliminado correctamente.`);
+      setDeleteTeam(null);
+      await loadAll();
+    } catch (caught) {
+      setDeleteError(mapAdminTeamErrorMessage(caught, "delete"));
+    } finally {
+      setDeleteSaving(false);
+    }
+  }
+
+  return (
+    <div className="page">
+      <div className="stack">
+        <div>
+          <h1>Equipos</h1>
+          <p className="muted">
+            Administra equipos: crea, renombra, reasigna liderazgo, activa/desactiva y elimina. El
+            administrador no compone la membresía; los integrantes se gestionan por invitación desde
+            el liderazgo del equipo.
+          </p>
+        </div>
+
+        {listError ? (
+          <div className="notice error" role="alert">
+            {listError}
+          </div>
+        ) : null}
+
+        {successMessage ? (
+          <div className="notice success" role="status" data-testid="teams-action-success">
+            {successMessage}
+          </div>
+        ) : null}
+
+        <div className="card stack">
+          <div className="card-head">
+            <h2 className="q-title">Crear equipo</h2>
+          </div>
+
+          {createError ? (
+            <div className="notice error" role="alert" data-testid="create-team-error">
+              {createError}
+            </div>
+          ) : null}
+
+          {createSuccessMessage ? (
+            <div className="notice success" data-testid="create-team-success">
+              {createSuccessMessage}
+            </div>
+          ) : null}
+
+          <form onSubmit={onCreateTeam} noValidate>
+            <div className="row">
+              <label htmlFor="create-team-name">
+                Nombre del equipo
+                <input
+                  id="create-team-name"
+                  value={createName}
+                  onChange={(event) => setCreateName(event.target.value)}
+                  autoComplete="off"
+                />
+              </label>
+
+              <label htmlFor="create-team-leader">
+                Líder inicial
+                <select
+                  id="create-team-leader"
+                  data-testid="create-team-leader-select"
+                  value={createLiderUserId}
+                  onChange={(event) => setCreateLiderUserId(event.target.value)}
+                >
+                  <option value="">Selecciona un usuario…</option>
+                  {users.map((user) => (
+                    <option key={user.userId} value={user.userId}>
+                      {user.name} ({user.email})
+                    </option>
+                  ))}
+                </select>
+              </label>
+            </div>
+
+            <button type="submit" data-testid="create-team-submit" disabled={isCreating}>
+              {isCreating ? "Creando…" : "Crear equipo"}
+            </button>
+          </form>
+        </div>
+
+        <div className="card stack">
+          <div className="card-head">
+            <h2 className="q-title">
+              Equipos
+              {teams.length > 0 ? <span className="badge">{teams.length}</span> : null}
+            </h2>
+          </div>
+
+          {teams.length === 0 && !isLoadingList ? (
+            <div className="empty-panel">
+              <Flag />
+              <p>No hay equipos registrados todavía.</p>
+              <p className="muted">
+                Crea el primero en <strong>Crear equipo</strong>.
+              </p>
+            </div>
+          ) : (
+            <div className="table-wrap">
+              <table aria-label="Equipos">
+                <thead>
+                  <tr>
+                    <th scope="col">Nombre</th>
+                    <th scope="col">Estado</th>
+                    <th scope="col">Integrantes</th>
+                    <th scope="col">Líder</th>
+                    <th scope="col">Acciones</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {teams.map((team) => {
+                    const lider = team.integrantes.find((integrante) => integrante.esLider);
+                    return (
+                      <tr key={team.equipoId}>
+                        <td>{team.nombreEquipo}</td>
+                        <td>
+                          <TeamEstadoPill estado={team.estado} />
+                        </td>
+                        <td>{team.integrantes.length}</td>
+                        <td>
+                          <span className="mono">{lider?.usuarioId ?? team.liderUserId ?? "-"}</span>
+                        </td>
+                        <td>
+                          <div className="compact-actions">
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              data-testid={`team-rename-open-${team.equipoId}`}
+                              disabled={team.estado === "Eliminado"}
+                              onClick={() => openRenameModal(team)}
+                            >
+                              Renombrar
+                            </button>
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              data-testid={`team-reassign-open-${team.equipoId}`}
+                              disabled={team.estado === "Eliminado" || team.integrantes.length < 2}
+                              onClick={() => openReassignModal(team)}
+                            >
+                              Reasignar líder
+                            </button>
+                            {team.estado !== "Eliminado" ? (
+                              <button
+                                type="button"
+                                className="secondary-button"
+                                data-testid={`team-estado-toggle-${team.equipoId}`}
+                                disabled={estadoSavingId === team.equipoId}
+                                onClick={() => onToggleEstado(team)}
+                              >
+                                {estadoSavingId === team.equipoId
+                                  ? "Guardando…"
+                                  : team.estado === "Activo"
+                                    ? "Desactivar"
+                                    : "Activar"}
+                              </button>
+                            ) : null}
+                            <button
+                              type="button"
+                              className="secondary-button"
+                              data-testid={`team-delete-open-${team.equipoId}`}
+                              disabled={team.estado === "Eliminado"}
+                              onClick={() => openDeleteModal(team)}
+                            >
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          )}
+
+          {estadoError ? (
+            <div className="notice error" role="alert">
+              {estadoError}
+            </div>
+          ) : null}
+        </div>
+      </div>
+
+      {renameTeam ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="rename-team-title"
+            data-testid="rename-team-modal"
+          >
+            <div className="modal-header">
+              <div>
+                <span className="badge">Renombrar equipo</span>
+                <h2 id="rename-team-title">{renameTeam.nombreEquipo}</h2>
+              </div>
+              <button type="button" className="secondary-button" onClick={closeRenameModal}>
+                Cerrar
+              </button>
+            </div>
+
+            <label htmlFor="rename-team-input">
+              Nuevo nombre
+              <input
+                id="rename-team-input"
+                data-testid="rename-team-input"
+                value={renameValue}
+                disabled={renameSaving}
+                onChange={(event) => setRenameValue(event.target.value)}
+              />
+            </label>
+
+            {renameError ? (
+              <div className="notice error" role="alert" data-testid="rename-team-error">
+                {renameError}
+              </div>
+            ) : null}
+
+            <div className="row">
+              <button
+                type="button"
+                data-testid="rename-team-confirm"
+                disabled={renameSaving}
+                onClick={onConfirmRename}
+              >
+                {renameSaving ? "Guardando…" : "Guardar nombre"}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={renameSaving}
+                onClick={closeRenameModal}
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {reassignTeam ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="reassign-team-title"
+            data-testid="reassign-team-modal"
+          >
+            <div className="modal-header">
+              <div>
+                <span className="badge">Reasignar líder</span>
+                <h2 id="reassign-team-title">{reassignTeam.nombreEquipo}</h2>
+              </div>
+              <button type="button" className="secondary-button" onClick={closeReassignModal}>
+                Cerrar
+              </button>
+            </div>
+
+            <label htmlFor="reassign-team-select">
+              Nuevo líder
+              <select
+                id="reassign-team-select"
+                data-testid="reassign-team-select"
+                value={reassignValue}
+                disabled={reassignSaving}
+                onChange={(event) => setReassignValue(event.target.value)}
+              >
+                <option value="">Selecciona un integrante…</option>
+                {reassignTeam.integrantes
+                  .filter((integrante) => !integrante.esLider)
+                  .map((integrante) => (
+                    <option key={integrante.usuarioId} value={integrante.usuarioId}>
+                      {integrante.usuarioId}
+                    </option>
+                  ))}
+              </select>
+            </label>
+
+            {reassignError ? (
+              <div className="notice error" role="alert" data-testid="reassign-team-error">
+                {reassignError}
+              </div>
+            ) : null}
+
+            <div className="row">
+              <button
+                type="button"
+                data-testid="reassign-team-confirm"
+                disabled={reassignSaving || !reassignValue}
+                onClick={onConfirmReassign}
+              >
+                {reassignSaving ? "Reasignando…" : "Reasignar líder"}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                disabled={reassignSaving}
+                onClick={closeReassignModal}
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+
+      {deleteTeam ? (
+        <div className="modal-backdrop" role="presentation">
+          <section
+            className="modal-card"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="delete-team-title"
+            data-testid="delete-team-modal"
+          >
+            <div className="modal-header">
+              <div>
+                <span className="badge">Eliminar equipo</span>
+                <h2 id="delete-team-title">{deleteTeam.nombreEquipo}</h2>
+              </div>
+              <button type="button" className="secondary-button" onClick={closeDeleteModal}>
+                Cerrar
+              </button>
+            </div>
+
+            <p className="muted">
+              Esta acción es irreversible: el equipo pasará a estado Eliminado y sus integrantes
+              quedarán libres para unirse a otro equipo.
+            </p>
+
+            {deleteError ? (
+              <div className="notice error" role="alert" data-testid="delete-team-error">
+                {deleteError}
+              </div>
+            ) : null}
+
+            <div className="row">
+              <button
+                type="button"
+                data-testid="delete-team-confirm"
+                disabled={deleteSaving}
+                onClick={onConfirmDelete}
+              >
+                {deleteSaving ? "Eliminando…" : "Confirmar eliminación"}
+              </button>
+              <button
+                type="button"
+                className="secondary-button"
+                data-testid="delete-team-cancel"
+                disabled={deleteSaving}
+                onClick={closeDeleteModal}
+              >
+                Cancelar
+              </button>
+            </div>
+          </section>
+        </div>
+      ) : null}
+    </div>
+  );
+}
+
+function TeamEstadoPill({ estado }: { estado: AdminTeam["estado"] }) {
+  const variant = estado === "Activo" ? "pill--ok" : estado === "Desactivado" ? "pill--done" : "pill--cancel";
+  return (
+    <span className={`pill ${variant}`}>
+      <span className="pill__dot" />
+      {estado}
+    </span>
+  );
+}
+
+function mapAdminTeamErrorMessage(
+  caught: unknown,
+  context: "list" | "create" | "rename" | "reassign" | "estado" | "delete"
+): string {
+  if (!(caught instanceof IdentityApiError)) {
+    return "Error inesperado en Identity Service.";
+  }
+
+  switch (caught.statusCode) {
+    case 401:
+      return "No autenticado. Inicia sesión nuevamente.";
+    case 403:
+      return "No autorizado. Debes tener rol Administrador.";
+    case 404:
+      return "Equipo no encontrado.";
+    case 409:
+      if (context === "delete") {
+        return "El equipo participa en una partida activa y no puede eliminarse.";
+      }
+      return caught.message || "Ya existe un equipo con ese nombre.";
+    case 400:
+      return caught.message || "Solicitud inválida. Verifica los datos enviados.";
+    case 502:
+      return "Error de integración con Keycloak. Inténtalo nuevamente.";
+    default:
+      return caught.message || "Error inesperado en Identity Service.";
+  }
+}

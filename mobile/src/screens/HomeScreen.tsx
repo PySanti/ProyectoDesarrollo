@@ -24,18 +24,25 @@ export function HomeScreen({ navigation }: Props) {
 
       <View style={styles.group}>
         <NavCard
-          icon="zap"
-          label="Jugar Trivia"
-          sublabel="Responde y suma puntos"
+          icon="flag"
+          label="Partidas"
+          sublabel="Descubre y únete a una partida"
           feature
-          onPress={() => navigation.navigate("TriviaGamesList")}
+          onPress={() => navigation.navigate("PartidasPanel")}
         />
         <NavCard
-          icon="map"
-          label="Buscar tesoro"
-          sublabel="Encuentra los QR en cada etapa"
+          icon="mail"
+          label="Convocatorias"
+          sublabel="Responde el llamado de tu equipo"
           feature
-          onPress={() => navigation.navigate("BdtPublishedGames")}
+          onPress={() => navigation.navigate("Convocatorias")}
+        />
+        <NavCard
+          icon="award"
+          label="Mi historial"
+          sublabel="Partidas jugadas, puntos y posición"
+          feature
+          onPress={() => navigation.navigate("HistorialPartidas")}
         />
       </View>
 
@@ -48,6 +55,9 @@ export function HomeScreen({ navigation }: Props) {
         <NavCard icon="user-plus" label="Invitar miembro" onPress={() => navigation.navigate("InviteMember")} />
         <NavCard icon="repeat" label="Transferir liderazgo" onPress={() => navigation.navigate("TransferLeadership")} />
         <NavCard icon="log-out" label="Salir del equipo" onPress={() => navigation.navigate("LeaveTeam")} />
+        <NavCard icon="trash-2" label="Eliminar equipo" onPress={() => navigation.navigate("DeleteTeam")} />
+        <NavCard icon="clock" label="Historial de equipos" onPress={() => navigation.navigate("TeamHistory")} />
+        <NavCard icon="award" label="Rendimiento de mi equipo" onPress={() => navigation.navigate("RendimientoEquipo")} />
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>

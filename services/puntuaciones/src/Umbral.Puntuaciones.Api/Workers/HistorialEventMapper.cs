@@ -30,6 +30,11 @@ public static class HistorialEventMapper
         ["ConvocatoriaCreada"] = new("usuarioId", "equipoId"),
         ["ConvocatoriaRespondida"] = new("usuarioId", null),
         ["UbicacionActualizada"] = new("participanteId", null),
+        ["InscripcionSolicitada"] = new("participanteId", "equipoId"),
+        ["InscripcionAceptada"] = new("participanteId", "equipoId"),
+        ["InscripcionRechazada"] = new("participanteId", "equipoId"),
+        ["InscripcionEquipoCreada"] = new(null, "equipoId"),
+        ["InscripcionEquipoCancelada"] = new(null, "equipoId"),
     };
 
     public static ProyectarEventoHistorialCommand? Map(EnvelopeResumen envelope)

@@ -38,10 +38,7 @@ function Get-EnvOrDefault {
 $IP           = Get-EnvOrDefault 'LAN_IP'        'localhost'
 $KeycloakPort = Get-EnvOrDefault 'KEYCLOAK_PORT' '8080'
 $Realm        = Get-EnvOrDefault 'KEYCLOAK_REALM' 'UMBRAL-UCAB'
-$TeamPort     = Get-EnvOrDefault 'TEAM_PORT'     '5099'
-$BdtPort      = Get-EnvOrDefault 'BDT_PORT'      '5016'
-$TriviaPort   = Get-EnvOrDefault 'TRIVIA_PORT'   '5015'
-$IdentityPort = Get-EnvOrDefault 'IDENTITY_PORT' '5000'
+$GatewayPort  = Get-EnvOrDefault 'GATEWAY_PORT'  '5080'
 $MetroPort    = Get-EnvOrDefault 'METRO_PORT'    '8081'
 
 @"
@@ -51,10 +48,7 @@ REACT_NATIVE_PACKAGER_HOSTNAME=$IP
 EXPO_PUBLIC_KEYCLOAK_URL=http://${IP}:${KeycloakPort}
 EXPO_PUBLIC_KEYCLOAK_REALM=$Realm
 EXPO_PUBLIC_KEYCLOAK_CLIENT_ID=umbral-mobile
-EXPO_PUBLIC_TEAM_API_BASE_URL=http://${IP}:${TeamPort}
-EXPO_PUBLIC_BDT_API_BASE_URL=http://${IP}:${BdtPort}
-EXPO_PUBLIC_TRIVIA_API_BASE_URL=http://${IP}:${TriviaPort}
-EXPO_PUBLIC_IDENTITY_API_BASE_URL=http://${IP}:${IdentityPort}
+EXPO_PUBLIC_GATEWAY_BASE_URL=http://${IP}:${GatewayPort}
 EXPO_PUBLIC_APP_SCHEME=umbral
 EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://${IP}:${MetroPort}/--/auth
 "@ | Set-Content -Path '.env' -Encoding utf8

@@ -42,6 +42,28 @@ public class RabbitMqIdentityEventsPublisherTests
     }
 
     [Fact]
+    public async Task Publica_CredencialTemporalEmitida_con_routing_key_y_password_en_el_payload()
+    {
+        var canal = new CanalFake();
+        var publisher = CrearPublisher(canal);
+
+        await publisher.PublishCredencialTemporalEmitidaAsync(
+            new CredencialTemporalEmitidaIntegrationEvent("Ana", "ana@umbral.dev", "Participante", "Temp-Pass-1",
+                new DateTime(2026, 7, 13, 0, 0, 0, DateTimeKind.Utc)),
+            CancellationToken.None);
+
+        var (routingKey, body) = Assert.Single(canal.Publicados);
+        Assert.Equal("identity.credencial-temporal-emitida.v1", routingKey);
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal("CredencialTemporalEmitida", doc.RootElement.GetProperty("eventType").GetString());
+        var payload = doc.RootElement.GetProperty("payload");
+        Assert.Equal("Ana", payload.GetProperty("nombre").GetString());
+        Assert.Equal("ana@umbral.dev", payload.GetProperty("correo").GetString());
+        Assert.Equal("Participante", payload.GetProperty("rol").GetString());
+        Assert.Equal("Temp-Pass-1", payload.GetProperty("passwordTemporal").GetString());
+    }
+
+    [Fact]
     public async Task Fallo_del_canal_no_escapa_al_caller()
     {
         var canal = new CanalFake { Lanzar = new InvalidOperationException("broker caído") };

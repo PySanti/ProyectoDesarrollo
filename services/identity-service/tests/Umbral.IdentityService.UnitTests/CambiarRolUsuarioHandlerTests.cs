@@ -24,6 +24,9 @@ public class CambiarRolUsuarioHandlerTests
         public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.TryGetValue(userId, out var usuario) ? usuario : null);
 
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
         public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
@@ -52,6 +55,9 @@ public class CambiarRolUsuarioHandlerTests
             => throw new NotImplementedException();
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
@@ -107,6 +113,11 @@ public class CambiarRolUsuarioHandlerTests
         public Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static (CambiarRolUsuarioCommandHandler Handler, UsuarioRepositoryFake Usuarios, EquipoRepositoryFake Equipos, KeycloakFake Kc, PublisherFake Pub) Crear()

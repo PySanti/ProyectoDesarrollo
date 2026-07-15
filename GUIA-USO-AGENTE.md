@@ -148,6 +148,10 @@ Por cada vez que se manda un mensaje, claude vuelve a leer toda la sesion, es bu
 
 Por cada vez que se quiera cambiar de sesion, pide un resumen a claude y copialo en la otra sesion.
 
+## 1.4 Ponytail
+
+Es una skill que hace que el agente no construya cosas que ya existen desde 0, tomando decisiones con un criterio mas inteligente.
+
 ## 2. Continuacion de sesiones
 
 

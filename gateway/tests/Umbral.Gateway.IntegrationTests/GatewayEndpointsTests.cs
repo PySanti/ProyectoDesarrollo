@@ -150,6 +150,40 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
+    public async Task IdentityTeamsListing_GET_con_Operador_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Operador");
+        var response = await client.GetAsync("/identity/teams");
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
+    public async Task IdentityTeamsListing_GET_con_Administrador_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/identity/teams");
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
+    public async Task IdentityTeamsListing_GET_con_Participante_es_403()
+    {
+        // El listado es de la web (admin/operador); un participante puro no pasa.
+        var client = CreateClientWithRoles("Participante");
+        var response = await client.GetAsync("/identity/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityTeamsListing_POST_sigue_siendo_de_Participante()
+    {
+        // La ruta nueva solo matchea GET: crear equipo cae en la ruta Participante intacta.
+        var client = CreateClientWithRoles("Participante");
+        var response = await client.PostAsync("/identity/teams", new StringContent("{}"));
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
     public async Task IdentityResto_autenticado_cualquier_rol_pasa()
     {
         var client = CreateClientWithRoles("Participante");
@@ -202,6 +236,70 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     {
         var client = CreateClientWithRoles("Administrador");
         var response = await client.GetAsync("/identity/governance/roles");
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
+    public async Task Preflight_cors_desde_origen_permitido_pasa()
+    {
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Options, "/identity/users");
+        request.Headers.Add("Origin", "http://localhost:5173");
+        request.Headers.Add("Access-Control-Request-Method", "POST");
+
+        var response = await client.SendAsync(request);
+
+        // El middleware CORS responde el preflight ANTES de la política de autorización.
+        Assert.Equal(HttpStatusCode.NoContent, response.StatusCode);
+        Assert.Equal("http://localhost:5173",
+            Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    [Fact]
+    public async Task Respuesta_con_origin_lleva_un_solo_allow_origin()
+    {
+        var client = _factory.CreateClient();
+        var request = new HttpRequestMessage(HttpMethod.Get, "/health");
+        request.Headers.Add("Origin", "http://localhost:5173");
+
+        var response = await client.SendAsync(request);
+
+        Assert.Equal(HttpStatusCode.OK, response.StatusCode);
+        Assert.Equal("http://localhost:5173",
+            Assert.Single(response.Headers.GetValues("Access-Control-Allow-Origin")));
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_sin_token_es_401()
+    {
+        var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Participante_es_403()
+    {
+        // Sin la ruta explícita, /identity/admin/teams caía en el catch-all identity (policy
+        // Default = cualquier autenticado); este 403 pinnea la RBAC gruesa Administrador-only.
+        var client = CreateClientWithRoles("Participante");
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Operador_es_403()
+    {
+        var client = CreateClientWithRoles("Operador");
+        var response = await client.GetAsync("/identity/admin/teams");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Administrador_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/identity/admin/teams/cualquier-cosa");
         AssertPolicyPassed(response);
     }
 }

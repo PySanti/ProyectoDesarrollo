@@ -28,6 +28,11 @@ Current event contract index. Concrete payloads require a current-doctrine SDD b
 | `PistaEnviada` (SP-3f-4, SP-3e-4) | El operador envía una pista a un participante o equipo durante un juego BDT activo. | Defined by SDD | Payload registered (SP-3f-4 / SP-3e-4) |
 | `ConvocatoriaCreada` (SP-3e-1) | Se preinscribe un equipo: cada miembro del snapshot recibe una convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
 | `ConvocatoriaRespondida` (SP-3e-1) | Un convocado acepta o rechaza su convocatoria. | Defined by SDD | Payload registered (SP-3e-1) |
+| `InscripcionEquipoCreada` (SP-Bloque4A) | Un líder preinscribe su equipo en una partida. | Identity (proyección guard BR-E10) + Historial (Puntuaciones, 7e) | Registered — `{ partidaId, sesionPartidaId, inscripcionId, equipoId, instante }` |
+| `InscripcionEquipoCancelada` (SP-Bloque4A) | Se cancela la preinscripción de un equipo (también al **rechazar**, HU-19). | Identity (proyección guard BR-E10) + Historial (Puntuaciones, 7e) | Registered — `{ partidaId, inscripcionId, equipoId, instante }` |
+| `InscripcionSolicitada` (SP-Bloque4B) | Un participante/equipo solicita inscripción (nace `Pendiente`). | Historial (Puntuaciones) | Registered — forma común (abajo) |
+| `InscripcionAceptada` (SP-Bloque4B) | El operador acepta una inscripción `Pendiente` (pasa a `Activa`). | Historial (Puntuaciones) | Registered — forma común (abajo) |
+| `InscripcionRechazada` (SP-Bloque4B) | El operador rechaza una inscripción `Pendiente` (pasa a `Rechazada`, re-solicitable). | Historial (Puntuaciones) | Registered — forma común (abajo) |
 | `UbicacionActualizada` (SP-3i) | Un participante BDT envía su ubicación (~cada 2 s) durante un juego activo. | Defined by SDD | Payload registered (SP-3i) |
 
 ## Transport (SP-3i · SP-4a)
@@ -59,6 +64,11 @@ Events are published to RabbitMQ (best-effort, after `SaveChanges`; see ADR-0012
 | `ConvocatoriaCreada` | `operaciones-sesion.convocatoria-creada.v1` |
 | `ConvocatoriaRespondida` | `operaciones-sesion.convocatoria-respondida.v1` |
 | `UbicacionActualizada` | `operaciones-sesion.ubicacion-actualizada.v1` |
+| `InscripcionEquipoCreada` | `operaciones-sesion.inscripcion-equipo-creada.v1` |
+| `InscripcionEquipoCancelada` | `operaciones-sesion.inscripcion-equipo-cancelada.v1` |
+| `InscripcionSolicitada` | `operaciones-sesion.inscripcion-solicitada.v1` |
+| `InscripcionAceptada` | `operaciones-sesion.inscripcion-aceptada.v1` |
+| `InscripcionRechazada` | `operaciones-sesion.inscripcion-rechazada.v1` |
 
 ## Payloads (registered)
 
@@ -161,7 +171,7 @@ Emitted when a Trivia question becomes active: at game start (first question), o
 
 ### `PreguntaTriviaCerrada` (SP-3c)
 
-Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId` is present only when the question closed by a correct answer. Published to the broker since SP-3i (best-effort, ADR-0012).
+Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId`/`ganadorEquipoId` are present only when the question closed by a correct answer. `opcionCorrectaId`/`textoOpcionCorrecta` (added 7d, additive trailing fields, default `null`) identify the question's correct option and are populated on **every** close reason (correct answer, timeout, and operator advance alike), so consuming clients can always reveal the right answer once a question is closed. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -172,7 +182,9 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
   "motivo": "RespuestaCorrecta | AvanceOperador | Tiempo",
   "fechaCierre": "datetime",
   "ganadorParticipanteId": "guid?",
-  "ganadorEquipoId": "guid?"
+  "ganadorEquipoId": "guid?",
+  "opcionCorrectaId": "guid?",
+  "textoOpcionCorrecta": "string?"
 }
 ```
 
@@ -306,3 +318,51 @@ Emitted to the broker for deferred audit each time a participant sends their loc
   "instante": "datetime"
 }
 ```
+
+### `InscripcionEquipoCreada` (SP-Bloque4A)
+
+Emitted (best-effort, after `SaveChanges`) when a leader preinscribes their team in a partida. Consumed by Identity to project `participaciones_activas_equipo` for the BR-E10 team-delete guard, and archived to the Puntuaciones historial via the same catch-all `puntuaciones.operaciones-sesion.historial` queue (7e, HU-43).
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "inscripcionId": "guid",
+  "equipoId": "guid",
+  "instante": "datetime"
+}
+```
+
+### `InscripcionEquipoCancelada` (SP-Bloque4A)
+
+Emitted (best-effort, after `SaveChanges`) when a team's preinscription is cancelled. Consumed by Identity to remove the `(equipoId, partidaId)` row from the BR-E10 guard projection, and archived to the Puntuaciones historial via the same catch-all `puntuaciones.operaciones-sesion.historial` queue (7e, HU-43).
+
+```json
+{
+  "partidaId": "guid",
+  "inscripcionId": "guid",
+  "equipoId": "guid",
+  "instante": "datetime"
+}
+```
+
+### `InscripcionSolicitada` / `InscripcionAceptada` / `InscripcionRechazada` (SP-Bloque4B, HU-19)
+
+Ciclo de aprobación de inscripciones por el operador. Los tres comparten la **forma común** de 7 campos.
+`InscripcionSolicitada` se emite al inscribir/preinscribir (la inscripción nace `Pendiente`); `InscripcionAceptada` cuando el operador la acepta (pasa a `Activa`); `InscripcionRechazada` cuando la rechaza (pasa a `Rechazada`, terminal y re-solicitable). En modalidad `Individual` viaja `participanteId` (y `equipoId: null`); en `Equipo`, `equipoId` (y `participanteId: null`). Publicados al broker (best-effort, después de `SaveChanges`, ADR-0012).
+
+Los tres **no difunden por SignalR** (No-Op — el operador consulta el lobby por polling, coherente con la lista de no-broadcast de SP-3f-2) y se archivan en el historial de Puntuaciones vía la cola `puntuaciones.operaciones-sesion.historial` ligada a `operaciones-sesion.#` (sin consumidor nuevo).
+
+```json
+{
+  "partidaId": "guid",
+  "sesionPartidaId": "guid",
+  "inscripcionId": "guid",
+  "modalidad": "Individual | Equipo",
+  "participanteId": "guid | null",
+  "equipoId": "guid | null",
+  "instante": "datetime"
+}
+```
+
+> **Timing note (HU-19):** `ConvocatoriaCreada` ahora se emite **al aceptar** una preinscripción de equipo (no al preinscribir); `InscripcionEquipoCreada` se sigue emitiendo al preinscribir (un equipo `Pendiente` ya participa a efectos de BR-G09/BR-E10); `InscripcionEquipoCancelada` se emite también al **rechazar** una preinscripción de equipo.

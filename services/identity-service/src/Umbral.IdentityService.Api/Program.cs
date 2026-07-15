@@ -3,25 +3,36 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Umbral.IdentityService.Api.Utils;
+using Umbral.IdentityService.Api.Workers;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Infrastructure;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddIdentityApplication();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendDev", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
+
+// Primer consumidor RabbitMQ de Identity (Task D3): proyecta participaciones activas de
+// equipo desde eventos de Operaciones de Sesión. El BackgroundService no arranca si está
+// deshabilitado o sin host (mismo patrón que el consumidor de Puntuaciones).
+var rabbitConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqConsumerOptions.SectionName)
+    .Get<RabbitMqConsumerOptions>()
+    ?? new RabbitMqConsumerOptions();
+builder.Services.AddSingleton(rabbitConsumerOptions);
+builder.Services.AddHostedService<OperacionesInscripcionesConsumer>();
+
+// Segundo consumidor RabbitMQ de Identity (7f, RNF-23): se autoconsume CredencialTemporalEmitida
+// (exchange umbral.identity) para disparar el correo SMTP de bienvenida de forma asíncrona.
+var rabbitCredencialesConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqCredencialesConsumerOptions.SectionName)
+    .Get<RabbitMqCredencialesConsumerOptions>()
+    ?? new RabbitMqCredencialesConsumerOptions();
+builder.Services.AddSingleton(rabbitCredencialesConsumerOptions);
+builder.Services.AddHostedService<CredencialesTemporalesConsumer>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
@@ -106,6 +117,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
+    options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
 });
 
 var app = builder.Build();
@@ -115,6 +127,9 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
 
+    // EnsureCreated no evoluciona esquemas existentes: si la BD ya tiene alguna tabla,
+    // no crea las que falten. Estos parches cubren la deriva y deben correr ANTES del
+    // backfill, que consulta historial_nombre_equipo.
     if (dbContext.Database.IsRelational())
     {
         await dbContext.Database.ExecuteSqlRawAsync("""
@@ -142,10 +157,57 @@ using (var scope = app.Services.CreateScope())
             FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
             WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
             """);
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS equipos (
+                equipoid uuid PRIMARY KEY,
+                nombreequipo varchar(120) NOT NULL,
+                estado integer NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS equipos_participantes (
+                participanteequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                usuarioid uuid NOT NULL,
+                fechaunionutc timestamp with time zone NOT NULL,
+                eslider boolean NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_usuarioid ON equipos_participantes (usuarioid);
+
+            CREATE TABLE IF NOT EXISTS invitaciones_equipo (
+                invitacionequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                invitadouserid uuid NOT NULL,
+                invitadoporuserid uuid NOT NULL,
+                estado integer NOT NULL,
+                fechacreacionutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadouserid ON invitaciones_equipo (invitadouserid);
+
+            CREATE TABLE IF NOT EXISTS historial_nombre_equipo (
+                id uuid PRIMARY KEY,
+                usuarioid uuid NOT NULL,
+                equipoid uuid NOT NULL,
+                nombreequipo varchar(120) NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_usuarioid ON historial_nombre_equipo (usuarioid);
+
+            CREATE TABLE IF NOT EXISTS participaciones_activas_equipo (
+                equipoid uuid NOT NULL,
+                partidaid uuid NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL,
+                PRIMARY KEY (equipoid, partidaid)
+            );
+            """);
     }
+
+    await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
 }
 
-app.UseCors("FrontendDev");
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

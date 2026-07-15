@@ -16,6 +16,15 @@ public sealed class EquipoRepository : IEquipoRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _dbContext.Equipos
+            .AsNoTracking()
+            .Include(x => x.Participantes)
+            .OrderBy(e => e.NombreEquipo)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return _dbContext.Equipos

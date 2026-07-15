@@ -12,4 +12,9 @@
     <ProjectReference Include="../Umbral.Puntuaciones.Application/Umbral.Puntuaciones.Application.csproj" />
     <ProjectReference Include="../Umbral.Puntuaciones.Infrastructure/Umbral.Puntuaciones.Infrastructure.csproj" />
   </ItemGroup>
+  <ItemGroup>
+    <AssemblyAttribute Include="System.Runtime.CompilerServices.InternalsVisibleTo">
+      <_Parameter1>Umbral.Puntuaciones.UnitTests</_Parameter1>
+    </AssemblyAttribute>
+  </ItemGroup>
 </Project>

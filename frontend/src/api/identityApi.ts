@@ -44,11 +44,11 @@ export class IdentityApiError extends Error {
   }
 }
 
-const baseUrl = import.meta.env.VITE_IDENTITY_API_BASE_URL as string | undefined;
+const baseUrl = import.meta.env.VITE_GATEWAY_BASE_URL as string | undefined;
 
 function resolveBaseUrl(): string {
   if (!baseUrl) {
-    throw new Error("Missing VITE_IDENTITY_API_BASE_URL environment variable.");
+    throw new Error("Missing VITE_GATEWAY_BASE_URL environment variable.");
   }
 
   return baseUrl.replace(/\/$/, "");
@@ -231,4 +231,31 @@ export async function changeUserRole(
   const body = await parseJsonBody<ChangeUserRoleResponse>(response);
   throwIfNotOk(response, body as { message?: string });
   return body as ChangeUserRoleResponse;
+}
+
+export interface EquipoMiembro {
+  usuarioId: string;
+  nombre: string;
+  esLider: boolean;
+}
+
+export interface EquipoAdminItem {
+  equipoId: string;
+  nombreEquipo: string;
+  estado: string;
+  participantes: EquipoMiembro[];
+}
+
+export async function getEquipos(
+  accessToken: string,
+  fetchImpl: typeof fetch = fetch
+): Promise<EquipoAdminItem[]> {
+  const response = await fetchImpl(`${resolveBaseUrl()}/identity/teams`, {
+    method: "GET",
+    headers: buildAuthHeaders(accessToken)
+  });
+
+  const body = await parseJsonBody<EquipoAdminItem[]>(response);
+  throwIfNotOk(response, body as { message?: string });
+  return body as EquipoAdminItem[];
 }

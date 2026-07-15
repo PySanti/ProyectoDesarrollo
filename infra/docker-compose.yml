@@ -1,6 +1,5 @@
 # Docker Compose for the four-service UMBRAL topology, behind the YARP gateway.
 # Target services: gateway, identity-service, partidas, operaciones-sesion, puntuaciones.
-# Legacy (in transit, dismantled in SP-3/SP-4): trivia-game-service, bdt-game-service.
 # Do not add audit-service, scoring-service, or treasure-hunt-service.
 
 services:
@@ -60,6 +59,34 @@ services:
       # from the import file.
       - umbral-keycloak-data:/opt/keycloak/data
 
+  # Convergencia declarativa del realm (config-as-code). --import-realm solo
+  # importa cuando el realm NO existe (IGNORE_EXISTING): un volumen persistido
+  # con un realm viejo queda desactualizado (sin audience mappers, sin roles de
+  # permisos) y produce 401/403. Este one-shot aplica umbral-realm.json sobre el
+  # Keycloak en ejecución en cada `up`: crea/actualiza roles, clientes, mappers
+  # y usuarios sembrados, y NO borra usuarios creados en runtime. Sale con 0 al
+  # terminar; no queda corriendo.
+  keycloak-config:
+    image: adorsys/keycloak-config-cli:6.5.1-25.0.1
+    environment:
+      KEYCLOAK_URL: http://keycloak:8080
+      KEYCLOAK_USER: admin
+      KEYCLOAK_PASSWORD: admin
+      # Espera a que Keycloak esté disponible antes de importar.
+      KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
+      KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
+      IMPORT_FILES_LOCATIONS: /config/umbral-realm.json
+      # Sin esto, config-cli se salta la importación si el JSON no cambió desde el
+      # último run (caché por checksum en un atributo del realm) y NO repararía
+      # deriva hecha en runtime. (IMPORT_FORCE no existe en la serie 6.x.)
+      IMPORT_CACHE_ENABLED: "false"
+    volumes:
+      - ./keycloak/import:/config:ro
+    depends_on:
+      keycloak:
+        condition: service_started
+    restart: "no"
+
   identity-service:
     build:
       context: ../services/identity-service
@@ -69,12 +96,25 @@ services:
       ASPNETCORE_ENVIRONMENT: Development
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__IdentityDatabase: Host=postgres;Port=5432;Database=umbral_identity;Username=umbral;Password=16102005
+      RabbitMq__Enabled: "true"
       RabbitMq__Host: rabbitmq
+      RabbitMqConsumer__Enabled: "true"
+      RabbitMqConsumer__Host: rabbitmq
+      RabbitMqCredencialesConsumer__Enabled: "true"
+      RabbitMqCredencialesConsumer__Host: rabbitmq
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_CLIENT_ID: identity-service
       KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
-      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-587}
+      SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS:-true}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_FROM_ADDRESS: ${SMTP_FROM_ADDRESS:-}
+      SMTP_FROM_NAME: ${SMTP_FROM_NAME:-UMBRAL}
     depends_on:
       postgres:
         condition: service_healthy
@@ -94,7 +134,8 @@ services:
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile,account
-      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
+      CORS_ALLOWED_ORIGINS: http://localhost:5173
       ReverseProxy__Clusters__identity__Destinations__d1__Address: http://identity-service:8080/
       ReverseProxy__Clusters__partidas__Destinations__d1__Address: http://partidas:8080/
       ReverseProxy__Clusters__operaciones-sesion__Destinations__d1__Address: http://operaciones-sesion:8080/
@@ -119,7 +160,7 @@ services:
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
-      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
     depends_on:
       postgres:
         condition: service_healthy
@@ -136,13 +177,14 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__OperacionesSesionDatabase: Host=postgres;Port=5432;Database=umbral_operaciones_sesion;Username=umbral;Password=16102005
       EF_MIGRATE_ON_STARTUP: "true"
+      RabbitMq__Enabled: "true"
       RabbitMq__Host: rabbitmq
       IdentityApi__BaseUrl: http://identity-service:8080
       PartidasApi__BaseUrl: http://partidas:8080
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
-      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
     depends_on:
       postgres:
         condition: service_healthy
@@ -165,11 +207,12 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__PuntuacionesDatabase: Host=postgres;Port=5432;Database=umbral_puntuaciones;Username=umbral;Password=16102005
       EF_MIGRATE_ON_STARTUP: "true"
+      RabbitMq__Enabled: "true"
       RabbitMq__Host: rabbitmq
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
-      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB
+      KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
     depends_on:
       postgres:
         condition: service_healthy
@@ -178,35 +221,13 @@ services:
       keycloak:
         condition: service_started
 
-  trivia-game-service:
+  frontend:
     build:
-      context: ../services/trivia-game-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__DefaultConnection: Host=postgres;Port=5432;Database=umbral_trivia_game;Username=umbral;Password=16102005
-      RabbitMq__Host: rabbitmq
-      IdentityService__BaseUrl: http://identity-service
+      context: ../frontend
+    ports:
+      - "5173:80"
     depends_on:
-      - postgres
-      - rabbitmq
-      - identity-service
-
-  bdt-game-service:
-    build:
-      context: ../services/bdt-game-service
-    environment:
-      ASPNETCORE_ENVIRONMENT: Development
-      ConnectionStrings__BdtDatabase: Host=postgres;Port=5432;Database=umbral_bdt_game;Username=umbral;Password=16102005
-      RabbitMq__Host: rabbitmq
-      IdentityService__BaseUrl: http://identity-service
-      KEYCLOAK_BASE_URL: http://keycloak:8080
-      KEYCLOAK_REALM: UMBRAL-UCAB
-      KEYCLOAK_CLIENT_ID: bdt-game-service
-      KEYCLOAK_VALID_AUDIENCES: bdt-game-service,umbral-web,umbral-mobile,account
-    depends_on:
-      - postgres
-      - rabbitmq
-      - identity-service
+      - gateway
 
 volumes:
   umbral-postgres-data:

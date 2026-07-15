@@ -3,6 +3,7 @@ import * as SecureStore from "expo-secure-store";
 import * as WebBrowser from "expo-web-browser";
 import { mobileEnv } from "../config/env";
 import { AuthSessionState } from "./authTypes";
+import { refrescarTokenFlow } from "./sessionRefreshFlow.js";
 import { buildAuthUser, isJwtExpired } from "./tokenClaims.js";
 
 WebBrowser.maybeCompleteAuthSession();
@@ -139,6 +140,37 @@ export async function restoreSessionAsync(): Promise<AuthSessionState | null> {
     }
 
     return parsed;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Refresca la sesión con el refresh token guardado (RNF-24), directo contra
+ * Keycloak. Devuelve la sesión nueva persistida, o null en cualquier fallo
+ * (sin refresh token, HTTP != 200, red, token inválido) — el caller decide logout.
+ */
+export async function refreshSessionAsync(): Promise<AuthSessionState | null> {
+  try {
+    const refreshToken = await SecureStore.getItemAsync(refreshKey);
+    const r = (await refrescarTokenFlow({
+      tokenEndpoint: discovery.tokenEndpoint,
+      clientId: mobileEnv.keycloakClientId,
+      refreshToken,
+      fetchImpl: fetch,
+      buildUser: buildAuthUser,
+    })) as
+      | { ok: true; token: string; user: AuthSessionState["user"]; refreshToken: string | null }
+      | { ok: false };
+    if (!r.ok) {
+      return null;
+    }
+    const sessionState: AuthSessionState = { token: r.token, user: r.user };
+    await SecureStore.setItemAsync(storageKey, JSON.stringify(sessionState));
+    if (r.refreshToken) {
+      await SecureStore.setItemAsync(refreshKey, r.refreshToken);
+    }
+    return sessionState;
   } catch {
     return null;
   }

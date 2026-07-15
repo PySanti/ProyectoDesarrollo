@@ -27,6 +27,19 @@ public sealed class UsuarioRepository : IUsuarioRepository
         return _dbContext.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == userId, cancellationToken);
     }
 
+    public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+    {
+        // Usuario.KeycloakId se persiste como string (el id que devuelve Keycloak, un UUID en
+        // formato canónico minúsculas-con-guiones: ver KeycloakIdentityAdapter.CreateUserAsync,
+        // que lo toma tal cual del header Location de la API admin de Keycloak). Guid.ToString()
+        // por defecto ("D") produce ese mismo formato, pero se compara en minúsculas por ambos
+        // lados para no depender de que Keycloak nunca cambie el casing.
+        var keycloakIdNormalizado = keycloakId.ToString().ToLowerInvariant();
+        return _dbContext.Usuarios.FirstOrDefaultAsync(
+            u => u.KeycloakId.ToLower() == keycloakIdNormalizado,
+            cancellationToken);
+    }
+
     public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
     {
         var query = _dbContext.Usuarios.Where(u => u.Correo == email);

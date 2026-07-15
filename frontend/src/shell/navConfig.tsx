@@ -1,4 +1,4 @@
-import { ClipboardList, Flag, IconComponent, ListChecks, Lock, MapPin, Play, Plus, UserPlus, Users } from "./icons";
+import { Flag, IconComponent, ListChecks, Lock, Plus, UserPlus, Users } from "./icons";
 
 export type Role = "Administrador" | "Operador";
 
@@ -6,12 +6,14 @@ export interface NavItemDef {
   label: string;
   path: string;
   icon: IconComponent;
+  /** Sin `roles`: el item hereda la visibilidad del área. */
+  roles?: readonly Role[];
 }
 
 export interface NavAreaDef {
   id: string;
   label: string;
-  role: Role;
+  role: Role | readonly Role[];
   icon: IconComponent;
   items: NavItemDef[];
 }
@@ -27,41 +29,53 @@ export const NAV_AREAS: NavAreaDef[] = [
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
       { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
-      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
+      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock },
+      { label: "Equipos", path: "/identidad/equipos", icon: Flag }
     ]
   },
   {
-    id: "trivia",
-    label: "Trivia",
-    role: "Operador",
+    id: "partidas",
+    label: "Partidas",
+    role: ["Operador", "Administrador"],
+    icon: Flag,
+    items: [
+      { label: "Partidas", path: "/partidas", icon: ListChecks },
+      { label: "Nueva partida", path: "/partidas/crear", icon: Plus, roles: ["Operador"] }
+    ]
+  },
+  {
+    id: "puntuaciones",
+    label: "Puntuaciones",
+    role: ["Operador", "Administrador"],
     icon: ListChecks,
-    items: [
-      { label: "Crear formulario", path: "/trivia/formularios/nuevo", icon: ClipboardList },
-      { label: "Crear Trivia", path: "/trivia/crear", icon: Plus },
-      { label: "Operar Trivia", path: "/trivia/operar", icon: Play }
-    ]
+    items: [{ label: "Rendimiento de equipo", path: "/puntuaciones/equipos", icon: Users }]
   },
   {
-    id: "bdt",
-    label: "Búsqueda del Tesoro",
-    role: "Operador",
-    icon: MapPin,
-    items: [
-      { label: "Crear BDT", path: "/bdt/crear", icon: Plus },
-      { label: "Partidas BDT", path: "/bdt/partidas", icon: Flag }
-    ]
+    id: "equipos",
+    label: "Equipos",
+    role: ["Operador", "Administrador"],
+    icon: Users,
+    items: [{ label: "Equipos", path: "/equipos", icon: Users }]
   }
 ];
 
 export function areasForRoles(roles: string[]): NavAreaDef[] {
-  return NAV_AREAS.filter((area) => roles.includes(area.role));
+  return NAV_AREAS.filter((area) => {
+    const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
+    return allowedRoles.some((role) => roles.includes(role));
+  }).map((area) => ({
+    ...area,
+    items: area.items.filter(
+      (item) => !item.roles || item.roles.some((role) => roles.includes(role))
+    )
+  }));
 }
 
-/* Landing per role: Operador -> Operar Trivia; Administrador -> Gestión de usuarios.
-   A user with both roles lands on Trivia (Operador is checked first). */
+/* Landing per role: Operador -> Partidas; Administrador -> Gestión de usuarios.
+   A user with both roles lands on Partidas (Operador is checked first). */
 export function landingPath(roles: string[]): string {
   if (roles.includes("Operador")) {
-    return "/trivia/operar";
+    return "/partidas";
   }
   if (roles.includes("Administrador")) {
     return "/identidad/usuarios";
@@ -76,6 +90,15 @@ export function titleForPath(pathname: string): string {
         return item.label;
       }
     }
+  }
+  if (pathname.endsWith("/sesion")) {
+    return "Sesión en vivo";
+  }
+  if (pathname.endsWith("/historial")) {
+    return "Historial de la partida";
+  }
+  if (pathname.startsWith("/partidas/")) {
+    return "Detalle de partida";
   }
   return "UMBRAL";
 }

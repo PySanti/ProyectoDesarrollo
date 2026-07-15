@@ -1,6 +1,6 @@
 import { AlertTriangle, BrandMark, Compass, Lock } from "./icons";
 
-export function LoginScreen({ onLogin }: { onLogin: () => void }) {
+export function LoginScreen({ onLogin, notice }: { onLogin: () => void; notice?: string | null }) {
   return (
     <div className="sh-state">
       <div className="sh-state__card">
@@ -21,6 +21,11 @@ export function LoginScreen({ onLogin }: { onLogin: () => void }) {
         <p className="muted">
           Crea y supervisa partidas de Trivia y Búsqueda del Tesoro. Inicia sesión para continuar.
         </p>
+        {notice ? (
+          <div className="notice" role="status">
+            {notice}
+          </div>
+        ) : null}
         <button type="button" onClick={onLogin}>
           Iniciar sesión
         </button>
