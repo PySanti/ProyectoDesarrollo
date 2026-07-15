@@ -44,4 +44,74 @@ public class AutorizacionContractTests : IClassFixture<PuntuacionesWebFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    // Task 5: EquiposController y HistorialController pasan a exigir rol AND privilegio (no solo el
+    // privilegio) — los puertos de servicio están expuestos y una policy de sólo-privilegio dejaría
+    // escalar a cualquier rol al que el panel le dé GestionarEquipos/GestionarPartidas. Tres casos
+    // por policy compuesta, o el AND no queda probado: rol sin privilegio → 403, privilegio sin el
+    // rol correcto → 403 (éste prueba el AND), rol con privilegio → ni 401 ni 403.
+
+    [Fact]
+    public async Task Equipos_rendimiento_rol_sin_privilegio_es_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Equipos_rendimiento_privilegio_sin_rol_correcto_es_403()
+    {
+        // Participante con GestionarEquipos: tiene el privilegio, pero ningún rol de los que exige la policy.
+        var client = _factory.CreateClientConRoles("Participante", "GestionarEquipos");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Equipos_rendimiento_rol_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador", "GestionarEquipos");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_rol_sin_privilegio_es_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_privilegio_sin_rol_correcto_es_403()
+    {
+        // Participante con GestionarPartidas: tiene el privilegio, pero ningún rol de los que exige la policy.
+        var client = _factory.CreateClientConRoles("Participante", "GestionarPartidas");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_rol_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

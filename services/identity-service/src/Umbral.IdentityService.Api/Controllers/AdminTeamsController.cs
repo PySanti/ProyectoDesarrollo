@@ -10,7 +10,7 @@ namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
 [Route("identity/admin/teams")]
-[Authorize(Policy = "AdminOnly")]
+[Authorize(Policy = "AdminGestionarEquipos")]
 public sealed class AdminTeamsController : ControllerBase
 {
     private readonly ISender _sender;

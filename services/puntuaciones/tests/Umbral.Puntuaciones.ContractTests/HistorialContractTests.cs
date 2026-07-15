@@ -42,7 +42,9 @@ public class HistorialContractTests : IClassFixture<PuntuacionesWebFactory>
     [Fact]
     public async Task Con_rol_Operador_y_partida_desconocida_devuelve_404_con_message()
     {
-        var client = _factory.CreateClientConRoles("Operador");
+        // HistorialController ahora exige rol AND privilegio (Task 5); Operador trae
+        // GestionarPartidas por default.
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
@@ -54,7 +56,7 @@ public class HistorialContractTests : IClassFixture<PuntuacionesWebFactory>
     [Fact]
     public async Task Limit_fuera_de_rango_devuelve_400()
     {
-        var client = _factory.CreateClientConRoles("Administrador");
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
 
         var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial?limit=501");
 

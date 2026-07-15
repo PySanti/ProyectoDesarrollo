@@ -70,6 +70,17 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
         return client;
     }
 
+    // Task 5: roles literales sin la expansión composite de CreateClientAs — necesario para probar
+    // el AND de una policy compuesta (rol correcto sin el privilegio, o viceversa), combinaciones que
+    // el reconciliador real nunca produce pero que la policy debe rechazar igual.
+    public HttpClient CreateClientWithRoles(Guid userId, params string[] roles)
+    {
+        var client = CreateClient();
+        client.DefaultRequestHeaders.Add("X-Test-Roles", string.Join(",", roles));
+        client.DefaultRequestHeaders.Add("X-Test-UserId", userId.ToString());
+        return client;
+    }
+
     private sealed class NoOpWelcomeEmailSender : IUserWelcomeEmailSender
     {
         public Task SendWelcomeEmailAsync(UserWelcomeEmailMessage message, CancellationToken cancellationToken)

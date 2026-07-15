@@ -131,7 +131,17 @@ else
     builder.Services.AddAuthentication();
 }
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Los privilegios son aditivos, no sustitutivos: el panel puede dar GestionarEquipos/
+    // GestionarPartidas a cualquier rol. El rol delimita el ámbito y el privilegio habilita el
+    // CRUD, y se exigen los dos porque los puertos de servicio están expuestos y una policy de
+    // sólo-privilegio se saltaría el filtro por rol del gateway.
+    options.AddPolicy("OperadorOAdminGestionarEquipos", p =>
+        p.RequireRole("Operador", "Administrador").RequireRole("GestionarEquipos"));
+    options.AddPolicy("OperadorOAdminGestionarPartidas", p =>
+        p.RequireRole("Operador", "Administrador").RequireRole("GestionarPartidas"));
+});
 
 var app = builder.Build();
 

@@ -123,6 +123,15 @@ builder.Services.AddAuthorization(options =>
     // gobernanza deja al Participante sin GestionarEquipos, que ahora solo abre los paneles de
     // administrar equipos ajenos.
     options.AddPolicy("Participante", policy => policy.RequireRole("Participante"));
+
+    // Los privilegios son aditivos, no sustitutivos: el panel puede dar GestionarEquipos a cualquier
+    // rol. El rol delimita el ámbito y el privilegio habilita el CRUD, y se exigen los dos porque los
+    // puertos de servicio están expuestos y una policy de sólo-privilegio se saltaría el filtro por
+    // rol del gateway.
+    options.AddPolicy("AdminGestionarEquipos", policy =>
+        policy.RequireRole("Administrador").RequireRole("GestionarEquipos"));
+    options.AddPolicy("OperadorOAdminGestionarEquipos", policy =>
+        policy.RequireRole("Operador", "Administrador").RequireRole("GestionarEquipos"));
 });
 
 var app = builder.Build();

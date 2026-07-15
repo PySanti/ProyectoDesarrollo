@@ -9,7 +9,7 @@ namespace Umbral.Puntuaciones.Api.Controllers;
 // primer endpoint de Puntuaciones con autorización por rol (solo operador/administrador).
 [ApiController]
 [Route("puntuaciones")]
-[Authorize(Roles = "Operador,Administrador")]
+[Authorize(Policy = "OperadorOAdminGestionarPartidas")]
 public sealed class HistorialController : ControllerBase
 {
     private readonly ISender _mediator;
