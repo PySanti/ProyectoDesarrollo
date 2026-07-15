@@ -1,8 +1,9 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { fetchConvocatorias, responderConvocatoria } from "./convocatoriasFlow.js";
+import { crearSesionHub } from "./sesionHub.js";
 import { useNombres } from "../shared/useNombres.js";
 
 type Convocatoria = {
@@ -52,6 +53,25 @@ export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
       setLoading(false);
     })();
   }, [load]);
+
+  // El token va por ref: un refresh de sesion (RNF-24) no debe derribar la conexion viva.
+  const tokenRef = useRef(token);
+  tokenRef.current = token;
+  const loadRef = useRef(load);
+  loadRef.current = load;
+
+  useEffect(() => {
+    const hub = crearSesionHub(apiBaseUrl, () => tokenRef.current);
+    // Sin SuscribirAPartida: no hay partida que mirar. El canal personal se activa al conectar,
+    // y con el llega tanto el push en vivo como el re-push de pendientes de OnConnectedAsync.
+    hub.on("ConvocatoriaCreada", () => void loadRef.current());
+    hub.start().catch(() => {
+      // Degradacion deliberada: la pantalla sigue siendo operativa con su carga inicial.
+    });
+    return () => {
+      void hub.stop().catch(() => {});
+    };
+  }, [apiBaseUrl]);
 
   async function onResponder(convocatoriaId: string, aceptar: boolean) {
     setActionId(convocatoriaId);
