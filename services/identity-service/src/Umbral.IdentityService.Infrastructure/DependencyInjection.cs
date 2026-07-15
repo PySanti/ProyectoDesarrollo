@@ -58,6 +58,7 @@ public static class DependencyInjection
         services.AddScoped<IHistorialNombreEquipoRepository, HistorialNombreEquipoRepository>();
         services.AddScoped<IParticipacionActivaEquipoRepository, ParticipacionActivaEquipoRepository>();
         services.AddScoped<IPermisosRolRepository, PermisosRolRepository>();
+        services.AddScoped<PermisosRolKeycloakReconciler>();
         services.AddSingleton(TimeProvider.System);
 
         var rabbitOptions = configuration.GetSection(RabbitMqOptions.SectionName).Get<RabbitMqOptions>()

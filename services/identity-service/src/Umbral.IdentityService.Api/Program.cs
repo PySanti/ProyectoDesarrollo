@@ -7,6 +7,7 @@ using Umbral.IdentityService.Api.Workers;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Infrastructure;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Services.Identity;
 using Umbral.IdentityService.Infrastructure.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -210,6 +211,11 @@ using (var scope = app.Services.CreateScope())
     }
 
     await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
+
+    // La DB manda sobre la gobernanza; Keycloak es su espejo. Corre después del seed de permisos_rol.
+    await scope.ServiceProvider
+        .GetRequiredService<PermisosRolKeycloakReconciler>()
+        .ReconcileAsync(CancellationToken.None);
 }
 
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();

@@ -122,6 +122,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      # El reconciliador escribe composites sobre roles que keycloak-config debe haber creado antes.
+      keycloak-config:
+        condition: service_completed_successfully
 
   gateway:
     build:
