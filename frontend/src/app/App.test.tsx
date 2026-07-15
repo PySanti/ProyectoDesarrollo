@@ -213,7 +213,7 @@ describe("App shell + auth guard", () => {
   /* Regresión del fix real: el refresh de token (RNF-24, cada 270s) debe reemplazar el usuario
      entero, no fusionar sólo el string del token con el usuario del login. Si App.tsx volviera a
      `{ ...prev.user, token }`, el rol del login (Operador) sobreviviría al refresh y este test
-     fallaría porque la nav de Administrador nunca aparecería. */
+     fallaría porque el área Identidad del Administrador nunca aparecería. */
   it("adopta el rol nuevo del token al refrescar, sin quedarse con el del login", async () => {
     vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
     initMock.mockResolvedValueOnce({
@@ -246,12 +246,13 @@ describe("App shell + auth guard", () => {
     await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
     vi.useRealTimers();
 
-    // Rol nuevo (Administrador): la nav de admin aparece y "Nueva partida" (sólo Operador)
-    // desaparece. Ese cambio sólo ocurre si roles se reemplazó, no si se fusionó.
+    // Rol nuevo (Administrador): aparece su área Identidad, que el Operador no tiene. Con la
+    // fusión, `roles` seguiría siendo ["Operador"] y esta área nunca saldría.
     expect(
       await screen.findByRole("link", { name: /gesti[oó]n de usuarios/i })
     ).toBeInTheDocument();
-    expect(screen.queryByRole("link", { name: /nueva partida/i })).not.toBeInTheDocument();
+    // Y la barra superior deja de anunciarlo como Operador: es `roles` lo que se reemplazó.
+    expect(screen.queryByText("Operador")).not.toBeInTheDocument();
   });
 
   /* El síntoma que originó todo: el privilegio autoriza, no el rol base. El backend ya lo aplica;

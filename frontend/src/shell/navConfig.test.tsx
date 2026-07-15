@@ -37,9 +37,12 @@ describe("areasForRoles", () => {
     ]);
   });
 
-  it("hides 'Nueva partida' from an admin but keeps it for an operator", () => {
+  /* El síntoma que originó todo: un Administrador con GestionarPartidas no veía «Nueva partida»
+     porque el item exigía el rol Operador. El privilegio autoriza; el rol base no decide. Quien
+     tenga el privilegio ve el área entera, sea admin u operador. */
+  it("muestra 'Nueva partida' a cualquiera con GestionarPartidas, admin incluido", () => {
     const partidasAdmin = areasForRoles(["Administrador"], ["GestionarPartidas"]).find((a) => a.id === "partidas");
-    expect(partidasAdmin?.items.map((i) => i.label)).toEqual(["Partidas"]);
+    expect(partidasAdmin?.items.map((i) => i.label)).toEqual(["Partidas", "Nueva partida"]);
     const partidasOperador = areasForRoles(["Operador"], ["GestionarPartidas"]).find((a) => a.id === "partidas");
     expect(partidasOperador?.items.map((i) => i.label)).toEqual(["Partidas", "Nueva partida"]);
   });

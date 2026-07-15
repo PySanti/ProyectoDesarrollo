@@ -52,7 +52,9 @@ export const NAV_AREAS: NavAreaDef[] = [
     permisos: ["GestionarPartidas"],
     items: [
       { label: "Partidas", path: "/partidas", icon: ListChecks },
-      { label: "Nueva partida", path: "/partidas/crear", icon: Plus, roles: ["Operador"] }
+      // Sin `roles`: el privilegio del área ya autoriza. Exigir aquí el rol Operador era la causa
+      // de que un Administrador con GestionarPartidas siguiera sin ver el panel de creación.
+      { label: "Nueva partida", path: "/partidas/crear", icon: Plus }
     ]
   },
   {
