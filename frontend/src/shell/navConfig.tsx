@@ -20,6 +20,10 @@ export interface NavAreaDef {
   /** Privilegio que gobierna el área entera. Sin él, el área no existe para el usuario:
       ni en el menú ni por URL directa (ver `Require` en App.tsx). */
   permisos?: readonly string[];
+  /** Dónde aterrizar si ésta es la primera área del usuario. Por defecto, su primer item.
+      Se declara sólo cuando ese primero no es buen sitio para caer — un formulario vacío
+      en vez de un listado, por ejemplo. */
+  landing?: string;
   items: NavItemDef[];
 }
 
@@ -31,6 +35,8 @@ export const NAV_AREAS: NavAreaDef[] = [
     label: "Identidad",
     role: "Administrador",
     icon: Users,
+    // Su primer item es «Crear usuario»: aterrizar ahí soltaría al admin en un formulario vacío.
+    landing: "/identidad/usuarios",
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
       { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
@@ -84,15 +90,21 @@ export function areasForRoles(roles: string[], permisos: string[] = []): NavArea
 
 /* Primera área disponible, en orden de prioridad. Depende de los privilegios porque un Operador sin
    GestionarPartidas ya no tiene /partidas: aterrizar ahí lo rebotaría contra su propio landing en
-   bucle. `null` = ninguna área; App.tsx muestra la pantalla de sin accesos. */
+   bucle. `null` = ninguna área; App.tsx muestra la pantalla de sin accesos.
+
+   Se deriva de `areasForRoles` a propósito: si el landing pudiera apuntar a un área que el nav
+   oculta, la ruta rebotaría al landing y el landing volvería a rebotar. Derivarlo hace imposible esa
+   discrepancia — y por lo mismo, un `landing` declarado sólo se respeta si su item sigue visible. */
 export function landingPath(roles: string[], permisos: string[] = []): string | null {
-  const areas = areasForRoles(roles, permisos);
-  if (areas.length === 0) {
-    return null;
+  for (const area of areasForRoles(roles, permisos)) {
+    const paths = area.items.map((item) => item.path);
+    if (paths.length === 0) {
+      continue;
+    }
+    return area.landing && paths.includes(area.landing) ? area.landing : paths[0];
   }
 
-  const primerItem = areas.flatMap((area) => area.items)[0];
-  return primerItem?.path ?? null;
+  return null;
 }
 
 export function titleForPath(pathname: string): string {

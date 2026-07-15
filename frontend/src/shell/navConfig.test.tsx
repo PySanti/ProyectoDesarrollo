@@ -76,7 +76,9 @@ describe("areasForRoles", () => {
   });
 
   it("lleva al Administrador a Identidad, que siempre tiene", () => {
-    expect(landingPath(["Administrador"], [])).toBe("/identidad/usuarios/nuevo");
+    // Al listado, no al formulario de alta: el área declara su landing porque su primer item
+    // («Crear usuario») soltaría al admin en un formulario vacío.
+    expect(landingPath(["Administrador"], [])).toBe("/identidad/usuarios");
   });
 
   it("lleva a Partidas a quien puede gestionarlas", () => {
