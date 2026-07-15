@@ -93,8 +93,8 @@ describe("GovernancePage", () => {
     expect(getSpy).toHaveBeenCalledTimes(2);
   });
 
-  /* El panel gobierna dos privilegios. ParticiparEnPartidas esta fijo al rol Participante
-     (composite del realm) y no es asignable: mostrarlo prometeria algo que el backend rechaza. */
+  /* El panel gobierna dos privilegios. ParticiparEnPartidas está fijo al rol Participante
+     (composite del realm) y no es asignable: mostrarlo prometería algo que el backend rechaza. */
   it("no ofrece ParticiparEnPartidas como privilegio asignable", async () => {
     vi.spyOn(identityApi, "getGovernanceRoles").mockResolvedValue(MATRIZ);
 

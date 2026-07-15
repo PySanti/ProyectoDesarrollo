@@ -163,8 +163,8 @@ using (var scope = app.Services.CreateScope())
             );
 
             -- Reset a los defaults del modelo de dos privilegios: Administrador->GestionarEquipos,
-            -- Operador->GestionarPartidas, Participante->ninguno. El bloque es atomico y corre UNA
-            -- sola vez: sin el guardia, cada arranque borraria lo asignado desde el panel.
+            -- Operador->GestionarPartidas, Participante->ninguno. El bloque es atómico y corre UNA
+            -- sola vez: sin el guardia, cada arranque borraría lo asignado desde el panel.
             DO $$
             BEGIN
                 IF NOT EXISTS (SELECT 1 FROM migraciones_aplicadas WHERE nombre = '2026-07-15-dos-privilegios') THEN

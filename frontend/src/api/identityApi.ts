@@ -166,7 +166,7 @@ export async function deactivateIdentityUser(
 }
 
 /* Lo que el panel de gobernanza puede mover entre roles. El dominio tiene un tercer permiso
-   funcional (ParticiparEnPartidas), pero esta fijo al rol Participante y no es asignable: el
+   funcional (ParticiparEnPartidas), pero está fijo al rol Participante y no es asignable: el
    backend lo rechaza. El nombre dice "gobernable" para que el tipo no mienta. */
 export type PermisoGobernable = "GestionarPartidas" | "GestionarEquipos";
 
