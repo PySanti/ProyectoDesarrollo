@@ -21,7 +21,10 @@ public sealed class ObtenerMarcadorQueryHandler : IRequestHandler<ObtenerMarcado
         }
 
         var marcadores = await _repo.GetMarcadoresDeJuegoAsync(request.JuegoId, cancellationToken);
-        var entradas = RankingCalculator.Calcular(marcadores);
+        var participaciones = await _repo.GetParticipacionesDePartidaAsync(request.PartidaId, cancellationToken);
+        // Quien se inscribio ve su 0 y su posicion en vez de un 404: aparece en el ranking del
+        // juego, asi que consultar su propio marcador no puede decir que no existe.
+        var entradas = RankingCalculator.Calcular(marcadores, participaciones);
         var propia = entradas.FirstOrDefault(e => e.CompetidorId == request.CompetidorId)
             ?? throw new MarcadorNoEncontradoException(request.JuegoId, request.CompetidorId);
 
