@@ -7,10 +7,13 @@ import sys
 REALM = "infra/keycloak/import/umbral-realm.json"
 BASE = {"Administrador", "Operador", "Participante"}
 TECNICOS = {"GestionarPartidas", "GestionarEquipos", "ParticiparEnPartidas"}
+# El realm solo declara el composite fijo. Los privilegios gobernables
+# (GestionarPartidas, GestionarEquipos) los pone el reconciliador de Identity
+# desde permisos_rol, asi que no deben aparecer declarados aqui.
 COMPOSITES = {
-    "Operador": {"GestionarPartidas"},
-    "Participante": {"GestionarEquipos", "ParticiparEnPartidas"},
+    "Participante": {"ParticiparEnPartidas"},
 }
+NO_COMPOSITE = {"Administrador", "Operador"}
 
 def fail(msg):
     print(f"FAIL: {msg}")
@@ -32,8 +35,9 @@ for base_role, expected in COMPOSITES.items():
     if got != expected:
         fail(f"{base_role} composites = {sorted(got)}; esperado {sorted(expected)}")
 
-if roles["Administrador"].get("composite"):
-    fail("Administrador no debe ser composite (sus privilegios = rol base)")
+for base_role in NO_COMPOSITE:
+    if roles[base_role].get("composite"):
+        fail(f"{base_role} no debe declarar composites: sus privilegios los gobierna permisos_rol")
 
 for t in TECNICOS:
     if roles[t].get("composite"):

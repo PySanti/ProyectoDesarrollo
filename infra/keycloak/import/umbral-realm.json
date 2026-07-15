@@ -16,15 +16,13 @@
       },
       {
         "name": "Operador",
-        "description": "Crea y supervisa partidas de Trivia y BDT.",
-        "composite": true,
-        "composites": { "realm": ["GestionarPartidas"] }
+        "description": "Crea y supervisa partidas de Trivia y BDT."
       },
       {
         "name": "Participante",
         "description": "Juega Trivia y BDT desde la app móvil.",
         "composite": true,
-        "composites": { "realm": ["GestionarEquipos", "ParticiparEnPartidas"] }
+        "composites": { "realm": ["ParticiparEnPartidas"] }
       },
       {
         "name": "GestionarPartidas",

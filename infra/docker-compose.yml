@@ -66,6 +66,9 @@ services:
   # Keycloak en ejecución en cada `up`: crea/actualiza roles, clientes, mappers
   # y usuarios sembrados, y NO borra usuarios creados en runtime. Sale con 0 al
   # terminar; no queda corriendo.
+  # Los composites de los privilegios gobernables (GestionarPartidas, GestionarEquipos) NO se
+  # declaran aquí: los gobierna permisos_rol y los aplica el reconciliador de Identity al arrancar.
+  # El realm solo declara el composite fijo Participante -> ParticiparEnPartidas.
   keycloak-config:
     image: adorsys/keycloak-config-cli:6.5.1-25.0.1
     environment:
