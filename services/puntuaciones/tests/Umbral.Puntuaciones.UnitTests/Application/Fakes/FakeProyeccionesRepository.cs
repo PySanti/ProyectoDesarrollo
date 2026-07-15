@@ -85,18 +85,25 @@ public sealed class FakeProyeccionesRepository : IProyeccionesRepository
 
     public void AddConvocatoria(ConvocatoriaProyectada convocatoria) => Convocatorias.Add(convocatoria);
 
+    // Unión con marcadores: las partidas anteriores a la proyección no tienen participación.
     public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken)
         => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
             .Where(p => p.Estado == EstadoPartidaProyectada.Terminada && p.Modalidad == Modalidad.Individual
-                && Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == participanteId
-                    && x.TipoCompetidor == TipoCompetidor.Participante))
+                && (Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == participanteId
+                        && x.TipoCompetidor == TipoCompetidor.Participante)
+                    || Marcadores.Any(m => m.PartidaId == p.PartidaId && m.CompetidorId == participanteId
+                        && m.TipoCompetidor == TipoCompetidor.Participante)))
+            .OrderByDescending(p => p.FechaFin)
             .ToList());
 
     public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken)
         => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
             .Where(p => p.Estado == EstadoPartidaProyectada.Terminada && p.Modalidad == Modalidad.Equipo
-                && Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == equipoId
-                    && x.TipoCompetidor == TipoCompetidor.Equipo))
+                && (Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == equipoId
+                        && x.TipoCompetidor == TipoCompetidor.Equipo)
+                    || Marcadores.Any(m => m.PartidaId == p.PartidaId && m.CompetidorId == equipoId
+                        && m.TipoCompetidor == TipoCompetidor.Equipo)))
+            .OrderByDescending(p => p.FechaFin)
             .ToList());
 
     public Task<IReadOnlyList<ParticipacionEquipoHistorial>> GetEquiposConConvocatoriaAceptadaAsync(Guid usuarioId, CancellationToken cancellationToken)

@@ -7,29 +7,24 @@ using Umbral.Puntuaciones.Domain.Enums;
 
 namespace Umbral.Puntuaciones.Application.Handlers.Queries;
 
-// HU-27 (RF-24): historial único de partidas jugadas con puntuación y posición. Participación:
-// (a) marcador propio en Individual; (b) equipo resuelto del historial (acciones de juego
-// autoradas, sin ConvocatoriaCreada) con ≥1 marcador del equipo. Posición/gano del mismo
-// CalculadorRankingConsolidado de SP-4b (RF-44: sin duplicar el cálculo). Limitación documentada:
-// el integrante que jamás autoró una acción de juego no ve la partida; canceladas excluidas (RB-30).
+// HU-27 (RF-24): historial único de partidas jugadas con puntuación y posición. Participación =
+// inscripción aceptada (Individual) o convocatoria aceptada al equipo (Equipo) — no exige haber
+// anotado. Posición/gano del mismo CalculadorRankingConsolidado de SP-4b (RF-44: sin duplicar el
+// cálculo). Canceladas excluidas (RB-30).
 public sealed class ObtenerHistorialPartidasQueryHandler
     : IRequestHandler<ObtenerHistorialPartidasQuery, HistorialPartidasResponse>
 {
     private readonly IProyeccionesRepository _proyecciones;
-    private readonly IHistorialRepository _historial;
 
-    public ObtenerHistorialPartidasQueryHandler(IProyeccionesRepository proyecciones, IHistorialRepository historial)
-    {
-        _proyecciones = proyecciones;
-        _historial = historial;
-    }
+    public ObtenerHistorialPartidasQueryHandler(IProyeccionesRepository proyecciones)
+        => _proyecciones = proyecciones;
 
     public async Task<HistorialPartidasResponse> Handle(
         ObtenerHistorialPartidasQuery request, CancellationToken cancellationToken)
     {
         var partidas = new List<PartidaJugadaDto>();
 
-        var individuales = await _proyecciones.GetPartidasTerminadasConMarcadorDeParticipanteAsync(
+        var individuales = await _proyecciones.GetPartidasTerminadasConParticipacionDeParticipanteAsync(
             request.ParticipanteId, cancellationToken);
         foreach (var partida in individuales)
         {
@@ -37,15 +32,21 @@ public sealed class ObtenerHistorialPartidasQueryHandler
                 partida, competidorId: request.ParticipanteId, equipoId: null, cancellationToken));
         }
 
-        foreach (var participacion in await _historial.GetEquiposDelParticipanteAsync(request.ParticipanteId, cancellationToken))
+        foreach (var participacion in await _proyecciones.GetEquiposConConvocatoriaAceptadaAsync(
+            request.ParticipanteId, cancellationToken))
         {
             var partida = await _proyecciones.GetPartidaAsync(participacion.PartidaId, cancellationToken);
             if (partida is null || partida.Estado != EstadoPartidaProyectada.Terminada)
             {
                 continue;
             }
+            // Segundo guard imprescindible: si se perdió InscripcionAceptada del equipo, éste no
+            // está en el universo del calculador y el First() de abajo lanzaría.
+            var participes = await _proyecciones.GetParticipacionesDePartidaAsync(partida.PartidaId, cancellationToken);
             var marcadores = await _proyecciones.GetMarcadoresDePartidaAsync(partida.PartidaId, cancellationToken);
-            if (!marcadores.Any(m => m.CompetidorId == participacion.EquipoId && m.TipoCompetidor == TipoCompetidor.Equipo))
+            var equipoEnUniverso = participes.Any(p => p.CompetidorId == participacion.EquipoId)
+                || marcadores.Any(m => m.CompetidorId == participacion.EquipoId);
+            if (!equipoEnUniverso)
             {
                 continue;
             }
@@ -64,7 +65,7 @@ public sealed class ObtenerHistorialPartidasQueryHandler
         var marcadores = await _proyecciones.GetMarcadoresDePartidaAsync(partida.PartidaId, cancellationToken);
         var participaciones = await _proyecciones.GetParticipacionesDePartidaAsync(partida.PartidaId, cancellationToken);
         var entradas = CalculadorRankingConsolidado.Calcular(marcadores, participaciones);
-        // La participación exige ≥1 marcador del competidor, así que la entrada siempre existe.
+        // Los filtros de Handle garantizan que el competidor está en el universo del calculador.
         var propia = entradas.First(e => e.CompetidorId == competidorId);
 
         var juegos = (await _proyecciones.GetJuegosDePartidaAsync(partida.PartidaId, cancellationToken))

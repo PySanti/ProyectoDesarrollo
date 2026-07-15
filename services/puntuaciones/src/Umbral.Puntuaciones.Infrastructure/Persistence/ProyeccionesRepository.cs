@@ -95,14 +95,19 @@ public sealed class ProyeccionesRepository : IProyeccionesRepository
 
     public void AddConvocatoria(ConvocatoriaProyectada convocatoria) => _db.Convocatorias.Add(convocatoria);
 
-    // Participación (individual) = inscripción aceptada, no tener marcador.
+    // Participación (individual) = inscripción aceptada, sin exigir marcador. La UNIÓN con los
+    // marcadores no es opcional: las partidas anteriores a esta proyección no tienen filas de
+    // participación (sin backfill) y filtrar solo por participación borraría su historial.
     public async Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken)
         => await _db.Partidas.AsNoTracking()
             .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
                 && p.Modalidad == Modalidad.Individual
-                && _db.Participaciones.Any(x => x.PartidaId == p.PartidaId
-                    && x.CompetidorId == participanteId
-                    && x.TipoCompetidor == TipoCompetidor.Participante))
+                && (_db.Participaciones.Any(x => x.PartidaId == p.PartidaId
+                        && x.CompetidorId == participanteId
+                        && x.TipoCompetidor == TipoCompetidor.Participante)
+                    || _db.Marcadores.Any(m => m.PartidaId == p.PartidaId
+                        && m.CompetidorId == participanteId
+                        && m.TipoCompetidor == TipoCompetidor.Participante)))
             .OrderByDescending(p => p.FechaFin)
             .ToListAsync(cancellationToken);
 
@@ -110,9 +115,12 @@ public sealed class ProyeccionesRepository : IProyeccionesRepository
         => await _db.Partidas.AsNoTracking()
             .Where(p => p.Estado == EstadoPartidaProyectada.Terminada
                 && p.Modalidad == Modalidad.Equipo
-                && _db.Participaciones.Any(x => x.PartidaId == p.PartidaId
-                    && x.CompetidorId == equipoId
-                    && x.TipoCompetidor == TipoCompetidor.Equipo))
+                && (_db.Participaciones.Any(x => x.PartidaId == p.PartidaId
+                        && x.CompetidorId == equipoId
+                        && x.TipoCompetidor == TipoCompetidor.Equipo)
+                    || _db.Marcadores.Any(m => m.PartidaId == p.PartidaId
+                        && m.CompetidorId == equipoId
+                        && m.TipoCompetidor == TipoCompetidor.Equipo)))
             .OrderByDescending(p => p.FechaFin)
             .ToListAsync(cancellationToken);
 
