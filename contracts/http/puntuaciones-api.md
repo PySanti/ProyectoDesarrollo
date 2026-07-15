@@ -144,13 +144,20 @@ Proyectado por el consumidor dedicado de historial (ver `contracts/events/operac
       "juegoId": "guid | null",
       "participanteId": "guid | null",
       "equipoId": "guid | null",
-      "detalle": {}
+      "detalle": {},
+      "juegoOrden": "int | null",
+      "tipoJuego": "Trivia | BusquedaDelTesoro | null"
     }
   ]
 }
 ```
 
 - Orden fijo `occurredAt ASC`. `total` = conteo con el filtro `tipo` aplicado (para paginar).
+- `juegoOrden` y `tipoJuego` acompañan a `juegoId`, unidos desde la proyección `JuegoProyectado`.
+  Son `null` en eventos de partida (`PartidaIniciada`, `PartidaFinalizada`), que no tienen juego, y
+  también cuando el `juegoId` existe pero su proyección falta (lag / evento perdido) — el cliente
+  distingue ambos casos: `—` para el primero, GUID corto para el segundo. **`Juego` no tiene nombre
+  en el dominio**: la etiqueta legible ("Juego 1 · Trivia") la compone el cliente.
 - `400` `{ "message": "..." }`: `limit` fuera de `[1, 500]` u `offset` negativo.
 - `404` `{ "message": "..." }`: la partida no existe en `partidas_proyectadas`. Partida conocida sin
   eventos → `200` con `entradas: []` (el historial no depende de la proyección para escribirse).
