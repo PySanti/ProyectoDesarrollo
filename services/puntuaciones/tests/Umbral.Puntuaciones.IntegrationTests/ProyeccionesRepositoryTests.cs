@@ -105,4 +105,125 @@ public class ProyeccionesRepositoryTests : IClassFixture<WebApplicationFactory<P
             Assert.Single(marcadores);
         }
     }
+
+    [Fact]
+    public async Task Participacion_se_guarda_y_se_lee_por_partida()
+    {
+        var partidaId = Guid.NewGuid();
+        var competidorId = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IPuntuacionesUnitOfWork>();
+            repo.AddParticipacion(ParticipacionProyectada.Nueva(partidaId, competidorId, TipoCompetidor.Participante));
+            await uow.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+
+            var r = await repo.GetParticipacionesDePartidaAsync(partidaId, CancellationToken.None);
+
+            var p = Assert.Single(r);
+            Assert.Equal(competidorId, p.CompetidorId);
+            Assert.Equal(TipoCompetidor.Participante, p.TipoCompetidor);
+        }
+    }
+
+    [Fact]
+    public async Task Convocatoria_se_responde_y_se_lee_por_usuario()
+    {
+        var partidaId = Guid.NewGuid();
+        var equipoId = Guid.NewGuid();
+        var usuarioId = Guid.NewGuid();
+        var convocatoriaId = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IPuntuacionesUnitOfWork>();
+            var c = ConvocatoriaProyectada.Nueva(convocatoriaId, partidaId, equipoId, usuarioId);
+            Assert.False(c.Aceptada); // nace pendiente
+            repo.AddConvocatoria(c);
+            await uow.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IPuntuacionesUnitOfWork>();
+            var c = await repo.GetConvocatoriaAsync(convocatoriaId, CancellationToken.None);
+            c!.Responder(true);
+            await uow.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+
+            var r = await repo.GetEquiposConConvocatoriaAceptadaAsync(usuarioId, CancellationToken.None);
+
+            var fila = Assert.Single(r);
+            Assert.Equal(partidaId, fila.PartidaId);
+            Assert.Equal(equipoId, fila.EquipoId);
+        }
+    }
+
+    [Fact]
+    public async Task Convocatoria_rechazada_no_aparece_como_participacion()
+    {
+        var usuarioId = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IPuntuacionesUnitOfWork>();
+            var c = ConvocatoriaProyectada.Nueva(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), usuarioId);
+            c.Responder(false);
+            repo.AddConvocatoria(c);
+            await uow.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+
+            // Rechazar es no participar: el criterio es convocatoria ACEPTADA.
+            Assert.Empty(await repo.GetEquiposConConvocatoriaAceptadaAsync(usuarioId, CancellationToken.None));
+        }
+    }
+
+    [Fact]
+    public async Task Partidas_terminadas_con_participacion_de_participante_ignora_las_no_terminadas()
+    {
+        var participanteId = Guid.NewGuid();
+        var terminada = Guid.NewGuid();
+        var enCurso = Guid.NewGuid();
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+            var uow = scope.ServiceProvider.GetRequiredService<IPuntuacionesUnitOfWork>();
+
+            var pTerminada = PartidaProyectada.DesdePublicacion(terminada, Guid.NewGuid(), Modalidad.Individual);
+            pTerminada.MarcarTerminada(new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc));
+            repo.AddPartida(pTerminada);
+            repo.AddPartida(PartidaProyectada.DesdePublicacion(enCurso, Guid.NewGuid(), Modalidad.Individual));
+            repo.AddParticipacion(ParticipacionProyectada.Nueva(terminada, participanteId, TipoCompetidor.Participante));
+            repo.AddParticipacion(ParticipacionProyectada.Nueva(enCurso, participanteId, TipoCompetidor.Participante));
+            await uow.SaveChangesAsync(CancellationToken.None);
+        }
+
+        using (var scope = _factory.Services.CreateScope())
+        {
+            var repo = scope.ServiceProvider.GetRequiredService<IProyeccionesRepository>();
+
+            var r = await repo.GetPartidasTerminadasConParticipacionDeParticipanteAsync(participanteId, CancellationToken.None);
+
+            var p = Assert.Single(r);
+            Assert.Equal(terminada, p.PartidaId);
+        }
+    }
 }
