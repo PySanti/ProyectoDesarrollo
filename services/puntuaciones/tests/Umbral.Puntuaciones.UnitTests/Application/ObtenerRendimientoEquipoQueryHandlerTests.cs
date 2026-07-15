@@ -59,4 +59,47 @@ public class ObtenerRendimientoEquipoQueryHandlerTests
         Assert.Equal(1, response.Partidas[1].Posicion);
         Assert.True(response.Partidas[1].Gano);
     }
+
+    [Fact]
+    public async Task Incluye_partida_donde_el_equipo_no_anoto()
+    {
+        var repo = new FakeProyeccionesRepository();
+        var equipoId = Guid.NewGuid();
+        var rival = Guid.NewGuid();
+        var partida = PartidaProyectada.DesdePublicacion(Guid.NewGuid(), Guid.NewGuid(), Modalidad.Equipo);
+        partida.MarcarTerminada(new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc));
+        repo.AddPartida(partida);
+        repo.AddParticipacion(ParticipacionProyectada.Nueva(partida.PartidaId, equipoId, TipoCompetidor.Equipo));
+        var marcadorRival = Marcador.Nuevo(Guid.NewGuid(), rival, partida.PartidaId, TipoCompetidor.Equipo);
+        marcadorRival.Acreditar(20, 1000);
+        repo.AddMarcador(marcadorRival);
+
+        var response = await new ObtenerRendimientoEquipoQueryHandler(repo).Handle(
+            new ObtenerRendimientoEquipoQuery(equipoId), CancellationToken.None);
+
+        // Antes: solo partidas "donde el equipo anotó".
+        var fila = Assert.Single(response.Partidas);
+        Assert.Equal(partida.PartidaId, fila.PartidaId);
+        Assert.Equal(2, fila.Posicion);
+        Assert.False(fila.Gano);
+    }
+
+    [Fact]
+    public async Task Partida_anterior_al_slice_sin_participacion_proyectada_sigue_listandose()
+    {
+        var repo = new FakeProyeccionesRepository();
+        var equipoId = Guid.NewGuid();
+        var partida = PartidaProyectada.DesdePublicacion(Guid.NewGuid(), Guid.NewGuid(), Modalidad.Equipo);
+        partida.MarcarTerminada(new DateTime(2026, 7, 10, 12, 0, 0, DateTimeKind.Utc));
+        repo.AddPartida(partida);
+        // Sin fila de participación: no hay backfill. El marcador prueba que jugó.
+        var marcador = Marcador.Nuevo(Guid.NewGuid(), equipoId, partida.PartidaId, TipoCompetidor.Equipo);
+        marcador.Acreditar(20, 1000);
+        repo.AddMarcador(marcador);
+
+        var response = await new ObtenerRendimientoEquipoQueryHandler(repo).Handle(
+            new ObtenerRendimientoEquipoQuery(equipoId), CancellationToken.None);
+
+        Assert.Single(response.Partidas);
+    }
 }
