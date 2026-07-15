@@ -2,6 +2,23 @@ $ErrorActionPreference = 'Stop'
 
 Set-Location $PSScriptRoot
 
+# Resuelve las referencias estilo bash `${VAR}` / `${VAR:-default}` que usa el
+# .env raiz, igual que hace `source ../.env` en run-local.sh. Sin esto, un valor
+# auto-referente como KEYCLOAK_REALM="${KEYCLOAK_REALM:-UMBRAL-UCAB}" entraria
+# crudo al entorno, lo heredaria `npm start` y dotenv-expand entraria en
+# recursion infinita (RangeError: Maximum call stack size exceeded).
+# Solo la forma con llaves: `$VAR` pelado no se toca para no romper secretos
+# que contengan `$` (SMTP_PASSWORD).
+function Expand-EnvRefs {
+    param([string]$Value)
+    return [regex]::Replace($Value, '\$\{(\w+)(?::-([^}]*))?\}', {
+        param($match)
+        $resolved = [System.Environment]::GetEnvironmentVariable($match.Groups[1].Value)
+        if ([string]::IsNullOrEmpty($resolved)) { return $match.Groups[2].Value }
+        return $resolved
+    })
+}
+
 # Carga las variables GLOBALES del repo (LAN_IP, puertos, realm de Keycloak)
 # en el proceso para poder resolverlas al generar mobile/.env.
 function Import-EnvFile {
@@ -13,7 +30,7 @@ function Import-EnvFile {
         $parts = $line -split '=', 2
         if ($parts.Count -ne 2) { return }
         $name = $parts[0].Trim()
-        $value = $parts[1].Trim().Trim("'").Trim('"')
+        $value = Expand-EnvRefs ($parts[1].Trim().Trim("'").Trim('"'))
         Set-Item -Path "Env:$name" -Value $value
     }
 }

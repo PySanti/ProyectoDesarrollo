@@ -217,8 +217,7 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
         <div>
           <h1>Gestión de usuarios</h1>
           <p className="muted">
-            Consulta, actualiza datos generales, desactiva usuarios y cambia el rol de operadores y
-            participantes. El rol de un Administrador es inmutable.
+            Panel de gestión de usuarios.
           </p>
         </div>
 

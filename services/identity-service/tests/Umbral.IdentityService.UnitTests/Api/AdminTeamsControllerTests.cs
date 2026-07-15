@@ -210,15 +210,17 @@ public sealed class AdminTeamsControllerTests
     // ── Eliminar ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Eliminar_Dispatches_Command_And_Returns_NoContent()
+    public async Task Eliminar_Dispatches_Command_And_Returns_Ok_With_Notification_Outcome()
     {
         var equipoId = Guid.NewGuid();
-        var sender = new FakeSender();
+        var expected = new EliminarEquipoAdminResponse(equipoId, "Equipo A", 3, 2, false);
+        var sender = new FakeSender { NextResponse = expected };
         var controller = BuildController(sender);
 
         var result = await controller.Eliminar(equipoId, CancellationToken.None);
 
-        Assert.IsType<NoContentResult>(result);
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Same(expected, ok.Value);
         var command = Assert.IsType<EliminarEquipoAdminCommand>(sender.LastRequest);
         Assert.Equal(equipoId, command.EquipoId);
     }

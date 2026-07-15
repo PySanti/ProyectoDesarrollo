@@ -228,11 +228,11 @@ public sealed class EliminarMiEquipoHandlerTests
         public string? NotifiedNombreEquipo { get; private set; }
         public IReadOnlyList<Guid>? NotifiedMiembros { get; private set; }
 
-        public Task NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
+        public Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
         {
             NotifiedNombreEquipo = nombreEquipo;
             NotifiedMiembros = miembros;
-            return Task.CompletedTask;
+            return Task.FromResult(new TeamNotificationOutcome(miembros.Count, miembros.Count, 0));
         }
 
         public Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct)

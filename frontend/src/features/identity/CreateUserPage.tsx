@@ -75,10 +75,7 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
           <div>
             <h1>Crear usuario con rol inicial</h1>
             <p className="muted">
-              Alta administrativa gestionada por Keycloak e Identity Service. El{" "}
-              <strong>rol inicial</strong> se asigna ahora y no se cambia desde Gestión de usuarios.
-              Al crear la cuenta se enviará un <strong>correo</strong> con la contraseña temporal
-              para el primer inicio de sesión.
+              Panel de creación de usuarios.
             </p>
           </div>
         </header>

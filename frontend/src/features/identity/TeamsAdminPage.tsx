@@ -1,8 +1,9 @@
-import { FormEvent, useEffect, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import {
   AdminTeam,
   createAdminTeam,
   deleteAdminTeam,
+  DeleteAdminTeamResult,
   IdentityApiError,
   listAdminTeams,
   reassignAdminTeamLeader,
@@ -45,6 +46,18 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
   const [deleteTeam, setDeleteTeam] = useState<AdminTeam | null>(null);
   const [deleteError, setDeleteError] = useState<string | null>(null);
   const [deleteSaving, setDeleteSaving] = useState(false);
+
+  // El id de líder/integrante viene como KeycloakId (join equipos↔usuarios por
+  // KeycloakId) o, en algunos payloads, como UsuarioId local. Indexar por ambos
+  // para resolver el nombre sin importar cuál llegue.
+  const nombrePorId = useMemo(() => {
+    const mapa = new Map<string, string>();
+    for (const user of users) {
+      mapa.set(user.keycloakId, user.name);
+      mapa.set(user.userId, user.name);
+    }
+    return mapa;
+  }, [users]);
 
   useEffect(() => {
     void loadAll();
@@ -223,8 +236,8 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
     setDeleteSaving(true);
     setDeleteError(null);
     try {
-      await deleteAdminTeam(deleteTeam.equipoId, accessToken);
-      setSuccessMessage(`Equipo ${deleteTeam.nombreEquipo} eliminado correctamente.`);
+      const resultado = await deleteAdminTeam(deleteTeam.equipoId, accessToken);
+      setSuccessMessage(mensajeEliminacion(resultado));
       setDeleteTeam(null);
       await loadAll();
     } catch (caught) {
@@ -240,9 +253,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
         <div>
           <h1>Equipos</h1>
           <p className="muted">
-            Administra equipos: crea, renombra, reasigna liderazgo, activa/desactiva y elimina. El
-            administrador no compone la membresía; los integrantes se gestionan por invitación desde
-            el liderazgo del equipo.
+            Panel de administración de equipos.
           </p>
         </div>
 
@@ -342,6 +353,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
                 <tbody>
                   {teams.map((team) => {
                     const lider = team.integrantes.find((integrante) => integrante.esLider);
+                    const liderId = lider?.usuarioId ?? team.liderUserId;
                     return (
                       <tr key={team.equipoId}>
                         <td>{team.nombreEquipo}</td>
@@ -349,9 +361,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
                           <TeamEstadoPill estado={team.estado} />
                         </td>
                         <td>{team.integrantes.length}</td>
-                        <td>
-                          <span className="mono">{lider?.usuarioId ?? team.liderUserId ?? "-"}</span>
-                        </td>
+                        <td>{(liderId && nombrePorId.get(liderId)) ?? liderId ?? "-"}</td>
                         <td>
                           <div className="compact-actions">
                             <button
@@ -505,7 +515,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
                   .filter((integrante) => !integrante.esLider)
                   .map((integrante) => (
                     <option key={integrante.usuarioId} value={integrante.usuarioId}>
-                      {integrante.usuarioId}
+                      {nombrePorId.get(integrante.usuarioId) ?? integrante.usuarioId}
                     </option>
                   ))}
               </select>
@@ -569,6 +579,12 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
               </div>
             ) : null}
 
+            {deleteSaving ? (
+              <p className="muted" role="status" data-testid="delete-team-status">
+                Eliminando el equipo y notificando por correo a los integrantes…
+              </p>
+            ) : null}
+
             <div className="row">
               <button
                 type="button"
@@ -576,7 +592,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
                 disabled={deleteSaving}
                 onClick={onConfirmDelete}
               >
-                {deleteSaving ? "Eliminando…" : "Confirmar eliminación"}
+                {deleteSaving ? "Eliminando y notificando…" : "Confirmar eliminación"}
               </button>
               <button
                 type="button"
@@ -593,6 +609,20 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
       ) : null}
     </div>
   );
+}
+
+function mensajeEliminacion(resultado: DeleteAdminTeamResult): string {
+  const base = `Equipo ${resultado.nombreEquipo} eliminado correctamente.`;
+  if (resultado.integrantesTotal === 0) {
+    return `${base} No había integrantes que notificar.`;
+  }
+  if (!resultado.servidorCorreoRespondio) {
+    return `${base} No se pudo notificar a los integrantes: el servidor de correo no respondió.`;
+  }
+  if (resultado.integrantesNotificados === 0) {
+    return `${base} No se notificó a ningún integrante (sin correo configurado).`;
+  }
+  return `${base} Se notificó a ${resultado.integrantesNotificados} de ${resultado.integrantesTotal} integrante(s).`;
 }
 
 function TeamEstadoPill({ estado }: { estado: AdminTeam["estado"] }) {

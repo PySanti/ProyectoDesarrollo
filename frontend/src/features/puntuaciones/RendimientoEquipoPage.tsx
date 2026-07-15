@@ -1,7 +1,9 @@
 // Rendimiento histórico de un equipo (HU-49/RF-44): posición y victoria por partida
-// terminada. Entrada manual por equipoId o profunda vía ?equipoId= desde la vista de equipos (3b).
+// terminada. El equipo se elige de la lista (GET /identity/teams); deep-link ?equipoId=
+// desde la vista de equipos preselecciona y consulta al montar.
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
+import { getEquipos, IdentityApiError, type EquipoAdminItem } from "../../api/identityApi";
 import {
   getRendimientoEquipo,
   PuntuacionesApiError,
@@ -18,12 +20,12 @@ type Estado =
 
 export function RendimientoEquipoPage({ accessToken }: { accessToken: string }) {
   const [searchParams] = useSearchParams();
+  const [equipos, setEquipos] = useState<EquipoAdminItem[] | null>(null);
+  const [equiposError, setEquiposError] = useState<string | null>(null);
   const [equipoId, setEquipoId] = useState("");
-  const [formError, setFormError] = useState<string | null>(null);
   const [estado, setEstado] = useState<Estado>({ status: "inicial" });
 
   async function consultar(id: string) {
-    setFormError(null);
     setEstado({ status: "cargando" });
     try {
       const rendimiento = await getRendimientoEquipo(id, accessToken);
@@ -39,56 +41,65 @@ export function RendimientoEquipoPage({ accessToken }: { accessToken: string }) 
     }
   }
 
-  // Deep-link desde la vista de equipos: precarga y consulta una sola vez al montar.
-  const autoConsultado = useRef(false);
+  // Carga la lista y aplica el deep-link una sola vez al montar.
+  const inicializado = useRef(false);
   useEffect(() => {
-    if (autoConsultado.current) return;
-    autoConsultado.current = true;
-    const fromQuery = searchParams.get("equipoId")?.trim() ?? "";
-    if (GUID_RE.test(fromQuery)) {
-      setEquipoId(fromQuery);
-      void consultar(fromQuery);
-    }
+    if (inicializado.current) return;
+    inicializado.current = true;
+    void (async () => {
+      try {
+        setEquipos(await getEquipos(accessToken));
+      } catch (caught) {
+        setEquipos([]);
+        setEquiposError(
+          caught instanceof IdentityApiError
+            ? caught.message
+            : "No se pudieron cargar los equipos."
+        );
+      }
+      const fromQuery = searchParams.get("equipoId")?.trim() ?? "";
+      if (GUID_RE.test(fromQuery)) {
+        setEquipoId(fromQuery);
+        void consultar(fromQuery);
+      }
+    })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  async function onConsultar(e: React.FormEvent) {
-    e.preventDefault();
-    const id = equipoId.trim();
-    if (!GUID_RE.test(id)) {
-      setFormError("Ingresa un ID de equipo válido (GUID).");
+  function onSelect(id: string) {
+    setEquipoId(id);
+    if (id) {
+      void consultar(id);
+    } else {
       setEstado({ status: "inicial" });
-      return;
     }
-    await consultar(id);
   }
 
   return (
     <div className="page" data-testid="rendimiento-equipo">
       <div className="card stack">
         <h1>Rendimiento de equipo</h1>
-        <form className="compact-actions" onSubmit={(e) => void onConsultar(e)}>
-          <label>
-            ID del equipo{" "}
-            <input
-              value={equipoId}
-              aria-label="ID del equipo"
-              placeholder="00000000-0000-0000-0000-000000000000"
-              disabled={estado.status === "cargando"}
-              onChange={(e) => {
-                setEquipoId(e.target.value);
-                setFormError(null);
-                setEstado({ status: "inicial" });
-              }}
-            />
-          </label>
-          <button type="submit" disabled={estado.status === "cargando"}>
-            Consultar
-          </button>
-        </form>
-        {formError ? (
+        <p className="muted">Panel para consulta de rendimiento de equipos</p>
+        <label>
+          Equipo{" "}
+          <select
+            value={equipoId}
+            aria-label="Equipo"
+            disabled={equipos === null || estado.status === "cargando"}
+            onChange={(e) => onSelect(e.target.value)}
+          >
+            <option value="">Selecciona un equipo…</option>
+            {(equipos ?? []).map((eq) => (
+              <option key={eq.equipoId} value={eq.equipoId}>
+                {eq.nombreEquipo}
+              </option>
+            ))}
+          </select>
+        </label>
+        {equipos === null && !equiposError ? <p className="muted">Cargando equipos…</p> : null}
+        {equiposError ? (
           <div className="notice error" role="alert">
-            {formError}
+            {equiposError}
           </div>
         ) : null}
 

@@ -202,20 +202,25 @@ describe("adminTeamsApi", () => {
     expect(result.estado).toBe("Desactivado");
   });
 
-  it("DELETE 204 resuelve sin body", async () => {
+  it("DELETE 200 resuelve con el desenlace de la notificación", async () => {
     vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { deleteAdminTeam } = await import("./adminTeamsApi");
+    const outcome = {
+      equipoId: "e1",
+      nombreEquipo: "Los Halcones",
+      integrantesTotal: 3,
+      integrantesNotificados: 2,
+      servidorCorreoRespondio: false
+    };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
-      status: 204,
-      json: async () => {
-        throw new Error("no body");
-      }
+      status: 200,
+      json: async () => outcome
     });
 
     await expect(
       deleteAdminTeam("e1", "admin-token", fetchMock as unknown as typeof fetch)
-    ).resolves.toBeUndefined();
+    ).resolves.toEqual(outcome);
 
     expect(fetchMock).toHaveBeenCalledWith("https://gw.example.test/identity/admin/teams/e1", {
       method: "DELETE",

@@ -15,6 +15,15 @@ export interface AdminTeam {
   integrantes: AdminTeamMember[];
 }
 
+/** Resultado de eliminar un equipo, con el desenlace de la notificación a los integrantes. */
+export interface DeleteAdminTeamResult {
+  equipoId: string;
+  nombreEquipo: string;
+  integrantesTotal: number;
+  integrantesNotificados: number;
+  servidorCorreoRespondio: boolean;
+}
+
 export interface CreateAdminTeamRequest {
   nombreEquipo: string;
   /**
@@ -166,14 +175,13 @@ export async function deleteAdminTeam(
   id: string,
   accessToken: string,
   fetchImpl: typeof fetch = fetch
-): Promise<void> {
+): Promise<DeleteAdminTeamResult> {
   const response = await fetchImpl(`${resolveBaseUrl()}/identity/admin/teams/${id}`, {
     method: "DELETE",
     headers: buildAuthHeaders(accessToken)
   });
 
-  if (!response.ok) {
-    const body = await parseJsonBody<{ message?: string }>(response);
-    throwIfNotOk(response, body as { message?: string });
-  }
+  const body = await parseJsonBody<DeleteAdminTeamResult>(response);
+  throwIfNotOk(response, body as { message?: string });
+  return body as DeleteAdminTeamResult;
 }

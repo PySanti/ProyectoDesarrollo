@@ -11,26 +11,30 @@ describe("titleForPath", () => {
 });
 
 describe("areasForRoles", () => {
-  it("shows Identidad, Partidas, Puntuaciones and Equipos to an admin", () => {
+  it("shows Identidad, Partidas and Equipos to an admin", () => {
     expect(areasForRoles(["Administrador"]).map((area) => area.id)).toEqual([
       "identidad",
       "partidas",
-      "puntuaciones",
       "equipos"
     ]);
   });
 
-  it("shows Partidas, Puntuaciones and Equipos, but not Identidad, to an operator", () => {
-    expect(areasForRoles(["Operador"]).map((area) => area.id)).toEqual([
-      "partidas",
-      "puntuaciones",
-      "equipos"
-    ]);
+  it("shows Partidas and Equipos, but not Identidad, to an operator", () => {
+    expect(areasForRoles(["Operador"]).map((area) => area.id)).toEqual(["partidas", "equipos"]);
   });
 
-  it("shows Equipos to both admin and operator", () => {
-    expect(areasForRoles(["Administrador"]).map((a) => a.id)).toContain("equipos");
-    expect(areasForRoles(["Operador"]).map((a) => a.id)).toContain("equipos");
+  it("shows the three team entries to an admin, but hides 'Creación de equipos' from an operator", () => {
+    const equiposAdmin = areasForRoles(["Administrador"]).find((a) => a.id === "equipos");
+    expect(equiposAdmin?.items.map((i) => i.label)).toEqual([
+      "Creación de equipos",
+      "Gestión de equipos",
+      "Rendimiento de equipos"
+    ]);
+    const equiposOperador = areasForRoles(["Operador"]).find((a) => a.id === "equipos");
+    expect(equiposOperador?.items.map((i) => i.label)).toEqual([
+      "Gestión de equipos",
+      "Rendimiento de equipos"
+    ]);
   });
 
   it("hides 'Nueva partida' from an admin but keeps it for an operator", () => {

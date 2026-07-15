@@ -134,8 +134,7 @@ export function GovernancePage({ accessToken }: GovernancePageProps) {
         <div>
           <h1>Gobernanza</h1>
           <p className="muted">
-            Permisos funcionales por rol. Los cambios se aplican primero en Keycloak y luego se
-            registran en UMBRAL; los usuarios los reciben en su próximo token.
+            Panel de configuracion de permisos de cada rol.
           </p>
         </div>
 

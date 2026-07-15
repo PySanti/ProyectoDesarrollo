@@ -29,8 +29,7 @@ export const NAV_AREAS: NavAreaDef[] = [
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
       { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
-      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock },
-      { label: "Equipos", path: "/identidad/equipos", icon: Flag }
+      { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
     ]
   },
   {
@@ -44,18 +43,15 @@ export const NAV_AREAS: NavAreaDef[] = [
     ]
   },
   {
-    id: "puntuaciones",
-    label: "Puntuaciones",
-    role: ["Operador", "Administrador"],
-    icon: ListChecks,
-    items: [{ label: "Rendimiento de equipo", path: "/puntuaciones/equipos", icon: Users }]
-  },
-  {
     id: "equipos",
     label: "Equipos",
     role: ["Operador", "Administrador"],
     icon: Users,
-    items: [{ label: "Equipos", path: "/equipos", icon: Users }]
+    items: [
+      { label: "Creación de equipos", path: "/identidad/equipos", icon: Flag, roles: ["Administrador"] },
+      { label: "Gestión de equipos", path: "/equipos", icon: Users },
+      { label: "Rendimiento de equipos", path: "/puntuaciones/equipos", icon: ListChecks }
+    ]
   }
 ];
 

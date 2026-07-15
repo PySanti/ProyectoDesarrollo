@@ -306,10 +306,10 @@ public sealed class EquipoAdminHandlersTests
         var invitaciones = new FakeInvitacionEquipoRepository();
         var participaciones = new FakeParticipacionActivaEquipoRepository { ExistsByEquipoValue = false };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
+        var notifier = new FakeTeamLifecycleNotifier { OutcomeAotDevolver = new TeamNotificationOutcome(2, 1, 1) };
         var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher, notifier);
 
-        await handler.Handle(new EliminarEquipoAdminCommand(equipo.EquipoId), CancellationToken.None);
+        var response = await handler.Handle(new EliminarEquipoAdminCommand(equipo.EquipoId), CancellationToken.None);
 
         Assert.Equal(EstadoEquipo.Eliminado, equipo.Estado);
         Assert.True(equipos.UpdateWasCalled);
@@ -320,6 +320,11 @@ public sealed class EquipoAdminHandlersTests
         Assert.Contains(lider, publisher.EquipoEliminadoEvent.Miembros);
         Assert.Contains(miembro, publisher.EquipoEliminadoEvent.Miembros);
         Assert.True(notifier.NotificarEliminadoWasCalled);
+        // La respuesta refleja el desenlace de la notificación best-effort.
+        Assert.Equal(equipo.EquipoId, response.EquipoId);
+        Assert.Equal(2, response.IntegrantesTotal);
+        Assert.Equal(1, response.IntegrantesNotificados);
+        Assert.False(response.ServidorCorreoRespondio);
     }
 
     // ---------- Fakes compartidos ----------
@@ -506,11 +511,12 @@ public sealed class EquipoAdminHandlersTests
         public bool NotificarLiderazgoWasCalled { get; private set; }
         public Guid? LiderAnteriorNotificado { get; private set; }
         public Guid? NuevoLiderNotificado { get; private set; }
+        public TeamNotificationOutcome OutcomeAotDevolver { get; set; } = new(0, 0, 0);
 
-        public Task NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
+        public Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
         {
             NotificarEliminadoWasCalled = true;
-            return Task.CompletedTask;
+            return Task.FromResult(OutcomeAotDevolver);
         }
 
         public Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct)

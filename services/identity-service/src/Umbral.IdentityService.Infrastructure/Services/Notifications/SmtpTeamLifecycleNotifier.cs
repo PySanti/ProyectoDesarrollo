@@ -18,6 +18,13 @@ namespace Umbral.IdentityService.Infrastructure.Services.Notifications;
 /// </summary>
 public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
 {
+    // Presupuesto total de envío por operación. SmtpClient.SendMailAsync ignora
+    // SmtpClient.Timeout; sin este límite, un SMTP que conecta pero no responde deja el
+    // envío colgado ~100s y bloquea la operación de dominio (p. ej. eliminar equipo, que
+    // espera esta notificación best-effort). ponytail: 10s fijo; mover a SmtpOptions si
+    // algún entorno necesita otro valor.
+    private static readonly TimeSpan NotificacionTimeout = TimeSpan.FromSeconds(10);
+
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly SmtpOptions _options;
     private readonly ILogger<SmtpTeamLifecycleNotifier> _logger;
@@ -32,14 +39,29 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         _logger = logger;
     }
 
-    public async Task NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
+    public async Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
     {
         var (subject, plainText) = TeamLifecycleEmailTemplate.BuildEquipoEliminado(nombreEquipo);
 
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(NotificacionTimeout);
+
+        var notificados = 0;
+        var fallasServidor = 0;
         foreach (var miembroId in miembros)
         {
-            await EnviarCorreoBestEffortAsync(miembroId, subject, plainText, ct);
+            switch (await EnviarCorreoBestEffortAsync(miembroId, subject, plainText, deadline.Token))
+            {
+                case ResultadoEnvio.Enviado:
+                    notificados++;
+                    break;
+                case ResultadoEnvio.ServidorNoRespondio:
+                    fallasServidor++;
+                    break;
+            }
         }
+
+        return new TeamNotificationOutcome(miembros.Count, notificados, fallasServidor);
     }
 
     public async Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct)
@@ -47,11 +69,20 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         var (subjectAnterior, textoAnterior) = TeamLifecycleEmailTemplate.BuildLiderazgo(esNuevoLider: false);
         var (subjectNuevo, textoNuevo) = TeamLifecycleEmailTemplate.BuildLiderazgo(esNuevoLider: true);
 
-        await EnviarCorreoBestEffortAsync(liderAnteriorUserId, subjectAnterior, textoAnterior, ct);
-        await EnviarCorreoBestEffortAsync(nuevoLiderUserId, subjectNuevo, textoNuevo, ct);
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(NotificacionTimeout);
+        await EnviarCorreoBestEffortAsync(liderAnteriorUserId, subjectAnterior, textoAnterior, deadline.Token);
+        await EnviarCorreoBestEffortAsync(nuevoLiderUserId, subjectNuevo, textoNuevo, deadline.Token);
     }
 
-    private async Task EnviarCorreoBestEffortAsync(Guid miembroKeycloakId, string subject, string plainText, CancellationToken ct)
+    private enum ResultadoEnvio
+    {
+        Enviado,
+        ServidorNoRespondio,
+        Omitido
+    }
+
+    private async Task<ResultadoEnvio> EnviarCorreoBestEffortAsync(Guid miembroKeycloakId, string subject, string plainText, CancellationToken ct)
     {
         try
         {
@@ -65,7 +96,7 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
                 _logger.LogWarning(
                     "No se pudo notificar el ciclo de vida del equipo: usuario con KeycloakId {KeycloakId} no existe.",
                     miembroKeycloakId);
-                return;
+                return ResultadoEnvio.Omitido;
             }
 
             if (string.IsNullOrWhiteSpace(_options.Host) || string.IsNullOrWhiteSpace(_options.FromAddress))
@@ -73,17 +104,21 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
                 _logger.LogWarning(
                     "No se pudo notificar el ciclo de vida del equipo a {KeycloakId}: configuración SMTP incompleta.",
                     miembroKeycloakId);
-                return;
+                return ResultadoEnvio.Omitido;
             }
 
             await EnviarAsync(usuario, subject, plainText, ct);
+            return ResultadoEnvio.Enviado;
         }
         catch (Exception ex)
         {
+            // Timeout (deadline), SMTP caído o cualquier fallo de envío: el servidor no
+            // respondió. Best-effort: se registra y se reporta, nunca se relanza.
             _logger.LogWarning(
                 ex,
                 "Fallo best-effort al notificar ciclo de vida de equipo al usuario con KeycloakId {KeycloakId}.",
                 miembroKeycloakId);
+            return ResultadoEnvio.ServidorNoRespondio;
         }
     }
 
@@ -93,6 +128,9 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         {
             EnableSsl = _options.UseStartTls,
             DeliveryMethod = SmtpDeliveryMethod.Network,
+            // Acota la fase de conexión (SendMailAsync ignora esto, pero la cubre el token
+            // con deadline; ambos juntos garantizan que el envío no cuelgue el request).
+            Timeout = (int)NotificacionTimeout.TotalMilliseconds,
             Credentials = string.IsNullOrWhiteSpace(_options.Username)
                 ? CredentialCache.DefaultNetworkCredentials
                 : new NetworkCredential(_options.Username, _options.Password)

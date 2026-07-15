@@ -93,8 +93,8 @@ public sealed class AdminTeamsController : ControllerBase
     [HttpDelete("{id:guid}")]
     public async Task<IActionResult> Eliminar(Guid id, CancellationToken cancellationToken)
     {
-        await _sender.Send(new EliminarEquipoAdminCommand(id), cancellationToken);
-        return NoContent();
+        var response = await _sender.Send(new EliminarEquipoAdminCommand(id), cancellationToken);
+        return Ok(response);
     }
 
     private async Task<IActionResult?> ValidateAsync<T>(

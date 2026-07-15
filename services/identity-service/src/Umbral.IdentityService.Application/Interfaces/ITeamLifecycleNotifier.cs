@@ -8,7 +8,12 @@ namespace Umbral.IdentityService.Application.Interfaces;
 /// </summary>
 public interface ITeamLifecycleNotifier
 {
-    Task NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct);
+    /// <summary>
+    /// Notifica la eliminación del equipo. Devuelve un <see cref="TeamNotificationOutcome"/>
+    /// para que el llamador informe al operador cuántos integrantes fueron notificados y si el
+    /// servidor de correo respondió. Best-effort: no lanza.
+    /// </summary>
+    Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct);
 
     Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct);
 }
