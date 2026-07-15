@@ -5,7 +5,7 @@ import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { cargarLive } from "./partidaLiveFlow.js";
 import { getRankingConsolidado } from "./gameplayApi.js";
-import { crearSesionHub } from "./sesionHub.js";
+import { crearSesionHub, reengancharAlReconectar } from "./sesionHub.js";
 import { crearRankingHub } from "./rankingHub.js";
 import { TriviaPlayPanel } from "./TriviaPlayPanel";
 import { BdtPlayPanel, type Pista } from "./BdtPlayPanel";
@@ -134,6 +134,7 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
     hub.on("PartidaCancelada", (p: { motivo?: string }) =>
       setFase({ status: "cancelada", motivo: p?.motivo })
     );
+    reengancharAlReconectar(hub, partidaId);
     hub
       .start()
       .then(() => hub.invoke("SuscribirAPartida", partidaId))
