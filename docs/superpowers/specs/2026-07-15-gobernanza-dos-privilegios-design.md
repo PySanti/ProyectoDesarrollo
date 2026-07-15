@@ -63,7 +63,8 @@ móvil para Participante (sub-proyecto 3).
 | D2 | `GestionarEquipos` gobierna **sólo los paneles de administrar equipos ajenos**. El flujo propio del participante no requiere privilegio. | Un solo privilegio para ambos: dejaría al Participante sin poder crear equipos por defecto, contra el SRS. |
 | D3 | El área **Identidad** depende del rol Administrador y está siempre visible. | Un tercer privilegio «Gestión de identidad»: permitiría cerrarse fuera del sistema. |
 | D4 | La migración **resetea** los privilegios gobernables a los defaults nuevos. | Conservar lo asignado durante las pruebas: el estado real no coincidiría con el default definido. |
-| D5 | **El realm sólo declara los composites fijos**; los gobernables los pone el reconciliador desde la DB. | (A) Dejar el realm declarando todo y que Identity restaure lo que `keycloak-config` borra: funciona, pero los dos sistemas siguen peleando. (C) Modo *managed* de config-cli: requiere verificar soporte en 6.5.1. |
+| D5 | **El realm sólo declara los composites fijos**; los gobernables los pone el reconciliador desde la DB. ⚠️ **Insuficiente por sí sola — ver §5b.** | (A) Dejar el realm declarando todo y que Identity restaure lo que `keycloak-config` borra: funciona, pero los dos sistemas siguen peleando. (C) Modo *managed* de config-cli: requiere verificar soporte en 6.5.1. |
+| D7 | **`IMPORT_CACHE_ENABLED: "true"`** en `keycloak-config`. Añadida **después** de la verificación en vivo, que refutó el supuesto sobre el que descansaba D5. | Dejarlo en `false` (como estaba): verificado en vivo que borra la gobernanza en cada `up`. |
 | D6 | El permiso `ParticiparEnPartidas` **no es asignable por API**, no sólo oculto en la UI. El validador lo rechaza. | Ocultarlo sólo en el panel: un `PUT` a mano podría moverlo y romper el gameplay. |
 
 ## 4. Cambios por capa
@@ -166,6 +167,41 @@ aceptado.
 | R2 | El reconciliador itera el enum completo, no ve `ParticiparEnPartidas` en la DB y **lo borra de Keycloak** → el gameplay se cae entero. | §4.1: itera `PermisosGobernables.Todos`. Test explícito de que el reconciliador **nunca** toca el composite fijo. |
 | R3 | El `DELETE FROM permisos_rol` sin guardia borraría la gobernanza en cada arranque. | Tabla `migraciones_aplicadas` (§4.2). Test de que un segundo arranque respeta lo asignado después. |
 | R4 | Un `PUT` a mano asigna `ParticiparEnPartidas` a otro rol y descuadra el modelo. | D6: el validador lo rechaza. Test de contrato con 400. |
+
+## 5b. Lo que la verificación en vivo refutó (2026-07-15)
+
+**El supuesto de D5 era falso, y sólo se vio ejecutándolo.**
+
+D5 asumía que si el realm no declara los composites gobernables, `keycloak-config` no tendría nada
+que borrar. **Falso.** config-cli es una herramienta de convergencia: un rol declarado *sin*
+`composite: true` se converge a *sin composites*. Es su comportamiento correcto, no un fallo.
+
+Y `depends_on` sólo ordena el **arranque**. Un `docker compose up -d` contra un stack ya corriendo
+re-ejecuta el one-shot `keycloak-config` pero **deja `identity-service` intacto** — mismo contenedor,
+sin reinicio — así que el reconciliador **no corre** y nadie repone lo borrado.
+
+Medido: tras un `up -d` plano, `Administrador` y `Operador` quedaban **sin composites** con la tabla
+`permisos_rol` intacta. El bug original, mudado de sitio. Un `restart identity-service` lo reparaba,
+lo que demuestra que **el reconciliador no era redundancia: era lo único que sostenía el arreglo** —
+y no corría en el comando que la guía manda usar.
+
+**La causa de fondo:** `IMPORT_CACHE_ENABLED: "false"` estaba puesto a propósito «para reparar deriva
+hecha en runtime». Pero **el panel de gobernanza *es* deriva hecha en runtime**: escribe en Keycloak
+en caliente, por diseño. Las dos cosas son incompatibles — una existe para deshacer lo que la otra
+hace. Sacar los composites del realm no resolvía ese conflicto, sólo lo desplazaba.
+
+**El arreglo (D7):** `IMPORT_CACHE_ENABLED: "true"`. config-cli sólo reimporta cuando
+`umbral-realm.json` cambia de verdad, que es justo cuando queremos converger — y cuando toca
+reiniciar Identity detrás. Verificado: dos `up -d` planos seguidos, Identity sin recrear (mismo
+container id), config-cli saltándose el import en 0.575s, composites intactos.
+
+**Lo que se pierde:** la reparación automática de deriva hecha a mano en Keycloak. Aceptable: esa
+«reparación» era precisamente lo que borraba la gobernanza. Si alguien edita el realm a mano y
+quiere converger, cambiar el JSON (o borrar el atributo de checksum del realm) lo fuerza.
+
+> **Para quien venga después:** si vuelves a poner `IMPORT_CACHE_ENABLED: "false"`, romperás la
+> gobernanza en el siguiente `up -d` y los tests no te lo dirán. Esto no se puede cubrir con tests:
+> vive en la interacción entre dos contenedores.
 
 ## 6. Verificación
 
