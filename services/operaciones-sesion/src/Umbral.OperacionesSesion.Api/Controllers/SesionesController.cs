@@ -69,6 +69,17 @@ public sealed class SesionesController : ControllerBase
         return NoContent();
     }
 
+    // HU-19: el operador aprueba/rechaza las solicitudes de inscripción pendientes.
+    [Authorize(Policy = "GestionarPartidas")]
+    [HttpPost("partidas/{partidaId:guid}/inscripciones/{inscripcionId:guid}/aceptacion")]
+    public async Task<IActionResult> AceptarInscripcion(Guid partidaId, Guid inscripcionId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new AceptarInscripcionCommand(partidaId, inscripcionId), cancellationToken));
+
+    [Authorize(Policy = "GestionarPartidas")]
+    [HttpPost("partidas/{partidaId:guid}/inscripciones/{inscripcionId:guid}/rechazo")]
+    public async Task<IActionResult> RechazarInscripcion(Guid partidaId, Guid inscripcionId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new RechazarInscripcionCommand(partidaId, inscripcionId), cancellationToken));
+
     [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpPost("convocatorias/{convocatoriaId:guid}/aceptacion")]
     public async Task<IActionResult> AceptarConvocatoria(Guid convocatoriaId, CancellationToken cancellationToken)
@@ -96,10 +107,20 @@ public sealed class SesionesController : ControllerBase
         return Ok(lobby);
     }
 
+    [HttpGet("partidas-publicadas")]
+    public async Task<IActionResult> ListarPartidasPublicadas(CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new ListarPartidasPublicadasQuery(), cancellationToken));
+
     [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inicio")]
     public async Task<IActionResult> Iniciar(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new IniciarPartidaCommand(partidaId), cancellationToken));
+
+    // HU-40: cancelación manual de la partida por el operador.
+    [Authorize(Policy = "GestionarPartidas")]
+    [HttpPost("partidas/{partidaId:guid}/cancelacion")]
+    public async Task<IActionResult> CancelarPartida(Guid partidaId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new CancelarPartidaCommand(partidaId), cancellationToken));
 
     [Authorize(Policy = "GestionarPartidas")]
     [HttpPost("partidas/{partidaId:guid}/inicio-automatico")]
@@ -155,6 +176,14 @@ public sealed class SesionesController : ControllerBase
     [HttpGet("partidas/{partidaId:guid}/etapa-actual")]
     public async Task<IActionResult> ObtenerEtapaActual(Guid partidaId, CancellationToken cancellationToken)
         => Ok(await _mediator.Send(new ObtenerEtapaActualQuery(partidaId), cancellationToken));
+
+    // HU-38: monitoreo operador de los envíos de TesoroQR del juego BDT activo.
+    // Policy por rol base (no GestionarPartidas): el Administrador observador debe verlo también,
+    // aunque no tenga el permiso funcional de gestión.
+    [Authorize(Policy = "OperadorOAdministrador")]
+    [HttpGet("partidas/{partidaId:guid}/juego-actual/envios-tesoro")]
+    public async Task<IActionResult> ObtenerEnviosTesoro(Guid partidaId, CancellationToken cancellationToken)
+        => Ok(await _mediator.Send(new ObtenerEnviosTesoroQuery(partidaId), cancellationToken));
 
     [Authorize(Policy = "ParticiparEnPartidas")]
     [HttpGet("mi-sesion")]

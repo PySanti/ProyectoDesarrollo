@@ -15,6 +15,12 @@ public interface ISesionPartidaRepository
     Task<bool> EquipoTieneParticipacionActivaAsync(
         Guid equipoId, Guid exceptPartidaId, CancellationToken cancellationToken);
     Task<SesionPartida?> GetByConvocatoriaIdAsync(Guid convocatoriaId, CancellationToken cancellationToken);
-    Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
+    /// <summary>
+    /// Devuelve una proyeccion y no la entidad <c>Convocatoria</c> porque el consumidor
+    /// necesita el nombre de la sesion, que vive en <c>SesionPartida</c> y se perderia al
+    /// bajar hasta la convocatoria.
+    /// </summary>
+    Task<IReadOnlyList<ConvocatoriaPendienteProyeccion>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken);
 }

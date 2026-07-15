@@ -78,8 +78,10 @@ public class SignalRSesionEventsPublisherTests
         var partidaId = Guid.NewGuid();
         var juegoId = Guid.NewGuid();
         var etapaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var equipoId = Guid.NewGuid();
         await pub.PublicarEtapaBDTGanadaAsync(
-            new EtapaBDTGanadaEvent(partidaId, Guid.NewGuid(), juegoId, etapaId, Guid.NewGuid(), 100, 1234),
+            new EtapaBDTGanadaEvent(partidaId, Guid.NewGuid(), juegoId, etapaId, participanteId, 100, 1234, equipoId),
             CancellationToken.None);
 
         Assert.Equal(SesionRealtimeMessages.EtapaGanada, clients.Proxy.Method);
@@ -89,6 +91,65 @@ public class SignalRSesionEventsPublisherTests
         Assert.Equal(partidaId, payload.PartidaId);
         Assert.Equal(juegoId, payload.JuegoId);
         Assert.Equal(etapaId, payload.EtapaId);
+        // participanteId/equipoId son distintos a propósito: pinnea el mapeo posicional
+        // evento.ParticipanteId->payload.GanadorParticipanteId, evento.EquipoId->payload.GanadorEquipoId
+        // (un swap silencioso compilaría igual, pero fallaría este assert).
+        Assert.Equal(participanteId, payload.GanadorParticipanteId);
+        Assert.Equal(equipoId, payload.GanadorEquipoId);
+    }
+
+    [Fact]
+    public async Task PreguntaCerrada_mapea_opcionCorrecta_y_ganador()
+    {
+        var (pub, clients) = Build();
+        var partidaId = Guid.NewGuid();
+        var juegoId = Guid.NewGuid();
+        var preguntaId = Guid.NewGuid();
+        var opcionCorrectaId = Guid.NewGuid();
+        var ganadorParticipanteId = Guid.NewGuid();
+        var ganadorEquipoId = Guid.NewGuid();
+
+        await pub.PublicarPreguntaTriviaCerradaAsync(
+            new PreguntaTriviaCerradaEvent(partidaId, Guid.NewGuid(), juegoId, preguntaId,
+                "PrimeraRespuestaCorrecta", T0, ganadorParticipanteId, ganadorEquipoId,
+                opcionCorrectaId, "Opción B"),
+            CancellationToken.None);
+
+        Assert.Equal(SesionRealtimeMessages.PreguntaCerrada, clients.Proxy.Method);
+        Assert.Equal(SesionRealtimeMessages.GrupoPartida(partidaId), clients.LastGroup);
+        var payload = Assert.IsType<PreguntaCerradaPayload>(clients.Proxy.Args![0]);
+        Assert.Equal(partidaId, payload.PartidaId);
+        Assert.Equal(juegoId, payload.JuegoId);
+        Assert.Equal(preguntaId, payload.PreguntaId);
+        Assert.Equal(opcionCorrectaId, payload.OpcionCorrectaId);
+        Assert.Equal("Opción B", payload.TextoOpcionCorrecta);
+        Assert.Equal(ganadorParticipanteId, payload.GanadorParticipanteId);
+        Assert.Equal(ganadorEquipoId, payload.GanadorEquipoId);
+    }
+
+    [Fact]
+    public async Task EtapaCerrada_mapea_ganador()
+    {
+        var (pub, clients) = Build();
+        var partidaId = Guid.NewGuid();
+        var juegoId = Guid.NewGuid();
+        var etapaId = Guid.NewGuid();
+        var ganadorParticipanteId = Guid.NewGuid();
+        var ganadorEquipoId = Guid.NewGuid();
+
+        await pub.PublicarEtapaBDTCerradaAsync(
+            new EtapaBDTCerradaEvent(partidaId, Guid.NewGuid(), juegoId, etapaId,
+                "PrimerQRValidado", T0, ganadorParticipanteId, ganadorEquipoId),
+            CancellationToken.None);
+
+        Assert.Equal(SesionRealtimeMessages.EtapaCerrada, clients.Proxy.Method);
+        Assert.Equal(SesionRealtimeMessages.GrupoPartida(partidaId), clients.LastGroup);
+        var payload = Assert.IsType<EtapaCerradaPayload>(clients.Proxy.Args![0]);
+        Assert.Equal(partidaId, payload.PartidaId);
+        Assert.Equal(juegoId, payload.JuegoId);
+        Assert.Equal(etapaId, payload.EtapaId);
+        Assert.Equal(ganadorParticipanteId, payload.GanadorParticipanteId);
+        Assert.Equal(ganadorEquipoId, payload.GanadorEquipoId);
     }
 
     [Fact]

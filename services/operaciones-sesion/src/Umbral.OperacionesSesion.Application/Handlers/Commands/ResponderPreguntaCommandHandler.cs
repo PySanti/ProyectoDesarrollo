@@ -41,13 +41,17 @@ public sealed class ResponderPreguntaCommandHandler : IRequestHandler<ResponderP
 
         if (r.CerroPregunta)
         {
+            var juego = sesion.Juegos.First(j => j.JuegoId == r.JuegoId);
+            var pregunta = juego.Preguntas.First(p => p.PreguntaId == r.PreguntaId);
+            var opcionCorrecta = pregunta.Opciones.First(o => o.EsCorrecta);
+
             await _events.PublicarPuntajeTriviaIncrementadoAsync(
                 new PuntajeTriviaIncrementadoEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaId,
                     r.ParticipanteId, r.Puntaje!.Value, r.TiempoRespuestaMs, r.EquipoId), cancellationToken);
             await _events.PublicarPreguntaTriviaCerradaAsync(
                 new PreguntaTriviaCerradaEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaId,
-                    MotivoCierrePregunta.RespuestaCorrecta.ToString(), r.Instante, r.ParticipanteId, r.EquipoId), cancellationToken);
-            var juego = sesion.Juegos.First(j => j.JuegoId == r.JuegoId);
+                    MotivoCierrePregunta.RespuestaCorrecta.ToString(), r.Instante, r.ParticipanteId, r.EquipoId,
+                    opcionCorrecta.OpcionId, opcionCorrecta.Texto), cancellationToken);
             await IniciarPartidaCommandHandler.PublicarPreguntaActivadaSiTriviaAsync(_events, sesion, juego, cancellationToken);
         }
 

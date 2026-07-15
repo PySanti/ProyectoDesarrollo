@@ -58,6 +58,7 @@ public sealed class ExceptionHandlingMiddleware
             or ParticipanteYaInscritoException
             or ParticipacionActivaExistenteException
             or CupoLlenoException
+            or InscripcionNoPendienteException
             or ModoInicioNoCompatibleException
             or SesionNoIniciadaException
             or JuegoActivoNoEsTriviaException
@@ -69,7 +70,8 @@ public sealed class ExceptionHandlingMiddleware
             or NoHayEtapaActivaException
             or JuegoConEtapasPendientesException
             or EquipoYaInscritoException
-            or SinEquipoActivoException => HttpStatusCode.Conflict,
+            or SinEquipoActivoException
+            or PartidaNoCancelableException => HttpStatusCode.Conflict,
         ValidationException or ArgumentException => HttpStatusCode.BadRequest,
         _ => HttpStatusCode.InternalServerError
     };

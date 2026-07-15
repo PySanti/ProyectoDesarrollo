@@ -32,7 +32,7 @@ public class PreinscribirEquipoCommandHandlerTests
     }
 
     [Fact]
-    public async Task Preinscribe_y_publica_una_convocatoria_creada_por_miembro()
+    public async Task Preinscribe_pendiente_publica_solicitada_y_equipo_creada_sin_convocatorias()
     {
         var partidaId = Guid.NewGuid();
         var lider = Guid.NewGuid();
@@ -53,10 +53,13 @@ public class PreinscribirEquipoCommandHandlerTests
         var resp = await handler.Handle(new PreinscribirEquipoCommand(partidaId, lider, "Bearer x"), default);
 
         Assert.Equal(equipoId, resp.EquipoId);
-        Assert.Equal(2, resp.Convocados);
-        Assert.Equal(2, events.ConvocatoriasCreadas.Count);
-        Assert.All(events.ConvocatoriasCreadas, e => Assert.Equal(equipoId, e.EquipoId));
-        Assert.Contains(events.ConvocatoriasCreadas, e => e.UsuarioId == miembro);
+        Assert.Equal(0, resp.Convocados);                 // convocatorias diferidas a la aceptación
+        Assert.Empty(events.ConvocatoriasCreadas);        // no se convoca aún
+        var solicitada = Assert.Single(events.InscripcionesSolicitadas);
+        Assert.Equal(equipoId, solicitada.EquipoId);
+        Assert.Equal("Equipo", solicitada.Modalidad);
+        var creada = Assert.Single(events.InscripcionesEquipoCreadas);
+        Assert.Equal(equipoId, creada.EquipoId);
     }
 
     [Fact]

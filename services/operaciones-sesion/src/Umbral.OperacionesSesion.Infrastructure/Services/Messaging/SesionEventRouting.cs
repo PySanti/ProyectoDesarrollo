@@ -22,6 +22,11 @@ public static class SesionEventRouting
         ["ConvocatoriaCreada"] = "operaciones-sesion.convocatoria-creada.v1",
         ["ConvocatoriaRespondida"] = "operaciones-sesion.convocatoria-respondida.v1",
         ["UbicacionActualizada"] = "operaciones-sesion.ubicacion-actualizada.v1",
+        ["InscripcionEquipoCreada"] = "operaciones-sesion.inscripcion-equipo-creada.v1",
+        ["InscripcionEquipoCancelada"] = "operaciones-sesion.inscripcion-equipo-cancelada.v1",
+        ["InscripcionSolicitada"] = "operaciones-sesion.inscripcion-solicitada.v1",
+        ["InscripcionAceptada"] = "operaciones-sesion.inscripcion-aceptada.v1",
+        ["InscripcionRechazada"] = "operaciones-sesion.inscripcion-rechazada.v1",
     };
 
     public static string RoutingKeyFor(string eventType) => Keys[eventType];

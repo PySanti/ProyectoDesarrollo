@@ -45,7 +45,9 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
 
     public Task PublicarPreguntaTriviaCerradaAsync(PreguntaTriviaCerradaEvent evento, CancellationToken cancellationToken) =>
         Difundir(evento.PartidaId, SesionRealtimeMessages.PreguntaCerrada,
-            new PreguntaCerradaPayload(evento.PartidaId, evento.JuegoId, evento.PreguntaId), cancellationToken);
+            new PreguntaCerradaPayload(evento.PartidaId, evento.JuegoId, evento.PreguntaId,
+                evento.OpcionCorrectaId, evento.TextoOpcionCorrecta,
+                evento.GanadorParticipanteId, evento.GanadorEquipoId), cancellationToken);
 
     public Task PublicarEtapaBDTActivadaAsync(EtapaBDTActivadaEvent evento, CancellationToken cancellationToken) =>
         Difundir(evento.PartidaId, SesionRealtimeMessages.EtapaActivada,
@@ -59,11 +61,13 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
 
     public Task PublicarEtapaBDTCerradaAsync(EtapaBDTCerradaEvent evento, CancellationToken cancellationToken) =>
         Difundir(evento.PartidaId, SesionRealtimeMessages.EtapaCerrada,
-            new EtapaCerradaPayload(evento.PartidaId, evento.JuegoId, evento.EtapaId), cancellationToken);
+            new EtapaCerradaPayload(evento.PartidaId, evento.JuegoId, evento.EtapaId,
+                evento.GanadorParticipanteId, evento.GanadorEquipoId), cancellationToken);
 
     public Task PublicarEtapaBDTGanadaAsync(EtapaBDTGanadaEvent evento, CancellationToken cancellationToken) =>
         Difundir(evento.PartidaId, SesionRealtimeMessages.EtapaGanada,
-            new EtapaGanadaPayload(evento.PartidaId, evento.JuegoId, evento.EtapaId), cancellationToken);
+            new EtapaGanadaPayload(evento.PartidaId, evento.JuegoId, evento.EtapaId,
+                evento.ParticipanteId, evento.EquipoId), cancellationToken);
 
     // No difunden (per-participante / scoring-adjacentes → SP-4). Documentado en diseño SP-3f-2.
     public Task PublicarRespuestaTriviaValidadaAsync(RespuestaTriviaValidadaEvent evento, CancellationToken cancellationToken) =>
@@ -96,5 +100,22 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
 
     // No difunde: el relay vivo al grupo operador lo hace SesionHub.EnviarUbicacion directamente (BR-B07).
     public Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    // Sin payload realtime documentado (feed el guard de equipos en Identity vía RabbitMQ).
+    public Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    // No difunden: el lobby del operador se refresca por polling (SP-3f-2). Feed solo historial vía RabbitMQ.
+    public Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, CancellationToken cancellationToken) =>
+        Task.CompletedTask;
+
+    public Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;
 }

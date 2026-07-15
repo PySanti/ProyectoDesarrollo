@@ -30,11 +30,13 @@ public sealed class FakeSesionPartidaRepository : ISesionPartidaRepository
         => Task.FromResult(ParticipacionActivaEnOtra);
 
     public Task<SesionPartida?> GetByParticipanteActivoAsync(Guid participanteId, CancellationToken cancellationToken)
+        // HU-19: refleja el repo real (Task 3): la inscripción propia cuenta Pendiente+Activa
+        // (OcupaParticipacion); la convocatoria aceptada sigue exigiendo inscripción activa.
         => Task.FromResult(_store.Values.FirstOrDefault(s =>
             (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada)
-            && s.Inscripciones.Any(i => i.EsActiva
-                && (i.ParticipanteId == participanteId
-                    || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)))));
+            && s.Inscripciones.Any(i =>
+                (i.OcupaParticipacion && i.ParticipanteId == participanteId)
+                || (i.EsActiva && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)))));
 
     public Task<IReadOnlyList<SesionPartida>> GetSesionesConActividadVencidaAsync(DateTime now, CancellationToken cancellationToken)
         => Task.FromResult((IReadOnlyList<SesionPartida>)_store.Values
@@ -60,14 +62,20 @@ public sealed class FakeSesionPartidaRepository : ISesionPartidaRepository
         => Task.FromResult(_store.Values.FirstOrDefault(s =>
             s.Inscripciones.Any(i => i.Convocatorias.Any(c => c.Id.Valor == convocatoriaId))));
 
-    public Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
+    public Task<IReadOnlyList<ConvocatoriaPendienteProyeccion>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken)
-        => Task.FromResult<IReadOnlyList<Convocatoria>>(_store.Values
+        => Task.FromResult<IReadOnlyList<ConvocatoriaPendienteProyeccion>>(_store.Values
             .Where(s => s.Estado == EstadoSesion.Lobby)
-            .SelectMany(s => s.Inscripciones)
-            .Where(i => i.EsActiva)
-            .SelectMany(i => i.Convocatorias)
-            .Where(c => c.UsuarioId == usuarioId && c.EstaPendiente)
-            .OrderBy(c => c.FechaEnvio)
+            .SelectMany(s => s.Inscripciones
+                .Where(i => i.EsActiva)
+                .SelectMany(i => i.Convocatorias
+                    .Where(c => c.UsuarioId == usuarioId && c.EstaPendiente)
+                    .Select(c => new ConvocatoriaPendienteProyeccion(
+                        c.Id.Valor, c.PartidaId, s.Nombre, c.EquipoId, c.FechaEnvio))))
+            .OrderBy(x => x.FechaEnvio)
             .ToList());
+
+    public Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<SesionPartida>>(
+            _store.Values.Where(s => s.Estado == EstadoSesion.Lobby).ToList());
 }

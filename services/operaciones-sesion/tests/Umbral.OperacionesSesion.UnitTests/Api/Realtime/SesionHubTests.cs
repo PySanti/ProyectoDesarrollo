@@ -31,7 +31,9 @@ public class SesionHubTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, Array.Empty<PreguntaSnapshot>());
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(partidaId, snap);
-        s.Inscribir(participanteId, false, 0, new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc));
+        var fecha = new DateTime(2026, 6, 30, 12, 0, 0, DateTimeKind.Utc);
+        var insc = s.Inscribir(participanteId, false, 0, fecha);
+        s.AceptarInscripcion(insc.Id.Valor, 0, fecha); // HU-19: aceptar para inscripción activa
         return s;
     }
 
@@ -60,6 +62,7 @@ public class SesionHubTests
         var s = SesionPartida.Publicar(partidaId, snap);
         var t0 = new DateTime(2026, 7, 2, 12, 0, 0, DateTimeKind.Utc);
         var ins = s.PreinscribirEquipo(equipoLocal, true, new[] { participanteId }, false, 0, t0);
+        s.AceptarInscripcion(ins.Id.Valor, 0, t0); // HU-19: aceptar crea las convocatorias
         s.ResponderConvocatoria(ins.Convocatorias.Single().Id.Valor, participanteId, true, false, t0);
         equipoId = equipoLocal;
         return s;
@@ -360,8 +363,8 @@ public class SesionHubTests
     public async Task Al_conectar_reemite_las_convocatorias_pendientes_al_caller()
     {
         var usuario = Guid.NewGuid();
-        var primeraConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
-        var segundaConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
+        var primeraConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0, "Copa");
+        var segundaConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0, "Liga");
         var pendientes = new[] { primeraConvocatoria, segundaConvocatoria };
         var clients = new FakeClients();
         var sender = new SenderDeConvocatorias(pendientes);

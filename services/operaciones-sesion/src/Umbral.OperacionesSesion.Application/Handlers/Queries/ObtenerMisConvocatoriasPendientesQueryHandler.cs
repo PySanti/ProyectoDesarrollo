@@ -18,7 +18,8 @@ public sealed class ObtenerMisConvocatoriasPendientesQueryHandler
     {
         var pendientes = await _sesiones.GetConvocatoriasPendientesByUsuarioAsync(request.UsuarioId, cancellationToken);
         return pendientes
-            .Select(c => new ConvocatoriaPendienteDto(c.Id.Valor, c.PartidaId, c.EquipoId, c.FechaEnvio))
+            .Select(c => new ConvocatoriaPendienteDto(
+                c.ConvocatoriaId, c.PartidaId, c.EquipoId, c.FechaEnvio, c.NombrePartida))
             .ToList();
     }
 }

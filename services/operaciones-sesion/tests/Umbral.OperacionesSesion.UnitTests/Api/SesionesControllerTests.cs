@@ -26,7 +26,8 @@ public class SesionesControllerTests
     }
 
     private static LobbyDto Lobby(Guid partidaId) =>
-        new(partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>());
+        new(partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>(),
+            Array.Empty<SolicitudIndividualDto>(), Array.Empty<SolicitudEquipoDto>());
 
     [Fact]
     public async Task Publicar_returns_201_and_forwards_bearer()
@@ -168,6 +169,21 @@ public class SesionesControllerTests
 
         Assert.IsType<OkObjectResult>(result);
         Assert.IsType<FinalizarJuegoActualCommand>(sender.LastRequest);
+    }
+
+    [Fact]
+    public async Task CancelarPartida_returns_200_and_dispatches_command()
+    {
+        var partidaId = Guid.NewGuid();
+        var sender = new FakeSender(new CancelacionPartidaResponse(partidaId, "Cancelada"));
+        var controller = ControllerWith(sender);
+
+        var result = await controller.CancelarPartida(partidaId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.Equal(200, ok.StatusCode);
+        var command = Assert.IsType<CancelarPartidaCommand>(sender.LastRequest);
+        Assert.Equal(partidaId, command.PartidaId);
     }
 
     [Fact]

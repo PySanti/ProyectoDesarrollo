@@ -31,9 +31,13 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Where(s => s.PartidaId != exceptPartidaId
                 && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
             .SelectMany(s => s.Inscripciones)
-            .AnyAsync(i => i.Estado == EstadoInscripcion.Activa
-                && (i.ParticipanteId == participanteId
-                    || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)),
+            // BR-G09 (HU-19): Pendiente+Activa ocupan participación para la inscripción propia.
+            // La convocatoria aceptada solo cuenta sobre inscripciones ya activas.
+            .AnyAsync(i =>
+                ((i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa)
+                    && i.ParticipanteId == participanteId)
+                || (i.Estado == EstadoInscripcion.Activa
+                    && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada)),
                 cancellationToken);
 
     public Task<SesionPartida?> GetByParticipanteActivoAsync(Guid participanteId, CancellationToken cancellationToken)
@@ -44,17 +48,26 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Include(s => s.Inscripciones).ThenInclude(i => i.Convocatorias)
             .Where(s => s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada)
             .OrderBy(s => s.PartidaId)
+            // mi-sesion debe mostrar también el estado Pendiente de la inscripción propia;
+            // la convocatoria aceptada sigue exigiendo inscripción activa (BR-G09, HU-19).
             .FirstOrDefaultAsync(
-                s => s.Inscripciones.Any(i => i.Estado == EstadoInscripcion.Activa
-                    && (i.ParticipanteId == participanteId
-                        || i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada))),
+                s => s.Inscripciones.Any(i =>
+                    ((i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa)
+                        && i.ParticipanteId == participanteId)
+                    || (i.Estado == EstadoInscripcion.Activa
+                        && i.Convocatorias.Any(c => c.UsuarioId == participanteId && c.Estado == EstadoConvocatoria.Aceptada))),
                 cancellationToken);
 
     public async Task<IReadOnlyList<SesionPartida>> GetSesionesConActividadVencidaAsync(
         DateTime now, CancellationToken cancellationToken)
     {
         var iniciadas = await _dbContext.Sesiones
-            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas)
+            // Opciones es obligatorio: BarrerTimeoutsCommandHandler lee
+            // preguntaCerrada.Opciones.First(o => o.EsCorrecta) sobre este mismo grafo para
+            // publicar el cierre; sin Include quedaría vacía en Npgsql (sin lazy loading) →
+            // InvalidOperationException en todo cierre de pregunta Trivia por timeout (mismo
+            // patrón que GetByPartidaIdAsync).
+            .Include(s => s.Juegos).ThenInclude(j => j.Preguntas).ThenInclude(p => p.Opciones)
             .Include(s => s.Juegos).ThenInclude(j => j.Etapas)
             .Where(s => s.Estado == EstadoSesion.Iniciada)
             .ToListAsync(cancellationToken);
@@ -89,7 +102,10 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Where(s => s.PartidaId != exceptPartidaId
                 && (s.Estado == EstadoSesion.Lobby || s.Estado == EstadoSesion.Iniciada))
             .SelectMany(s => s.Inscripciones)
-            .AnyAsync(i => i.EquipoId == equipoId && i.Estado == EstadoInscripcion.Activa, cancellationToken);
+            // BR-G09 (HU-19): Pendiente+Activa ocupan participación del equipo.
+            .AnyAsync(i => i.EquipoId == equipoId
+                && (i.Estado == EstadoInscripcion.Pendiente || i.Estado == EstadoInscripcion.Activa),
+                cancellationToken);
 
     public Task<SesionPartida?> GetByConvocatoriaIdAsync(Guid convocatoriaId, CancellationToken cancellationToken)
     {
@@ -104,15 +120,34 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
                 cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
+    public async Task<IReadOnlyList<ConvocatoriaPendienteProyeccion>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken)
-        => await _dbContext.Sesiones
+    {
+        // Proyeccion anonima entidad+escalar y mapeo en memoria: proyectar c.Id.Valor
+        // directo en la consulta no traduce con el value object del id.
+        var filas = await _dbContext.Sesiones
             .Where(s => s.Estado == EstadoSesion.Lobby)
-            .SelectMany(s => s.Inscripciones)
-            .Where(i => i.Estado == EstadoInscripcion.Activa)
-            .SelectMany(i => i.Convocatorias)
-            .Where(c => c.UsuarioId == usuarioId && c.Estado == EstadoConvocatoria.Pendiente)
-            .OrderBy(c => c.FechaEnvio)
+            .SelectMany(s => s.Inscripciones
+                .Where(i => i.Estado == EstadoInscripcion.Activa)
+                .SelectMany(i => i.Convocatorias
+                    .Where(c => c.UsuarioId == usuarioId && c.Estado == EstadoConvocatoria.Pendiente)
+                    .Select(c => new { Convocatoria = c, s.Nombre })))
+            .ToListAsync(cancellationToken);
+
+        return filas
+            .Select(f => new ConvocatoriaPendienteProyeccion(
+                f.Convocatoria.Id.Valor, f.Convocatoria.PartidaId, f.Nombre,
+                f.Convocatoria.EquipoId, f.Convocatoria.FechaEnvio))
+            .OrderBy(x => x.FechaEnvio)
+            .ToList();
+    }
+
+    public async Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
+        => await _dbContext.Sesiones
+            .AsNoTracking()
+            .Where(s => s.Estado == EstadoSesion.Lobby)
+            // Solo Inscripciones: el listado cuenta activas; no necesita convocatorias ni juegos.
+            .Include(s => s.Inscripciones)
             .ToListAsync(cancellationToken);
 
     private static bool TienePasoVencido(SesionPartida sesion, DateTime now)

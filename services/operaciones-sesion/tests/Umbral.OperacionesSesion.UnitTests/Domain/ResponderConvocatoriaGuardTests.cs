@@ -24,6 +24,8 @@ public class ResponderConvocatoriaGuardTests
         var liderA = Guid.NewGuid(); var liderB = Guid.NewGuid();
         var insA = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { liderA, usuario }, false, 0, T0);
         var insB = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { liderB, usuario }, false, 1, T0);
+        sesion.AceptarInscripcion(insA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
+        sesion.AceptarInscripcion(insB.Id.Valor, 1, T0);
         convocatoriaA = insA.Convocatorias.Single(c => c.UsuarioId == usuario).Id.Valor;
         convocatoriaB = insB.Convocatorias.Single(c => c.UsuarioId == usuario).Id.Valor;
         return sesion;

@@ -32,7 +32,11 @@ public class BarrerIniciosAutomaticosCommandHandlerTests
             })).ToList();
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Automatico, tiempoInicio, minimos, 5, juegos);
         var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        for (var i = 0; i < inscritos; i++) s.Inscribir(Guid.NewGuid(), false, i, tiempoInicio.AddSeconds(-1));
+        for (var i = 0; i < inscritos; i++)
+        {
+            var ins = s.Inscribir(Guid.NewGuid(), false, i, tiempoInicio.AddSeconds(-1));
+            s.AceptarInscripcion(ins.Id.Valor, i, tiempoInicio.AddSeconds(-1)); // HU-19: aceptar para que cuente en mínimos
+        }
         return s;
     }
 

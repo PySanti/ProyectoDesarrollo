@@ -64,7 +64,8 @@ public class SesionPersistenceTests
         var snapshot = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
             new[] { new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia), new JuegoResumen(Guid.NewGuid(), 2, TipoJuego.Trivia) });
         var sesion = SesionPartida.Publicar(partidaId, snapshot);
-        sesion.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, DateTime.UtcNow); // HU-19: aceptar para que cuente en mínimos
         var now = new DateTime(2026, 6, 26, 12, 0, 0, DateTimeKind.Utc);
         sesion.Iniciar(now);
         sesion.FinalizarJuegoActual(now); // game1 Finalizado, game2 Activo, still Iniciada

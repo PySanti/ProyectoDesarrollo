@@ -33,9 +33,14 @@ public sealed class AvanzarPreguntaCommandHandler : IRequestHandler<AvanzarPregu
         var r = sesion.AvanzarPregunta(now);
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        var juegoCerrado = sesion.Juegos.First(j => j.JuegoId == r.JuegoId);
+        var preguntaCerrada = juegoCerrado.Preguntas.First(p => p.PreguntaId == r.PreguntaCerradaId);
+        var opcionCorrectaCerrada = preguntaCerrada.Opciones.First(o => o.EsCorrecta);
+
         await _events.PublicarPreguntaTriviaCerradaAsync(
             new PreguntaTriviaCerradaEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaCerradaId,
-                r.MotivoCierre.ToString(), now, null), cancellationToken);
+                r.MotivoCierre.ToString(), now, null, null,
+                opcionCorrectaCerrada.OpcionId, opcionCorrectaCerrada.Texto), cancellationToken);
 
         if (r.PreguntaActivadaId is not null)
         {
