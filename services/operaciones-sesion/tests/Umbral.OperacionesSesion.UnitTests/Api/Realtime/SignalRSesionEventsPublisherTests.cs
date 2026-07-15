@@ -21,6 +21,76 @@ public class SignalRSesionEventsPublisherTests
     }
 
     [Fact]
+    public async Task InscripcionAceptada_difunde_al_canal_personal_del_solicitante()
+    {
+        var (pub, clients) = Build();
+        var partidaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var inscripcionId = Guid.NewGuid();
+
+        await pub.PublicarInscripcionAceptadaAsync(
+            new InscripcionAceptadaEvent(partidaId, Guid.NewGuid(), inscripcionId, "Individual",
+                participanteId, null, T0),
+            new[] { participanteId }, CancellationToken.None);
+
+        Assert.Equal(new[] { SesionRealtimeMessages.GrupoParticipante(participanteId) }, clients.LastGroups);
+        Assert.Equal(SesionRealtimeMessages.InscripcionResuelta, clients.Proxy.Method);
+        var payload = Assert.IsType<InscripcionResueltaPayload>(clients.Proxy.Args![0]);
+        Assert.Equal(partidaId, payload.PartidaId);
+        Assert.Equal(inscripcionId, payload.InscripcionId);
+        Assert.Equal("Individual", payload.Modalidad);
+        Assert.True(payload.Aceptada);
+    }
+
+    [Fact]
+    public async Task InscripcionRechazada_difunde_con_aceptada_false()
+    {
+        var (pub, clients) = Build();
+        var participanteId = Guid.NewGuid();
+
+        await pub.PublicarInscripcionRechazadaAsync(
+            new InscripcionRechazadaEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Individual",
+                participanteId, null, T0),
+            new[] { participanteId }, CancellationToken.None);
+
+        var payload = Assert.IsType<InscripcionResueltaPayload>(clients.Proxy.Args![0]);
+        Assert.False(payload.Aceptada);
+    }
+
+    [Fact]
+    public async Task InscripcionAceptada_de_equipo_difunde_a_todos_los_miembros()
+    {
+        var (pub, clients) = Build();
+        var equipoId = Guid.NewGuid();
+        var m1 = Guid.NewGuid();
+        var m2 = Guid.NewGuid();
+
+        await pub.PublicarInscripcionAceptadaAsync(
+            new InscripcionAceptadaEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Equipo",
+                null, equipoId, T0),
+            new[] { m1, m2 }, CancellationToken.None);
+
+        // El lider no es identificable (ParticipanteId = Guid.Empty en Equipo): se notifica al conjunto.
+        Assert.Equal(
+            new[] { SesionRealtimeMessages.GrupoParticipante(m1), SesionRealtimeMessages.GrupoParticipante(m2) },
+            clients.LastGroups);
+    }
+
+    [Fact]
+    public async Task InscripcionResuelta_sin_destinatarios_no_difunde()
+    {
+        var (pub, clients) = Build();
+
+        await pub.PublicarInscripcionAceptadaAsync(
+            new InscripcionAceptadaEvent(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), "Equipo",
+                null, Guid.NewGuid(), T0),
+            Array.Empty<Guid>(), CancellationToken.None);
+
+        // Un equipo con snapshot vacio no debe provocar un envio a cero grupos.
+        Assert.Null(clients.Proxy.Method);
+    }
+
+    [Fact]
     public async Task JuegoActivado_difunde_al_grupo_con_payload()
     {
         var (pub, clients) = Build();
@@ -285,15 +355,16 @@ public class SignalRSesionEventsPublisherTests
     private sealed class FakeHubClients : IHubClients
     {
         public string? LastGroup { get; private set; }
+        public IReadOnlyList<string>? LastGroups { get; private set; }
         public FakeClientProxy Proxy { get; } = new();
         public IClientProxy Group(string groupName) { LastGroup = groupName; return Proxy; }
+        public IClientProxy Groups(IReadOnlyList<string> groupNames) { LastGroups = groupNames; return Proxy; }
 
         public IClientProxy All => throw new NotImplementedException();
         public IClientProxy AllExcept(IReadOnlyList<string> excludedConnectionIds) => throw new NotImplementedException();
         public IClientProxy Client(string connectionId) => throw new NotImplementedException();
         public IClientProxy Clients(IReadOnlyList<string> connectionIds) => throw new NotImplementedException();
         public IClientProxy GroupExcept(string groupName, IReadOnlyList<string> excludedConnectionIds) => throw new NotImplementedException();
-        public IClientProxy Groups(IReadOnlyList<string> groupNames) => throw new NotImplementedException();
         public IClientProxy User(string userId) => throw new NotImplementedException();
         public IClientProxy Users(IReadOnlyList<string> userIds) => throw new NotImplementedException();
     }

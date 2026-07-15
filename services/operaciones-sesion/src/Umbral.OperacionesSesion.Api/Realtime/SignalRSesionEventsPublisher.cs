@@ -1,4 +1,6 @@
 using System;
+using System.Collections.Generic;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 using Microsoft.AspNetCore.SignalR;
@@ -14,6 +16,13 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
 
     private Task Difundir(Guid partidaId, string mensaje, object payload, CancellationToken ct) =>
         _hub.Clients.Group(SesionRealtimeMessages.GrupoPartida(partidaId)).SendAsync(mensaje, payload, ct);
+
+    private Task DifundirAPersonales(IReadOnlyList<Guid> destinatarios, string mensaje, object payload, CancellationToken ct)
+    {
+        if (destinatarios.Count == 0) return Task.CompletedTask;
+        var grupos = destinatarios.Select(SesionRealtimeMessages.GrupoParticipante).ToList();
+        return _hub.Clients.Groups(grupos).SendAsync(mensaje, payload, ct);
+    }
 
     public Task PublicarPartidaPublicadaEnLobbyAsync(PartidaPublicadaEnLobbyEvent evento, CancellationToken cancellationToken) =>
         Difundir(evento.PartidaId, SesionRealtimeMessages.PartidaEnLobby, new PartidaEnLobbyPayload(evento.PartidaId), cancellationToken);
@@ -109,15 +118,21 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
     public Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;
 
-    // No difunden: el lobby del operador se refresca por polling (SP-3f-2). Feed solo historial vía RabbitMQ.
+    // InscripcionSolicitada no difunde: el lobby del operador se refresca por polling (SP-3f-2).
+    // Aceptada/Rechazada SI difunden desde este slice: el participante las espera en vivo, y la
+    // decisión original de no difundir se tomó mirando solo al operador.
     public Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;
 
     public Task PublicarInscripcionAceptadaAsync(
         InscripcionAceptadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+        DifundirAPersonales(destinatarios, SesionRealtimeMessages.InscripcionResuelta,
+            new InscripcionResueltaPayload(evento.PartidaId, evento.InscripcionId, evento.Modalidad, true),
+            cancellationToken);
 
     public Task PublicarInscripcionRechazadaAsync(
         InscripcionRechazadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+        DifundirAPersonales(destinatarios, SesionRealtimeMessages.InscripcionResuelta,
+            new InscripcionResueltaPayload(evento.PartidaId, evento.InscripcionId, evento.Modalidad, false),
+            cancellationToken);
 }
