@@ -52,7 +52,8 @@ Operador → `GestionarPartidas`; Participante → ninguno.
 |---|---|---|
 | D1 | Las **áreas** del nav y sus rutas se abren por **privilegio**, no por rol base. | Sólo los botones de escritura por privilegio: dejaría la consulta abierta, contra la regla («si un rol no tiene el privilegio de gestión X, no debe aparecer nada de X»). |
 | D2 | Quien no tenga **ninguna área** ve una pantalla **«sin accesos»** con su nombre y el botón de cerrar sesión. | Shell vacío: entra al panel y no ve nada, sin explicación. |
-| D3 | Las policies del backend son **rol base AND permiso funcional**. Ver §5, R1: es una decisión de seguridad, no de estilo. | Sólo permiso: abre escalada de privilegios contra los puertos de servicio, que están expuestos. |
+| D3 | ~~Las policies del backend son **rol base AND permiso funcional**.~~ **Revisada — ver D6.** | |
+| D6 | **Las policies de equipos exigen sólo el privilegio, no rol AND privilegio.** Decisión del usuario tras destaparse que `roles: ["Administrador"]` en «Creación de equipos» dejaba el privilegio sin efecto para un Operador. La doctrina es literal: **el privilegio autoriza, el rol no veta**. Quien tenga `GestionarEquipos` administra equipos, sea del rol que sea. Arrastra al gateway: `/identity/admin/teams` y `/identity/teams` (GET) pasan a `Default`, y el filtrado fino queda en el servicio — que es el reparto que la arquitectura ya documenta. | (a) Rol AND privilegio: más cerrado, pero un Operador con el privilegio vería 2 de los 3 botones y el privilegio sería mentira a medias. (b) Abrir sólo el nav: el botón daría 403 porque el gateway corta por rol — la mentira en la interfaz que veníamos a quitar. |
 | D4 | **Se arregla el token viejo tras el refresh.** `AuthProvider.refresh()` pasa a devolver el `AuthUser` completo re-parseado, no sólo el string del token. | Dejarlo: tras cambiar privilegios en el panel, el usuario tendría que cerrar sesión para que surtan efecto. Bug preexistente, pero los privilegios cambian mucho más que los roles, así que ahora duele. |
 | D5 | **El gateway no se toca.** `/partidas` sigue en `OperadorOAdministrador`. | Abrirlo a cualquiera con el privilegio: el Participante no tiene UI de gestión hasta el sub-proyecto 3, así que abriría una ruta que nadie puede usar. El 3 lo abrirá cuando construya los paneles del móvil. |
 
@@ -140,10 +141,22 @@ Reciben `permisos: string[]` y `NavRail` llama `areasForRoles(roles, permisos)`.
 | Servicio | Controller | Hoy | Pasa a |
 |---|---|---|---|
 | Partidas | `PartidasController` GET (`/partidas`, `/partidas/{id}`) | *(sin policy)* | `GestionarPartidas` |
-| Identity | `AdminTeamsController` | `AdminOnly` | `Administrador` **AND** `GestionarEquipos` |
-| Identity | `TeamsAdminController` | `OperadorOAdministrador` | `(Operador\|Administrador)` **AND** `GestionarEquipos` |
-| Puntuaciones | `EquiposController` (rendimiento) | `[Authorize]` | `(Operador\|Administrador)` **AND** `GestionarEquipos` |
-| Puntuaciones | `HistorialController` | `Roles = "Operador,Administrador"` | `(Operador\|Administrador)` **AND** `GestionarPartidas` |
+| Identity | `AdminTeamsController` | `AdminOnly` | `GestionarEquipos` |
+| Identity | `TeamsAdminController` | `OperadorOAdministrador` | `GestionarEquipos` |
+| Puntuaciones | `EquiposController` (rendimiento) | `[Authorize]` | `GestionarEquipos` |
+| Puntuaciones | `HistorialController` | `Roles = "Operador,Administrador"` | `GestionarPartidas` |
+
+Y en el **gateway**, para que el privilegio no muera antes de llegar al servicio (D6):
+
+| Ruta | Hoy | Pasa a |
+|---|---|---|
+| `/identity/admin/teams/{**catch-all}` | `Administrador` | `Default` |
+| `/identity/teams` (GET) | `OperadorOAdministrador` | `Default` |
+
+`Default` es «autenticado» — el suelo *fail-secure* del gateway. El filtrado fino por privilegio queda
+en el servicio, que es el reparto que la arquitectura ya documenta: *gateway coarse por rol, servicio
+fino por permiso*. Aquí el coarse desaparece porque **ningún rol base es requisito**: el privilegio lo
+es todo.
 
 **No se tocan:** `RankingsController` y `ParticipantesController` de Puntuaciones (`[Authorize]`) —
 los consume el móvil. `SesionesController` de Operaciones de Sesión — su gateo por
@@ -157,7 +170,7 @@ defaults nuevos el Administrador **sí** tiene `GestionarEquipos`. Actualizarlo.
 
 | # | Riesgo | Mitigación |
 |---|---|---|
-| R1 | **Escalada de privilegios.** Si `AdminTeamsController` exigiera sólo `GestionarEquipos`, cualquier rol al que el panel le diera ese privilegio podría borrar equipos ajenos llamando al **puerto 5001 directamente**, saltándose el filtro por rol del gateway. Los puertos de servicio están expuestos en el compose. | D3: policies **rol AND permiso**. El rol delimita el ámbito, el privilegio habilita el CRUD. Test de contrato por cada policy compuesta. |
+| R1 | **Quien reciba `GestionarEquipos` puede administrar equipos ajenos**, sea del rol que sea, y llegando por el gateway o por el puerto 5001 directamente. | **Aceptado a propósito (D6): es el comportamiento pedido, no un fallo.** El privilegio *es* la autorización. Mitigación real: el default del Participante es **ninguno**, así que sólo ocurre si un administrador se lo concede explícitamente desde el panel — que es exactamente lo que el panel existe para decidir. |
 | R2 | El fix del token (D4) toca el contrato de `AuthProvider` y `useSessionRefresh`, que tienen tests propios. | Cambio de tipo, no de lógica: `refresh()` ya llama a Keycloak; sólo re-parsea lo que ya tiene. `sessionRefreshCore` no se toca. |
 | R3 | Un Operador sin `GestionarPartidas` entra en bucle de redirección contra su propio landing. | §4.3: `landingPath` devuelve `null` y `App.tsx` corta con la pantalla «sin accesos» antes de montar el router. |
 | R4 | Un usuario con el área abierta en pantalla pierde el privilegio; tras el refresh, el nav se recalcula y el área desaparece bajo sus pies. | Aceptado: es el comportamiento correcto (D4). El backend ya devolvería 403 de todas formas. |

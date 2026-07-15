@@ -63,8 +63,12 @@ export const NAV_AREAS: NavAreaDef[] = [
     role: ["Operador", "Administrador"],
     icon: Users,
     permisos: ["GestionarEquipos"],
+    // Igual que Identidad: su primer item es un alta, no un listado.
+    landing: "/equipos",
+    // Los tres items los abre GestionarEquipos: ninguno filtra además por rol base. «Creación de
+    // equipos» exigía el rol Administrador, lo que dejaba el privilegio sin efecto para un Operador.
     items: [
-      { label: "Creación de equipos", path: "/identidad/equipos", icon: Flag, roles: ["Administrador"] },
+      { label: "Creación de equipos", path: "/identidad/equipos", icon: Flag },
       { label: "Gestión de equipos", path: "/equipos", icon: Users },
       { label: "Rendimiento de equipos", path: "/puntuaciones/equipos", icon: ListChecks }
     ]

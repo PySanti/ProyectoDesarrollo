@@ -23,18 +23,16 @@ describe("areasForRoles", () => {
     expect(areasForRoles(["Operador"], ["GestionarPartidas", "GestionarEquipos"]).map((area) => area.id)).toEqual(["partidas", "equipos"]);
   });
 
-  it("shows the three team entries to an admin, but hides 'Creación de equipos' from an operator", () => {
+  /* GestionarEquipos abre los tres items, sin importar el rol base: el privilegio autoriza y el rol
+     no veta. Exigir el rol Administrador en «Creación de equipos» dejaba el privilegio sin efecto
+     para un Operador, igual que pasaba con «Nueva partida». */
+  it("muestra los tres items de equipos a cualquiera con GestionarEquipos", () => {
+    const esperados = ["Creación de equipos", "Gestión de equipos", "Rendimiento de equipos"];
+
     const equiposAdmin = areasForRoles(["Administrador"], ["GestionarEquipos"]).find((a) => a.id === "equipos");
-    expect(equiposAdmin?.items.map((i) => i.label)).toEqual([
-      "Creación de equipos",
-      "Gestión de equipos",
-      "Rendimiento de equipos"
-    ]);
+    expect(equiposAdmin?.items.map((i) => i.label)).toEqual(esperados);
     const equiposOperador = areasForRoles(["Operador"], ["GestionarEquipos"]).find((a) => a.id === "equipos");
-    expect(equiposOperador?.items.map((i) => i.label)).toEqual([
-      "Gestión de equipos",
-      "Rendimiento de equipos"
-    ]);
+    expect(equiposOperador?.items.map((i) => i.label)).toEqual(esperados);
   });
 
   /* El síntoma que originó todo: un Administrador con GestionarPartidas no veía «Nueva partida»
