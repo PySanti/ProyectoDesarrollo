@@ -157,10 +157,23 @@ using (var scope = app.Services.CreateScope())
                 PRIMARY KEY (rol, permiso)
             );
 
-            INSERT INTO permisos_rol (rol, permiso)
-            SELECT v.rol, v.permiso
-            FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
-            WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
+            CREATE TABLE IF NOT EXISTS migraciones_aplicadas (
+                nombre varchar(200) PRIMARY KEY,
+                fechaaplicacionutc timestamp with time zone NOT NULL
+            );
+
+            -- Reset a los defaults del modelo de dos privilegios: Administrador->GestionarEquipos,
+            -- Operador->GestionarPartidas, Participante->ninguno. El bloque es atomico y corre UNA
+            -- sola vez: sin el guardia, cada arranque borraria lo asignado desde el panel.
+            DO $$
+            BEGIN
+                IF NOT EXISTS (SELECT 1 FROM migraciones_aplicadas WHERE nombre = '2026-07-15-dos-privilegios') THEN
+                    DELETE FROM permisos_rol;
+                    INSERT INTO permisos_rol (rol, permiso) VALUES (1, 2), (2, 1);
+                    INSERT INTO migraciones_aplicadas (nombre, fechaaplicacionutc)
+                    VALUES ('2026-07-15-dos-privilegios', now());
+                END IF;
+            END $$;
             """);
 
         await dbContext.Database.ExecuteSqlRawAsync("""
