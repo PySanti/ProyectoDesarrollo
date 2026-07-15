@@ -139,12 +139,12 @@ export function App() {
             )
           },
           {
+            // Sólo el privilegio: el rol no veta. Igual que «equipos» y «puntuaciones/equipos»
+            // más abajo (D6, gobernanza).
             path: "identidad/equipos",
             element: (
-              <Require have={roles} need="Administrador" landing={landing}>
-                <Require have={permisos} need="GestionarEquipos" landing={landing}>
-                  <TeamsAdminPage accessToken={token} />
-                </Require>
+              <Require have={permisos} need="GestionarEquipos" landing={landing}>
+                <TeamsAdminPage accessToken={token} />
               </Require>
             )
           },

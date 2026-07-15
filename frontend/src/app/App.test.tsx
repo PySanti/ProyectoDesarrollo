@@ -305,6 +305,24 @@ describe("App shell + auth guard", () => {
     expect(screen.queryByRole("link", { name: /^partidas$/i })).not.toBeInTheDocument();
   });
 
+  /* El privilegio autoriza, el rol base no veta: GestionarEquipos abre los tres paneles de
+     equipos, incluido «Creación de equipos», sea cual sea el rol. Antes exigía además
+     Administrador, así que un Operador con el privilegio veía el link en el nav pero
+     rebotaba al hacer click. Ningún test cubría esta ruta, por eso pasó desapercibido. */
+  it("deja a un operador con GestionarEquipos entrar a la creación de equipos", async () => {
+    window.history.pushState({}, "", "/identidad/equipos");
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      permisos: ["GestionarEquipos"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByTestId("create-team-submit")).toBeInTheDocument();
+  });
+
   it("muestra la pantalla de sin accesos a un operador sin ningún privilegio", async () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
