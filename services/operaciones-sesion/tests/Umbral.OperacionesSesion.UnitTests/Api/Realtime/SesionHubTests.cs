@@ -69,6 +69,50 @@ public class SesionHubTests
     }
 
     [Fact]
+    public async Task Al_conectar_el_participante_entra_a_su_canal_personal()
+    {
+        var participanteId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake();
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
+
+        await hub.OnConnectedAsync();
+
+        // Sin partida de por medio: el canal personal es tuyo por ser quien eres.
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Added);
+    }
+
+    [Fact]
+    public async Task Al_conectar_el_operador_no_entra_a_canal_personal()
+    {
+        var repo = new ISesionPartidaRepositorioFake();
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: Guid.NewGuid().ToString(), rol: "Operador"), groups);
+
+        await hub.OnConnectedAsync();
+
+        Assert.Empty(groups.Added);
+    }
+
+    [Fact]
+    public async Task Desuscribir_de_partida_no_saca_del_canal_personal()
+    {
+        var partidaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake();
+        repo.Inner.Add(SesionDe(partidaId, participanteId));
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
+        await hub.SuscribirAPartida(partidaId);
+
+        await hub.DesuscribirDePartida(partidaId);
+
+        // Salir de una partida no puede dejarte sordo a tus convocatorias.
+        Assert.DoesNotContain(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Removed);
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoPartida(partidaId)), groups.Removed);
+    }
+
+    [Fact]
     public async Task Operador_se_une_al_grupo_sin_consultar_repo()
     {
         var partidaId = Guid.NewGuid();
@@ -297,21 +341,10 @@ public class SesionHubTests
         Assert.DoesNotContain(groups.Added, x => x.Group.StartsWith("participante:"));
     }
 
-    [Fact]
-    public async Task Desuscribir_quita_al_participante_de_su_grupo()
-    {
-        var partidaId = Guid.NewGuid();
-        var participanteId = Guid.NewGuid();
-        var repo = new ISesionPartidaRepositorioFake();
-        repo.Inner.Add(SesionDe(partidaId, participanteId));
-        var groups = new FakeGroupManager();
-        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
-
-        await hub.SuscribirAPartida(partidaId); // puebla Context.Items[participanteId]
-        await hub.DesuscribirDePartida(partidaId);
-
-        Assert.Contains(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Removed);
-    }
+    // Desuscribir_quita_al_participante_de_su_grupo se retiró aquí: afirmaba que salir de una partida
+    // saca del canal personal, y eso es justo lo que este slice deroga (el canal es de la identidad,
+    // no de la partida). Lo sustituye Desuscribir_de_partida_no_saca_del_canal_personal, que además
+    // comprueba que del grupo de la partida sí se sale.
 
     [Fact]
     public async Task Convocado_aceptado_se_une_al_grupo_de_su_equipo()
