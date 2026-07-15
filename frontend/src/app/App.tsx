@@ -56,7 +56,7 @@ export function App() {
   const sesionExpiradaKey = "umbral.sesion.expirada";
   const { modalVisible, continuar } = useSessionRefresh({
     enabled: authState.status === "ready",
-    onToken: (user) => setAuthState({ status: "ready", user }),
+    onUsuario: (user) => setAuthState({ status: "ready", user }),
     onExpired: () => {
       // El logout de Keycloak recarga la página: el aviso sobrevive en sessionStorage.
       window.sessionStorage.setItem(sesionExpiradaKey, "1");

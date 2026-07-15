@@ -20,10 +20,12 @@ describe("useSessionRefresh", () => {
       token: "nuevo-token"
     };
     const refresh = vi.mocked(authProvider.refresh).mockResolvedValue(usuarioRefrescado);
-    const onToken = vi.fn();
+    const onUsuario = vi.fn();
     const onExpired = vi.fn();
 
-    const { result } = renderHook(() => useSessionRefresh({ enabled: true, onToken, onExpired }));
+    const { result } = renderHook(() =>
+      useSessionRefresh({ enabled: true, onUsuario, onExpired })
+    );
 
     window.dispatchEvent(new Event("pointerdown"));
 
@@ -32,7 +34,7 @@ describe("useSessionRefresh", () => {
     });
 
     expect(refresh).toHaveBeenCalledTimes(1);
-    expect(onToken).toHaveBeenCalledWith(usuarioRefrescado);
+    expect(onUsuario).toHaveBeenCalledWith(usuarioRefrescado);
     expect(onExpired).not.toHaveBeenCalled();
     expect(result.current.modalVisible).toBe(false);
   });
@@ -48,9 +50,9 @@ describe("useSessionRefresh", () => {
       token: "token-nuevo"
     };
     vi.mocked(authProvider.refresh).mockResolvedValue(usuarioRefrescado);
-    const onToken = vi.fn();
+    const onUsuario = vi.fn();
 
-    renderHook(() => useSessionRefresh({ enabled: true, onToken, onExpired: vi.fn() }));
+    renderHook(() => useSessionRefresh({ enabled: true, onUsuario, onExpired: vi.fn() }));
 
     window.dispatchEvent(new Event("pointerdown"));
 
@@ -58,13 +60,13 @@ describe("useSessionRefresh", () => {
       await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
     });
 
-    expect(onToken).toHaveBeenCalledWith(usuarioRefrescado);
+    expect(onUsuario).toHaveBeenCalledWith(usuarioRefrescado);
   });
 
   it("sin actividad, no refresca y muestra el modal", async () => {
     const refresh = vi.mocked(authProvider.refresh);
     const { result } = renderHook(() =>
-      useSessionRefresh({ enabled: true, onToken: vi.fn(), onExpired: vi.fn() })
+      useSessionRefresh({ enabled: true, onUsuario: vi.fn(), onExpired: vi.fn() })
     );
 
     await act(async () => {
@@ -83,7 +85,7 @@ describe("useSessionRefresh", () => {
       token: "tok"
     });
     const { unmount } = renderHook(() =>
-      useSessionRefresh({ enabled: true, onToken: vi.fn(), onExpired: vi.fn() })
+      useSessionRefresh({ enabled: true, onUsuario: vi.fn(), onExpired: vi.fn() })
     );
 
     unmount();
@@ -98,7 +100,7 @@ describe("useSessionRefresh", () => {
   it("con enabled:false no registra listeners ni interval", async () => {
     const refresh = vi.mocked(authProvider.refresh);
     const { result } = renderHook(() =>
-      useSessionRefresh({ enabled: false, onToken: vi.fn(), onExpired: vi.fn() })
+      useSessionRefresh({ enabled: false, onUsuario: vi.fn(), onExpired: vi.fn() })
     );
 
     window.dispatchEvent(new Event("pointerdown"));

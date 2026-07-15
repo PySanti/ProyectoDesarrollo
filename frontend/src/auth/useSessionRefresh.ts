@@ -7,12 +7,12 @@ export const REFRESH_INTERVAL_MS = 270_000;
 
 export function useSessionRefresh(opts: {
   enabled: boolean;
-  onToken: (user: AuthUser) => void;
+  onUsuario: (user: AuthUser) => void;
   onExpired: () => void;
 }): { modalVisible: boolean; continuar: () => void } {
   const [modalVisible, setModalVisible] = useState(false);
-  const onTokenRef = useRef(opts.onToken);
-  onTokenRef.current = opts.onToken;
+  const onUsuarioRef = useRef(opts.onUsuario);
+  onUsuarioRef.current = opts.onUsuario;
   const onExpiredRef = useRef(opts.onExpired);
   onExpiredRef.current = opts.onExpired;
   const coreRef = useRef<SessionRefreshCore | null>(null);
@@ -24,7 +24,7 @@ export function useSessionRefresh(opts: {
       refrescar: () =>
         authProvider.refresh().then(
           (user) => {
-            onTokenRef.current(user);
+            onUsuarioRef.current(user);
             return true;
           },
           () => false

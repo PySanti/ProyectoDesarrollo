@@ -4,6 +4,8 @@ import userEvent from "@testing-library/user-event";
 import * as identityApi from "../api/identityApi";
 import * as partidasApi from "../api/partidasApi";
 import * as puntuacionesApi from "../api/puntuacionesApi";
+import { authProvider } from "../auth/keycloak";
+import { REFRESH_INTERVAL_MS } from "../auth/useSessionRefresh";
 
 const { initMock } = vi.hoisted(() => ({
   initMock: vi.fn()
@@ -194,5 +196,49 @@ describe("App shell + auth guard", () => {
       await screen.findByRole("heading", { name: /gesti[oó]n de usuarios/i })
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /crear partida/i })).not.toBeInTheDocument();
+  });
+
+  /* Regresión del fix real: el refresh de token (RNF-24, cada 270s) debe reemplazar el usuario
+     entero, no fusionar sólo el string del token con el usuario del login. Si App.tsx volviera a
+     `{ ...prev.user, token }`, el rol del login (Operador) sobreviviría al refresh y este test
+     fallaría porque la nav de Administrador nunca aparecería. */
+  it("adopta el rol nuevo del token al refrescar, sin quedarse con el del login", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      permisos: [],
+      token: "token-login"
+    });
+    vi.mocked(authProvider.refresh).mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token-refrescado"
+    });
+
+    // Los timers deben ser falsos ANTES del render: el interval de refresh se registra
+    // dentro del efecto de useSessionRefresh apenas authState pasa a "ready", y si ese
+    // registro ocurre con timers reales, avanzar el reloj falso después no lo dispara.
+    vi.useFakeTimers();
+
+    render(<App />);
+
+    // Deja resolver authProvider.init() y montar el landing de Operador (Partidas).
+    await vi.advanceTimersByTimeAsync(0);
+
+    expect(screen.getByRole("link", { name: /nueva partida/i })).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /gesti[oó]n de usuarios/i })).not.toBeInTheDocument();
+
+    window.dispatchEvent(new Event("pointerdown"));
+    await vi.advanceTimersByTimeAsync(REFRESH_INTERVAL_MS);
+    vi.useRealTimers();
+
+    // Rol nuevo (Administrador): la nav de admin aparece y "Nueva partida" (sólo Operador)
+    // desaparece. Ese cambio sólo ocurre si roles se reemplazó, no si se fusionó.
+    expect(
+      await screen.findByRole("link", { name: /gesti[oó]n de usuarios/i })
+    ).toBeInTheDocument();
+    expect(screen.queryByRole("link", { name: /nueva partida/i })).not.toBeInTheDocument();
   });
 });
