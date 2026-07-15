@@ -11,7 +11,7 @@ namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
 [Route("identity/teams")]
-[Authorize(Policy = "GestionarEquipos")]
+[Authorize(Policy = "Participante")]
 public sealed class TeamsController : ControllerBase
 {
     private readonly ISender _sender;

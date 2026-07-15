@@ -118,6 +118,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
     options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
+    // El flujo propio del participante (su equipo, invitaciones) lo concede el rol: el panel de
+    // gobernanza deja al Participante sin GestionarEquipos, que ahora solo abre los paneles de
+    // administrar equipos ajenos.
+    options.AddPolicy("Participante", policy => policy.RequireRole("Participante"));
 });
 
 var app = builder.Build();
