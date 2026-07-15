@@ -39,7 +39,9 @@ public class RechazarInscripcionCommandHandlerTests
 
         Assert.Equal(EstadoInscripcion.Rechazada, insc.Estado);
         var rech = Assert.Single(events.InscripcionesRechazadas);
-        Assert.Equal(equipoId, rech.EquipoId);
+        Assert.Equal(equipoId, rech.Evento.EquipoId);
+        // En Equipo el push va al snapshot de miembros: el lider no es identificable.
+        Assert.Equal(insc.MiembrosSnapshot, rech.Destinatarios);
         var cancel = Assert.Single(events.InscripcionesEquipoCanceladas);
         Assert.Equal(equipoId, cancel.EquipoId);
     }

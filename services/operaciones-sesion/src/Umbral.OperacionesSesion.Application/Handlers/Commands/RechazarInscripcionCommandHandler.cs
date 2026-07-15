@@ -40,10 +40,16 @@ public sealed class RechazarInscripcionCommandHandler : IRequestHandler<Rechazar
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
+        // `inscripcion` no es null aqui: RechazarInscripcion (arriba) ya habria lanzado si no existiera.
+        var destinatarios = esEquipo
+            ? inscripcion!.MiembrosSnapshot
+            : (IReadOnlyList<Guid>)new[] { participanteId!.Value };
+
         await _events.PublicarInscripcionRechazadaAsync(
             new InscripcionRechazadaEvent(
                 sesion.PartidaId, sesion.Id.Valor, inscId, esEquipo ? "Equipo" : "Individual",
                 esEquipo ? null : participanteId, equipoId, now),
+            destinatarios,
             cancellationToken);
 
         if (esEquipo && equipoId is { } eq)

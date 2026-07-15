@@ -51,10 +51,17 @@ public sealed class AceptarInscripcionCommandHandler : IRequestHandler<AceptarIn
                 cancellationToken);
         }
 
+        // Individual: el solicitante. Equipo: el snapshot de miembros — el lider no se guarda
+        // (InscripcionPartida.ParticipanteId = Guid.Empty en Equipo), asi que se notifica al conjunto.
+        var destinatarios = esEquipo
+            ? aceptada.MiembrosSnapshot
+            : (IReadOnlyList<Guid>)new[] { aceptada.ParticipanteId };
+
         await _events.PublicarInscripcionAceptadaAsync(
             new InscripcionAceptadaEvent(
                 sesion.PartidaId, sesion.Id.Valor, aceptada.Id.Valor, aceptada.Modalidad.ToString(),
                 esEquipo ? null : aceptada.ParticipanteId, esEquipo ? aceptada.EquipoId : null, now),
+            destinatarios,
             cancellationToken);
 
         return PublicarPartidaCommandHandler.MapearLobby(sesion);

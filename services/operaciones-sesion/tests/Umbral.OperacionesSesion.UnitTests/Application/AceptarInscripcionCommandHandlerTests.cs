@@ -46,8 +46,10 @@ public class AceptarInscripcionCommandHandlerTests
 
         Assert.True(insc.EsActiva);
         var e = Assert.Single(events.InscripcionesAceptadas);
-        Assert.Equal(insc.Id.Valor, e.InscripcionId);
-        Assert.Equal("Individual", e.Modalidad);
+        Assert.Equal(insc.Id.Valor, e.Evento.InscripcionId);
+        Assert.Equal("Individual", e.Evento.Modalidad);
+        // En Individual el destinatario del push es el propio solicitante.
+        Assert.Equal(new[] { insc.ParticipanteId }, e.Destinatarios);
         Assert.Empty(events.ConvocatoriasCreadas); // individual no convoca
     }
 
