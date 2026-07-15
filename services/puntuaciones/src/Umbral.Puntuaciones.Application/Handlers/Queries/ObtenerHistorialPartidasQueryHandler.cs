@@ -62,7 +62,8 @@ public sealed class ObtenerHistorialPartidasQueryHandler
         PartidaProyectada partida, Guid competidorId, Guid? equipoId, CancellationToken cancellationToken)
     {
         var marcadores = await _proyecciones.GetMarcadoresDePartidaAsync(partida.PartidaId, cancellationToken);
-        var entradas = CalculadorRankingConsolidado.Calcular(marcadores);
+        var participaciones = await _proyecciones.GetParticipacionesDePartidaAsync(partida.PartidaId, cancellationToken);
+        var entradas = CalculadorRankingConsolidado.Calcular(marcadores, participaciones);
         // La participación exige ≥1 marcador del competidor, así que la entrada siempre existe.
         var propia = entradas.First(e => e.CompetidorId == competidorId);
 

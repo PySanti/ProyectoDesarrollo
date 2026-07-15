@@ -21,7 +21,8 @@ public sealed class ObtenerRendimientoEquipoQueryHandler
         foreach (var partida in partidas)
         {
             var marcadores = await _repo.GetMarcadoresDePartidaAsync(partida.PartidaId, cancellationToken);
-            var entradas = CalculadorRankingConsolidado.Calcular(marcadores);
+            var participaciones = await _repo.GetParticipacionesDePartidaAsync(partida.PartidaId, cancellationToken);
+            var entradas = CalculadorRankingConsolidado.Calcular(marcadores, participaciones);
             // El repo garantiza ≥1 marcador del equipo en cada partida devuelta.
             var propia = entradas.First(e => e.CompetidorId == request.EquipoId);
             rendimiento.Add(new RendimientoPartidaDto(partida.PartidaId, partida.FechaFin, propia.Posicion, propia.Posicion == 1));
