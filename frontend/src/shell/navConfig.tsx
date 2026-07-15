@@ -6,10 +6,8 @@ export interface NavItemDef {
   label: string;
   path: string;
   icon: IconComponent;
-  /** Sin `roles` ni `permisos`: el item hereda la visibilidad del área. */
+  /** Sin `roles`: el item hereda la visibilidad del área. */
   roles?: readonly Role[];
-  /** Permiso funcional exigido (BR-R02: el permiso autoriza, no el rol). */
-  permisos?: readonly string[];
 }
 
 export interface NavAreaDef {
@@ -41,7 +39,7 @@ export const NAV_AREAS: NavAreaDef[] = [
     icon: Flag,
     items: [
       { label: "Partidas", path: "/partidas", icon: ListChecks },
-      { label: "Nueva partida", path: "/partidas/crear", icon: Plus, permisos: ["GestionarPartidas"] }
+      { label: "Nueva partida", path: "/partidas/crear", icon: Plus, roles: ["Operador"] }
     ]
   },
   {
@@ -57,18 +55,14 @@ export const NAV_AREAS: NavAreaDef[] = [
   }
 ];
 
-/* El área se abre por rol base; cada item puede además exigir un rol o un
-   permiso funcional. Ambos filtros son opcionales y se aplican en conjunto. */
-export function areasForRoles(roles: string[], permisos: string[] = []): NavAreaDef[] {
+export function areasForRoles(roles: string[]): NavAreaDef[] {
   return NAV_AREAS.filter((area) => {
     const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
     return allowedRoles.some((role) => roles.includes(role));
   }).map((area) => ({
     ...area,
     items: area.items.filter(
-      (item) =>
-        (!item.roles || item.roles.some((role) => roles.includes(role))) &&
-        (!item.permisos || item.permisos.some((permiso) => permisos.includes(permiso)))
+      (item) => !item.roles || item.roles.some((role) => roles.includes(role))
     )
   }));
 }

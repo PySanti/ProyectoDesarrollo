@@ -30,21 +30,19 @@ type AuthState =
   | { status: "unauthenticated" }
   | { status: "ready"; user: AuthUser };
 
-/* Guardia de ruta: `have` son las credenciales del usuario (roles base o
-   permisos funcionales) y `need` las que la ruta exige. Basta una coincidencia. */
-function Require({
-  have,
+function RequireRole({
+  roles,
   need,
   landing,
   children
 }: {
-  have: string[];
+  roles: string[];
   need: string | readonly string[];
   landing: string;
   children: JSX.Element;
 }) {
-  const allowed = typeof need === "string" ? [need] : need;
-  return have.some((credencial) => allowed.includes(credencial)) ? (
+  const allowedRoles = typeof need === "string" ? [need] : need;
+  return roles.some((role) => allowedRoles.includes(role)) ? (
     children
   ) : (
     <Navigate to={landing} replace />
@@ -109,112 +107,101 @@ export function App() {
 
     const { user } = authState;
     const roles = user.roles;
-    const permisos = user.permisos;
     const token = user.token;
     const landing = landingPath(roles);
-    /* BR-R02: operar partidas lo autoriza el permiso funcional, no el rol base.
-       Espeja la policy `GestionarPartidas` que el servicio Partidas ya aplica,
-       así la gobernanza (HU-04) surte efecto también en la web. */
-    const puedeOperar = permisos.includes("GestionarPartidas");
+    const puedeOperar = roles.includes("Operador");
 
     return createBrowserRouter([
       {
-        element: (
-          <AppShell
-            roles={roles}
-            permisos={permisos}
-            userName={user.username}
-            onLogout={onLogout}
-          />
-        ),
+        element: <AppShell roles={roles} userName={user.username} onLogout={onLogout} />,
         children: [
           { index: true, element: <Navigate to={landing} replace /> },
           {
             path: "identidad/usuarios",
             element: (
-              <Require have={roles} need="Administrador" landing={landing}>
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <UserManagementPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "identidad/usuarios/nuevo",
             element: (
-              <Require have={roles} need="Administrador" landing={landing}>
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <CreateUserPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "identidad/gobernanza",
             element: (
-              <Require have={roles} need="Administrador" landing={landing}>
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <GovernancePage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "identidad/equipos",
             element: (
-              <Require have={roles} need="Administrador" landing={landing}>
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
                 <TeamsAdminPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "partidas",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <PartidasListPage accessToken={token} puedeOperar={puedeOperar} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "partidas/crear",
             element: (
-              <Require have={permisos} need="GestionarPartidas" landing={landing}>
+              <RequireRole roles={roles} need="Operador" landing={landing}>
                 <CreatePartidaPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "partidas/:partidaId",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <PartidaDetailPage accessToken={token} puedeOperar={puedeOperar} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "partidas/:partidaId/sesion",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <SesionOperadorPage accessToken={token} puedeOperar={puedeOperar} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "partidas/:partidaId/historial",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <HistorialPartidaPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "puntuaciones/equipos",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <RendimientoEquipoPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           {
             path: "equipos",
             element: (
-              <Require have={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
                 <EquiposPage accessToken={token} />
-              </Require>
+              </RequireRole>
             )
           },
           { path: "*", element: <NotFoundScreen /> }

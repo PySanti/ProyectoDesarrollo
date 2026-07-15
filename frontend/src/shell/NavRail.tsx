@@ -4,14 +4,13 @@ import { areasForRoles } from "./navConfig";
 
 interface NavRailProps {
   roles: string[];
-  permisos: string[];
   collapsed: boolean;
   onToggleCollapse: () => void;
   onNavigate: () => void;
 }
 
-export function NavRail({ roles, permisos, collapsed, onToggleCollapse, onNavigate }: NavRailProps) {
-  const areas = areasForRoles(roles, permisos);
+export function NavRail({ roles, collapsed, onToggleCollapse, onNavigate }: NavRailProps) {
+  const areas = areasForRoles(roles);
 
   return (
     <nav className="sh-rail" aria-label="Navegación principal">
