@@ -37,10 +37,23 @@ describe("areasForRoles", () => {
     ]);
   });
 
-  it("hides 'Nueva partida' from an admin but keeps it for an operator", () => {
+  /* BR-R02: 'Nueva partida' la abre el permiso GestionarPartidas, no el rol base
+     — la gobernanza (HU-04) puede darselo al admin o quitarselo al operador. */
+  it("hides 'Nueva partida' from anyone without GestionarPartidas", () => {
     const partidasAdmin = areasForRoles(["Administrador"]).find((a) => a.id === "partidas");
     expect(partidasAdmin?.items.map((i) => i.label)).toEqual(["Partidas"]);
-    const partidasOperador = areasForRoles(["Operador"]).find((a) => a.id === "partidas");
+    const partidasOperador = areasForRoles(["Operador"], []).find((a) => a.id === "partidas");
+    expect(partidasOperador?.items.map((i) => i.label)).toEqual(["Partidas"]);
+  });
+
+  it("shows 'Nueva partida' to anyone with GestionarPartidas, admin included", () => {
+    const partidasOperador = areasForRoles(["Operador"], ["GestionarPartidas"]).find(
+      (a) => a.id === "partidas"
+    );
     expect(partidasOperador?.items.map((i) => i.label)).toEqual(["Partidas", "Nueva partida"]);
+    const partidasAdmin = areasForRoles(["Administrador"], ["GestionarPartidas"]).find(
+      (a) => a.id === "partidas"
+    );
+    expect(partidasAdmin?.items.map((i) => i.label)).toEqual(["Partidas", "Nueva partida"]);
   });
 });

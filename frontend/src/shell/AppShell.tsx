@@ -8,11 +8,12 @@ const COLLAPSE_KEY = "umbral.rail.collapsed";
 
 interface AppShellProps {
   roles: string[];
+  permisos: string[];
   userName: string;
   onLogout: () => void;
 }
 
-export function AppShell({ roles, userName, onLogout }: AppShellProps) {
+export function AppShell({ roles, permisos, userName, onLogout }: AppShellProps) {
   const [collapsed, setCollapsed] = useState<boolean>(() => {
     try {
       return localStorage.getItem(COLLAPSE_KEY) === "1";
@@ -59,6 +60,7 @@ export function AppShell({ roles, userName, onLogout }: AppShellProps) {
 
       <NavRail
         roles={roles}
+        permisos={permisos}
         collapsed={collapsed}
         onToggleCollapse={toggleCollapse}
         onNavigate={() => setDrawerOpen(false)}

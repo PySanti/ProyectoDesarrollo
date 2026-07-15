@@ -39,6 +39,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "participante",
       roles: ["Participante"],
+      permisos: [],
       token: "token"
     });
 
@@ -54,6 +55,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -72,6 +74,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -92,6 +95,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -112,6 +116,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -127,6 +132,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -143,6 +149,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "operador",
       roles: ["Operador"],
+      permisos: ["GestionarPartidas"],
       token: "token"
     });
 
@@ -157,6 +164,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -171,6 +179,7 @@ describe("App shell + auth guard", () => {
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -179,12 +188,13 @@ describe("App shell + auth guard", () => {
     expect(await screen.findByTestId("sesion-operador")).toBeInTheDocument();
   });
 
-  it("keeps partida creation unavailable to an admin without the operator role", async () => {
+  it("keeps partida creation unavailable to an admin without GestionarPartidas", async () => {
     vi.spyOn(identityApi, "getIdentityUsers").mockResolvedValue([]);
     window.history.pushState({}, "", "/partidas/crear");
     initMock.mockResolvedValueOnce({
       username: "admin",
       roles: ["Administrador"],
+      permisos: [],
       token: "token"
     });
 
@@ -194,5 +204,55 @@ describe("App shell + auth guard", () => {
       await screen.findByRole("heading", { name: /gesti[oó]n de usuarios/i })
     ).toBeInTheDocument();
     expect(screen.queryByRole("heading", { name: /crear partida/i })).not.toBeInTheDocument();
+  });
+
+  /* BR-R02: el permiso autoriza, no el rol. El backend ya lo aplica
+     (Partidas: policy GestionarPartidas); la web debe coincidir. */
+  it("lets an admin granted GestionarPartidas reach partida creation", async () => {
+    window.history.pushState({}, "", "/partidas/crear");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /crear partida/i })).toBeInTheDocument();
+  });
+
+  it("shows 'Nueva partida' in the nav to an admin granted GestionarPartidas", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas");
+    initMock.mockResolvedValueOnce({
+      username: "admin",
+      roles: ["Administrador"],
+      permisos: ["GestionarPartidas"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    await screen.findByTestId("lista-partidas");
+    expect(screen.getByRole("link", { name: /nueva partida/i })).toBeInTheDocument();
+    expect(screen.getByTestId("btn-nueva-partida")).toBeInTheDocument();
+  });
+
+  it("hides operate actions from an operator whose GestionarPartidas was revoked", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas");
+    initMock.mockResolvedValueOnce({
+      username: "operador",
+      roles: ["Operador"],
+      permisos: [],
+      token: "token"
+    });
+
+    render(<App />);
+
+    await screen.findByTestId("lista-partidas");
+    expect(screen.queryByTestId("btn-nueva-partida")).toBeNull();
+    expect(screen.queryByRole("link", { name: /nueva partida/i })).not.toBeInTheDocument();
   });
 });
