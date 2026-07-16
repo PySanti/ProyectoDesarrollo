@@ -74,7 +74,7 @@ public sealed class EquipoAdminHandlersTests
         Assert.Single(response.Integrantes);
         Assert.True(equipos.AddWasCalled);
         Assert.Single(historial.Registros);
-        Assert.Equal(liderMembershipKey, historial.Registros[0].UsuarioId);
+        Assert.Equal(liderMembershipKey, historial.Registros[0].SubjectId);
         Assert.Equal("Equipo A", historial.Registros[0].NombreEquipo);
         Assert.True(publisher.EquipoCreadoWasCalled);
         Assert.Equal(liderMembershipKey, publisher.EquipoCreadoEvent!.LiderUserId);
@@ -107,8 +107,8 @@ public sealed class EquipoAdminHandlersTests
         Assert.NotEqual(liderUserIdLocal, response.LiderUserId);
 
         Assert.Single(historial.Registros);
-        Assert.Equal(liderMembershipKey, historial.Registros[0].UsuarioId);
-        Assert.NotEqual(liderUserIdLocal, historial.Registros[0].UsuarioId);
+        Assert.Equal(liderMembershipKey, historial.Registros[0].SubjectId);
+        Assert.NotEqual(liderUserIdLocal, historial.Registros[0].SubjectId);
 
         Assert.True(publisher.EquipoCreadoWasCalled);
         Assert.Equal(liderMembershipKey, publisher.EquipoCreadoEvent!.LiderUserId);
@@ -148,8 +148,8 @@ public sealed class EquipoAdminHandlersTests
         Assert.True(equipos.UpdateWasCalled);
         Assert.Equal(2, historial.Registros.Count);
         Assert.All(historial.Registros, r => Assert.Equal("Nombre Nuevo", r.NombreEquipo));
-        Assert.Contains(historial.Registros, r => r.UsuarioId == lider);
-        Assert.Contains(historial.Registros, r => r.UsuarioId == miembro);
+        Assert.Contains(historial.Registros, r => r.SubjectId == lider);
+        Assert.Contains(historial.Registros, r => r.SubjectId == miembro);
     }
 
     // ---------- Reasignar liderazgo ----------
@@ -393,7 +393,7 @@ public sealed class EquipoAdminHandlersTests
         }
 
         public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.SubjectId == usuarioId).ToList());
 
         public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }

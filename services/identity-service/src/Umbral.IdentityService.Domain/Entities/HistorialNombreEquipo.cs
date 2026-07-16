@@ -3,7 +3,9 @@ namespace Umbral.IdentityService.Domain.Entities;
 public sealed class HistorialNombreEquipo
 {
     public Guid Id { get; private set; }
-    public Guid UsuarioId { get; private set; }
+
+    // Sub de OIDC, no UsuarioId local. Ver ParticipanteEquipo.SubjectId.
+    public Guid SubjectId { get; private set; }
     public Guid EquipoId { get; private set; }
     public string NombreEquipo { get; private set; }
     public DateTime FechaRegistroUtc { get; private set; }
@@ -13,19 +15,19 @@ public sealed class HistorialNombreEquipo
         NombreEquipo = string.Empty;
     }
 
-    private HistorialNombreEquipo(Guid usuarioId, Guid equipoId, string nombreEquipo, DateTime fechaUtc)
+    private HistorialNombreEquipo(Guid subjectId, Guid equipoId, string nombreEquipo, DateTime fechaUtc)
     {
-        if (usuarioId == Guid.Empty) throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+        if (subjectId == Guid.Empty) throw new ArgumentException("SubjectId requerido", nameof(subjectId));
         if (equipoId == Guid.Empty) throw new ArgumentException("EquipoId requerido", nameof(equipoId));
         if (string.IsNullOrWhiteSpace(nombreEquipo)) throw new ArgumentException("NombreEquipo requerido", nameof(nombreEquipo));
 
         Id = Guid.NewGuid();
-        UsuarioId = usuarioId;
+        SubjectId = subjectId;
         EquipoId = equipoId;
         NombreEquipo = nombreEquipo.Trim();
         FechaRegistroUtc = fechaUtc;
     }
 
-    public static HistorialNombreEquipo Registrar(Guid usuarioId, Guid equipoId, string nombreEquipo, DateTime fechaUtc)
-        => new(usuarioId, equipoId, nombreEquipo, fechaUtc);
+    public static HistorialNombreEquipo Registrar(Guid subjectId, Guid equipoId, string nombreEquipo, DateTime fechaUtc)
+        => new(subjectId, equipoId, nombreEquipo, fechaUtc);
 }

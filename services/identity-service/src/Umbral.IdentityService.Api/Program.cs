@@ -168,33 +168,33 @@ using (var scope = app.Services.CreateScope())
             CREATE TABLE IF NOT EXISTS equipos_participantes (
                 participanteequipoid uuid PRIMARY KEY,
                 equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
-                usuarioid uuid NOT NULL,
+                subjectid uuid NOT NULL,
                 fechaunionutc timestamp with time zone NOT NULL,
                 eslider boolean NOT NULL
             );
 
-            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_usuarioid ON equipos_participantes (usuarioid);
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_subjectid ON equipos_participantes (subjectid);
 
             CREATE TABLE IF NOT EXISTS invitaciones_equipo (
                 invitacionequipoid uuid PRIMARY KEY,
                 equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
-                invitadouserid uuid NOT NULL,
-                invitadoporuserid uuid NOT NULL,
+                invitadosubjectid uuid NOT NULL,
+                invitadoporsubjectid uuid NOT NULL,
                 estado integer NOT NULL,
                 fechacreacionutc timestamp with time zone NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadouserid ON invitaciones_equipo (invitadouserid);
+            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadosubjectid ON invitaciones_equipo (invitadosubjectid);
 
             CREATE TABLE IF NOT EXISTS historial_nombre_equipo (
                 id uuid PRIMARY KEY,
-                usuarioid uuid NOT NULL,
+                subjectid uuid NOT NULL,
                 equipoid uuid NOT NULL,
                 nombreequipo varchar(120) NOT NULL,
                 fecharegistroutc timestamp with time zone NOT NULL
             );
 
-            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_usuarioid ON historial_nombre_equipo (usuarioid);
+            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_subjectid ON historial_nombre_equipo (subjectid);
 
             CREATE TABLE IF NOT EXISTS participaciones_activas_equipo (
                 equipoid uuid NOT NULL,
@@ -202,6 +202,42 @@ using (var scope = app.Services.CreateScope())
                 fecharegistroutc timestamp with time zone NOT NULL,
                 PRIMARY KEY (equipoid, partidaid)
             );
+            """);
+
+        // Renombrado usuarioid/invitadouserid -> subjectid (slice del 2026-07-16). Los CREATE de
+        // arriba solo sirven a bases nuevas: en una base ya creada, IF NOT EXISTS no hace nada y
+        // la columna se quedaria con el nombre viejo, con lo que EF pediria subjectid y toda
+        // consulta de equipos reventaria. Estos parches cubren esa deriva, que es justo para lo
+        // que existe este bloque.
+        //
+        // Guardados por information_schema en vez de IF EXISTS: ALTER ... RENAME COLUMN no admite
+        // IF EXISTS sobre la columna, y sin guarda el segundo arranque fallaria.
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'equipos_participantes' AND column_name = 'usuarioid') THEN
+                    ALTER TABLE equipos_participantes RENAME COLUMN usuarioid TO subjectid;
+                    ALTER INDEX IF EXISTS ux_equipos_participantes_usuarioid RENAME TO ux_equipos_participantes_subjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'historial_nombre_equipo' AND column_name = 'usuarioid') THEN
+                    ALTER TABLE historial_nombre_equipo RENAME COLUMN usuarioid TO subjectid;
+                    ALTER INDEX IF EXISTS ix_historial_nombre_equipo_usuarioid RENAME TO ix_historial_nombre_equipo_subjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'invitaciones_equipo' AND column_name = 'invitadouserid') THEN
+                    ALTER TABLE invitaciones_equipo RENAME COLUMN invitadouserid TO invitadosubjectid;
+                    ALTER INDEX IF EXISTS ix_invitaciones_equipo_invitadouserid RENAME TO ix_invitaciones_equipo_invitadosubjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'invitaciones_equipo' AND column_name = 'invitadoporuserid') THEN
+                    ALTER TABLE invitaciones_equipo RENAME COLUMN invitadoporuserid TO invitadoporsubjectid;
+                END IF;
+            END $$;
             """);
     }
 

@@ -3,7 +3,10 @@ namespace Umbral.IdentityService.Domain.Entities;
 public sealed class ParticipanteEquipo
 {
     public Guid ParticipanteEquipoId { get; private set; }
-    public Guid UsuarioId { get; private set; }
+
+    // El sub de OIDC (hoy Keycloak), no el UsuarioId local de la tabla usuarios: son dos Guid
+    // sin relacion. Con este id llega el actor en el token.
+    public Guid SubjectId { get; private set; }
     public DateTime FechaUnionUtc { get; private set; }
     public bool EsLider { get; private set; }
 
@@ -11,27 +14,27 @@ public sealed class ParticipanteEquipo
     {
     }
 
-    private ParticipanteEquipo(Guid usuarioId, bool esLider)
+    private ParticipanteEquipo(Guid subjectId, bool esLider)
     {
-        if (usuarioId == Guid.Empty)
+        if (subjectId == Guid.Empty)
         {
-            throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+            throw new ArgumentException("SubjectId requerido", nameof(subjectId));
         }
 
         ParticipanteEquipoId = Guid.NewGuid();
-        UsuarioId = usuarioId;
+        SubjectId = subjectId;
         FechaUnionUtc = DateTime.UtcNow;
         EsLider = esLider;
     }
 
-    public static ParticipanteEquipo CrearCreador(Guid usuarioId)
+    public static ParticipanteEquipo CrearCreador(Guid subjectId)
     {
-        return new ParticipanteEquipo(usuarioId, true);
+        return new ParticipanteEquipo(subjectId, true);
     }
 
-    public static ParticipanteEquipo CrearIntegrante(Guid usuarioId)
+    public static ParticipanteEquipo CrearIntegrante(Guid subjectId)
     {
-        return new ParticipanteEquipo(usuarioId, false);
+        return new ParticipanteEquipo(subjectId, false);
     }
 
     public void MarcarComoLider()

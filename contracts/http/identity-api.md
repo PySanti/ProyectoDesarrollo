@@ -73,8 +73,10 @@ Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
 > esta sección — `invitadoUserId`, `nuevoLiderUserId`, el `userId` de `eligible-participants`, los
 > `usuarioId` de `/identity/teams/mine` — es el **`sub` de Keycloak**, que es el id con el que el
 > actor llega en el token. **No** es `Usuario.UsuarioId`, el id local de la tabla `usuarios`: son
-> dos Guid sin relación entre sí. `ParticipanteEquipo.UsuarioId` guarda el sub pese a su nombre,
-> y los handlers que necesitan datos de `usuarios` resuelven por `KeycloakId` parseado
+> dos Guid sin relación entre sí. El estado persistido lo dice en su nombre desde el slice del
+> 2026-07-16 (`ParticipanteEquipo.SubjectId`, `InvitacionEquipo.InvitadoSubjectId`), y el id local
+> es un tipo propio (`UsuarioLocalId`) para que mezclarlos no compile. Los handlers que necesitan
+> datos de `usuarios` resuelven por `KeycloakId` parseado
 > (`ListarEquiposQueryHandler`, `ResolverNombresQueryHandler`, `GetParticipantesElegiblesQueryHandler`).
 > Devolver el id local desde cualquiera de estos endpoints archiva la invitación bajo un id que el
 > invitado nunca presenta: la invitación se crea, pero no la ve nadie. Ya pasó una vez.

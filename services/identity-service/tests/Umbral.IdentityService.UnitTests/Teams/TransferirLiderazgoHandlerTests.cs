@@ -27,8 +27,8 @@ public sealed class TransferirLiderazgoHandlerTests
         Assert.Equal(nuevoLider, response.NuevoLiderUserId);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.EquipoEstado);
         Assert.True(repo.UpdateWasCalled);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == nuevoLider).EsLider);
-        Assert.False(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == nuevoLider).EsLider);
+        Assert.False(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
     }
 
     [Fact]

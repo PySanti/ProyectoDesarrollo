@@ -18,7 +18,7 @@ public static class HistorialBackfill
 
         var ahora = time.GetUtcNow().UtcDateTime;
         var filas = equipos.SelectMany(e => e.Participantes
-            .Select(p => HistorialNombreEquipo.Registrar(p.UsuarioId, e.EquipoId, e.NombreEquipo, ahora)));
+            .Select(p => HistorialNombreEquipo.Registrar(p.SubjectId, e.EquipoId, e.NombreEquipo, ahora)));
 
         db.HistorialNombresEquipo.AddRange(filas);
         await db.SaveChangesAsync(cancellationToken);

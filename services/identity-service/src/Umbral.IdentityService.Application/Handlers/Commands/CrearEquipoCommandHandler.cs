@@ -61,7 +61,7 @@ public sealed class CrearEquipoCommandHandler : IRequestHandler<CrearEquipoComma
             cancellationToken);
 
         var integrantes = equipo.Participantes
-            .Select(x => new CrearEquipoIntegranteResponse(x.UsuarioId, x.EsLider))
+            .Select(x => new CrearEquipoIntegranteResponse(x.SubjectId, x.EsLider))
             .ToArray();
 
         return new CrearEquipoResponse(

@@ -56,7 +56,7 @@ public sealed class GetParticipantesElegiblesHandlerTests
         Assert.Empty(result);
     }
 
-    // Los tres tests que siguen fijan el espacio de ids. ParticipanteEquipo.UsuarioId guarda el
+    // Los tres tests que siguen fijan el espacio de ids. ParticipanteEquipo.SubjectId guarda el
     // sub de Keycloak, no el UsuarioId local (mismo patron que ListarEquiposQueryHandler y
     // ResolverNombresQueryHandler). Por eso los fixtures usan un Guid real como KeycloakId: un
     // "kc-1" no parseable no se parece a nada que Keycloak emita y esconde justo este bug.

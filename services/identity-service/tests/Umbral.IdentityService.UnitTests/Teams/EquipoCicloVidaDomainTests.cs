@@ -25,7 +25,7 @@ public sealed class EquipoCicloVidaDomainTests
         Assert.Equal(EstadoEquipo.Activo, equipo.Estado);
         Assert.Single(equipo.Participantes);
         Assert.True(equipo.Participantes[0].EsLider);
-        Assert.Equal(lider, equipo.Participantes[0].UsuarioId);
+        Assert.Equal(lider, equipo.Participantes[0].SubjectId);
     }
 
     [Fact]
@@ -97,8 +97,8 @@ public sealed class EquipoCicloVidaDomainTests
 
         Assert.Equal(lider, anterior);
         Assert.Equal(miembro, nuevo);
-        Assert.True(equipo.Participantes.Single(p => p.UsuarioId == miembro).EsLider);
-        Assert.False(equipo.Participantes.Single(p => p.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(p => p.SubjectId == miembro).EsLider);
+        Assert.False(equipo.Participantes.Single(p => p.SubjectId == lider).EsLider);
     }
 
     [Fact]

@@ -15,7 +15,7 @@ public sealed class HistorialNombreEquipoDomainTests
         var h = HistorialNombreEquipo.Registrar(usuario, equipo, "  Titanes  ", fecha);
 
         Assert.NotEqual(Guid.Empty, h.Id);
-        Assert.Equal(usuario, h.UsuarioId);
+        Assert.Equal(usuario, h.SubjectId);
         Assert.Equal(equipo, h.EquipoId);
         Assert.Equal("Titanes", h.NombreEquipo);
         Assert.Equal(fecha, h.FechaRegistroUtc);

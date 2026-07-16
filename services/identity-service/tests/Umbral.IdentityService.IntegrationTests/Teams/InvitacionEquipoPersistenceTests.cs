@@ -68,7 +68,7 @@ public sealed class InvitacionEquipoPersistenceTests
             .Include(e => e.Participantes)
             .FirstOrDefaultAsync(e => e.EquipoId == equipo.EquipoId);
         Assert.NotNull(persistedEquipo);
-        Assert.Contains(persistedEquipo.Participantes, p => p.UsuarioId == invitadoUserId && !p.EsLider);
+        Assert.Contains(persistedEquipo.Participantes, p => p.SubjectId == invitadoUserId && !p.EsLider);
     }
 
     [Fact]
@@ -103,7 +103,7 @@ public sealed class InvitacionEquipoPersistenceTests
             .FirstOrDefaultAsync(e => e.EquipoId == equipo.EquipoId);
         Assert.NotNull(persistedEquipo);
         Assert.Single(persistedEquipo.Participantes);
-        Assert.DoesNotContain(persistedEquipo.Participantes, p => p.UsuarioId == invitadoUserId);
+        Assert.DoesNotContain(persistedEquipo.Participantes, p => p.SubjectId == invitadoUserId);
     }
 
     [Fact]

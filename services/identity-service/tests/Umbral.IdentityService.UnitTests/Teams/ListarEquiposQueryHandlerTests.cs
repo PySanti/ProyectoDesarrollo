@@ -58,7 +58,7 @@ public class ListarEquiposQueryHandlerTests
     [Fact]
     public async Task Mapea_equipo_con_nombres_de_miembros_y_lider()
     {
-        // ParticipanteEquipo.UsuarioId guarda el sub de Keycloak (así lo puebla
+        // ParticipanteEquipo.SubjectId guarda el sub de Keycloak (así lo puebla
         // AuthenticatedUserClaims.TryGetUserId), no el UsuarioId local de Usuario.Crear.
         // Por eso el usuario se crea con KeycloakId = lider.ToString(): pinnea el join
         // por KeycloakId en el handler.

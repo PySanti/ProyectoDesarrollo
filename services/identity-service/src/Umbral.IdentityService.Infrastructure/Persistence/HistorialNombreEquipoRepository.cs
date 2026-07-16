@@ -26,7 +26,7 @@ public sealed class HistorialNombreEquipoRepository : IHistorialNombreEquipoRepo
 
     public async Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
         => await _db.HistorialNombresEquipo
-            .Where(x => x.UsuarioId == usuarioId)
+            .Where(x => x.SubjectId == usuarioId)
             .OrderBy(x => x.FechaRegistroUtc)
             .ToListAsync(cancellationToken);
 

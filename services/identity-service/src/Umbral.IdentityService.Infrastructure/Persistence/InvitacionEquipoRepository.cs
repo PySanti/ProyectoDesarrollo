@@ -61,7 +61,7 @@ public sealed class InvitacionEquipoRepository : IInvitacionEquipoRepository
     public async Task<IReadOnlyList<InvitacionEquipo>> GetPendientesByInvitadoAsync(Guid invitadoUserId, CancellationToken ct)
     {
         var list = await _dbContext.InvitacionesEquipo
-            .Where(x => x.InvitadoUserId == invitadoUserId && x.Estado == EstadoInvitacion.Pendiente)
+            .Where(x => x.InvitadoSubjectId == invitadoUserId && x.Estado == EstadoInvitacion.Pendiente)
             .ToListAsync(ct);
 
         return list;
@@ -72,7 +72,7 @@ public sealed class InvitacionEquipoRepository : IInvitacionEquipoRepository
         return _dbContext.InvitacionesEquipo
             .AnyAsync(
                 x => x.EquipoId == equipoId &&
-                     x.InvitadoUserId == invitadoUserId &&
+                     x.InvitadoSubjectId == invitadoUserId &&
                      x.Estado == EstadoInvitacion.Pendiente,
                 ct);
     }

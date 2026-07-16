@@ -127,7 +127,7 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         Assert.Equal("Aceptada", response.EstadoInvitacion);
         Assert.Equal(invitado, response.InvitadoUserId);
         Assert.Equal(2, equipo.Participantes.Count);
-        Assert.Contains(equipo.Participantes, p => p.UsuarioId == invitado);
+        Assert.Contains(equipo.Participantes, p => p.SubjectId == invitado);
         Assert.Equal(EstadoInvitacion.Aceptada, invitacion.Estado);
         Assert.True(invRepo.UpdateWasCalled);
         Assert.True(equipoRepo.UpdateWasCalled);
@@ -202,7 +202,7 @@ public sealed class AceptarInvitacionEquipoHandlerTests
         }
 
         public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.SubjectId == usuarioId).ToList());
 
         public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }

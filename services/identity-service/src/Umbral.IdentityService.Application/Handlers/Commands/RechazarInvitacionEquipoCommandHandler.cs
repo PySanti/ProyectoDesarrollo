@@ -28,7 +28,7 @@ public sealed class RechazarInvitacionEquipoCommandHandler : IRequestHandler<Rec
         if (invitacion is null)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
-        if (invitacion.InvitadoUserId != request.ActorUserId)
+        if (invitacion.InvitadoSubjectId != request.ActorUserId)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
         if (invitacion.Estado != EstadoInvitacion.Pendiente)
@@ -42,14 +42,14 @@ public sealed class RechazarInvitacionEquipoCommandHandler : IRequestHandler<Rec
             new InvitacionEquipoRechazadaIntegrationEvent(
                 invitacion.InvitacionEquipoId,
                 invitacion.EquipoId,
-                invitacion.InvitadoUserId,
+                invitacion.InvitadoSubjectId,
                 DateTime.UtcNow),
             cancellationToken);
 
         return new RechazarInvitacionEquipoResponse(
             invitacion.InvitacionEquipoId,
             invitacion.EquipoId,
-            invitacion.InvitadoUserId,
+            invitacion.InvitadoSubjectId,
             invitacion.Estado.ToString());
     }
 }

@@ -22,7 +22,7 @@ public sealed class ListarEquiposQueryHandler
     {
         var equipos = await _equipos.GetAllAsync(cancellationToken);
         var usuarios = await _usuarios.GetAllAsync(cancellationToken);
-        // Los miembros de equipo (ParticipanteEquipo.UsuarioId) guardan el sub de Keycloak,
+        // Los miembros de equipo (ParticipanteEquipo.SubjectId) guardan el sub de Keycloak,
         // no el UsuarioId local: hay que resolver el nombre por KeycloakId parseado.
         var nombres = new Dictionary<Guid, string>();
         foreach (var u in usuarios)
@@ -38,8 +38,8 @@ public sealed class ListarEquiposQueryHandler
                 e.Estado.ToString(),
                 e.Participantes
                     .Select(p => new MiembroEquipoAdminResponse(
-                        p.UsuarioId,
-                        nombres.TryGetValue(p.UsuarioId, out var nombre) ? nombre : "",
+                        p.SubjectId,
+                        nombres.TryGetValue(p.SubjectId, out var nombre) ? nombre : "",
                         p.EsLider))
                     .ToList()))
             .ToList();

@@ -50,11 +50,11 @@ public sealed class IdentityDbContext : DbContext
             entity.ToTable("equipos_participantes");
             entity.HasKey(x => x.ParticipanteEquipoId);
             entity.Property(x => x.ParticipanteEquipoId).HasColumnName("participanteequipoid");
-            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid").IsRequired();
+            entity.Property(x => x.SubjectId).HasColumnName("subjectid").IsRequired();
             entity.Property(x => x.FechaUnionUtc).HasColumnName("fechaunionutc").IsRequired();
             entity.Property(x => x.EsLider).HasColumnName("eslider").IsRequired();
-            entity.HasIndex(x => x.UsuarioId)
-                .HasDatabaseName("ux_equipos_participantes_usuarioid")
+            entity.HasIndex(x => x.SubjectId)
+                .HasDatabaseName("ux_equipos_participantes_subjectid")
                 .IsUnique();
         });
 
@@ -64,12 +64,12 @@ public sealed class IdentityDbContext : DbContext
             entity.HasKey(x => x.InvitacionEquipoId);
             entity.Property(x => x.InvitacionEquipoId).HasColumnName("invitacionequipoid");
             entity.Property(x => x.EquipoId).HasColumnName("equipoid").IsRequired();
-            entity.Property(x => x.InvitadoUserId).HasColumnName("invitadouserid").IsRequired();
-            entity.Property(x => x.InvitadoPorUserId).HasColumnName("invitadoporuserid").IsRequired();
+            entity.Property(x => x.InvitadoSubjectId).HasColumnName("invitadosubjectid").IsRequired();
+            entity.Property(x => x.InvitadoPorSubjectId).HasColumnName("invitadoporsubjectid").IsRequired();
             entity.Property(x => x.Estado).HasColumnName("estado").IsRequired();
             entity.Property(x => x.FechaCreacionUtc).HasColumnName("fechacreacionutc").IsRequired();
-            entity.HasIndex(x => x.InvitadoUserId)
-                .HasDatabaseName("ix_invitaciones_equipo_invitadouserid");
+            entity.HasIndex(x => x.InvitadoSubjectId)
+                .HasDatabaseName("ix_invitaciones_equipo_invitadosubjectid");
             entity.HasOne<Equipo>()
                 .WithMany()
                 .HasForeignKey(x => x.EquipoId)
@@ -89,11 +89,11 @@ public sealed class IdentityDbContext : DbContext
             entity.ToTable("historial_nombre_equipo");
             entity.HasKey(x => x.Id);
             entity.Property(x => x.Id).HasColumnName("id");
-            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid").IsRequired();
+            entity.Property(x => x.SubjectId).HasColumnName("subjectid").IsRequired();
             entity.Property(x => x.EquipoId).HasColumnName("equipoid").IsRequired();
             entity.Property(x => x.NombreEquipo).HasColumnName("nombreequipo").HasMaxLength(120).IsRequired();
             entity.Property(x => x.FechaRegistroUtc).HasColumnName("fecharegistroutc").IsRequired();
-            entity.HasIndex(x => x.UsuarioId).HasDatabaseName("ix_historial_nombre_equipo_usuarioid");
+            entity.HasIndex(x => x.SubjectId).HasDatabaseName("ix_historial_nombre_equipo_subjectid");
         });
 
         modelBuilder.Entity<ParticipacionActivaEquipo>(entity =>

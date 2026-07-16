@@ -100,7 +100,7 @@ public sealed class CrearEquipoHandlerTests
         }
 
         public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.SubjectId == usuarioId).ToList());
 
         public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }

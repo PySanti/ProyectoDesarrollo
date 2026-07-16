@@ -24,9 +24,9 @@ public sealed class GetEquiposAdminQueryHandler : IRequestHandler<GetEquiposAdmi
             equipo.EquipoId,
             equipo.NombreEquipo,
             equipo.Estado.ToString(),
-            equipo.Participantes.FirstOrDefault(p => p.EsLider)?.UsuarioId,
+            equipo.Participantes.FirstOrDefault(p => p.EsLider)?.SubjectId,
             equipo.Participantes
-                .Select(p => new EquipoAdminIntegrante(p.UsuarioId, p.EsLider))
+                .Select(p => new EquipoAdminIntegrante(p.SubjectId, p.EsLider))
                 .ToList());
     }
 }

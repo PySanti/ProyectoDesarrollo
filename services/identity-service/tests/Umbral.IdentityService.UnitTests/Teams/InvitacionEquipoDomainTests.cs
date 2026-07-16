@@ -55,8 +55,8 @@ public sealed class InvitacionEquipoDomainTests
         var inv = InvitacionEquipo.Crear(equipoId, invitadoUserId, invitadoPorUserId);
 
         Assert.Equal(equipoId, inv.EquipoId);
-        Assert.Equal(invitadoUserId, inv.InvitadoUserId);
-        Assert.Equal(invitadoPorUserId, inv.InvitadoPorUserId);
+        Assert.Equal(invitadoUserId, inv.InvitadoSubjectId);
+        Assert.Equal(invitadoPorUserId, inv.InvitadoPorSubjectId);
         Assert.NotEqual(Guid.Empty, inv.InvitacionEquipoId);
     }
 
@@ -68,14 +68,14 @@ public sealed class InvitacionEquipoDomainTests
     }
 
     [Fact]
-    public void Crear_Should_Throw_When_InvitadoUserId_IsEmpty()
+    public void Crear_Should_Throw_When_InvitadoSubjectId_IsEmpty()
     {
         Assert.Throws<ArgumentException>(() =>
             InvitacionEquipo.Crear(Guid.NewGuid(), Guid.Empty, Guid.NewGuid()));
     }
 
     [Fact]
-    public void Crear_Should_Throw_When_InvitadoPorUserId_IsEmpty()
+    public void Crear_Should_Throw_When_InvitadoPorSubjectId_IsEmpty()
     {
         Assert.Throws<ArgumentException>(() =>
             InvitacionEquipo.Crear(Guid.NewGuid(), Guid.NewGuid(), Guid.Empty));

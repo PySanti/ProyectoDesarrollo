@@ -39,7 +39,7 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
         if (invitacion is null)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
-        if (invitacion.InvitadoUserId != request.ActorUserId)
+        if (invitacion.InvitadoSubjectId != request.ActorUserId)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
         if (invitacion.Estado != EstadoInvitacion.Pendiente)
@@ -59,13 +59,13 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
         invitacion.Aceptar();
         await _invitacionRepository.UpdateAsync(invitacion, cancellationToken);
 
-        equipo.AgregarParticipante(invitacion.InvitadoUserId);
+        equipo.AgregarParticipante(invitacion.InvitadoSubjectId);
         await _equipoRepository.UpdateAsync(equipo, cancellationToken);
 
         await _historialRepository.AddRangeAsync(new[]
         {
             HistorialNombreEquipo.Registrar(
-                invitacion.InvitadoUserId, equipo.EquipoId, equipo.NombreEquipo, _timeProvider.GetUtcNow().UtcDateTime)
+                invitacion.InvitadoSubjectId, equipo.EquipoId, equipo.NombreEquipo, _timeProvider.GetUtcNow().UtcDateTime)
         }, cancellationToken);
 
         var lider = equipo.Participantes.Single(p => p.EsLider);
@@ -74,15 +74,15 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
             new InvitacionEquipoAceptadaIntegrationEvent(
                 invitacion.InvitacionEquipoId,
                 equipo.EquipoId,
-                invitacion.InvitadoUserId,
-                lider.UsuarioId,
+                invitacion.InvitadoSubjectId,
+                lider.SubjectId,
                 DateTime.UtcNow),
             cancellationToken);
 
         return new AceptarInvitacionEquipoResponse(
             invitacion.InvitacionEquipoId,
             invitacion.EquipoId,
-            invitacion.InvitadoUserId,
+            invitacion.InvitadoSubjectId,
             invitacion.Estado.ToString());
     }
 }

@@ -23,7 +23,7 @@ public sealed class HistorialNombreEnAltasTests
         }
 
         public Task<IReadOnlyList<HistorialNombreEquipo>> GetByUsuarioAsync(Guid usuarioId, CancellationToken cancellationToken)
-            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.UsuarioId == usuarioId).ToList());
+            => Task.FromResult<IReadOnlyList<HistorialNombreEquipo>>(Registros.Where(x => x.SubjectId == usuarioId).ToList());
 
         public Task<bool> AnyAsync(CancellationToken cancellationToken) => Task.FromResult(Registros.Count > 0);
     }
@@ -158,7 +158,7 @@ public sealed class HistorialNombreEnAltasTests
         var response = await handler.Handle(new CrearEquipoCommand(actor, "Equipo A"), CancellationToken.None);
 
         var registro = Assert.Single(historial.Registros);
-        Assert.Equal(actor, registro.UsuarioId);
+        Assert.Equal(actor, registro.SubjectId);
         Assert.Equal("Equipo A", registro.NombreEquipo);
         Assert.Equal(response.EquipoId, registro.EquipoId);
     }
@@ -180,7 +180,7 @@ public sealed class HistorialNombreEnAltasTests
         await handler.Handle(new AceptarInvitacionEquipoCommand(invitado, invitacion.InvitacionEquipoId), CancellationToken.None);
 
         var registro = Assert.Single(historial.Registros);
-        Assert.Equal(invitado, registro.UsuarioId);
+        Assert.Equal(invitado, registro.SubjectId);
         Assert.Equal("Equipo A", registro.NombreEquipo);
         Assert.Equal(equipo.EquipoId, registro.EquipoId);
     }

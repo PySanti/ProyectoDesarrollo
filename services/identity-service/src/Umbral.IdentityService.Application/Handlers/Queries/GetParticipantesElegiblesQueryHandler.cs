@@ -29,18 +29,18 @@ public sealed class GetParticipantesElegiblesQueryHandler : IRequestHandler<GetP
             throw new NoEsLiderException(request.ActorUserId);
 
         var lider = equipo.Participantes.SingleOrDefault(p => p.EsLider);
-        if (lider is null || lider.UsuarioId != request.ActorUserId)
+        if (lider is null || lider.SubjectId != request.ActorUserId)
             throw new NoEsLiderException(request.ActorUserId);
 
         if (equipo.Participantes.Count >= 5)
             return Array.Empty<ParticipanteElegibleResponse>();
 
-        var miembrosActuales = equipo.Participantes.Select(p => p.UsuarioId).ToHashSet();
+        var miembrosActuales = equipo.Participantes.Select(p => p.SubjectId).ToHashSet();
 
         var todosLosUsuarios = await _usuarioRepository.GetAllAsync(cancellationToken);
 
         // Los competidores viajan en el espacio del sub de Keycloak, no del UsuarioId local:
-        // ParticipanteEquipo.UsuarioId guarda el sub, y con el sub llega el actor en el token.
+        // ParticipanteEquipo.SubjectId guarda el sub, y con el sub llega el actor en el token.
         // El join va por KeycloakId parseado (mismo patron que ListarEquiposQueryHandler y
         // ResolverNombresQueryHandler). Un KeycloakId no parseable se ignora.
         //

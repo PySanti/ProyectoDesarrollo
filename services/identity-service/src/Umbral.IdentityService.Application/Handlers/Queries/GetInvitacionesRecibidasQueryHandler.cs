@@ -33,7 +33,7 @@ public sealed class GetInvitacionesRecibidasQueryHandler : IRequestHandler<GetIn
                 inv.InvitacionEquipoId,
                 inv.EquipoId,
                 nombreEquipo,
-                inv.InvitadoPorUserId,
+                inv.InvitadoPorSubjectId,
                 inv.FechaCreacionUtc));
         }
 

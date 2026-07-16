@@ -34,7 +34,7 @@ public sealed class RenombrarEquipoAdminCommandHandler : IRequestHandler<Renombr
 
         var ahora = _timeProvider.GetUtcNow().UtcDateTime;
         var registros = equipo.Participantes
-            .Select(p => HistorialNombreEquipo.Registrar(p.UsuarioId, equipo.EquipoId, equipo.NombreEquipo, ahora))
+            .Select(p => HistorialNombreEquipo.Registrar(p.SubjectId, equipo.EquipoId, equipo.NombreEquipo, ahora))
             .ToList();
         await _historial.AddRangeAsync(registros, cancellationToken);
 

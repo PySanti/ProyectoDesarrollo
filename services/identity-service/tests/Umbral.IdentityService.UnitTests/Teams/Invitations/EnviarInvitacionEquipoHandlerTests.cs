@@ -129,7 +129,7 @@ public sealed class EnviarInvitacionEquipoHandlerTests
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             // Return true for invitado checks (not for the actor leader)
-            if (TeamToReturn is not null && TeamToReturn.Participantes.Any(p => p.UsuarioId == userId))
+            if (TeamToReturn is not null && TeamToReturn.Participantes.Any(p => p.SubjectId == userId))
                 return Task.FromResult(false);
             return Task.FromResult(ExistsActiveForInvitadoValue);
         }

@@ -32,7 +32,7 @@ public sealed class SalirDeEquipoHandlerTests
         Assert.Equal(ResultadoSalidaEquipo.SalioDelEquipo.ToString(), response.Resultado);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.EquipoEstado);
         Assert.True(repo.UpdateWasCalled);
-        Assert.DoesNotContain(equipo.Participantes, x => x.UsuarioId == actor);
+        Assert.DoesNotContain(equipo.Participantes, x => x.SubjectId == actor);
     }
 
     [Fact]
