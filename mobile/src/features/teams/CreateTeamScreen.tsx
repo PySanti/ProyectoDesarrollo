@@ -3,6 +3,7 @@ import { SafeAreaView, ScrollView, StyleSheet } from "react-native";
 import { Button, Card, Field, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { submitCreateTeam } from "./createTeamFlow.js";
+import { nombreEquipo } from "../../shared/validation.js";
 
 type CreateTeamScreenProps = {
   apiBaseUrl: string;
@@ -12,11 +13,18 @@ type CreateTeamScreenProps = {
 
 export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScreenProps) {
   const [teamName, setTeamName] = useState("");
+  const [touched, setTouched] = useState(false);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
-  const canSubmit = useMemo(() => teamName.trim().length > 0 && !loading, [teamName, loading]);
+  const validationError = nombreEquipo(teamName) as string | null;
+  // Formato valida en vivo (valor no vacio); "obligatorio" recien al salir del campo.
+  const fieldError = teamName.trim() !== "" || touched ? validationError : null;
+  const canSubmit = useMemo(
+    () => validationError === null && !loading,
+    [validationError, loading]
+  );
 
   async function handleSubmit() {
     setLoading(true);
@@ -44,6 +52,7 @@ export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScr
     }
 
     setTeamName("");
+    setTouched(false);
     setSuccessMessage("Equipo creado con exito.");
     onCreated?.(result.data);
   }
@@ -57,6 +66,8 @@ export function CreateTeamScreen({ apiBaseUrl, token, onCreated }: CreateTeamScr
             label="Nombre del equipo"
             value={teamName}
             onChangeText={setTeamName}
+            onBlur={() => setTouched(true)}
+            error={fieldError}
             placeholder="Ej. Exploradores"
             autoCapitalize="words"
             editable={!loading}
