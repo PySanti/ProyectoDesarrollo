@@ -6,6 +6,7 @@ import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, radius, spacing } from "../../shared/theme";
 import { AppStackParamList } from "../../navigation/types";
 import { fetchMyTeamStatus } from "./teamPanelFlow.js";
+import { fetchInvitations } from "./invitationsFlow.js";
 import { FetchTeamStatusResult, Participante } from "./teamTypes";
 
 type TeamStatus =
@@ -25,17 +26,18 @@ export function TeamPanelScreen({ apiBaseUrl, token, currentUserId, navigation }
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [team, setTeam] = useState<TeamStatus | null>(null);
+  const [invitationsCount, setInvitationsCount] = useState(0);
 
   const load = useCallback(async () => {
     setLoading(true);
     setErrorMessage(null);
-    const result = (await fetchMyTeamStatus({
-      apiBaseUrl,
-      token,
-      currentUserId,
-      fetchImpl: undefined,
-    })) as FetchTeamStatusResult;
+    // Estado del equipo + conteo de invitaciones en paralelo; el conteo no debe bloquear el panel.
+    const [result, invitationsResult] = await Promise.all([
+      fetchMyTeamStatus({ apiBaseUrl, token, currentUserId, fetchImpl: undefined }) as Promise<FetchTeamStatusResult>,
+      fetchInvitations({ apiBaseUrl, token, fetchImpl: undefined }),
+    ]);
     setLoading(false);
+    setInvitationsCount(invitationsResult.ok && Array.isArray(invitationsResult.data) ? invitationsResult.data.length : 0);
     if (!result.ok) {
       setErrorMessage(result.message ?? "No se pudo cargar tu equipo.");
       return;
@@ -65,16 +67,22 @@ export function TeamPanelScreen({ apiBaseUrl, token, currentUserId, navigation }
         {loading ? (
           <ActivityIndicator color={colors.primaryBright} size="large" />
         ) : team?.status === "sinEquipo" ? (
-          <SinEquipoView navigation={navigation} />
+          <SinEquipoView navigation={navigation} invitationsCount={invitationsCount} />
         ) : team ? (
-          <ConEquipoView team={team} navigation={navigation} />
+          <ConEquipoView team={team} navigation={navigation} invitationsCount={invitationsCount} />
         ) : null}
       </ScrollView>
     </SafeAreaView>
   );
 }
 
-function SinEquipoView({ navigation }: { navigation: TeamPanelNavigation }) {
+function SinEquipoView({
+  navigation,
+  invitationsCount,
+}: {
+  navigation: TeamPanelNavigation;
+  invitationsCount: number;
+}) {
   return (
     <View style={styles.group}>
       <Card>
@@ -83,7 +91,12 @@ function SinEquipoView({ navigation }: { navigation: TeamPanelNavigation }) {
         </AppText>
       </Card>
       <Button label="Crear equipo" onPress={() => navigation.navigate("CreateTeam")} />
-      <Button label="Invitaciones" variant="secondary" onPress={() => navigation.navigate("Invitations")} />
+      <Button
+        label="Invitaciones"
+        variant="secondary"
+        badgeCount={invitationsCount}
+        onPress={() => navigation.navigate("Invitations")}
+      />
       <Button label="Historial de equipos" variant="secondary" onPress={() => navigation.navigate("TeamHistory")} />
     </View>
   );
@@ -92,9 +105,11 @@ function SinEquipoView({ navigation }: { navigation: TeamPanelNavigation }) {
 function ConEquipoView({
   team,
   navigation,
+  invitationsCount,
 }: {
   team: Extract<TeamStatus, { status: "lider" | "miembro" }>;
   navigation: TeamPanelNavigation;
+  invitationsCount: number;
 }) {
   const esLider = team.status === "lider";
   return (
@@ -115,7 +130,11 @@ function ConEquipoView({
         </View>
       </Card>
 
-      <Button label="Invitaciones" onPress={() => navigation.navigate("Invitations")} />
+      <Button
+        label="Invitaciones"
+        badgeCount={invitationsCount}
+        onPress={() => navigation.navigate("Invitations")}
+      />
       {esLider ? <Button label="Invitar miembro" onPress={() => navigation.navigate("InviteMember")} /> : null}
       {esLider ? (
         <Button
