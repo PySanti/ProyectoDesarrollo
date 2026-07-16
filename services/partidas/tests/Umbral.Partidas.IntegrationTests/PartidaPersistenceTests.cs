@@ -13,6 +13,8 @@ namespace Umbral.Partidas.IntegrationTests;
 
 public class PartidaPersistenceTests
 {
+    private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+
     private static PartidasDbContext NewContext(string dbName) =>
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
 
@@ -20,7 +22,7 @@ public class PartidaPersistenceTests
     public async Task Partida_with_trivia_and_bdt_games_round_trips()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
         var trivia = JuegoTrivia.Crear(partida.PartidaId, 1, new[]
         {
             new PreguntaSpec("Q", new List<OpcionSpec> { new("A", true), new("B", false) }, 10, 30)

@@ -17,7 +17,8 @@ namespace Umbral.Partidas.UnitTests.Application;
 public class AgregarJuegoTriviaCommandHandlerTests
 {
     private static Partida NewPartida()
-        => Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        => Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
+            new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc));
 
     private static AgregarJuegoTriviaCommand Command(Guid partidaId, int orden = 1) =>
         new(partidaId, orden, new List<PreguntaRequest>

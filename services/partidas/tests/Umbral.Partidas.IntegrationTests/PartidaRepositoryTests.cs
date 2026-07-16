@@ -13,6 +13,8 @@ namespace Umbral.Partidas.IntegrationTests;
 
 public class PartidaRepositoryTests
 {
+    private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+
     private static PartidasDbContext NewContext(string dbName) =>
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
 
@@ -20,7 +22,7 @@ public class PartidaRepositoryTests
     public async Task Add_and_GetById_round_trips_partida()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
 
         await using (var ctx = NewContext(dbName))
         {
@@ -43,7 +45,7 @@ public class PartidaRepositoryTests
     public async Task UnitOfWork_commits_partida_and_trivia_in_one_save()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
 
         await using (var ctx = NewContext(dbName))
         {
