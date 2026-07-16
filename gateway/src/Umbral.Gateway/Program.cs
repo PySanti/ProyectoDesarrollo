@@ -10,12 +10,15 @@ builder.Services.AddReverseProxy()
 // AuthN: Keycloak JWT validation (values from config/env).
 builder.Services.AddKeycloakJwtAuth(builder.Configuration, builder.Environment);
 
-// AuthZ: the three fixed base roles + secure-by-default fallback.
+// AuthZ: los tres roles base + los dos privilegios gobernables (tambien role claims del token,
+// ADR-0013) + secure-by-default fallback.
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Administrador", p => p.RequireRole("Administrador"))
     .AddPolicy("Operador", p => p.RequireRole("Operador"))
     .AddPolicy("Participante", p => p.RequireRole("Participante"))
     .AddPolicy("OperadorOAdministrador", p => p.RequireRole("Operador", "Administrador"))
+    .AddPolicy("GestionarPartidas", p => p.RequireRole("GestionarPartidas"))
+    .AddPolicy("GestionarEquipos", p => p.RequireRole("GestionarEquipos"))
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 // CORS del borde: el navegador (web :5173) llama al gateway; los orígenes vienen de env.
