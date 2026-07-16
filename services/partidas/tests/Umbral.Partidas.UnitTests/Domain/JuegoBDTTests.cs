@@ -101,4 +101,36 @@ public class JuegoBDTTests
 
         Assert.Equal(codigo, juego.Etapas[0].CodigoQREsperado);
     }
+
+    // Sin esto, el QR de la etapa 1 ganaria tambien la etapa 2: ClasificarQr compara el texto
+    // decodificado contra el de la etapa activa, y dos etapas con el mismo codigo son
+    // indistinguibles.
+    [Fact]
+    public void Crear_rechaza_dos_etapas_con_el_mismo_codigo()
+    {
+        var codigo = Guid.NewGuid().ToString();
+
+        Assert.Throws<EtapaBDTInvalidaException>(
+            () => JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central",
+                new[] { Etapa(1, codigo), Etapa(2, codigo) }));
+    }
+
+    [Fact]
+    public void Crear_rechaza_dos_codigos_que_solo_difieren_en_mayusculas()
+    {
+        var codigo = Guid.NewGuid().ToString();
+
+        Assert.Throws<EtapaBDTInvalidaException>(
+            () => JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central",
+                new[] { Etapa(1, codigo.ToLowerInvariant()), Etapa(2, codigo.ToUpperInvariant()) }));
+    }
+
+    [Fact]
+    public void Crear_acepta_dos_etapas_con_codigos_distintos()
+    {
+        var juego = JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central",
+            new[] { Etapa(1), Etapa(2) });
+
+        Assert.Equal(2, juego.Etapas.Count);
+    }
 }
