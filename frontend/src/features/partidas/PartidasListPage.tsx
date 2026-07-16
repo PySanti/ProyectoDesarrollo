@@ -87,6 +87,9 @@ export function PartidasListPage({ accessToken, puedeOperar }: PartidasListPageP
               <thead>
                 <tr>
                   <th scope="col">Nombre</th>
+                  {/* Junto al nombre y no al final: la tabla se lee de izquierda a derecha,
+                      y el criterio que explica el orden debe caer donde va la vista. */}
+                  <th scope="col">Creada</th>
                   <th scope="col">Modalidad</th>
                   <th scope="col">Modo de inicio</th>
                   <th scope="col">Juegos</th>
@@ -106,6 +109,11 @@ export function PartidasListPage({ accessToken, puedeOperar }: PartidasListPageP
                         >
                           {partida.nombrePartida}
                         </button>
+                      </td>
+                      {/* toLocaleString y no toLocaleDateString: con solo el dia, varias
+                          partidas de hoy hacen que el orden parezca arbitrario. */}
+                      <td data-testid={`fecha-creacion-${partida.partidaId}`}>
+                        {new Date(partida.fechaCreacion).toLocaleString()}
                       </td>
                       <td>{partida.modalidad}</td>
                       <td>{partida.modoInicioPartida}</td>
