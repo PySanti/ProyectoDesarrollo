@@ -10,7 +10,9 @@ namespace Umbral.Partidas.UnitTests.Domain;
 
 public class JuegoBDTTests
 {
-    private static EtapaSpec Etapa(int orden, string qr = "QR-TEXT") => new(orden, qr, 50, 120);
+    private static string NuevoQr() => Guid.NewGuid().ToString();
+
+    private static EtapaSpec Etapa(int orden, string? qr = null) => new(orden, qr ?? NuevoQr(), 50, 120);
 
     private static JuegoBDT CrearValido() =>
         JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central", new[] { Etapa(1) });
@@ -24,7 +26,7 @@ public class JuegoBDTTests
         Assert.Equal("Plaza central", juego.AreaBusqueda);
         Assert.Single(juego.Etapas);
         Assert.Equal(50, juego.Etapas[0].PuntajeAsignado.Valor);
-        Assert.Equal("QR-TEXT", juego.Etapas[0].CodigoQREsperado);
+        Assert.True(Guid.TryParse(juego.Etapas[0].CodigoQREsperado, out _));
     }
 
     [Fact]
@@ -74,5 +76,29 @@ public class JuegoBDTTests
     {
         var juego = CrearValido();
         Assert.Throws<EtapaBDTInvalidaException>(() => juego.AgregarEtapa(0, "QR", 50, 120));
+    }
+
+    [Theory]
+    [InlineData("hola")]
+    [InlineData("")]
+    [InlineData("   ")]
+    [InlineData("QR-TEXT")]
+    [InlineData("12345678-1234-1234-1234-12345678")]
+    public void Crear_rechaza_un_codigo_que_no_es_uuid(string codigo)
+    {
+        Assert.Throws<EtapaBDTInvalidaException>(
+            () => JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central", new[] { Etapa(1, codigo) }));
+    }
+
+    // El codigo se guarda TAL CUAL: Operaciones compara el texto de forma exacta contra el QR
+    // impreso. Normalizar el casing aqui haria que ningun tesoro validara jamas.
+    [Fact]
+    public void Crear_guarda_el_codigo_literal_sin_normalizar()
+    {
+        var codigo = Guid.NewGuid().ToString().ToUpperInvariant();
+
+        var juego = JuegoBDT.Crear(PartidaId.New(), 1, "Plaza central", new[] { Etapa(1, codigo) });
+
+        Assert.Equal(codigo, juego.Etapas[0].CodigoQREsperado);
     }
 }

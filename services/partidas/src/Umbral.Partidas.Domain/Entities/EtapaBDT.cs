@@ -17,8 +17,10 @@ public sealed class EtapaBDT
     {
         if (orden < 1)
             throw new EtapaBDTInvalidaException("el orden debe ser mayor o igual a 1.");
-        if (string.IsNullOrWhiteSpace(codigoQr))
-            throw new EtapaBDTInvalidaException("el codigo QR esperado es requerido.");
+        // El codigo lo genera el sistema (UUID), no lo teclea el operador: un texto libre seria
+        // adivinable y no habria forma de garantizar que dos etapas no comparten tesoro.
+        if (!Guid.TryParse(codigoQr?.Trim(), out _))
+            throw new EtapaBDTInvalidaException("el codigo QR esperado debe ser un identificador generado por el sistema.");
         if (tiempoLimiteSegundos <= 0)
             throw new EtapaBDTInvalidaException("el tiempo limite debe ser positivo.");
 
