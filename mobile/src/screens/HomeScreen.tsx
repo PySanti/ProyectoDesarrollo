@@ -50,14 +50,13 @@ export function HomeScreen({ navigation }: Props) {
         Tu equipo
       </AppText>
       <View style={styles.group}>
-        <NavCard icon="plus-circle" label="Crear equipo" onPress={() => navigation.navigate("CreateTeam")} />
-        <NavCard icon="mail" label="Invitaciones" onPress={() => navigation.navigate("Invitations")} />
-        <NavCard icon="user-plus" label="Invitar miembro" onPress={() => navigation.navigate("InviteMember")} />
-        <NavCard icon="repeat" label="Transferir liderazgo" onPress={() => navigation.navigate("TransferLeadership")} />
-        <NavCard icon="log-out" label="Salir del equipo" onPress={() => navigation.navigate("LeaveTeam")} />
-        <NavCard icon="trash-2" label="Eliminar equipo" onPress={() => navigation.navigate("DeleteTeam")} />
-        <NavCard icon="clock" label="Historial de equipos" onPress={() => navigation.navigate("TeamHistory")} />
-        <NavCard icon="award" label="Rendimiento de mi equipo" onPress={() => navigation.navigate("RendimientoEquipo")} />
+        <NavCard
+          icon="users"
+          label="Gestión de equipo"
+          sublabel="Tu equipo, integrantes y acciones"
+          feature
+          onPress={() => navigation.navigate("TeamPanel")}
+        />
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>

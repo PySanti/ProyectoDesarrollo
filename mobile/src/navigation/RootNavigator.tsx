@@ -6,6 +6,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { RoleRestrictedScreen } from "../screens/RoleRestrictedScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
+import { TeamPanelScreenContainer } from "../features/teams/TeamPanelScreenContainer";
 import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenContainer";
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
@@ -65,6 +66,11 @@ export function RootNavigator() {
       }}
     >
       <AppStack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+      <AppStack.Screen
+        name="TeamPanel"
+        component={TeamPanelScreenContainer}
+        options={{ title: "Gestión de equipo" }}
+      />
       <AppStack.Screen
         name="CreateTeam"
         component={CreateTeamScreenContainer}
