@@ -28,7 +28,7 @@ public class RechazarInscripcionCommandHandlerTests
             new List<JuegoResumen> { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var equipoId = Guid.NewGuid();
-        var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid() }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(equipoId, true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         var events = new FakeSesionEventsPublisher();

@@ -30,11 +30,11 @@ public class ResponderPreguntaEquipoTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
 
-        var insA = sesion.PreinscribirEquipo(equipoALocal, true, new[] { liderALocal, miembroALocal }, false, 0, T0);
+        var insA = sesion.PreinscribirEquipo(equipoALocal, true, liderALocal, new[] { liderALocal, miembroALocal }, false, 0, T0);
         sesion.AceptarInscripcion(insA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == liderALocal).Id.Valor, liderALocal, true, false, T0);
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == miembroALocal).Id.Valor, miembroALocal, true, false, T0);
-        var insB = sesion.PreinscribirEquipo(equipoBLocal, true, new[] { liderBLocal }, false, 1, T0);
+        var insB = sesion.PreinscribirEquipo(equipoBLocal, true, liderBLocal, new[] { liderBLocal }, false, 1, T0);
         sesion.AceptarInscripcion(insB.Id.Valor, 1, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insB.Convocatorias.Single(c => c.UsuarioId == liderBLocal).Id.Valor, liderBLocal, true, false, T0);
 
@@ -95,7 +95,7 @@ public class ResponderPreguntaEquipoTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { pregunta });
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        var ins = sesion.PreinscribirEquipo(equipoB, true, new[] { liderB, pendiente }, false, 0, T0);
+        var ins = sesion.PreinscribirEquipo(equipoB, true, liderB, new[] { liderB, pendiente }, false, 0, T0);
         sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == liderB).Id.Valor, liderB, true, false, T0);
         sesion.Iniciar(T0);

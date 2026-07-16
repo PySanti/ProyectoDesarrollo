@@ -35,7 +35,7 @@ public class SesionPartidaRepositoryEquipoTests
         await using var ctx = NewCtx("equipo-conv-" + Guid.NewGuid());
         var repo = new SesionPartidaRepository(ctx);
         var sesion = PartidaEquipo(Guid.NewGuid());
-        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { Guid.NewGuid() }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
         sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         var convocatoriaId = insc.Convocatorias[0].Id.Valor;
         repo.Add(sesion);
@@ -55,7 +55,7 @@ public class SesionPartidaRepositoryEquipoTests
         var repo = new SesionPartidaRepository(ctx);
         var equipoId = Guid.NewGuid();
         var otra = PartidaEquipo(Guid.NewGuid());
-        otra.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid() }, false, 0, T0);
+        otra.PreinscribirEquipo(equipoId, true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
         repo.Add(otra);
         await ctx.SaveChangesAsync();
 
@@ -71,7 +71,7 @@ public class SesionPartidaRepositoryEquipoTests
         var repo = new SesionPartidaRepository(ctx);
         var usuario = Guid.NewGuid();
         var sesion = PartidaEquipo(Guid.NewGuid());
-        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, usuario, new[] { usuario }, false, 0, T0);
         sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
         repo.Add(sesion);
@@ -89,7 +89,7 @@ public class SesionPartidaRepositoryEquipoTests
         var repo = new SesionPartidaRepository(ctx);
         var usuario = Guid.NewGuid();
         var sesion = PartidaEquipo(Guid.NewGuid());
-        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, usuario, new[] { usuario }, false, 0, T0);
         sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
         repo.Add(sesion);
@@ -115,7 +115,7 @@ public class SesionPartidaRepositoryEquipoTests
         await using (var write = new OperacionesSesionDbContext(options))
         {
             var sesion = PartidaEquipo(partidaId);
-            var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, usuario, new[] { usuario }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
             new SesionPartidaRepository(write).Add(sesion);

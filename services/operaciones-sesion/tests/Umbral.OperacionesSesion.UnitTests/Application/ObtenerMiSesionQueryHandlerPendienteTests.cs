@@ -56,7 +56,7 @@ public class ObtenerMiSesionQueryHandlerPendienteTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5,
             new List<JuegoResumen> { new(Guid.NewGuid(), 1, TipoJuego.Trivia) });
         var sesion = SesionPartida.Publicar(partidaId, snap);
-        insc = sesion.PreinscribirEquipo(equipoId, true, new[] { lider }, false, 0, T0);
+        insc = sesion.PreinscribirEquipo(equipoId, true, lider, new[] { lider }, false, 0, T0);
         sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // crea convocatorias, inscripcion -> Activa
         var conv = insc.Convocatorias.Single(c => c.UsuarioId == lider);
         sesion.ResponderConvocatoria(conv.Id.Valor, lider, true, false, T0);

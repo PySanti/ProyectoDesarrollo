@@ -39,7 +39,7 @@ public class ConvocatoriasPendientesScanTests
         {
             var sesion = EquipoPublicada();
             partidaId = sesion.PartidaId;
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, usuario, new[] { usuario }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             new SesionPartidaRepository(ctx).Add(sesion);
             await ctx.SaveChangesAsync();
@@ -68,7 +68,7 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, usuario, new[] { usuario }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
             new SesionPartidaRepository(ctx).Add(sesion);
             await ctx.SaveChangesAsync();
@@ -93,7 +93,7 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { otroMiembro, usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, otroMiembro, new[] { otroMiembro, usuario }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(
                 insc.Convocatorias.Single(c => c.UsuarioId == otroMiembro).Id.Valor, otroMiembro, true, false, T0);
@@ -120,7 +120,7 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { aceptante, rechazante }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, aceptante, new[] { aceptante, rechazante }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(
                 insc.Convocatorias.Single(c => c.UsuarioId == aceptante).Id.Valor, aceptante, true, false, T0);
@@ -149,7 +149,7 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { otroUsuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, otroUsuario, new[] { otroUsuario }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             new SesionPartidaRepository(ctx).Add(sesion);
             await ctx.SaveChangesAsync();

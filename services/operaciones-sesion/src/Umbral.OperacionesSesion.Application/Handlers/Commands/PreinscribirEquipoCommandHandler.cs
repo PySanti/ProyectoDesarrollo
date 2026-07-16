@@ -47,7 +47,7 @@ public sealed class PreinscribirEquipoCommandHandler
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var inscripcion = sesion.PreinscribirEquipo(
-            equipo.EquipoId, callerEsLider, miembros, equipoActivaEnOtra, equiposActivos, now);
+            equipo.EquipoId, callerEsLider, request.LiderId, miembros, equipoActivaEnOtra, equiposActivos, now);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 

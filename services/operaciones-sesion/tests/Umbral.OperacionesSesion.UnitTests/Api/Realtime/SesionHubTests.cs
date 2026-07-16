@@ -61,7 +61,7 @@ public class SesionHubTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(partidaId, snap);
         var t0 = new DateTime(2026, 7, 2, 12, 0, 0, DateTimeKind.Utc);
-        var ins = s.PreinscribirEquipo(equipoLocal, true, new[] { participanteId }, false, 0, t0);
+        var ins = s.PreinscribirEquipo(equipoLocal, true, participanteId, new[] { participanteId }, false, 0, t0);
         s.AceptarInscripcion(ins.Id.Valor, 0, t0); // HU-19: aceptar crea las convocatorias
         s.ResponderConvocatoria(ins.Convocatorias.Single().Id.Valor, participanteId, true, false, t0);
         equipoId = equipoLocal;

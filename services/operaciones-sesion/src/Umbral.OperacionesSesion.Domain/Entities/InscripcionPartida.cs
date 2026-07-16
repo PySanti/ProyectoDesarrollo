@@ -12,6 +12,11 @@ public sealed class InscripcionPartida
 
     public InscripcionId Id { get; private set; }
     public Guid ParticipanteId { get; private set; } // Guid.Empty en modalidad Equipo
+
+    // Guid.Empty en Individual. Se persiste porque las convocatorias no se crean aqui sino al
+    // aceptar el operador, y para entonces el flag EsLider del equipo ya se perdio:
+    // MiembrosSnapshot es una lista de Guid pelados.
+    public Guid LiderId { get; private set; }
     public Modalidad Modalidad { get; private set; }
     public Guid? EquipoId { get; private set; }
     public EstadoInscripcion Estado { get; private set; }
@@ -37,10 +42,11 @@ public sealed class InscripcionPartida
     // transitorio (no mapeado por EF) para que Aceptar() funcione de inmediato tras la
     // construcción en memoria; tras recargar desde persistencia, SesionPartida debe
     // reinyectarlo con FijarPartidaIdParaConvocar antes de llamar a Aceptar (Task 2).
-    private InscripcionPartida(Guid equipoId, IEnumerable<Guid> miembros, Guid partidaId, DateTime fecha)
+    private InscripcionPartida(Guid equipoId, Guid liderId, IEnumerable<Guid> miembros, Guid partidaId, DateTime fecha)
     {
         Id = InscripcionId.New();
         ParticipanteId = Guid.Empty;
+        LiderId = liderId;
         Modalidad = Modalidad.Equipo;
         EquipoId = equipoId;
         Estado = EstadoInscripcion.Pendiente;
@@ -50,12 +56,17 @@ public sealed class InscripcionPartida
     }
 
     internal static InscripcionPartida PreinscribirEquipo(
-        Guid equipoId, IEnumerable<Guid> miembros, Guid partidaId, DateTime fecha)
-        => new(equipoId, miembros, partidaId, fecha);
+        Guid equipoId, Guid liderId, IEnumerable<Guid> miembros, Guid partidaId, DateTime fecha)
+        => new(equipoId, liderId, miembros, partidaId, fecha);
 
     // El operador acepta: pasa a Activa. En Equipo crea las convocatorias desde el
     // snapshot y las devuelve (para emitir ConvocatoriaCreada). Individual → lista vacía.
-    internal IReadOnlyList<Convocatoria> Aceptar(DateTime now)
+    // liderPuedeAutoAceptar viene invertido a proposito, y por defecto en false. El resto de flags
+    // del dominio nombran el problema ("...TieneParticipacionActivaEnOtra"), pero aqui el default
+    // tiene que fallar CERRADO: si un llamador lo omite, lo que pasa es que no se auto-acepta (la
+    // partida no arranca — ruidoso y visible), no que se auto-acepte saltandose BR-G09 (silencioso).
+    // Lo calcula el handler, que es quien puede consultar otras partidas; el dominio no lo hace.
+    internal IReadOnlyList<Convocatoria> Aceptar(DateTime now, bool liderPuedeAutoAceptar = false)
     {
         Estado = EstadoInscripcion.Activa;
         if (Modalidad != Modalidad.Equipo)
@@ -65,6 +76,15 @@ public sealed class InscripcionPartida
             .Select(m => new Convocatoria(_partidaIdParaConvocar, EquipoId!.Value, m, now))
             .ToList();
         _convocatorias.AddRange(creadas);
+
+        // Preinscribir el equipo ya era la declaracion de intencion del lider (HU-15): no tiene
+        // que ademas convocarse a si mismo. Sin esto, un equipo de solo el lider no arranca nunca.
+        if (liderPuedeAutoAceptar && LiderId != Guid.Empty)
+        {
+            var delLider = creadas.SingleOrDefault(c => c.UsuarioId == LiderId);
+            delLider?.Aceptar(now);
+        }
+
         return creadas;
     }
 

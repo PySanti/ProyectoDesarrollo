@@ -32,7 +32,7 @@ public class InscripcionPartidaTests
         var m1 = Guid.NewGuid();
         var m2 = Guid.NewGuid();
 
-        var insc = InscripcionPartida.PreinscribirEquipo(equipoId, new[] { m1, m2 }, partidaId, T0);
+        var insc = InscripcionPartida.PreinscribirEquipo(equipoId, m1, new[] { m1, m2 }, partidaId, T0);
 
         Assert.Equal(Modalidad.Equipo, insc.Modalidad);
         Assert.Equal(equipoId, insc.EquipoId);
@@ -61,7 +61,7 @@ public class InscripcionPartidaTests
         var partidaId = Guid.NewGuid();
         var m1 = Guid.NewGuid();
         var m2 = Guid.NewGuid();
-        var insc = InscripcionPartida.PreinscribirEquipo(equipoId, new[] { m1, m2 }, partidaId, T0);
+        var insc = InscripcionPartida.PreinscribirEquipo(equipoId, m1, new[] { m1, m2 }, partidaId, T0);
 
         var creadas = insc.Aceptar(T0);
 
@@ -92,7 +92,7 @@ public class InscripcionPartidaTests
     public void ConvocatoriasAceptadas_cuenta_solo_aceptadas_tras_aceptar_equipo()
     {
         var insc = InscripcionPartida.PreinscribirEquipo(
-            Guid.NewGuid(), new[] { Guid.NewGuid(), Guid.NewGuid() }, Guid.NewGuid(), T0);
+            Guid.NewGuid(), Guid.NewGuid(), new[] { Guid.NewGuid(), Guid.NewGuid() }, Guid.NewGuid(), T0);
         insc.Aceptar(T0);
         insc.Convocatorias[0].Aceptar(T0);
 
