@@ -67,6 +67,14 @@ public static class EsquemaLegadoPatch
 
             CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_usuarioid ON equipos_participantes (usuarioid);
 
+            -- Deriva de cuando equipos_participantes.equipoid era opcional: EF nuleaba la FK al
+            -- salir del equipo en vez de borrar la fila, y la huerfana seguia ocupando el slot del
+            -- usuario en ux_equipos_participantes_usuarioid ("ya perteneces a un equipo activo" al
+            -- crear otro). Ambas sentencias son idempotentes y no necesitan guardia: con la columna
+            -- NOT NULL una huerfana nueva ya no puede existir. El DELETE va primero o el ALTER falla.
+            DELETE FROM equipos_participantes WHERE equipoid IS NULL;
+            ALTER TABLE equipos_participantes ALTER COLUMN equipoid SET NOT NULL;
+
             CREATE TABLE IF NOT EXISTS invitaciones_equipo (
                 invitacionequipoid uuid PRIMARY KEY,
                 equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
