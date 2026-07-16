@@ -54,14 +54,14 @@ public class JuegoBDTTests
     public void AgregarEtapa_rejects_non_positive_puntaje()
     {
         var juego = CrearValido();
-        Assert.Throws<EtapaBDTInvalidaException>(() => juego.AgregarEtapa(2, "QR", 0, 120));
+        Assert.Throws<EtapaBDTInvalidaException>(() => juego.AgregarEtapa(2, NuevoQr(), 0, 120));
     }
 
     [Fact]
     public void AgregarEtapa_rejects_non_positive_time_limit()
     {
         var juego = CrearValido();
-        Assert.Throws<EtapaBDTInvalidaException>(() => juego.AgregarEtapa(2, "QR", 50, 0));
+        Assert.Throws<EtapaBDTInvalidaException>(() => juego.AgregarEtapa(2, NuevoQr(), 50, 0));
     }
 
     [Fact]
