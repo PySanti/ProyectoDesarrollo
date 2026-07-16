@@ -22,6 +22,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--sp-md);
+  /* Columnas alineadas por arriba: un Field con .field-msg (mas alto) junto a un
+     label/select plano no estira ni desalinea a su vecino; el error crece solo su columna. */
+  align-items: start;
 }
 
 .actions,
