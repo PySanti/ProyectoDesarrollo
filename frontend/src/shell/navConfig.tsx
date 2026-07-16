@@ -15,7 +15,10 @@ export interface NavItemDef {
 export interface NavAreaDef {
   id: string;
   label: string;
-  role: Role | readonly Role[];
+  /** Rol base requerido, si el área no se abre por privilegio (ej. Identidad). Las áreas
+      gobernadas por permisos (Partidas, Equipos) no declaran esto: el privilegio decide solo,
+      sin importar el rol — el privilegio autoriza, el rol no veta. */
+  role?: Role | readonly Role[];
   icon: IconComponent;
   /** Privilegio que gobierna el área entera. Sin él, el área no existe para el usuario:
       ni en el menú ni por URL directa (ver `Require` en App.tsx). */
@@ -43,11 +46,11 @@ export const NAV_AREAS: NavAreaDef[] = [
       { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
     ]
   },
-  // GestionarPartidas gobierna el CRUD de partidas completo, consulta incluida.
+  // GestionarPartidas gobierna el CRUD de partidas completo, consulta incluida. Sin `role`: el
+  // privilegio decide solo, sin importar el rol base (privilegio-sin-rol).
   {
     id: "partidas",
     label: "Partidas",
-    role: ["Operador", "Administrador"],
     icon: Flag,
     permisos: ["GestionarPartidas"],
     items: [
@@ -60,7 +63,6 @@ export const NAV_AREAS: NavAreaDef[] = [
   {
     id: "equipos",
     label: "Equipos",
-    role: ["Operador", "Administrador"],
     icon: Users,
     permisos: ["GestionarEquipos"],
     // Igual que Identidad: su primer item es un alta, no un listado.
@@ -75,15 +77,18 @@ export const NAV_AREAS: NavAreaDef[] = [
   }
 ];
 
-/* El rol base delimita el ámbito del área y el privilegio funcional la habilita: sin el privilegio
-   de gestión, nada de esa área aparece. Dentro del área, un item puede además exigir su propio rol. */
+/* El privilegio gobierna las áreas de gestión (Partidas, Equipos) sin importar el rol base: el
+   privilegio autoriza, el rol no veta. `role` sólo restringe áreas que no son un privilegio, como
+   Identidad — protegida y exclusiva de Administrador. */
 export function areasForRoles(roles: string[], permisos: string[] = []): NavAreaDef[] {
   return NAV_AREAS.filter((area) => {
-    const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
-    return (
-      allowedRoles.some((role) => roles.includes(role)) &&
-      (!area.permisos || area.permisos.some((permiso) => permisos.includes(permiso)))
-    );
+    if (area.role !== undefined) {
+      const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
+      if (!allowedRoles.some((role) => roles.includes(role))) {
+        return false;
+      }
+    }
+    return !area.permisos || area.permisos.some((permiso) => permisos.includes(permiso));
   }).map((area) => ({
     ...area,
     items: area.items.filter(

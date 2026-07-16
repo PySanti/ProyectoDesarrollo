@@ -85,4 +85,22 @@ describe("areasForRoles", () => {
   it("lleva a Partidas a quien puede gestionarlas", () => {
     expect(landingPath(["Operador"], ["GestionarPartidas"])).toBe("/partidas");
   });
+
+  /* Paridad total (D2 del spec de privilegio-sin-rol): el privilegio es el mismo permiso sin
+     importar el rol base. Un Participante con GestionarPartidas o GestionarEquipos ve esas áreas
+     igual que Operador/Administrador. */
+  it("muestra Partidas y Equipos a un Participante con los privilegios, igual que a un operador", () => {
+    const permisos = ["GestionarPartidas", "GestionarEquipos"];
+    const areasParticipante = areasForRoles(["Participante"], permisos).map((a) => a.id);
+    const areasOperador = areasForRoles(["Operador"], permisos).map((a) => a.id);
+
+    expect(areasParticipante).toEqual(["partidas", "equipos"]);
+    expect(areasOperador).toEqual(["partidas", "equipos"]);
+  });
+
+  it("sigue ocultando Identidad a un Participante, tenga o no privilegios", () => {
+    const areas = areasForRoles(["Participante"], ["GestionarPartidas", "GestionarEquipos"]);
+
+    expect(areas.map((a) => a.id)).not.toContain("identidad");
+  });
 });

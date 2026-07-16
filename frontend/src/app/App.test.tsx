@@ -37,7 +37,7 @@ beforeEach(() => {
 });
 
 describe("App shell + auth guard", () => {
-  it("blocks users without admin or operator role", async () => {
+  it("muestra la pantalla de sin accesos a un participante sin ningún privilegio", async () => {
     initMock.mockResolvedValueOnce({
       username: "participante",
       roles: ["Participante"],
@@ -48,7 +48,7 @@ describe("App shell + auth guard", () => {
     render(<App />);
 
     expect(
-      await screen.findByText(/el panel web es exclusivo para administradores y operadores/i)
+      await screen.findByText(/esta cuenta no tiene ningún panel disponible/i)
     ).toBeInTheDocument();
   });
 
@@ -334,7 +334,38 @@ describe("App shell + auth guard", () => {
     render(<App />);
 
     expect(
-      await screen.findByText(/el panel web es exclusivo para administradores y operadores/i)
+      await screen.findByText(/esta cuenta no tiene ningún panel disponible/i)
     ).toBeInTheDocument();
+  });
+
+  /* Paridad total: un Participante con el privilegio entra al mismo panel que vería un Operador
+     con ese privilegio — mismo mecanismo, D2 del spec de privilegio-sin-rol. */
+  it("deja entrar a la creación de partidas a un participante con GestionarPartidas", async () => {
+    vi.spyOn(partidasApi, "getPartidas").mockResolvedValue([]);
+    window.history.pushState({}, "", "/partidas/crear");
+    initMock.mockResolvedValueOnce({
+      username: "participante",
+      roles: ["Participante"],
+      permisos: ["GestionarPartidas"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByRole("heading", { name: /crear partida/i })).toBeInTheDocument();
+  });
+
+  it("deja entrar a la creación de equipos a un participante con GestionarEquipos", async () => {
+    window.history.pushState({}, "", "/identidad/equipos");
+    initMock.mockResolvedValueOnce({
+      username: "participante",
+      roles: ["Participante"],
+      permisos: ["GestionarEquipos"],
+      token: "token"
+    });
+
+    render(<App />);
+
+    expect(await screen.findByTestId("create-team-submit")).toBeInTheDocument();
   });
 });
