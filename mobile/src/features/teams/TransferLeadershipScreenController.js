@@ -50,7 +50,7 @@ export function TransferLeadershipScreenController({
       React.createElement(
         Text,
         { style: styles.description },
-        "Selecciona otro integrante del equipo como nuevo lider. Luego podras salir del equipo desde HU-07.",
+        "Selecciona otro integrante del equipo como nuevo lider. Luego podras salir del equipo si lo deseas.",
       ),
       eligibleMembers.length > 0
         ? React.createElement(
