@@ -76,3 +76,15 @@ La regla "≥1 letra" es el corazón del fix.
 ## Orden de entrega
 SDD → Fase A (backend, mata el bug) → Fase B (web, empezando por CreateUser) → Fase C (mobile).
 Un commit por fase; sin push/merge sin permiso.
+
+## Fase D — Espacio de error estable (web + mobile)
+El `Field` renderizaba el mensaje condicionalmente y el layout saltaba. Ahora el contenedor del
+mensaje se renderiza siempre con alto de una línea reservado; el error/hint aparece adentro sin
+mover el panel. Web: `span.field-msg` (`min-height: 1.15rem`). Mobile: `View` con `minHeight 18`.
+
+## Fase E — Validación en el login de Keycloak (solo por correo, sin real-time)
+El theme es CSS-only a propósito. Se agrega validación vía script de theme, sin tocar `.ftl`:
+`resources/js/umbral-login.js` marca `#username` como `type=email` + `required` y `#password` como
+`required` (confirmado: login solo por correo). Validación nativa del navegador al enviar, sin
+feedback en vivo. `theme.properties` gana `scripts=js/umbral-login.js`. Verificado: la página de
+login sirve el `<script>` y los campos objetivo existen.
