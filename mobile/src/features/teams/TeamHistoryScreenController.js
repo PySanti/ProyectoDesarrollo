@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { loadTeamHistoryForScreen } from "./teamHistoryScreenModel.js";
+import { formatFechaRegistro } from "./teamHistoryFormat.js";
 
 export const teamHistoryEmptyStateMessage =
   "Aún no perteneces a ningún equipo. Todavía no tienes historial de equipos.";
@@ -42,7 +43,7 @@ export function TeamHistoryScreenController({ apiBaseUrl, token, components, sty
           View,
           { key: `${item.equipoId ?? "equipo"}-${index}`, style: styles.item },
           React.createElement(Text, { style: styles.itemName }, item.nombreEquipo),
-          React.createElement(Text, { style: styles.itemDate }, item.fechaRegistro),
+          React.createElement(Text, { style: styles.itemDate }, formatFechaRegistro(item.fechaRegistro)),
         ),
       ),
     );
