@@ -74,3 +74,24 @@ test("submitTransferLeadership should map 404 and 409 errors", async () => {
   assert.equal(notFound.type, "notFound");
   assert.equal(conflict.type, "conflict");
 });
+
+test("submitTransferLeadership should map HTTP statuses to the exact user-facing messages", async () => {
+  const statusToMessage = {
+    400: "Selecciona un nuevo lider valido.",
+    401: "Sesion expirada o no autorizada.",
+    403: "Debes tener rol Participante para transferir liderazgo.",
+    404: "No perteneces a ningun equipo activo.",
+    409: "No se pudo transferir el liderazgo. Verifica que seas lider y que el nuevo lider pertenezca al equipo.",
+  };
+
+  for (const [status, message] of Object.entries(statusToMessage)) {
+    const result = await submitTransferLeadership({
+      apiBaseUrl: "https://api.test",
+      token: "token",
+      nuevoLiderUserId: targetUserId,
+      fetchImpl: async () => ({ ok: false, status: Number(status) }),
+    });
+
+    assert.equal(result.message, message, `status ${status}`);
+  }
+});

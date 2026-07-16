@@ -8,6 +8,21 @@ import { submitTransferLeadershipFromScreen } from "./transferLeadershipScreenMo
 
 type Miembro = { usuarioId: string; nombre: string; esLider: boolean };
 
+// `loadMyTeam` (teamPanelApi.js) has no JSDoc, so TS infers/widens its return type from the
+// plain object literals instead of preserving the `ok` discriminant. Annotate the real shape here.
+type LoadMyTeamResult =
+  | { ok: false; type?: string; message?: string }
+  | { ok: true; data: null }
+  | {
+      ok: true;
+      data: {
+        equipoId: string;
+        nombreEquipo: string;
+        estado: string;
+        participantes: Miembro[];
+      };
+    };
+
 type TransferLeadershipScreenProps = {
   apiBaseUrl: string;
   token: string;
@@ -32,7 +47,7 @@ export function TransferLeadershipScreen({
   const loadTeam = useCallback(async () => {
     setLoadingTeam(true);
     setTeamError(null);
-    const result = await loadMyTeam(apiBaseUrl, token);
+    const result = (await loadMyTeam(apiBaseUrl, token)) as LoadMyTeamResult;
     if (!result.ok) {
       setTeamError(result.message ?? "No se pudo cargar tu equipo.");
       setLoadingTeam(false);
@@ -43,7 +58,7 @@ export function TransferLeadershipScreen({
       setLoadingTeam(false);
       return;
     }
-    setParticipantes(result.data.participantes as Miembro[]);
+    setParticipantes(result.data.participantes);
     setLoadingTeam(false);
   }, [apiBaseUrl, token]);
 
