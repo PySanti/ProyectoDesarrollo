@@ -12,13 +12,16 @@ public sealed class GetParticipantesElegiblesQueryHandler : IRequestHandler<GetP
 {
     private readonly IEquipoRepository _equipoRepository;
     private readonly IUsuarioRepository _usuarioRepository;
+    private readonly IInvitacionEquipoRepository _invitacionRepository;
 
     public GetParticipantesElegiblesQueryHandler(
         IEquipoRepository equipoRepository,
-        IUsuarioRepository usuarioRepository)
+        IUsuarioRepository usuarioRepository,
+        IInvitacionEquipoRepository invitacionRepository)
     {
         _equipoRepository = equipoRepository;
         _usuarioRepository = usuarioRepository;
+        _invitacionRepository = invitacionRepository;
     }
 
     public async Task<IReadOnlyList<ParticipanteElegibleResponse>> Handle(GetParticipantesElegiblesQuery request, CancellationToken cancellationToken)
@@ -40,6 +43,11 @@ public sealed class GetParticipantesElegiblesQueryHandler : IRequestHandler<GetP
         // Usuario local, cuyo sub vive en KeycloakId; hay que comparar y devolver ESE sub, no el id
         // local, o si no ni se excluye al lider/miembros ni la invitacion resultante es aceptable.
         var miembrosActuales = equipo.Participantes.Select(p => p.UsuarioId).ToHashSet();
+
+        // Los ya invitados NO se excluyen (siguen apareciendo para marcarlos con YaInvitado); solo
+        // se filtran miembros y usuarios con equipo activo. El set son subs de Keycloak (InvitadoUserId).
+        var invitadosPendientes = (await _invitacionRepository
+            .GetInvitadoUserIdsPendientesByEquipoAsync(equipo.EquipoId, cancellationToken)).ToHashSet();
 
         var todosLosUsuarios = await _usuarioRepository.GetAllAsync(cancellationToken);
 
@@ -63,7 +71,8 @@ public sealed class GetParticipantesElegiblesQueryHandler : IRequestHandler<GetP
             result.Add(new ParticipanteElegibleResponse(
                 keycloakSub,
                 usuario.Nombre,
-                usuario.Correo));
+                usuario.Correo,
+                invitadosPendientes.Contains(keycloakSub)));
         }
 
         return result;

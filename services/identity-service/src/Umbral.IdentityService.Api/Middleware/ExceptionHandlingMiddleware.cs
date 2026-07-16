@@ -71,6 +71,13 @@ public sealed class ExceptionHandlingMiddleware
 
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
-        await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = clientMessage }));
+        // `code` es el discriminador estable (nombre del tipo de excepcion): varios casos comparten
+        // el mismo status (p. ej. todos los 409), y el cliente necesita distinguirlos para dar un
+        // mensaje concreto sin depender del texto crudo (que trae GUIDs internos).
+        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            code = exception.GetType().Name,
+            message = clientMessage
+        }));
     }
 }

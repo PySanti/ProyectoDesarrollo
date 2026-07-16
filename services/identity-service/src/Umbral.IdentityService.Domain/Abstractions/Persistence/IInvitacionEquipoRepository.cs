@@ -9,5 +9,6 @@ public interface IInvitacionEquipoRepository
     Task<InvitacionEquipo?> GetByIdAsync(Guid invitacionId, CancellationToken ct);
     Task<IReadOnlyList<InvitacionEquipo>> GetPendientesByInvitadoAsync(Guid invitadoUserId, CancellationToken ct);
     Task<bool> ExistsPendienteAsync(Guid equipoId, Guid invitadoUserId, CancellationToken ct);
+    Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct);
     Task DeletePendientesByEquipoAsync(Guid equipoId, CancellationToken ct);
 }

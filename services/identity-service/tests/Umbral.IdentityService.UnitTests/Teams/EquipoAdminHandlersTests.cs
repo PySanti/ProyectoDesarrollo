@@ -405,6 +405,9 @@ public sealed class EquipoAdminHandlersTests
 
     private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
     {
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+
         public bool DeletePendientesByEquipoWasCalled { get; private set; }
 
         public Task AddAsync(InvitacionEquipo invitacion, CancellationToken ct) => Task.CompletedTask;

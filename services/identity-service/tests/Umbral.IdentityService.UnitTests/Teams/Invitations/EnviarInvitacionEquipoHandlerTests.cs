@@ -152,6 +152,9 @@ public sealed class EnviarInvitacionEquipoHandlerTests
 
     private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
     {
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+
         public bool AddWasCalled { get; private set; }
         public bool ExistsPendienteValue { get; set; }
 

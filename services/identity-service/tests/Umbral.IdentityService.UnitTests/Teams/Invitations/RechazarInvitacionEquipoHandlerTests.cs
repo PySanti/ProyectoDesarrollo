@@ -81,6 +81,9 @@ public sealed class RechazarInvitacionEquipoHandlerTests
 
     private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
     {
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+
         public InvitacionEquipo? InvitacionToReturn { get; set; }
         public bool UpdateWasCalled { get; private set; }
 

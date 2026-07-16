@@ -180,6 +180,15 @@ public sealed class ExceptionHandlingMiddlewareTests
     }
 
     [Fact]
+    public async Task Body_Has_Code_Field_With_Exception_Type_Name()
+    {
+        // El cliente distingue los casos que comparten status (p. ej. varios 409) por este `code`.
+        var (_, body) = await InvokeWith(new InvitacionPendienteYaExisteException(Guid.NewGuid(), Guid.NewGuid()));
+        using var doc = JsonDocument.Parse(body);
+        Assert.Equal(nameof(InvitacionPendienteYaExisteException), doc.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
     public async Task Response_ContentType_Is_ApplicationJson()
     {
         var context = new DefaultHttpContext();
