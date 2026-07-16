@@ -19,6 +19,38 @@ public class PartidaRepositoryTests
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
 
     [Fact]
+    public async Task ListAsync_devuelve_la_ultima_creada_primero()
+    {
+        var dbName = Guid.NewGuid().ToString();
+
+        // Se insertan desordenadas a proposito: el orden no debe depender del insert.
+        var media = Partida.Crear(
+            NombrePartida.Crear("Media"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0.AddHours(1));
+        var vieja = Partida.Crear(
+            NombrePartida.Crear("Vieja"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
+        var nueva = Partida.Crear(
+            NombrePartida.Crear("Nueva"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0.AddHours(2));
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var repo = new PartidaRepository(ctx);
+            repo.Add(media);
+            repo.Add(vieja);
+            repo.Add(nueva);
+            await new PartidasUnitOfWork(ctx).SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var listadas = await new PartidaRepository(ctx).ListAsync(CancellationToken.None);
+
+            Assert.Equal(
+                new[] { "Nueva", "Media", "Vieja" },
+                listadas.Select(p => p.NombrePartida.Valor).ToArray());
+        }
+    }
+
+    [Fact]
     public async Task Add_and_GetById_round_trips_partida()
     {
         var dbName = Guid.NewGuid().ToString();

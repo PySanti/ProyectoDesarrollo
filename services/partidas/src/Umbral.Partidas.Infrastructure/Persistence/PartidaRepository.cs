@@ -20,6 +20,14 @@ public sealed class PartidaRepository : IPartidaRepository
         => _dbContext.Partidas.Include(p => p.Juegos)
             .FirstOrDefaultAsync(p => p.PartidaId == id, cancellationToken);
 
+    // El ORDER BY vive aqui y no en el handler: es trabajo de la base y sobrevive a una
+    // futura paginacion. El desempate por PartidaId no es paranoia: con precision de
+    // microsegundos dos partidas reales nunca empatan, pero un reloj falso en tests
+    // devuelve el mismo instante y sin ThenBy el orden seria indefinido e intermitente.
     public async Task<IReadOnlyList<Partida>> ListAsync(CancellationToken cancellationToken)
-        => await _dbContext.Partidas.Include(p => p.Juegos).ToListAsync(cancellationToken);
+        => await _dbContext.Partidas
+            .Include(p => p.Juegos)
+            .OrderByDescending(p => p.FechaCreacion)
+            .ThenBy(p => p.PartidaId)
+            .ToListAsync(cancellationToken);
 }
