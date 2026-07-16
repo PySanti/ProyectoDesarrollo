@@ -42,15 +42,18 @@ export function Field({ label, error, hint, style, onFocus, onBlur, ...rest }: P
         onBlur={handleBlur}
         style={[styles.input, focused && styles.inputFocused, !!error && styles.inputError, style]}
       />
-      {error ? (
-        <AppText variant="label" color={colors.danger}>
-          {error}
-        </AppText>
-      ) : hint ? (
-        <AppText variant="label" color={colors.muted}>
-          {hint}
-        </AppText>
-      ) : null}
+      {/* Alto reservado siempre: el mensaje aparece/desaparece adentro sin mover el layout. */}
+      <View style={styles.msg}>
+        {error ? (
+          <AppText variant="label" color={colors.danger}>
+            {error}
+          </AppText>
+        ) : hint ? (
+          <AppText variant="label" color={colors.muted}>
+            {hint}
+          </AppText>
+        ) : null}
+      </View>
     </View>
   );
 }
@@ -77,5 +80,9 @@ const styles = StyleSheet.create({
   },
   inputError: {
     borderColor: colors.danger,
+  },
+  msg: {
+    minHeight: 18,
+    justifyContent: "center",
   },
 });

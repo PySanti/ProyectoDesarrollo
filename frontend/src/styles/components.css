@@ -217,14 +217,20 @@ textarea[aria-invalid="true"]:focus-visible {
   box-shadow: 0 0 0 3px var(--danger-wash, rgba(220, 38, 38, 0.15));
 }
 
+/* Reserva una linea de alto siempre, para que el mensaje no desplace el layout. */
+.field-msg {
+  display: block;
+  min-height: 1.15rem;
+  font-size: 0.85em;
+  line-height: 1.15rem;
+}
+
 .field-error {
   color: var(--danger);
-  font-size: 0.85em;
 }
 
 .field-hint {
   color: var(--muted);
-  font-size: 0.85em;
 }
 
 /* File inputs: brand the native selector button, keep the control intact */

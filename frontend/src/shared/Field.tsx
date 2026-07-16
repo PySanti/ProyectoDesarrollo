@@ -26,15 +26,19 @@ export function Field({ id, label, error, hint, onBlur, ...rest }: FieldProps) {
         onBlur={onBlur}
         {...rest}
       />
-      {error ? (
-        <span id={`${id}-error`} className="field-error" role="alert">
-          {error}
-        </span>
-      ) : hint ? (
-        <span id={`${id}-hint`} className="field-hint">
-          {hint}
-        </span>
-      ) : null}
+      {/* Contenedor siempre presente: reserva una linea de alto para que el mensaje
+          aparezca/desaparezca sin empujar el resto del panel. */}
+      <span className="field-msg">
+        {error ? (
+          <span id={`${id}-error`} className="field-error" role="alert">
+            {error}
+          </span>
+        ) : hint ? (
+          <span id={`${id}-hint`} className="field-hint">
+            {hint}
+          </span>
+        ) : null}
+      </span>
     </label>
   );
 }
