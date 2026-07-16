@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Microsoft.Extensions.Logging.Abstractions;
 using Microsoft.Extensions.Options;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
@@ -84,13 +85,13 @@ public sealed class SmtpTeamLifecycleNotifierTests
             _usuarios = usuarios.ToList();
         }
 
-        public List<Guid> GetByIdCalls { get; } = new();
+        public List<UsuarioLocalId> GetByIdCalls { get; } = new();
         public List<Guid> GetByKeycloakIdCalls { get; } = new();
 
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
         {
             GetByIdCalls.Add(userId);
             return Task.FromResult(_usuarios.FirstOrDefault(u => u.UsuarioId == userId));
@@ -108,7 +109,7 @@ public sealed class SmtpTeamLifecycleNotifierTests
             return Task.FromResult(_usuarios.FirstOrDefault(u => u.KeycloakId == buscado));
         }
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)

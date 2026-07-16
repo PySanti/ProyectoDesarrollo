@@ -2,6 +2,7 @@ using Microsoft.EntityFrameworkCore;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Domain.Entities;
+using Umbral.IdentityService.Domain.ValueObjects;
 
 namespace Umbral.IdentityService.Infrastructure.Persistence;
 
@@ -22,7 +23,7 @@ public sealed class UsuarioRepository : IUsuarioRepository
             .ToListAsync(cancellationToken);
     }
 
-    public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+    public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
     {
         return _dbContext.Usuarios.FirstOrDefaultAsync(u => u.UsuarioId == userId, cancellationToken);
     }
@@ -40,7 +41,7 @@ public sealed class UsuarioRepository : IUsuarioRepository
             cancellationToken);
     }
 
-    public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+    public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
     {
         var query = _dbContext.Usuarios.Where(u => u.Correo == email);
 

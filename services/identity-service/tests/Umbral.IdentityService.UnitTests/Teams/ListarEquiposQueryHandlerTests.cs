@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -34,11 +35,11 @@ public class ListarEquiposQueryHandlerTests
         public List<Usuario> Usuarios = new();
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken ct) =>
             Task.FromResult<IReadOnlyList<Usuario>>(Usuarios);
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken ct) =>
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken ct) =>
             Task.FromResult<Usuario?>(null);
         public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken ct) =>
             Task.FromResult<Usuario?>(Usuarios.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken ct) =>
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken ct) =>
             Task.FromResult(false);
         public Task AddAsync(Usuario usuario, CancellationToken ct) => Task.CompletedTask;
         public Task UpdateAsync(Usuario usuario, CancellationToken ct) => Task.CompletedTask;

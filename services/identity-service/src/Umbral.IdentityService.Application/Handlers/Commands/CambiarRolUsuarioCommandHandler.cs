@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using MediatR;
 using Umbral.IdentityService.Application.Commands;
 using Umbral.IdentityService.Application.DTOs;
@@ -32,7 +33,7 @@ public sealed class CambiarRolUsuarioCommandHandler : IRequestHandler<CambiarRol
 
     public async Task<CambiarRolUsuarioResponse> Handle(CambiarRolUsuarioCommand request, CancellationToken cancellationToken)
     {
-        var usuario = await _usuarios.GetByIdAsync(request.UserId, cancellationToken)
+        var usuario = await _usuarios.GetByIdAsync(UsuarioLocalId.From(request.UserId), cancellationToken)
             ?? throw new UserNotFoundException(request.UserId);
 
         var rolAnterior = usuario.Rol;
@@ -40,7 +41,7 @@ public sealed class CambiarRolUsuarioCommandHandler : IRequestHandler<CambiarRol
 
         if (rolAnterior == rolNuevo)
         {
-            return new CambiarRolUsuarioResponse(usuario.UsuarioId, rolAnterior.ToString());
+            return new CambiarRolUsuarioResponse(usuario.UsuarioId.Valor, rolAnterior.ToString());
         }
 
         // Guard de dominio (admin inmutable, spec 5.3 paso 3) ANTES del check de equipo y de Keycloak.
@@ -54,7 +55,7 @@ public sealed class CambiarRolUsuarioCommandHandler : IRequestHandler<CambiarRol
         if (Guid.TryParse(usuario.KeycloakId, out var keycloakGuid) &&
             await _equipos.ExistsActiveTeamByUserIdAsync(keycloakGuid, cancellationToken))
         {
-            throw new UsuarioConEquipoActivoException(usuario.UsuarioId);
+            throw new UsuarioConEquipoActivoException(usuario.UsuarioId.Valor);
         }
 
         await _keycloak.ChangeUserRealmRoleAsync(usuario.KeycloakId, rolAnterior.ToString(), rolNuevo.ToString(), cancellationToken);
@@ -63,10 +64,10 @@ public sealed class CambiarRolUsuarioCommandHandler : IRequestHandler<CambiarRol
         await _usuarios.UpdateAsync(usuario, cancellationToken);
 
         await _events.PublishRolUsuarioModificadoAsync(
-            new RolUsuarioModificadoIntegrationEvent(usuario.UsuarioId, rolAnterior.ToString(), rolNuevo.ToString(),
+            new RolUsuarioModificadoIntegrationEvent(usuario.UsuarioId.Valor, rolAnterior.ToString(), rolNuevo.ToString(),
                 _timeProvider.GetUtcNow().UtcDateTime),
             cancellationToken);
 
-        return new CambiarRolUsuarioResponse(usuario.UsuarioId, rolNuevo.ToString());
+        return new CambiarRolUsuarioResponse(usuario.UsuarioId.Valor, rolNuevo.ToString());
     }
 }

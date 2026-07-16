@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using MediatR;
 using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
@@ -29,14 +30,14 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
 
     public async Task<UpdateUserGeneralDataResponse> Handle(UpdateUserGeneralDataCommand request, CancellationToken cancellationToken)
     {
-        var user = await _usuarioRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var user = await _usuarioRepository.GetByIdAsync(UsuarioLocalId.From(request.UserId), cancellationToken);
         if (user is null)
         {
             throw new UserNotFoundException(request.UserId);
         }
 
         var normalizedEmail = request.Email.Trim().ToLowerInvariant();
-        if (await _usuarioRepository.ExistsByEmailAsync(normalizedEmail, request.UserId, cancellationToken))
+        if (await _usuarioRepository.ExistsByEmailAsync(normalizedEmail, UsuarioLocalId.From(request.UserId), cancellationToken))
         {
             throw new DuplicateEmailException(normalizedEmail);
         }
@@ -81,7 +82,7 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
         }
 
         return new UpdateUserGeneralDataResponse(
-            user.UsuarioId,
+            user.UsuarioId.Valor,
             user.Nombre,
             user.Correo,
             user.Rol.ToString(),

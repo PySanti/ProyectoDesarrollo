@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Queries;
 using Umbral.IdentityService.Application.DTOs;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
@@ -81,7 +82,7 @@ public sealed class GetParticipantesElegiblesHandlerTests
         // bajo un id que el invitado nunca presenta y no la ve nunca.
         var item = Assert.Single(result);
         Assert.Equal(subInvitable, item.UserId);
-        Assert.NotEqual(invitable.UsuarioId, item.UserId);
+        Assert.NotEqual(invitable.UsuarioId.Valor, item.UserId);
     }
 
     [Fact]
@@ -254,13 +255,13 @@ public sealed class GetParticipantesElegiblesHandlerTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(AllUsers);
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.UsuarioId == userId));
 
         public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(AllUsers.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)

@@ -1,10 +1,17 @@
 using Microsoft.EntityFrameworkCore;
+using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Umbral.IdentityService.Domain.Entities;
+using Umbral.IdentityService.Domain.ValueObjects;
 
 namespace Umbral.IdentityService.Infrastructure.Persistence;
 
 public sealed class IdentityDbContext : DbContext
 {
+    // El id local es un tipo propio para que no se pueda filtrar al mundo de equipos; en la base
+    // sigue siendo el mismo uuid, asi que el converter no cambia la columna ni pide migracion.
+    private static readonly ValueConverter<UsuarioLocalId, Guid> UsuarioLocalIdConverter =
+        new(v => v.Valor, v => UsuarioLocalId.From(v));
+
     public IdentityDbContext(DbContextOptions<IdentityDbContext> options) : base(options)
     {
     }
@@ -23,7 +30,7 @@ public sealed class IdentityDbContext : DbContext
         {
             entity.ToTable("usuarios");
             entity.HasKey(x => x.UsuarioId);
-            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid");
+            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid").HasConversion(UsuarioLocalIdConverter);
             entity.Property(x => x.KeycloakId).HasColumnName("keycloakid").IsRequired().HasMaxLength(128);
             entity.Property(x => x.Nombre).HasColumnName("nombre").IsRequired().HasMaxLength(120);
             entity.Property(x => x.Correo).HasColumnName("correo").IsRequired().HasMaxLength(320);

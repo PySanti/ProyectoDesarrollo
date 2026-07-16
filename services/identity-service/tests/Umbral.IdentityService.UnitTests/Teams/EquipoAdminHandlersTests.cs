@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Commands;
 using Umbral.IdentityService.Application.DTOs;
 using Umbral.IdentityService.Application.Exceptions;
@@ -46,7 +47,7 @@ public sealed class EquipoAdminHandlersTests
         var handler = new CrearEquipoAdminCommandHandler(usuarios, equipos, historial, publisher, TimeProvider.System);
 
         await Assert.ThrowsAsync<AlreadyBelongsToActiveTeamException>(() =>
-            handler.Handle(new CrearEquipoAdminCommand("Equipo A", liderId), CancellationToken.None));
+            handler.Handle(new CrearEquipoAdminCommand("Equipo A", liderId.Valor), CancellationToken.None));
 
         Assert.False(equipos.AddWasCalled);
         Assert.Empty(historial.Registros);
@@ -66,7 +67,7 @@ public sealed class EquipoAdminHandlersTests
         var publisher = new FakeIdentityEventsPublisher();
         var handler = new CrearEquipoAdminCommandHandler(usuarios, equipos, historial, publisher, TimeProvider.System);
 
-        var response = await handler.Handle(new CrearEquipoAdminCommand("Equipo A", liderId), CancellationToken.None);
+        var response = await handler.Handle(new CrearEquipoAdminCommand("Equipo A", liderId.Valor), CancellationToken.None);
 
         Assert.Equal("Equipo A", response.NombreEquipo);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.Estado);
@@ -94,25 +95,25 @@ public sealed class EquipoAdminHandlersTests
 
         var liderUserIdLocal = liderUsuario.UsuarioId;
         var liderMembershipKey = Guid.Parse(liderUsuario.KeycloakId);
-        Assert.NotEqual(liderUserIdLocal, liderMembershipKey);
+        Assert.NotEqual(liderUserIdLocal.Valor, liderMembershipKey);
 
         var equipos = new FakeEquipoRepository { ExistsActiveTeamByUserIdValue = false };
         var historial = new FakeHistorialNombreEquipoRepository();
         var publisher = new FakeIdentityEventsPublisher();
         var handler = new CrearEquipoAdminCommandHandler(usuarios, equipos, historial, publisher, TimeProvider.System);
 
-        var response = await handler.Handle(new CrearEquipoAdminCommand("Equipo B", liderUserIdLocal), CancellationToken.None);
+        var response = await handler.Handle(new CrearEquipoAdminCommand("Equipo B", liderUserIdLocal.Valor), CancellationToken.None);
 
         Assert.Equal(liderMembershipKey, response.LiderUserId);
-        Assert.NotEqual(liderUserIdLocal, response.LiderUserId);
+        Assert.NotEqual(liderUserIdLocal.Valor, response.LiderUserId);
 
         Assert.Single(historial.Registros);
         Assert.Equal(liderMembershipKey, historial.Registros[0].SubjectId);
-        Assert.NotEqual(liderUserIdLocal, historial.Registros[0].SubjectId);
+        Assert.NotEqual(liderUserIdLocal.Valor, historial.Registros[0].SubjectId);
 
         Assert.True(publisher.EquipoCreadoWasCalled);
         Assert.Equal(liderMembershipKey, publisher.EquipoCreadoEvent!.LiderUserId);
-        Assert.NotEqual(liderUserIdLocal, publisher.EquipoCreadoEvent.LiderUserId);
+        Assert.NotEqual(liderUserIdLocal.Valor, publisher.EquipoCreadoEvent.LiderUserId);
     }
 
     // ---------- Renombrar ----------
@@ -326,20 +327,20 @@ public sealed class EquipoAdminHandlersTests
 
     private sealed class FakeUsuarioRepository : IUsuarioRepository
     {
-        private readonly Dictionary<Guid, Usuario> _usuarios = new();
+        private readonly Dictionary<UsuarioLocalId, Usuario> _usuarios = new();
 
         public void Agregar(Usuario usuario) => _usuarios[usuario.UsuarioId] = usuario;
 
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(_usuarios.Values.ToList());
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.TryGetValue(userId, out var usuario) ? usuario : null);
 
         public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.Values.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken) => Task.CompletedTask;

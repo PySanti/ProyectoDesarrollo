@@ -75,7 +75,7 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
             cancellationToken);
 
         return new CreateUserWithInitialRoleResponse(
-            usuario.UsuarioId,
+            usuario.UsuarioId.Valor,
             usuario.KeycloakId,
             usuario.Nombre,
             usuario.Correo,

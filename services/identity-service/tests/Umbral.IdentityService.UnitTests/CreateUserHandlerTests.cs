@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -126,13 +127,13 @@ public sealed class CreateUserHandlerTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(StoredUsers);
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(u => u.UsuarioId == userId));
 
         public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)

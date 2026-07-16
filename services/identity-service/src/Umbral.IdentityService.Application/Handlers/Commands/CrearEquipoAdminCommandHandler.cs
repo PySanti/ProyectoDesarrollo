@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using MediatR;
 using Umbral.IdentityService.Application.Commands;
 using Umbral.IdentityService.Application.DTOs;
@@ -33,7 +34,7 @@ public sealed class CrearEquipoAdminCommandHandler : IRequestHandler<CrearEquipo
 
     public async Task<EquipoAdminResponse> Handle(CrearEquipoAdminCommand request, CancellationToken cancellationToken)
     {
-        var usuario = await _usuarios.GetByIdAsync(request.LiderUserId, cancellationToken)
+        var usuario = await _usuarios.GetByIdAsync(UsuarioLocalId.From(request.LiderUserId), cancellationToken)
             ?? throw new UserNotFoundException(request.LiderUserId);
 
         // La membresía de equipo (y toda referencia que deba coincidir con el `sub` del JWT del

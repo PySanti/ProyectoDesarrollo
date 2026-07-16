@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -23,7 +24,7 @@ public sealed class Hu02HandlersTests
         var response = await handler.Handle(new GetUsersQuery(), CancellationToken.None);
 
         Assert.Single(response);
-        Assert.Equal(user.UsuarioId, response[0].UserId);
+        Assert.Equal(user.UsuarioId.Valor, response[0].UserId);
         Assert.Equal("Admin", response[0].Name);
         Assert.Equal("admin@umbral.dev", response[0].Email);
         Assert.Equal("Administrador", response[0].Role);
@@ -37,9 +38,9 @@ public sealed class Hu02HandlersTests
         var repository = new FakeUsuarioRepository([user]);
         var handler = new GetUserByIdQueryHandler(repository);
 
-        var response = await handler.Handle(new GetUserByIdQuery(user.UsuarioId), CancellationToken.None);
+        var response = await handler.Handle(new GetUserByIdQuery(user.UsuarioId.Valor), CancellationToken.None);
 
-        Assert.Equal(user.UsuarioId, response.UserId);
+        Assert.Equal(user.UsuarioId.Valor, response.UserId);
         Assert.Equal("kc-1", response.KeycloakId);
         Assert.Equal("Admin", response.Name);
         Assert.Equal("admin@umbral.dev", response.Email);
@@ -63,7 +64,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository);
 
         var response = await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Updated", "updated@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Updated", "updated@umbral.dev"),
             CancellationToken.None);
 
         Assert.True(repository.UpdateWasCalled);
@@ -91,7 +92,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository);
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() =>
-            handler.Handle(new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "other@umbral.dev"), CancellationToken.None));
+            handler.Handle(new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "other@umbral.dev"), CancellationToken.None));
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public sealed class Hu02HandlersTests
         var repository = new FakeUsuarioRepository([user]);
         var handler = new DeactivateUserCommandHandler(repository);
 
-        var response = await handler.Handle(new DeactivateUserCommand(user.UsuarioId), CancellationToken.None);
+        var response = await handler.Handle(new DeactivateUserCommand(user.UsuarioId.Valor), CancellationToken.None);
 
         Assert.True(repository.UpdateWasCalled);
         Assert.Equal("Desactivado", response.Status);
@@ -129,7 +130,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository, keycloak, generator, publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "new@umbral.dev"),
             CancellationToken.None);
 
         Assert.NotNull(publisher.LastCredencialEvent);
@@ -150,7 +151,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "new@umbral.dev"),
             CancellationToken.None);
 
         Assert.Null(publisher.LastCredencialEvent);
@@ -168,7 +169,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "same@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "same@umbral.dev"),
             CancellationToken.None);
 
         Assert.False(keycloak.HasTempPasswordCalled);
@@ -189,7 +190,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "new@umbral.dev"),
             CancellationToken.None));
 
         // Revert: el usuario local vuelve a su email/nombre previos y Keycloak se restaura.
@@ -213,7 +214,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository, keycloak, generator, publisher);
 
         var response = await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "new@umbral.dev"),
             CancellationToken.None);
 
         // The email/name change is a fait accompli: a failed event publication does not revert it.
@@ -400,13 +401,13 @@ public sealed class Hu02HandlersTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(StoredUsers);
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.UsuarioId == userId));
 
         public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.KeycloakId == keycloakId.ToString()));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)

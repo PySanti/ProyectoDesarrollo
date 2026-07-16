@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using MediatR;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -16,14 +17,14 @@ public sealed class GetUserByIdQueryHandler : IRequestHandler<GetUserByIdQuery, 
 
     public async Task<UserDetailResponse> Handle(GetUserByIdQuery request, CancellationToken cancellationToken)
     {
-        var user = await _usuarioRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var user = await _usuarioRepository.GetByIdAsync(UsuarioLocalId.From(request.UserId), cancellationToken);
         if (user is null)
         {
             throw new UserNotFoundException(request.UserId);
         }
 
         return new UserDetailResponse(
-            user.UsuarioId,
+            user.UsuarioId.Valor,
             user.KeycloakId,
             user.Nombre,
             user.Correo,
