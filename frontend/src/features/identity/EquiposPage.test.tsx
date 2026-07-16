@@ -38,7 +38,8 @@ describe("EquiposPage", () => {
     renderPage();
     expect(await screen.findByTestId("tabla-equipos")).toBeInTheDocument();
     expect(screen.getByText("Los Halcones")).toBeInTheDocument();
-    expect(screen.getByText("Ana (líder), Luis")).toBeInTheDocument();
+    expect(screen.getByText("Ana (líder)")).toBeInTheDocument();
+    expect(screen.getByText("Luis")).toBeInTheDocument();
     expect(screen.getByText("Eliminado")).toBeInTheDocument();
   });
 
