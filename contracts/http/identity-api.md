@@ -69,6 +69,16 @@ Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
 
 > **There is no team access code (`codigoAcceso`).** Members join only via `InvitacionEquipo` sent by the team leader from a dynamic participant list (see `GET /identity/teams/eligible-participants`). Access-code join is not supported.
 
+> **Espacio de identificadores (leer antes de tocar estos endpoints).** Todo id de competidor en
+> esta sección — `invitadoUserId`, `nuevoLiderUserId`, el `userId` de `eligible-participants`, los
+> `usuarioId` de `/identity/teams/mine` — es el **`sub` de Keycloak**, que es el id con el que el
+> actor llega en el token. **No** es `Usuario.UsuarioId`, el id local de la tabla `usuarios`: son
+> dos Guid sin relación entre sí. `ParticipanteEquipo.UsuarioId` guarda el sub pese a su nombre,
+> y los handlers que necesitan datos de `usuarios` resuelven por `KeycloakId` parseado
+> (`ListarEquiposQueryHandler`, `ResolverNombresQueryHandler`, `GetParticipantesElegiblesQueryHandler`).
+> Devolver el id local desde cualquiera de estos endpoints archiva la invitación bajo un id que el
+> invitado nunca presenta: la invitación se crea, pero no la ve nadie. Ya pasó una vez.
+
 | Capability | Method | Path | Status | Notes |
 |---|---|---|---|---|
 | Create team | POST | `/identity/teams` | Registered | 201; creator becomes leader; response has no `codigoAcceso`; 401/403 per above |
