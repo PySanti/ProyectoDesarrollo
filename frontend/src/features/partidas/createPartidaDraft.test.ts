@@ -173,7 +173,7 @@ describe("validateJuego - BDT", () => {
     const errors = validateJuego(
       bdtWith("Plaza Bolivar", [validEtapa({ codigoQREsperado: "" })])
     );
-    expect(errors.length).toBeGreaterThan(0);
+    expect(errors).toContain("Genera el código QR de la etapa 1");
   });
 
   it("rechaza etapa con tiempo limite 0", () => {

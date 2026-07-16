@@ -143,6 +143,28 @@ describe("CreatePartidaPage", () => {
     expect(screen.getByTestId("paso-3")).toBeInTheDocument();
   });
 
+  it("genera el QR de la etapa y ofrece descargarlo", async () => {
+    const user = userEvent.setup();
+
+    render(<CreatePartidaPage accessToken="token-xyz" />);
+    await fillValidHeader(user);
+    await addValidTriviaGame(user);
+
+    await user.click(screen.getByTestId("btn-agregar-bdt"));
+    const bdtRegion = screen.getByRole("region", { name: "Juego 2" });
+    await user.type(within(bdtRegion).getByLabelText(/[aá]rea de b[uú]squeda/i), "Patio");
+    await user.click(within(bdtRegion).getByRole("button", { name: /agregar etapa/i }));
+
+    await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
+
+    expect(await within(bdtRegion).findByRole("img", { name: /qr del tesoro/i })).toBeInTheDocument();
+    expect(within(bdtRegion).getByRole("link", { name: /descargar qr/i })).toHaveAttribute(
+      "download",
+      "tesoro-etapa-1.png"
+    );
+    expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
+  });
+
   it("en el paso 3 llama a enviarPartida con el draft y navega al detalle en exito", async () => {
     const user = userEvent.setup();
     enviarPartidaMock.mockResolvedValue({
@@ -187,7 +209,7 @@ describe("CreatePartidaPage", () => {
     const bdtRegion = screen.getByRole("region", { name: "Juego 2" });
     await user.type(within(bdtRegion).getByLabelText(/[aá]rea de b[uú]squeda/i), "Patio");
     await user.click(within(bdtRegion).getByRole("button", { name: /agregar etapa/i }));
-    await user.type(within(bdtRegion).getByLabelText(/c[oó]digo qr esperado/i), "QR-1");
+    await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
     await user.type(within(bdtRegion).getByLabelText(/^puntaje$/i), "50");
     await user.type(within(bdtRegion).getByLabelText(/tiempo l[ií]mite/i), "60");
 
@@ -226,7 +248,7 @@ describe("CreatePartidaPage", () => {
     const bdtRegion = screen.getByRole("region", { name: "Juego 2" });
     await user.type(within(bdtRegion).getByLabelText(/[aá]rea de b[uú]squeda/i), "Patio");
     await user.click(within(bdtRegion).getByRole("button", { name: /agregar etapa/i }));
-    await user.type(within(bdtRegion).getByLabelText(/c[oó]digo qr esperado/i), "QR-1");
+    await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
     await user.type(within(bdtRegion).getByLabelText(/^puntaje$/i), "50");
     await user.type(within(bdtRegion).getByLabelText(/tiempo l[ií]mite/i), "60");
 

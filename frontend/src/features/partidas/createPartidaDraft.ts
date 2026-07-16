@@ -149,7 +149,7 @@ function validateEtapa(etapa: EtapaDraft, posicion: number): string[] {
   const n = posicion + 1;
 
   if (!etapa.codigoQREsperado.trim()) {
-    errors.push(`La etapa ${n} debe tener un codigo QR esperado.`);
+    errors.push(`Genera el código QR de la etapa ${n}`);
   }
   if (!(Number(etapa.puntaje) > 0)) {
     errors.push(`La etapa ${n} debe tener un puntaje mayor que 0.`);

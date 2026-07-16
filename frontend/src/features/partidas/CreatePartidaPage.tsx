@@ -23,6 +23,7 @@ import {
   type PreguntaDraft
 } from "./createPartidaDraft";
 import { enviarPartida, type EnvioJuego, type EstadoEnvio, type ResultadoEnvio } from "./enviarPartida";
+import { generarCodigoTesoro, nombreArchivoQr, renderizarQrDataUrl } from "./qrTesoro";
 
 interface EnvioState {
   partidaId: string | null;
@@ -634,6 +635,9 @@ function BdtEditor({
   onUpdate: (next: JuegoDraft) => void;
 }) {
   const areaId = `area-busqueda-${juegoIndex}`;
+  // Indexado por codigoQREsperado (no por eIndex): asi no hace falta re-renderizar el QR
+  // en cada tecla que el operador escribe en otros campos de la etapa.
+  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
 
   function patchEtapa(eIndex: number, patch: Partial<EtapaDraft>) {
     onUpdate({
@@ -683,14 +687,34 @@ function BdtEditor({
                 </button>
               </div>
 
-              <label htmlFor={`${baseId}-qr`}>
-                Codigo QR esperado etapa {n}
-                <input
-                  id={`${baseId}-qr`}
-                  value={etapa.codigoQREsperado}
-                  onChange={(event) => patchEtapa(eIndex, { codigoQREsperado: event.target.value })}
-                />
-              </label>
+              <div className="stack">
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={async () => {
+                    const codigo = generarCodigoTesoro();
+                    patchEtapa(eIndex, { codigoQREsperado: codigo });
+                    const dataUrl = await renderizarQrDataUrl(codigo);
+                    setQrDataUrls((prev) => ({ ...prev, [codigo]: dataUrl }));
+                  }}
+                >
+                  {etapa.codigoQREsperado ? `Regenerar QR etapa ${n}` : `Generar QR etapa ${n}`}
+                </button>
+
+                {etapa.codigoQREsperado && qrDataUrls[etapa.codigoQREsperado] ? (
+                  <>
+                    <img
+                      src={qrDataUrls[etapa.codigoQREsperado]}
+                      alt={`QR del tesoro de la etapa ${n}`}
+                      width={160}
+                      height={160}
+                    />
+                    <a href={qrDataUrls[etapa.codigoQREsperado]} download={nombreArchivoQr(n)}>
+                      Descargar QR etapa {n}
+                    </a>
+                  </>
+                ) : null}
+              </div>
 
               <div className="q-meta">
                 <label htmlFor={`${baseId}-puntaje`}>
