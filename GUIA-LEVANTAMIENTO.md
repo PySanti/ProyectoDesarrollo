@@ -51,3 +51,36 @@ cd mobile && ./run-local.sh
 El script regenera `mobile/.env` con valores literales desde el `.env` raíz (no edites
 `mobile/.env` a mano) y lanza `expo start --host lan`. Escanea el QR con Expo Go desde el
 teléfono (misma Wi-Fi).
+
+## En caso de tener problemas levantando movil con red lan
+
+En este caso, levantaremos el movil usando un cable usb. Pasos:
+
+1. Activar depuración USB en el celular (Android)
+
+- Ajustes → Acerca del teléfono → tocá 7 veces "Número de compilación" (activa Opciones de desarrollador).
+- Ajustes → Opciones de desarrollador → activá "Depuración USB".
+
+2. Instalar adb en la PC (liviano, solo platform-tools)
+
+Invoke-WebRequest -Uri "https://dl.google.com/android/repository/platform-tools-latest-windows.zip" -OutFile "$env:TEMP\platform-tools.zip"
+Expand-Archive -Path "$env:TEMP\platform-tools.zip" -DestinationPath "$env:LOCALAPPDATA\Android" -Force
+Esto deja adb.exe en %LOCALAPPDATA%\Android\platform-tools\adb.exe.
+
+3. Conectar el cable y verificar
+
+Conectá el celular por USB a la PC. En el teléfono va a aparecer un popup "¿Permitir depuración USB?" → aceptar (marcá "confiar siempre en esta PC" si querés).
+
+$env:PATH += ";$env:LOCALAPPDATA\Android\platform-tools"
+adb devices
+Tiene que listar tu dispositivo (si dice "unauthorized", revisá el popup en el teléfono y aceptalo).
+
+4. Redirigir los puertos y levantar Expo
+
+adb reverse tcp:8081 tcp:8081
+adb reverse tcp:5080 tcp:5080
+adb reverse tcp:8080 tcp:8080
+cd mobile
+npx expo start --clear
+
+Con adb reverse, el teléfono ve localhost:8081 como si fuera él mismo — no depende de la IP LAN ni del router para nada. Cuando escanees el QR o abras Expo Go, debería conectar directo.

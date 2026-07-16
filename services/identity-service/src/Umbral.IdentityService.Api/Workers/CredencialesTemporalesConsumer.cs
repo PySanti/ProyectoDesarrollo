@@ -26,7 +26,7 @@ public sealed class CredencialesTemporalesConsumer : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
-
+    // los bindings viven en Infrastructure\Services\Messaging\RabbitMqCredencialesConsumerOptions.cs
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!_options.Enabled || string.IsNullOrWhiteSpace(_options.Host))

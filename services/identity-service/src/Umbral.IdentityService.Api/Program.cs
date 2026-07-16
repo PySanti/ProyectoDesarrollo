@@ -33,6 +33,7 @@ var rabbitCredencialesConsumerOptions = builder.Configuration
     .Get<RabbitMqCredencialesConsumerOptions>()
     ?? new RabbitMqCredencialesConsumerOptions();
 builder.Services.AddSingleton(rabbitCredencialesConsumerOptions);
+// publicacion del consumer del servicio
 builder.Services.AddHostedService<CredencialesTemporalesConsumer>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)

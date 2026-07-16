@@ -4,11 +4,6 @@ using Umbral.IdentityService.Domain.Abstractions.Persistence;
 
 namespace Umbral.IdentityService.Application.Services;
 
-/// <summary>
-/// Mapea eventos de Operaciones de Sesión (inscripción de equipo / fin de partida) a
-/// operaciones sobre <see cref="IParticipacionActivaEquipoRepository"/>. Ver
-/// <see cref="IParticipacionProjectionUpdater"/> para el contrato best-effort/idempotente.
-/// </summary>
 public sealed class ParticipacionProjectionUpdater : IParticipacionProjectionUpdater
 {
     private readonly IParticipacionActivaEquipoRepository _repo;
