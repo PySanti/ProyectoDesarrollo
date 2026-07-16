@@ -132,7 +132,12 @@ que en el sub-proyecto 2 sí llevaban AND.
   privilegio → 403" se mantiene (sigue siendo cierto), pero "privilegio SIN el rol admin/operador →
   403" se invierte a "→ 200" (ya no aplica el AND). Se agrega el caso Participante-con-privilegio →
   200.
-- **Gateway**: sin test automatizado (no lo tiene hoy); se valida en la verificación en vivo.
+- **Gateway**: sí tiene tests (`gateway/tests/Umbral.Gateway.IntegrationTests/GatewayEndpointsTests.cs`,
+  con `TestAuthHandler` por `X-Test-Roles`). Los tests que hoy pasan con solo el rol base (ej.
+  `Partidas_con_Administrador_pasa_la_politica` con `"Administrador"` a secas) van a empezar a
+  fallar cuando la policy deje de mirar el rol: hay que sumarles el privilegio en el header
+  (`"Administrador,GestionarPartidas"`) y agregar el caso nuevo (`"Participante,GestionarPartidas"`
+  → pasa; rol solo, sin privilegio → 403).
 - **Verificación en vivo**: con Docker arriba, darle `GestionarPartidas` a Participante desde
   Gobernanza, loguearse en la web como participante y confirmar que ve "Partidas", entra a "Nueva
   partida" y el panel de creación carga — el mismo patrón de prueba que cerró el sub-proyecto 2.
