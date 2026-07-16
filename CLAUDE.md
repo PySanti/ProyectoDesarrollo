@@ -48,8 +48,8 @@ Every service follows the same 4-project layout under `services/<service>/src/`:
 
 - The gateway is **mandatory** and built on **YARP**; it is the single entry point to the backend. It is **not** an optional stub.
 - **All** frontend/mobile ↔ backend traffic passes through the gateway, **including** real-time (WebSockets/SignalR). There is no direct client→service contact.
-- The gateway **validates the Keycloak JWT** and applies **coarse, route-level authorization by base role** (`Administrador`/`Operador`/`Participante`) using the token claims, **without querying Identity on every request**.
-- **Fine-grained authorization by functional permission stays inside the microservices.**
+- The gateway **validates the Keycloak JWT** and applies **coarse, route-level authorization** using the token claims, **without querying Identity on every request** — by base role (`Administrador`/`Operador`/`Participante`) for most routes, and by governance privilege (`GestionarPartidas`/`GestionarEquipos`, HU-04) for the routes those two privileges govern. Both are role claims in the same token (ADR-0013), so the mechanism is identical either way.
+- **Fine-grained, per-resource authorization by functional permission stays inside the microservices** — the gateway's privilege check above is still coarse (whole-route, not per-resource) and duplicated by each service's own policy for defense in depth.
 - The gateway routes only (plus token validation / role authorization) and is extensible to edge concerns (rate limiting, load balancing, TLS termination). It owns **no** domain logic, scores, rankings, or DB access.
 
 ### Clients

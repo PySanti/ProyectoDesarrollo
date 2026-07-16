@@ -27,7 +27,7 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task Explicit_policy_route_without_token_is_401()
     {
-        // /partidas carries an explicit AuthorizationPolicy ("Operador"): no token → 401,
+        // /partidas carries an explicit AuthorizationPolicy ("GestionarPartidas"): no token → 401,
         // enforced before the proxy ever contacts the (unreachable) destination.
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 

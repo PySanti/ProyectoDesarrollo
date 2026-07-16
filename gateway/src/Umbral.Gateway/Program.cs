@@ -16,7 +16,6 @@ builder.Services.AddAuthorizationBuilder()
     .AddPolicy("Administrador", p => p.RequireRole("Administrador"))
     .AddPolicy("Operador", p => p.RequireRole("Operador"))
     .AddPolicy("Participante", p => p.RequireRole("Participante"))
-    .AddPolicy("OperadorOAdministrador", p => p.RequireRole("Operador", "Administrador"))
     .AddPolicy("GestionarPartidas", p => p.RequireRole("GestionarPartidas"))
     .AddPolicy("GestionarEquipos", p => p.RequireRole("GestionarEquipos"))
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
