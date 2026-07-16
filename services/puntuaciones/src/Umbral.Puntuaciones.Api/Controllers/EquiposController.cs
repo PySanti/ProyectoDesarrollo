@@ -7,7 +7,7 @@ namespace Umbral.Puntuaciones.Api.Controllers;
 
 [ApiController]
 [Route("puntuaciones")]
-[Authorize(Policy = "OperadorOAdminGestionarEquipos")]
+[Authorize(Policy = "GestionarEquipos")]
 public sealed class EquiposController : ControllerBase
 {
     private readonly ISender _mediator;
