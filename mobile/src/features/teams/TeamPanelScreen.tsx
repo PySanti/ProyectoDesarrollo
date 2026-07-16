@@ -6,8 +6,7 @@ import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, radius, spacing } from "../../shared/theme";
 import { AppStackParamList } from "../../navigation/types";
 import { fetchMyTeamStatus } from "./teamPanelFlow.js";
-
-type Participante = { usuarioId: string; nombre: string; esLider: boolean };
+import { FetchTeamStatusResult, Participante } from "./teamTypes";
 
 type TeamStatus =
   | { status: "sinEquipo" }
@@ -21,19 +20,6 @@ type TeamPanelScreenProps = {
   currentUserId: string;
   navigation: TeamPanelNavigation;
 };
-
-// `fetchMyTeamStatus` (teamPanelFlow.js) has no JSDoc, so TS infers/widens its return type from the
-// plain object literals instead of preserving the `ok` discriminant. Annotate the real shape here.
-type FetchTeamStatusResult =
-  | { ok: false; type?: string; message?: string }
-  | { ok: true; status: "sinEquipo" }
-  | {
-      ok: true;
-      status: "lider" | "miembro";
-      equipoId: string;
-      nombreEquipo: string;
-      participantes: Participante[];
-    };
 
 export function TeamPanelScreen({ apiBaseUrl, token, currentUserId, navigation }: TeamPanelScreenProps) {
   const [loading, setLoading] = useState(true);

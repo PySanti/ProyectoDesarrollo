@@ -2,8 +2,7 @@ import { transferTeamLeadership } from "./transferLeadershipApi.js";
 
 export function getEligibleLeaderMembers(members = [], currentLeaderUserId) {
   return members.filter((member) => {
-    const userId = member.userId ?? member.usuarioId;
-    return userId && userId !== currentLeaderUserId && member.esLider !== true;
+    return member.usuarioId && member.usuarioId !== currentLeaderUserId && member.esLider !== true;
   });
 }
 

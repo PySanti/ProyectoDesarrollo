@@ -28,6 +28,20 @@ test("getEligibleLeaderMembers should return empty when leader is the only membe
   assert.equal(result.length, 0);
 });
 
+test("getEligibleLeaderMembers should exclude a leader whose id differs from currentLeaderUserId", () => {
+  // Regression guard for the `esLider` clause: two members could satisfy the id-inequality
+  // check alone, so this asserts esLider is what actually hides the real leader here.
+  const members = [
+    { usuarioId: targetUserId, nombre: "Otro lider", esLider: true },
+    { usuarioId: "33333333-3333-3333-3333-333333333333", nombre: "Miembro", esLider: false },
+  ];
+
+  const result = getEligibleLeaderMembers(members, leaderUserId);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].usuarioId, "33333333-3333-3333-3333-333333333333");
+});
+
 test("submitTransferLeadership should call PATCH leadership endpoint", async () => {
   let requestedUrl;
   let requestedBody;
@@ -82,6 +96,7 @@ test("submitTransferLeadership should map HTTP statuses to the exact user-facing
     403: "Debes tener rol Participante para transferir liderazgo.",
     404: "No perteneces a ningun equipo activo.",
     409: "No se pudo transferir el liderazgo. Verifica que seas lider y que el nuevo lider pertenezca al equipo.",
+    500: "No se pudo transferir el liderazgo.",
   };
 
   for (const [status, message] of Object.entries(statusToMessage)) {

@@ -23,17 +23,19 @@ export async function submitTransferLeadershipFromScreen({
     result = await submitFn({ apiBaseUrl, token, nuevoLiderUserId });
   } catch {
     setLoading(false);
-    setErrorMessage("Ocurrio un error inesperado. Intenta nuevamente.");
-    return;
+    const message = "Ocurrio un error inesperado. Intenta nuevamente.";
+    setErrorMessage(message);
+    return { ok: false, message };
   }
 
   setLoading(false);
 
   if (!result.ok) {
     setErrorMessage(result.message);
-    return;
+    return result;
   }
 
   setSuccessMessage(getTransferLeadershipSuccessMessage(result.data));
   onTransferred?.(result.data);
+  return result;
 }

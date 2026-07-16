@@ -2,26 +2,10 @@ import React, { useCallback, useEffect, useState } from "react";
 import { ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, radius, spacing } from "../../shared/theme";
-import { loadMyTeam } from "./teamPanelApi.js";
+import { fetchMyTeamStatus } from "./teamPanelFlow.js";
 import { getEligibleLeaderMembers } from "./transferLeadershipFlow.js";
 import { submitTransferLeadershipFromScreen } from "./transferLeadershipScreenModel.js";
-
-type Miembro = { usuarioId: string; nombre: string; esLider: boolean };
-
-// `loadMyTeam` (teamPanelApi.js) has no JSDoc, so TS infers/widens its return type from the
-// plain object literals instead of preserving the `ok` discriminant. Annotate the real shape here.
-type LoadMyTeamResult =
-  | { ok: false; type?: string; message?: string }
-  | { ok: true; data: null }
-  | {
-      ok: true;
-      data: {
-        equipoId: string;
-        nombreEquipo: string;
-        estado: string;
-        participantes: Miembro[];
-      };
-    };
+import { FetchTeamStatusResult, Participante } from "./teamTypes";
 
 type TransferLeadershipScreenProps = {
   apiBaseUrl: string;
@@ -38,8 +22,8 @@ export function TransferLeadershipScreen({
 }: TransferLeadershipScreenProps) {
   const [loadingTeam, setLoadingTeam] = useState(true);
   const [teamError, setTeamError] = useState<string | null>(null);
-  const [participantes, setParticipantes] = useState<Miembro[]>([]);
-  const [selectedMember, setSelectedMember] = useState<Miembro | null>(null);
+  const [participantes, setParticipantes] = useState<Participante[]>([]);
+  const [selectedMember, setSelectedMember] = useState<Participante | null>(null);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -47,32 +31,40 @@ export function TransferLeadershipScreen({
   const loadTeam = useCallback(async () => {
     setLoadingTeam(true);
     setTeamError(null);
-    const result = (await loadMyTeam(apiBaseUrl, token)) as LoadMyTeamResult;
+    const result = (await fetchMyTeamStatus({
+      apiBaseUrl,
+      token,
+      currentUserId,
+      fetchImpl: undefined,
+    })) as FetchTeamStatusResult;
+    setLoadingTeam(false);
     if (!result.ok) {
       setTeamError(result.message ?? "No se pudo cargar tu equipo.");
-      setLoadingTeam(false);
       return;
     }
-    if (result.data === null) {
+    if (result.status === "sinEquipo") {
       setTeamError("No pertenecés a ningún equipo activo.");
-      setLoadingTeam(false);
       return;
     }
-    setParticipantes(result.data.participantes);
-    setLoadingTeam(false);
-  }, [apiBaseUrl, token]);
+    setParticipantes(result.participantes);
+  }, [apiBaseUrl, token, currentUserId]);
 
   useEffect(() => {
     loadTeam();
   }, [loadTeam]);
 
-  const eligibleMembers = getEligibleLeaderMembers(participantes, currentUserId) as Miembro[];
+  const eligibleMembers = getEligibleLeaderMembers(participantes, currentUserId) as Participante[];
+
+  function selectMember(member: Participante) {
+    setErrorMessage(null);
+    setSelectedMember(member);
+  }
 
   async function handleConfirm() {
     if (!selectedMember) {
       return;
     }
-    await submitTransferLeadershipFromScreen({
+    const result = await submitTransferLeadershipFromScreen({
       apiBaseUrl,
       token,
       nuevoLiderUserId: selectedMember.usuarioId,
@@ -81,14 +73,16 @@ export function TransferLeadershipScreen({
       setErrorMessage,
       setSuccessMessage,
     });
-    setSelectedMember(null);
+    if (result?.ok) {
+      setSelectedMember(null);
+      loadTeam();
+    }
   }
 
   return (
     <SafeAreaView style={styles.safe}>
       <ScrollView contentContainerStyle={styles.content}>
         <ScreenHeader title="Transferir liderazgo" subtitle="Elegí quién será el nuevo líder del equipo." />
-        {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
         {successMessage ? <Notice variant="success">{successMessage}</Notice> : null}
 
         {loadingTeam ? (
@@ -111,10 +105,10 @@ export function TransferLeadershipScreen({
                 <Pressable
                   key={member.usuarioId}
                   accessibilityRole="button"
-                  onPress={() => setSelectedMember(member)}
-                  style={styles.memberRow}
+                  onPress={() => selectMember(member)}
+                  style={({ pressed }) => [styles.memberRow, pressed && styles.memberRowPressed]}
                 >
-                  <AppText variant="body">{member.nombre}</AppText>
+                  <AppText variant="body">{member.nombre || "Sin nombre"}</AppText>
                 </Pressable>
               ))}
             </View>
@@ -131,10 +125,19 @@ export function TransferLeadershipScreen({
         <View style={styles.backdrop}>
           <Card style={styles.modalCard}>
             <AppText variant="bodyStrong">
-              ¿Confirmás transferir el liderazgo a {selectedMember?.nombre}?
+              ¿Confirmás transferir el liderazgo a {selectedMember?.nombre || "Sin nombre"}?
             </AppText>
+            {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
             <Button label="Transferir liderazgo" onPress={handleConfirm} loading={loading} disabled={loading} />
-            <Button label="Cancelar" variant="secondary" onPress={() => setSelectedMember(null)} disabled={loading} />
+            <Button
+              label="Cancelar"
+              variant="secondary"
+              onPress={() => {
+                setErrorMessage(null);
+                setSelectedMember(null);
+              }}
+              disabled={loading}
+            />
           </Card>
         </View>
       </Modal>
@@ -151,8 +154,15 @@ const styles = StyleSheet.create({
     minHeight: 48,
     justifyContent: "center",
     paddingVertical: spacing.sm,
-    paddingHorizontal: spacing.sm,
+    paddingHorizontal: spacing.md,
     borderRadius: radius.md,
+    backgroundColor: colors.surface,
+    borderWidth: 1,
+    borderColor: colors.line,
+  },
+  memberRowPressed: {
+    borderColor: colors.primaryBright,
+    backgroundColor: colors.primaryWash,
   },
   backdrop: {
     flex: 1,

@@ -101,18 +101,25 @@ Primera impresión de marca.
   + `Button` + `Notice`). La pantalla `JoinTeamScreen` conservaba copy legacy de unión por código durante
   el re-skin visual; eso es deuda de migración de código/copy, no doctrina activa. La doctrina actual exige
   unión por `InvitacionEquipo` en Identity.
-- `LeaveTeamScreen` / `TransferLeadershipScreen`: estas delegan el render a un **Controller `.js`
-  testeado** vía `components` + `styles`. Re-skin **solo de los valores del objeto `styles`** (mismas
-  claves, mismo controller, mismos componentes inyectados) → cero riesgo para los tests. El input de
-  userId en Transfer pasa a **mono** (cadena de máquina). Avisos como bloque error/éxito on-brand.
+- `LeaveTeamScreen`: delega el render a un **Controller `.js` testeado** vía `components` + `styles`.
+  Re-skin **solo de los valores del objeto `styles`** (mismas claves, mismo controller, mismos
+  componentes inyectados) → cero riesgo para los tests. Avisos como bloque error/éxito on-brand.
+- `TransferLeadershipScreen`: **migrada a TSX + primitivos** (`ScreenHeader` + `Card` + `Notice` +
+  `Button` + `Pressable`/`Modal`) el 2026-07-16, reemplazando el input de userId en mono por una lista
+  de miembros elegibles y un modal de confirmación. Decisión registrada en
+  `docs/superpowers/specs/2026-07-16-transferir-liderazgo-lista-mobile-design.md` (D3); su lógica vive
+  en `transferLeadershipScreenModel.js`/`transferLeadershipFlow.js`, cubiertos por
+  `transferLeadershipScreenModel.test.js`/`transferLeadershipFlow.test.js`.
 - Verificado: `tsc --noEmit` exit 0 · `npm test` 83/83 verdes (incluye `LeaveTeamScreenController`,
   `TransferLeadershipScreenController`, `leaveTeamScreenContent`, `joinTeamScreenModel`).
 - **Pendiente (usuario):** pase manual en Expo — recorrer crear → invitaciones/unión legacy pendiente de
   migrar, transferir → salir; confirmar campos/botones de marca y los estados sin-equipo / error / éxito.
 
-**Nota de patrón:** Leave/Transfer mantienen la arquitectura Controller-inyectado por **testabilidad**;
-no se migran a los primitivos (API distinta). Se re-skinean por el objeto `styles`. Las pantallas sin
-controller (Create/Join y las de Trivia/BDT que lo permitan) sí usan los primitivos directamente.
+**Nota de patrón:** Leave/Delete/TeamHistory mantienen la arquitectura Controller-inyectado por
+**testabilidad**; no se migran a los primitivos (API distinta). Se re-skinean por el objeto `styles`.
+`TransferLeadershipScreen` es la excepción aprobada (ver D3 arriba): migró a primitivos directos. Las
+pantallas sin controller (Create/Join y las de Trivia/BDT que lo permitan) también usan los primitivos
+directamente.
 
 ### Fase 3 — Trivia (GamesList · Lobby · Answer · Result · Score) · ✅ código (pase Expo pendiente)
 
