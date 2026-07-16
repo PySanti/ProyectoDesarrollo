@@ -2,6 +2,7 @@
 using System;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
+using Microsoft.EntityFrameworkCore.Migrations;
 using Microsoft.EntityFrameworkCore.Storage.ValueConversion;
 using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 using Umbral.Partidas.Infrastructure.Persistence;
@@ -11,9 +12,11 @@ using Umbral.Partidas.Infrastructure.Persistence;
 namespace Umbral.Partidas.Infrastructure.Persistence.Migrations
 {
     [DbContext(typeof(PartidasDbContext))]
-    partial class PartidasDbContextModelSnapshot : ModelSnapshot
+    [Migration("20260716050737_AddFechaCreacionAPartida")]
+    partial class AddFechaCreacionAPartida
     {
-        protected override void BuildModel(ModelBuilder modelBuilder)
+        /// <inheritdoc />
+        protected override void BuildTargetModel(ModelBuilder modelBuilder)
         {
 #pragma warning disable 612, 618
             modelBuilder

@@ -19,6 +19,26 @@ public class PartidaPersistenceTests
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
 
     [Fact]
+    public async Task FechaCreacion_sobrevive_el_round_trip()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var partida = Partida.Crear(
+            NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
+
+        await using (var ctx = NewContext(dbName))
+        {
+            new PartidaRepository(ctx).Add(partida);
+            await new PartidasUnitOfWork(ctx).SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var loaded = await new PartidaRepository(ctx).GetByIdAsync(partida.PartidaId, CancellationToken.None);
+            Assert.Equal(T0, loaded!.FechaCreacion);
+        }
+    }
+
+    [Fact]
     public async Task Partida_with_trivia_and_bdt_games_round_trips()
     {
         var dbName = Guid.NewGuid().ToString();
