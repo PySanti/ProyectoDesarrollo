@@ -4,6 +4,7 @@ import userEvent from "@testing-library/user-event";
 import { CreatePartidaPage } from "./CreatePartidaPage";
 import { enviarPartida } from "./enviarPartida";
 import type { ResultadoEnvio } from "./enviarPartida";
+import { renderizarQrDataUrl } from "./qrTesoro";
 
 const { navigateMock } = vi.hoisted(() => ({ navigateMock: vi.fn() }));
 
@@ -14,7 +15,15 @@ vi.mock("react-router-dom", async (importOriginal) => {
 
 vi.mock("./enviarPartida", () => ({ enviarPartida: vi.fn() }));
 
+// Se envuelve (no se reemplaza) para que los tests existentes sigan generando un QR real;
+// solo el test de "falla la generacion" fuerza un rechazo puntual con mockRejectedValueOnce.
+vi.mock("./qrTesoro", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("./qrTesoro")>();
+  return { ...actual, renderizarQrDataUrl: vi.fn(actual.renderizarQrDataUrl) };
+});
+
 const enviarPartidaMock = vi.mocked(enviarPartida);
+const renderizarQrDataUrlMock = vi.mocked(renderizarQrDataUrl);
 
 async function fillValidHeader(user: ReturnType<typeof userEvent.setup>) {
   await user.type(screen.getByLabelText(/nombre de la partida/i), "Trivia de prueba");
@@ -163,6 +172,43 @@ describe("CreatePartidaPage", () => {
       "tesoro-etapa-1.png"
     );
     expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
+  });
+
+  it("si falla la generacion del QR, avisa al operador y la etapa no queda lista", async () => {
+    const user = userEvent.setup();
+    renderizarQrDataUrlMock.mockRejectedValueOnce(new Error("boom"));
+
+    render(<CreatePartidaPage accessToken="token-xyz" />);
+    await fillValidHeader(user);
+    await addValidTriviaGame(user);
+
+    await user.click(screen.getByTestId("btn-agregar-bdt"));
+    const bdtRegion = screen.getByRole("region", { name: "Juego 2" });
+    await user.type(within(bdtRegion).getByLabelText(/[aá]rea de b[uú]squeda/i), "Patio");
+    await user.click(within(bdtRegion).getByRole("button", { name: /agregar etapa/i }));
+
+    await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
+
+    // El operador ve el fallo...
+    expect(
+      await within(bdtRegion).findByText(/no se pudo generar el qr/i)
+    ).toBeInTheDocument();
+    // ...y la etapa no queda con un codigo "fantasma": ni QR, ni descarga, ni boton
+    // renombrado a "Regenerar" (seguiria diciendo "Generar", como si nunca se hubiera
+    // intentado desde el punto de vista del draft).
+    expect(within(bdtRegion).queryByRole("img", { name: /qr del tesoro/i })).not.toBeInTheDocument();
+    expect(within(bdtRegion).queryByRole("link", { name: /descargar qr/i })).not.toBeInTheDocument();
+    expect(within(bdtRegion).getByRole("button", { name: /^generar qr/i })).toBeInTheDocument();
+    expect(within(bdtRegion).queryByRole("button", { name: /regenerar qr/i })).not.toBeInTheDocument();
+
+    // El draft tampoco considera la etapa lista: avanzar de paso la sigue rechazando
+    // por falta de codigo QR, igual que si el operador nunca hubiera tocado el boton.
+    await user.type(within(bdtRegion).getByLabelText(/^puntaje$/i), "50");
+    await user.type(within(bdtRegion).getByLabelText(/tiempo l[ií]mite/i), "60");
+    await user.click(screen.getByTestId("btn-siguiente"));
+
+    expect(screen.getByRole("alert")).toHaveTextContent(/genera el código qr de la etapa 1/i);
+    expect(screen.getByTestId("paso-2")).toBeInTheDocument();
   });
 
   it("en el paso 3 llama a enviarPartida con el draft y navega al detalle en exito", async () => {

@@ -638,6 +638,9 @@ function BdtEditor({
   // Indexado por codigoQREsperado (no por eIndex): asi no hace falta re-renderizar el QR
   // en cada tecla que el operador escribe en otros campos de la etapa.
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+  // Indexado por eIndex: si renderizarQrDataUrl falla, la etapa no debe quedar con un
+  // codigo "valido" sin QR asociado (ver nota en el onClick de mas abajo).
+  const [qrErrors, setQrErrors] = useState<Record<number, string>>({});
 
   function patchEtapa(eIndex: number, patch: Partial<EtapaDraft>) {
     onUpdate({
@@ -692,14 +695,32 @@ function BdtEditor({
                   type="button"
                   className="ghost-button"
                   onClick={async () => {
+                    // El codigo solo se confirma en el draft si renderizarQrDataUrl tiene
+                    // exito: si patcheamos antes y el render falla, la etapa quedaria con un
+                    // codigoQREsperado "valido" (pasa validateEtapa y el backend lo aceptaria
+                    // como UUID unico) pero sin QR ni descarga — el operador crearia una
+                    // partida con un tesoro que nadie puede fotografiar, sin ningun aviso.
+                    setQrErrors((prev) => {
+                      const { [eIndex]: _omitida, ...resto } = prev;
+                      return resto;
+                    });
                     const codigo = generarCodigoTesoro();
-                    patchEtapa(eIndex, { codigoQREsperado: codigo });
-                    const dataUrl = await renderizarQrDataUrl(codigo);
-                    setQrDataUrls((prev) => ({ ...prev, [codigo]: dataUrl }));
+                    try {
+                      const dataUrl = await renderizarQrDataUrl(codigo);
+                      patchEtapa(eIndex, { codigoQREsperado: codigo });
+                      setQrDataUrls((prev) => ({ ...prev, [codigo]: dataUrl }));
+                    } catch {
+                      setQrErrors((prev) => ({
+                        ...prev,
+                        [eIndex]: `No se pudo generar el QR de la etapa ${n}. Intenta de nuevo.`
+                      }));
+                    }
                   }}
                 >
                   {etapa.codigoQREsperado ? `Regenerar QR etapa ${n}` : `Generar QR etapa ${n}`}
                 </button>
+
+                {qrErrors[eIndex] ? <p className="notice error">{qrErrors[eIndex]}</p> : null}
 
                 {etapa.codigoQREsperado && qrDataUrls[etapa.codigoQREsperado] ? (
                   <>
