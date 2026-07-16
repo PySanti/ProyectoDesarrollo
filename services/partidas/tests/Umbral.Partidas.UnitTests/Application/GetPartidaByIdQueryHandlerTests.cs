@@ -29,7 +29,7 @@ public class GetPartidaByIdQueryHandlerTests
         {
             new PreguntaSpec("Q", new List<OpcionSpec> { new("A", true), new("B", false) }, 10, 30)
         });
-        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, "QR", 50, 120) });
+        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, Guid.NewGuid().ToString(), 50, 120) });
         partida.AgregarJuego(trivia.JuegoId, 1, TipoJuego.Trivia);
         partida.AgregarJuego(bdt.JuegoId, 2, TipoJuego.BusquedaDelTesoro);
         partidas.Add(partida);

@@ -22,7 +22,7 @@ public class AgregarJuegoBDTCommandHandlerTests
     private static AgregarJuegoBDTCommand Command(Guid partidaId, int orden = 1) =>
         new(partidaId, orden, "Plaza central", new List<EtapaRequest>
         {
-            new(1, "QR-1", 50, 120)
+            new(1, Guid.NewGuid().ToString(), 50, 120)
         });
 
     [Fact]

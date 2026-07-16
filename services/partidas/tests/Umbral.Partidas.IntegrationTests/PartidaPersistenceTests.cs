@@ -14,6 +14,7 @@ namespace Umbral.Partidas.IntegrationTests;
 public class PartidaPersistenceTests
 {
     private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+    private const string QrEtapa1 = "11111111-1111-1111-1111-111111111111";
 
     private static PartidasDbContext NewContext(string dbName) =>
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
@@ -47,7 +48,7 @@ public class PartidaPersistenceTests
         {
             new PreguntaSpec("Q", new List<OpcionSpec> { new("A", true), new("B", false) }, 10, 30)
         });
-        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, "QR", 50, 120) });
+        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, QrEtapa1, 50, 120) });
         partida.AgregarJuego(trivia.JuegoId, 1, TipoJuego.Trivia);
         partida.AgregarJuego(bdt.JuegoId, 2, TipoJuego.BusquedaDelTesoro);
 
@@ -78,7 +79,7 @@ public class PartidaPersistenceTests
                 .FirstAsync(j => j.JuegoId == bdt.JuegoId);
             Assert.Equal("Plaza", loadedBdt.AreaBusqueda);
             Assert.Single(loadedBdt.Etapas);
-            Assert.Equal("QR", loadedBdt.Etapas[0].CodigoQREsperado);
+            Assert.Equal(QrEtapa1, loadedBdt.Etapas[0].CodigoQREsperado);
         }
     }
 }

@@ -50,7 +50,7 @@ public class PartidasControllerTests
     {
         var response = new AgregarJuegoResponse(Guid.NewGuid());
         var controller = new PartidasController(new FakeSender(response));
-        var request = new AgregarJuegoBDTRequest(1, "Plaza", new List<EtapaRequest> { new(1, "QR", 50, 120) });
+        var request = new AgregarJuegoBDTRequest(1, "Plaza", new List<EtapaRequest> { new(1, Guid.NewGuid().ToString(), 50, 120) });
 
         var result = await controller.AgregarJuegoBDT(Guid.NewGuid(), request, CancellationToken.None);
 
