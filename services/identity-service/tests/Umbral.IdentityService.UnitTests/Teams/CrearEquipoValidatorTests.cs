@@ -22,6 +22,15 @@ public sealed class CrearEquipoValidatorTests
         Assert.False(result.IsValid);
     }
 
+    [Theory]
+    [InlineData("****")]
+    [InlineData("1234")]
+    public async Task Should_Fail_When_NombreEquipo_Has_No_Letters(string nombre)
+    {
+        var result = await _validator.ValidateAsync(new CrearEquipoCommand(Guid.NewGuid(), nombre));
+        Assert.False(result.IsValid);
+    }
+
     [Fact]
     public async Task Should_Pass_With_Valid_Command()
     {

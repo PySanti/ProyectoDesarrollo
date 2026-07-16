@@ -8,8 +8,8 @@ public sealed class CrearEquipoAdminCommandValidator : AbstractValidator<CrearEq
     public CrearEquipoAdminCommandValidator()
     {
         RuleFor(x => x.NombreEquipo)
-            .NotEmpty()
-            .MaximumLength(120);
+            .Cascade(CascadeMode.Stop)
+            .TextoHumano(120);
 
         RuleFor(x => x.LiderUserId)
             .NotEmpty();

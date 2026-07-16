@@ -19,6 +19,32 @@ public sealed class CreateUserValidatorAndDomainTests
         Assert.False(result.IsValid);
     }
 
+    [Theory]
+    [InlineData("****")]
+    [InlineData("   ")]
+    [InlineData("1234")]
+    [InlineData("!@#$")]
+    public void Validator_Should_Fail_When_Name_Has_No_Letters(string name)
+    {
+        var validator = new CreateUserWithInitialRoleCommandValidator();
+        var command = new CreateUserWithInitialRoleCommand(name, "admin@umbral.dev", "Administrador");
+
+        var result = validator.Validate(command);
+
+        Assert.False(result.IsValid);
+    }
+
+    [Fact]
+    public void Validator_Should_Pass_With_Real_Name()
+    {
+        var validator = new CreateUserWithInitialRoleCommandValidator();
+        var command = new CreateUserWithInitialRoleCommand("José Pérez", "jose@umbral.dev", "Operador");
+
+        var result = validator.Validate(command);
+
+        Assert.True(result.IsValid);
+    }
+
     [Fact]
     public void Validator_Should_Fail_When_InitialRole_Is_Not_Allowed()
     {
