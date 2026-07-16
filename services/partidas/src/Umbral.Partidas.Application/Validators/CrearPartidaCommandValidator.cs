@@ -8,7 +8,7 @@ public sealed class CrearPartidaCommandValidator : AbstractValidator<CrearPartid
 {
     public CrearPartidaCommandValidator()
     {
-        RuleFor(x => x.NombrePartida).NotEmpty().MaximumLength(120);
+        RuleFor(x => x.NombrePartida).Cascade(CascadeMode.Stop).TextoHumano(120);
         RuleFor(x => x.Modalidad).IsInEnum();
         RuleFor(x => x.ModoInicioPartida).IsInEnum();
         RuleFor(x => x.MinimosParticipacion).GreaterThanOrEqualTo(1);

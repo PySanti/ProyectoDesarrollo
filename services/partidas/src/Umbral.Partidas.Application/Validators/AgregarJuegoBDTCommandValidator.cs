@@ -10,7 +10,7 @@ public sealed class AgregarJuegoBDTCommandValidator : AbstractValidator<AgregarJ
     {
         RuleFor(x => x.PartidaId).NotEmpty();
         RuleFor(x => x.Orden).GreaterThanOrEqualTo(1);
-        RuleFor(x => x.AreaBusqueda).NotEmpty();
+        RuleFor(x => x.AreaBusqueda).Cascade(CascadeMode.Stop).TextoHumano();
         RuleFor(x => x.Etapas).NotEmpty();
         RuleForEach(x => x.Etapas).SetValidator(new EtapaRequestValidator());
     }

@@ -88,3 +88,11 @@ El theme es CSS-only a propósito. Se agrega validación vía script de theme, s
 `required` (confirmado: login solo por correo). Validación nativa del navegador al enviar, sin
 feedback en vivo. `theme.properties` gana `scripts=js/umbral-login.js`. Verificado: la página de
 login sirve el `<script>` y los campos objetivo existen.
+
+## Fase F — Cierre de huecos backend Partidas + área BDT (autoridad)
+El front bloqueaba nombre de partida solo-símbolos pero el backend de Partidas no (violaba
+"backend autoridad"). Se agrega `ReglasTextoHumano.TextoHumano` propio de Partidas (aislamiento de
+servicio — no importa el de Identity; `int? maximo = null` para omitir cota) y se aplica a
+`NombrePartida` (≤120) y `AreaBusqueda` (sin cota, texto libre BR-B02). Frontend
+`createPartidaDraft.validateJuego` valida área ≥1 letra (simetría con el header). Texto de
+pregunta/opción/QR se queda en `NotEmpty()`: puede ser legítimamente numérico/simbólico.

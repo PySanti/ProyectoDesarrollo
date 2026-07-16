@@ -169,6 +169,11 @@ describe("validateJuego - BDT", () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it("rechaza area de busqueda sin letras (solo simbolos)", () => {
+    const errors = validateJuego(bdtWith("****", [validEtapa()]));
+    expect(errors.some((e) => e.includes("al menos una letra"))).toBe(true);
+  });
+
   it("rechaza un juego sin etapas", () => {
     const errors = validateJuego(bdtWith("Plaza Bolivar", []));
     expect(errors.length).toBeGreaterThan(0);

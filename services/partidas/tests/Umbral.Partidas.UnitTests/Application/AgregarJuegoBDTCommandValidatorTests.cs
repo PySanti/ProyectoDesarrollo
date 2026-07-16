@@ -27,6 +27,15 @@ public class AgregarJuegoBDTCommandValidatorTests
         Assert.False(_validator.Validate(cmd).IsValid);
     }
 
+    [Theory]
+    [InlineData("****")]
+    [InlineData("123")]
+    public void Area_without_any_letter_fails(string area)
+    {
+        var cmd = With(area, new List<EtapaRequest> { new(1, "QR", 50, 120) });
+        Assert.False(_validator.Validate(cmd).IsValid);
+    }
+
     [Fact]
     public void Empty_stages_fails()
     {
