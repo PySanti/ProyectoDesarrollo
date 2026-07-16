@@ -12,6 +12,8 @@ import {
 } from "../../api/adminTeamsApi";
 import { getIdentityUsers, IdentityUserSummary } from "../../api/identityApi";
 import { Flag } from "../../shell/icons";
+import { Field } from "../../shared/Field";
+import { nombreEquipo } from "../../shared/validation";
 
 interface TeamsAdminPageProps {
   accessToken: string;
@@ -25,6 +27,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
 
   const [createName, setCreateName] = useState("");
+  const [createNameTouched, setCreateNameTouched] = useState(false);
   const [createLiderUserId, setCreateLiderUserId] = useState("");
   const [createError, setCreateError] = useState<string | null>(null);
   const [createSuccessMessage, setCreateSuccessMessage] = useState<string | null>(null);
@@ -32,6 +35,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
 
   const [renameTeam, setRenameTeam] = useState<AdminTeam | null>(null);
   const [renameValue, setRenameValue] = useState("");
+  const [renameTouched, setRenameTouched] = useState(false);
   const [renameError, setRenameError] = useState<string | null>(null);
   const [renameSaving, setRenameSaving] = useState(false);
 
@@ -86,8 +90,8 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
     setCreateError(null);
     setCreateSuccessMessage(null);
 
-    if (!createName.trim()) {
-      setCreateError("El nombre del equipo es obligatorio.");
+    setCreateNameTouched(true);
+    if (nombreEquipo(createName)) {
       return;
     }
 
@@ -103,6 +107,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
         accessToken
       );
       setCreateName("");
+      setCreateNameTouched(false);
       setCreateLiderUserId("");
       setCreateSuccessMessage("Equipo creado correctamente.");
       await loadAll();
@@ -116,6 +121,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
   function openRenameModal(team: AdminTeam) {
     setRenameTeam(team);
     setRenameValue(team.nombreEquipo);
+    setRenameTouched(false);
     setRenameError(null);
   }
 
@@ -131,8 +137,8 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
       return;
     }
 
-    if (!renameValue.trim()) {
-      setRenameError("El nombre del equipo es obligatorio.");
+    setRenameTouched(true);
+    if (nombreEquipo(renameValue)) {
       return;
     }
 
@@ -288,15 +294,19 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
 
           <form onSubmit={onCreateTeam} noValidate>
             <div className="row">
-              <label htmlFor="create-team-name">
-                Nombre del equipo
-                <input
-                  id="create-team-name"
-                  value={createName}
-                  onChange={(event) => setCreateName(event.target.value)}
-                  autoComplete="off"
-                />
-              </label>
+              <Field
+                id="create-team-name"
+                label="Nombre del equipo"
+                value={createName}
+                error={
+                  createName.trim() !== "" || createNameTouched
+                    ? nombreEquipo(createName)
+                    : null
+                }
+                onChange={(event) => setCreateName(event.target.value)}
+                onBlur={() => setCreateNameTouched(true)}
+                autoComplete="off"
+              />
 
               <label htmlFor="create-team-leader">
                 Líder inicial
@@ -443,16 +453,18 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
               </button>
             </div>
 
-            <label htmlFor="rename-team-input">
-              Nuevo nombre
-              <input
-                id="rename-team-input"
-                data-testid="rename-team-input"
-                value={renameValue}
-                disabled={renameSaving}
-                onChange={(event) => setRenameValue(event.target.value)}
-              />
-            </label>
+            <Field
+              id="rename-team-input"
+              data-testid="rename-team-input"
+              label="Nuevo nombre"
+              value={renameValue}
+              disabled={renameSaving}
+              error={
+                renameValue.trim() !== "" || renameTouched ? nombreEquipo(renameValue) : null
+              }
+              onChange={(event) => setRenameValue(event.target.value)}
+              onBlur={() => setRenameTouched(true)}
+            />
 
             {renameError ? (
               <div className="notice error" role="alert" data-testid="rename-team-error">

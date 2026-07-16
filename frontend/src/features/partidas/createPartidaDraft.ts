@@ -101,6 +101,8 @@ export function validateHeader(header: HeaderDraft): string[] {
 
   if (!header.nombrePartida.trim()) {
     errors.push("El nombre de la partida es obligatorio.");
+  } else if (!/\p{L}/u.test(header.nombrePartida)) {
+    errors.push("El nombre de la partida debe contener al menos una letra.");
   }
 
   const min = Number(header.minimosParticipacion);

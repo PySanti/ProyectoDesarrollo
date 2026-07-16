@@ -73,6 +73,11 @@ describe("validateHeader", () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it("rechaza nombre sin letras (solo simbolos)", () => {
+    const errors = validateHeader(validHeader({ nombrePartida: "****" }));
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
   it("rechaza minimosParticipacion = 0", () => {
     const errors = validateHeader(validHeader({ minimosParticipacion: "0" }));
     expect(errors.length).toBeGreaterThan(0);

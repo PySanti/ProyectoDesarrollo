@@ -203,6 +203,30 @@ textarea {
   resize: vertical;
 }
 
+/* Campo invalido: borde de peligro + mensaje de error por campo (componente Field). */
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+input[aria-invalid="true"]:focus-visible,
+select[aria-invalid="true"]:focus-visible,
+textarea[aria-invalid="true"]:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-wash, rgba(220, 38, 38, 0.15));
+}
+
+.field-error {
+  color: var(--danger);
+  font-size: 0.85em;
+}
+
+.field-hint {
+  color: var(--muted);
+  font-size: 0.85em;
+}
+
 /* File inputs: brand the native selector button, keep the control intact */
 input[type="file"] {
   padding: var(--sp-sm);

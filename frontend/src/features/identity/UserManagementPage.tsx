@@ -10,6 +10,8 @@ import {
   updateIdentityUserGeneralData
 } from "../../api/identityApi";
 import { RefreshCw, Users } from "../../shell/icons";
+import { Field } from "../../shared/Field";
+import { correo, nombrePersona } from "../../shared/validation";
 
 interface UserManagementPageProps {
   accessToken: string;
@@ -30,6 +32,9 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
   const [isDeactivating, setIsDeactivating] = useState(false);
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
+  const [nameTouched, setNameTouched] = useState(false);
+  const [emailTouched, setEmailTouched] = useState(false);
+  const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   const [page, setPage] = useState(1);
   const [roleModalUser, setRoleModalUser] = useState<IdentityUserSummary | null>(null);
   const [roleTarget, setRoleTarget] = useState("");
@@ -77,6 +82,9 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
       setSelectedUser(detail);
       setName(detail.name);
       setEmail(detail.email);
+      setNameTouched(false);
+      setEmailTouched(false);
+      setServerFieldErrors({});
     } catch (caught) {
       if (caught instanceof IdentityApiError) {
         setDetailError(mapHu02ErrorMessage(caught.statusCode, caught.message));
@@ -98,14 +106,11 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
 
     setActionError(null);
     setSuccessMessage(null);
+    setServerFieldErrors({});
 
-    if (!name.trim()) {
-      setActionError("El nombre es obligatorio.");
-      return;
-    }
-
-    if (!email.trim() || !email.includes("@")) {
-      setActionError("El correo es inválido.");
+    setNameTouched(true);
+    setEmailTouched(true);
+    if (nombrePersona(name) || correo(email)) {
       return;
     }
 
@@ -124,6 +129,9 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
       );
     } catch (caught) {
       if (caught instanceof IdentityApiError) {
+        if (caught.fieldErrors) {
+          setServerFieldErrors(caught.fieldErrors);
+        }
         setActionError(mapHu02ErrorMessage(caught.statusCode, caught.message));
       } else {
         setActionError("Error inesperado al actualizar usuario.");
@@ -370,25 +378,37 @@ export function UserManagementPage({ accessToken }: UserManagementPageProps) {
             ) : null}
 
             <form onSubmit={onUpdateUser} noValidate>
-              <label htmlFor="edit-name">
-                Nombre
-                <input
-                  id="edit-name"
-                  value={name}
-                  onChange={(event) => setName(event.target.value)}
-                  autoComplete="name"
-                />
-              </label>
+              <Field
+                id="edit-name"
+                label="Nombre"
+                value={name}
+                error={
+                  serverFieldErrors.name ||
+                  (name.trim() !== "" || nameTouched ? nombrePersona(name) : null)
+                }
+                onChange={(event) => {
+                  setName(event.target.value);
+                  setServerFieldErrors((previous) => ({ ...previous, name: "" }));
+                }}
+                onBlur={() => setNameTouched(true)}
+                autoComplete="name"
+              />
 
-              <label htmlFor="edit-email">
-                Correo
-                <input
-                  id="edit-email"
-                  value={email}
-                  onChange={(event) => setEmail(event.target.value)}
-                  autoComplete="email"
-                />
-              </label>
+              <Field
+                id="edit-email"
+                label="Correo"
+                value={email}
+                error={
+                  serverFieldErrors.email ||
+                  (email.trim() !== "" || emailTouched ? correo(email) : null)
+                }
+                onChange={(event) => {
+                  setEmail(event.target.value);
+                  setServerFieldErrors((previous) => ({ ...previous, email: "" }));
+                }}
+                onBlur={() => setEmailTouched(true)}
+                autoComplete="email"
+              />
 
               <p className="muted" data-testid="hu02-email-hint">
                 Si cambias el correo de un usuario que aún no ha iniciado sesión, se le enviará un{" "}
