@@ -102,7 +102,8 @@ function ConEquipoView({
       <Card>
         <View style={styles.teamHeader}>
           <AppText variant="title">{team.nombreEquipo}</AppText>
-          <RoleBadge label={esLider ? "Líder" : "Miembro"} />
+          {/* El líder ya sale marcado en su fila del roster; no duplicar el badge aquí. */}
+          {esLider ? null : <RoleBadge label="Miembro" />}
         </View>
         <View style={styles.membersList}>
           {team.participantes.map((p) => (
