@@ -42,7 +42,7 @@ public class PermisosRolKeycloakReconcilerTests
             => throw new NotImplementedException();
         public Task DeleteUserAsync(string keycloakId, CancellationToken ct) => throw new NotImplementedException();
         public Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken ct) => throw new NotImplementedException();
-        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken ct) => throw new NotImplementedException();
+        public Task SyncUserProfileAsync(string keycloakId, string nombre, string correo, CancellationToken ct) => throw new NotImplementedException();
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken ct) => throw new NotImplementedException();
         public Task ChangeUserRealmRoleAsync(string keycloakId, string oldRoleName, string newRoleName, CancellationToken ct) => throw new NotImplementedException();
 

@@ -46,7 +46,7 @@ public sealed class IdentityApiFactory : WebApplicationFactory<Program>
         public Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken)
             => Task.FromResult(false);
 
-        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+        public Task SyncUserProfileAsync(string keycloakId, string nombre, string correo, CancellationToken cancellationToken)
             => Task.CompletedTask;
 
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)

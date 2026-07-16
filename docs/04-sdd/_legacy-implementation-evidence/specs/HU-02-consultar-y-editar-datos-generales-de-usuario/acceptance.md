@@ -134,9 +134,15 @@ Acceptance checklist (extensión):
 
 - [x] Al cambiar el correo de un usuario con contraseña temporal pendiente, se le envía un correo con una nueva contraseña temporal (plantilla de marca) al nuevo correo.
 - [x] El correo se sincroniza en Keycloak (atributo `email`) y se resetea una nueva contraseña temporal (`temporary=true`); la original nunca se persistió (RB-U03).
-- [x] Si el correo no cambia, o el usuario ya completó su primer inicio de sesión (sin `UPDATE_PASSWORD`), la edición no envía correo ni toca Keycloak.
+- [x] Si el correo no cambia, o el usuario ya completó su primer inicio de sesión (sin `UPDATE_PASSWORD`), la edición no envía correo.
 - [x] Si el reenvío falla, la edición devuelve `502` y revierte el cambio (email local + email en Keycloak al valor previo).
 - [x] La contraseña no aparece en la respuesta HTTP.
+
+> **Corrección 2026-07-16 (ver la extensión de más abajo).** Un criterio de esta lista decía que si el
+> usuario ya había completado su primer inicio de sesión, la edición «no envía correo **ni toca
+> Keycloak**». Esa segunda mitad era un defecto de especificación, no una regla: dejaba el correo solo
+> en la BD local y el usuario no podía iniciar sesión con él. La credencial temporal condiciona el
+> **reenvío de la contraseña**, nunca la sincronización.
 
 Automated evidence (extensión):
 
@@ -153,3 +159,57 @@ Code references (extensión):
 Pending manual evidence (runtime):
 
 - [ ] Con SMTP real configurado: crear un usuario, cambiar su correo antes del primer login y verificar la recepción del correo con la nueva contraseña temporal en el nuevo correo.
+
+## Extensión 2026-07-16 — Sincronización incondicional con Keycloak
+
+**Defecto corregido.** Editar el correo de un usuario que ya había completado su primer inicio de sesión
+guardaba el correo nuevo **solo en la BD local**: `UpdateEmailAsync` vivía dentro del `if
+(mustResendCredentials)`, y ese flag exige credencial temporal pendiente. Como Keycloak es quien
+autentica, el usuario no podía iniciar sesión con el correo nuevo (credenciales inválidas) y sí seguía
+entrando con el anterior. El mismo acoplamiento dejaba el **nombre** (`firstName`) desactualizado en
+Keycloak para siempre, ya que solo se escribía en el alta.
+
+Acceptance checklist (extensión):
+
+- [x] La edición de datos generales sincroniza en Keycloak `username`, `email` y `firstName` **siempre**,
+      haya o no credencial temporal pendiente y cambie o no algún campo.
+- [x] La sincronización incondicional es además el **camino de reparación** de un usuario ya
+      desincronizado: como la BD local ya tiene el dato bueno, no hay «cambio» que detectar, y sin ella
+      no habría forma de reconciliar Keycloak desde el panel.
+- [x] `username` sigue al correo (invariante `username == correo` que fija el alta). Sin esto, Keycloak
+      admite iniciar sesión por `username` **o** por `email`, y el correo anterior seguiría siendo una
+      credencial válida indefinidamente; además, reutilizar ese correo en un usuario nuevo daría `409`
+      pese a estar libre en la BD local.
+- [x] La consulta de credencial temporal (`HasTemporaryPasswordAsync`) y el reenvío siguen condicionados
+      a que el correo **cambie** — solo se re-emite contraseña cuando hay a dónde enviarla.
+- [x] Si la sincronización falla, la edición revierte (local + Keycloak) y propaga el error.
+
+Cambio de realm (requisito, no cosmético):
+
+- `infra/keycloak/import/umbral-realm.json` declara ahora `editUsernameAllowed: true` — sin él, el Admin
+  API rechaza el `PUT` **completo** con `400 error-user-attribute-read-only`, y ni el email se aplicaría.
+- Se declara también `loginWithEmailAllowed: true`, que ya era el default efectivo: todo el fix depende
+  de esa propiedad y no debe quedar sujeta a un default implícito de Keycloak.
+
+Automated evidence (extensión):
+
+- Handler: `..._Should_Sync_Keycloak_When_Email_Changes_Without_Temp_Password` (regresión directa del
+  defecto), `..._Should_Sync_Name_To_Keycloak_When_Only_Name_Changes`,
+  `..._Should_Reconcile_Keycloak_Even_When_Nothing_Changes` (camino de reparación) — `tests/.../Hu02HandlersTests.cs`.
+- Adapter: `SyncUserProfileAsync_Should_Send_Username_Email_And_FirstName` — `tests/.../KeycloakIdentityAdapterTests.cs`.
+- Suite tras la extensión: **Unit 266/266, Integration 51/51, Contract 48/48**
+  (`dotnet test "services/identity-service/Umbral.IdentityService.sln"`).
+
+Code references (extensión) — rutas reales, corrigen las obsoletas de la extensión anterior:
+
+- `src/Umbral.IdentityService.Application/Handlers/Commands/UpdateUserGeneralDataCommandHandler.cs`
+- `src/Umbral.IdentityService.Application/Interfaces/IKeycloakIdentityPort.cs`
+  (`UpdateEmailAsync` → `SyncUserProfileAsync(keycloakId, nombre, correo)`: el método ya no solo actualiza
+  el correo, y el nombre anterior habría sido una trampa para el siguiente lector)
+- `src/Umbral.IdentityService.Infrastructure/Services/Identity/KeycloakIdentityAdapter.cs`
+- `infra/keycloak/import/umbral-realm.json`
+
+Pending manual evidence (runtime):
+
+- [ ] Reparar los usuarios ya desincronizados por el defecto (guardar cada uno desde el panel admin) y
+      verificar que inician sesión con el correo nuevo y ya no con el anterior.

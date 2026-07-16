@@ -139,7 +139,7 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         }
     }
 
-    public async Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+    public async Task SyncUserProfileAsync(string keycloakId, string nombre, string correo, CancellationToken cancellationToken)
     {
         ValidateOptions();
 
@@ -148,8 +148,9 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
             var accessToken = await GetAdminAccessTokenAsync(cancellationToken);
 
             // Partial update: Keycloak fusiona la representación enviada; el resto de atributos
-            // del usuario (enabled, roles, requiredActions) se conservan.
-            var requestBody = new { email };
+            // del usuario (enabled, roles, requiredActions) se conservan. El username va junto al
+            // email para preservar la invariante username == correo que fija el alta.
+            var requestBody = new { username = correo, email = correo, firstName = nombre };
 
             using var request = new HttpRequestMessage(HttpMethod.Put, $"{_options.BaseUrl.TrimEnd('/')}/admin/realms/{_options.Realm}/users/{keycloakId}")
             {
@@ -162,10 +163,10 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
             {
                 if (response.StatusCode == HttpStatusCode.Conflict)
                 {
-                    throw new DuplicateEmailException(email);
+                    throw new DuplicateEmailException(correo);
                 }
 
-                throw new KeycloakIntegrationException($"Failed to update user email in Keycloak. StatusCode={(int)response.StatusCode}");
+                throw new KeycloakIntegrationException($"Failed to sync user profile in Keycloak. StatusCode={(int)response.StatusCode}");
             }
         }
         catch (KeycloakIntegrationException)
@@ -178,7 +179,7 @@ public sealed class KeycloakIdentityAdapter : IKeycloakIdentityPort
         }
         catch (Exception ex)
         {
-            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure while updating email", ex);
+            throw new KeycloakIntegrationException("Unexpected Keycloak integration failure while syncing user profile", ex);
         }
     }
 

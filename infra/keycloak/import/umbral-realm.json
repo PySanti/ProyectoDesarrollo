@@ -8,6 +8,8 @@
   "defaultLocale": "es",
   "sslRequired": "none",
   "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "editUsernameAllowed": true,
   "roles": {
     "realm": [
       {
