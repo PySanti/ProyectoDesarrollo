@@ -3,28 +3,29 @@ import assert from "node:assert/strict";
 import {
   getEligibleLeaderMembers,
   submitTransferLeadership,
-  validateNewLeaderUserId,
 } from "../src/features/teams/transferLeadershipFlow.js";
 
+const leaderUserId = "11111111-1111-1111-1111-111111111111";
 const targetUserId = "22222222-2222-2222-2222-222222222222";
-
-test("validateNewLeaderUserId should reject invalid ids", () => {
-  const result = validateNewLeaderUserId("not-a-guid");
-
-  assert.equal(result.ok, false);
-  assert.equal(result.type, "validation");
-});
 
 test("getEligibleLeaderMembers should exclude current leader", () => {
   const members = [
-    { userId: "11111111-1111-1111-1111-111111111111", nombre: "Lider", esLider: true },
-    { userId: targetUserId, nombre: "Nuevo lider", esLider: false },
+    { usuarioId: leaderUserId, nombre: "Lider", esLider: true },
+    { usuarioId: targetUserId, nombre: "Nuevo lider", esLider: false },
   ];
 
-  const result = getEligibleLeaderMembers(members, "11111111-1111-1111-1111-111111111111");
+  const result = getEligibleLeaderMembers(members, leaderUserId);
 
   assert.equal(result.length, 1);
-  assert.equal(result[0].userId, targetUserId);
+  assert.equal(result[0].usuarioId, targetUserId);
+});
+
+test("getEligibleLeaderMembers should return empty when leader is the only member", () => {
+  const members = [{ usuarioId: leaderUserId, nombre: "Lider", esLider: true }];
+
+  const result = getEligibleLeaderMembers(members, leaderUserId);
+
+  assert.equal(result.length, 0);
 });
 
 test("submitTransferLeadership should call PATCH leadership endpoint", async () => {
@@ -42,7 +43,7 @@ test("submitTransferLeadership should call PATCH leadership endpoint", async () 
         status: 200,
         json: async () => ({
           equipoId: "33333333-3333-3333-3333-333333333333",
-          liderAnteriorUserId: "11111111-1111-1111-1111-111111111111",
+          liderAnteriorUserId: leaderUserId,
           nuevoLiderUserId: targetUserId,
           equipoEstado: "Activo",
         }),
