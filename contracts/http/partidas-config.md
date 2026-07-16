@@ -112,7 +112,24 @@ Response `200 OK`:
 ## GET /partidas
 List partida summaries.
 
+**Orden garantizado:** `fechaCreacion` descendente (la última creada primero), desempate por
+`partidaId` ascendente. Lo aplica `PartidaRepository.ListAsync`; el cliente **no** debe reordenar.
+
 Response `200 OK`:
 ```json
-[ { "partidaId": "<guid>", "nombrePartida": "Copa UMBRAL", "modalidad": "Individual", "modoInicioPartida": "Manual", "tiempoInicio": null, "minimosParticipacion": 1, "maximosParticipacion": 10, "estado": null, "cantidadJuegos": 2 } ]
+[ { "partidaId": "<guid>", "nombrePartida": "Copa UMBRAL", "modalidad": "Individual", "modoInicioPartida": "Manual", "tiempoInicio": null, "minimosParticipacion": 1, "maximosParticipacion": 10, "estado": null, "cantidadJuegos": 2, "fechaCreacion": "2026-07-16T12:00:00Z" } ]
 ```
+
+- `fechaCreacion` es el **instante completo** (fecha y hora), en UTC. Lo sella el servicio al crear la
+  partida, desde un `TimeProvider` inyectado. No confundir con `tiempoInicio`, que es cuándo *arranca*
+  la partida y es nullable.
+- **`GET /partidas/{id}` no lo expone**: el campo existe solo donde sirve, que es explicar el orden
+  del listado.
+- Las partidas anteriores a la migración `AddFechaCreacionAPartida` traen el centinela
+  `0001-01-01T00:00:00Z` y quedan al final. Es deliberado: su fecha real es irrecuperable (no está en
+  el modelo, ni en el id, ni en ningún evento — Partidas no publica), así que el centinela dice "no se
+  sabe" en vez de mentir. Fuente:
+  `docs/superpowers/specs/2026-07-16-orden-listado-partidas-operador-design.md`.
+- **`estado` es siempre `null`**, en toda partida y para siempre: por ADR-0010 el estado de runtime
+  vive en Operaciones de Sesión y este servicio nunca lo escribe. El listado web lo pinta como "Sin
+  publicar" incluso en partidas terminadas. Problema abierto, con ADR propio pendiente.

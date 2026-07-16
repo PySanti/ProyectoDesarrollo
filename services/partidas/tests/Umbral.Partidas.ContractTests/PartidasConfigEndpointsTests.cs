@@ -29,6 +29,21 @@ public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
     };
 
     [Fact]
+    public async Task List_partidas_expone_fechaCreacion()
+    {
+        var create = await _client.PostAsJsonAsync("/partidas", CrearPartidaBody("Copa-fechada-" + Guid.NewGuid()));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<CrearPartidaResponse>();
+
+        var list = await _client.GetFromJsonAsync<List<PartidaSummaryDto>>("/partidas");
+
+        var partida = Assert.Single(list!, p => p.PartidaId == created!.PartidaId);
+        // No basta con que el campo exista: si el handler no lo mapeara vendria default,
+        // y el test pasaria igual aseverando solo la forma.
+        Assert.NotEqual(default, partida.FechaCreacion);
+    }
+
+    [Fact]
     public async Task Full_config_flow_returns_expected_shapes()
     {
         var create = await _client.PostAsJsonAsync("/partidas", CrearPartidaBody("Copa-" + Guid.NewGuid()));
