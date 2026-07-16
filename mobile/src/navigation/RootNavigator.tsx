@@ -59,7 +59,9 @@ export function RootNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.primaryStrong,
-        headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
+        // Sin título nativo: cada pantalla ya lo muestra abajo (ScreenHeader/Text). Se conserva
+        // el header (por lo tanto la flecha de volver), solo se vacía el texto duplicado.
+        headerTitle: "",
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.bg },
         animation: "slide_from_right",
