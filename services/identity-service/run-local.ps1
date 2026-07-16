@@ -2,8 +2,6 @@ $ErrorActionPreference = 'Stop'
 
 Set-Location $PSScriptRoot
 
-. (Join-Path $PSScriptRoot '..\..\scripts\env-value.ps1')
-
 # Carga un archivo .env expandiendo referencias ${VAR} y ${VAR:-default}
 # usando las variables de entorno ya definidas en el proceso.
 function Import-EnvFile {
@@ -15,7 +13,7 @@ function Import-EnvFile {
         $parts = $line -split '=', 2
         if ($parts.Count -ne 2) { return }
         $name = $parts[0].Trim()
-        $value = ConvertFrom-EnvValue $parts[1]
+        $value = $parts[1].Trim().Trim("'").Trim('"')
         $value = [regex]::Replace($value, '\$\{([A-Za-z_][A-Za-z0-9_]*)(?::-([^}]*))?\}', {
             param($m)
             $existing = [System.Environment]::GetEnvironmentVariable($m.Groups[1].Value)
