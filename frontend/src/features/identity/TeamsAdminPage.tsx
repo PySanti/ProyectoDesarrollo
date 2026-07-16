@@ -624,17 +624,7 @@ export function TeamsAdminPage({ accessToken }: TeamsAdminPageProps) {
 }
 
 function mensajeEliminacion(resultado: DeleteAdminTeamResult): string {
-  const base = `Equipo ${resultado.nombreEquipo} eliminado correctamente.`;
-  if (resultado.integrantesTotal === 0) {
-    return `${base} No había integrantes que notificar.`;
-  }
-  if (!resultado.servidorCorreoRespondio) {
-    return `${base} No se pudo notificar a los integrantes: el servidor de correo no respondió.`;
-  }
-  if (resultado.integrantesNotificados === 0) {
-    return `${base} No se notificó a ningún integrante (sin correo configurado).`;
-  }
-  return `${base} Se notificó a ${resultado.integrantesNotificados} de ${resultado.integrantesTotal} integrante(s).`;
+  return `Equipo ${resultado.nombreEquipo} eliminado correctamente. Se notificará a los integrantes por correo.`;
 }
 
 function TeamEstadoPill({ estado }: { estado: AdminTeam["estado"] }) {

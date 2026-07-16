@@ -14,20 +14,17 @@ public sealed class EliminarMiEquipoCommandHandler : IRequestHandler<EliminarMiE
     private readonly IInvitacionEquipoRepository _invitaciones;
     private readonly IParticipacionActivaEquipoRepository _participaciones;
     private readonly IIdentityEventsPublisher _events;
-    private readonly ITeamLifecycleNotifier _notifier;
 
     public EliminarMiEquipoCommandHandler(
         IEquipoRepository equipos,
         IInvitacionEquipoRepository invitaciones,
         IParticipacionActivaEquipoRepository participaciones,
-        IIdentityEventsPublisher events,
-        ITeamLifecycleNotifier notifier)
+        IIdentityEventsPublisher events)
     {
         _equipos = equipos;
         _invitaciones = invitaciones;
         _participaciones = participaciones;
         _events = events;
-        _notifier = notifier;
     }
 
     public async Task<EliminarEquipoResponse> Handle(EliminarMiEquipoCommand request, CancellationToken cancellationToken)
@@ -54,10 +51,11 @@ public sealed class EliminarMiEquipoCommandHandler : IRequestHandler<EliminarMiE
         await _equipos.UpdateAsync(equipo, cancellationToken);
         await _invitaciones.DeletePendientesByEquipoAsync(equipo.EquipoId, cancellationToken);
 
+        // El correo a los integrantes lo dispara este evento: Identity se autoconsume
+        // EquipoEliminado y notifica fuera del request (ver CredencialesTemporalesConsumer).
         await _events.PublishEquipoEliminadoAsync(
             new EquipoEliminadoIntegrationEvent(equipo.EquipoId, nombre, "Lider", miembros, DateTime.UtcNow),
             cancellationToken);
-        await _notifier.NotificarEquipoEliminadoAsync(nombre, miembros, cancellationToken);
 
         return new EliminarEquipoResponse(equipo.EquipoId, equipo.Estado.ToString());
     }

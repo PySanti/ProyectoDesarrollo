@@ -159,8 +159,7 @@ public sealed class EquipoAdminHandlersTests
     {
         var equipos = new FakeEquipoRepository { TeamToReturn = null };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, notifier, TimeProvider.System);
+        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, TimeProvider.System);
 
         await Assert.ThrowsAsync<EquipoNoEncontradoException>(() =>
             handler.Handle(new ReasignarLiderazgoAdminCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
@@ -173,19 +172,17 @@ public sealed class EquipoAdminHandlersTests
         var equipo = Equipo.CrearPorParticipante("Equipo A", lider);
         var equipos = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, notifier, TimeProvider.System);
+        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, TimeProvider.System);
 
         await Assert.ThrowsAsync<TransferirLiderazgoConflictException>(() =>
             handler.Handle(new ReasignarLiderazgoAdminCommand(equipo.EquipoId, Guid.NewGuid()), CancellationToken.None));
 
         Assert.False(equipos.UpdateWasCalled);
         Assert.False(publisher.LiderazgoModificadoWasCalled);
-        Assert.False(notifier.NotificarLiderazgoWasCalled);
     }
 
     [Fact]
-    public async Task Reasignar_happy_path_publica_evento_y_notifica_a_ambos_lideres()
+    public async Task Reasignar_happy_path_publica_evento_con_ambos_lideres_a_notificar()
     {
         var lider = Guid.NewGuid();
         var nuevoLider = Guid.NewGuid();
@@ -193,20 +190,18 @@ public sealed class EquipoAdminHandlersTests
         equipo.AgregarParticipante(nuevoLider);
         var equipos = new FakeEquipoRepository { TeamToReturn = equipo };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, notifier, TimeProvider.System);
+        var handler = new ReasignarLiderazgoAdminCommandHandler(equipos, publisher, TimeProvider.System);
 
         var response = await handler.Handle(new ReasignarLiderazgoAdminCommand(equipo.EquipoId, nuevoLider), CancellationToken.None);
 
         Assert.Equal(nuevoLider, response.LiderUserId);
         Assert.True(equipos.UpdateWasCalled);
+        // El evento es lo que dispara el correo a ambos líderes (lo consume
+        // CredencialesTemporalesConsumer): debe llevar los dos ids.
         Assert.True(publisher.LiderazgoModificadoWasCalled);
         Assert.Equal(lider, publisher.LiderazgoModificadoEvent!.LiderAnteriorUserId);
         Assert.Equal(nuevoLider, publisher.LiderazgoModificadoEvent.NuevoLiderUserId);
         Assert.Equal("Admin", publisher.LiderazgoModificadoEvent.Origen);
-        Assert.True(notifier.NotificarLiderazgoWasCalled);
-        Assert.Equal(lider, notifier.LiderAnteriorNotificado);
-        Assert.Equal(nuevoLider, notifier.NuevoLiderNotificado);
     }
 
     // ---------- Cambiar estado ----------
@@ -267,8 +262,7 @@ public sealed class EquipoAdminHandlersTests
         var invitaciones = new FakeInvitacionEquipoRepository();
         var participaciones = new FakeParticipacionActivaEquipoRepository();
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher, notifier);
+        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher);
 
         await Assert.ThrowsAsync<EquipoNoEncontradoException>(() =>
             handler.Handle(new EliminarEquipoAdminCommand(Guid.NewGuid()), CancellationToken.None));
@@ -283,8 +277,7 @@ public sealed class EquipoAdminHandlersTests
         var invitaciones = new FakeInvitacionEquipoRepository();
         var participaciones = new FakeParticipacionActivaEquipoRepository { ExistsByEquipoValue = true };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher, notifier);
+        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher);
 
         await Assert.ThrowsAsync<EquipoConParticipacionActivaException>(() =>
             handler.Handle(new EliminarEquipoAdminCommand(equipo.EquipoId), CancellationToken.None));
@@ -306,8 +299,7 @@ public sealed class EquipoAdminHandlersTests
         var invitaciones = new FakeInvitacionEquipoRepository();
         var participaciones = new FakeParticipacionActivaEquipoRepository { ExistsByEquipoValue = false };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier { OutcomeAotDevolver = new TeamNotificationOutcome(2, 1, 1) };
-        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher, notifier);
+        var handler = new EliminarEquipoAdminCommandHandler(equipos, invitaciones, participaciones, publisher);
 
         var response = await handler.Handle(new EliminarEquipoAdminCommand(equipo.EquipoId), CancellationToken.None);
 
@@ -319,12 +311,9 @@ public sealed class EquipoAdminHandlersTests
         Assert.Equal(2, publisher.EquipoEliminadoEvent.Miembros.Count);
         Assert.Contains(lider, publisher.EquipoEliminadoEvent.Miembros);
         Assert.Contains(miembro, publisher.EquipoEliminadoEvent.Miembros);
-        Assert.True(notifier.NotificarEliminadoWasCalled);
-        // La respuesta refleja el desenlace de la notificación best-effort.
+        // El correo lo dispara el evento, fuera del request: la respuesta no reporta notificación.
         Assert.Equal(equipo.EquipoId, response.EquipoId);
-        Assert.Equal(2, response.IntegrantesTotal);
-        Assert.Equal(1, response.IntegrantesNotificados);
-        Assert.False(response.ServidorCorreoRespondio);
+        Assert.Equal("Equipo A", response.NombreEquipo);
     }
 
     // ---------- Fakes compartidos ----------
@@ -508,26 +497,4 @@ public sealed class EquipoAdminHandlersTests
             => Task.CompletedTask;
     }
 
-    private sealed class FakeTeamLifecycleNotifier : ITeamLifecycleNotifier
-    {
-        public bool NotificarEliminadoWasCalled { get; private set; }
-        public bool NotificarLiderazgoWasCalled { get; private set; }
-        public Guid? LiderAnteriorNotificado { get; private set; }
-        public Guid? NuevoLiderNotificado { get; private set; }
-        public TeamNotificationOutcome OutcomeAotDevolver { get; set; } = new(0, 0, 0);
-
-        public Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
-        {
-            NotificarEliminadoWasCalled = true;
-            return Task.FromResult(OutcomeAotDevolver);
-        }
-
-        public Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct)
-        {
-            NotificarLiderazgoWasCalled = true;
-            LiderAnteriorNotificado = liderAnteriorUserId;
-            NuevoLiderNotificado = nuevoLiderUserId;
-            return Task.CompletedTask;
-        }
-    }
 }

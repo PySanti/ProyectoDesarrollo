@@ -128,14 +128,11 @@ describe("TeamsAdminPage", () => {
     expect(estadoSpy).toHaveBeenCalledWith("t1", { estado: "Desactivado" }, "token");
   });
 
-  it("deletes a team after confirmation and reports the notification outcome", async () => {
+  it("deletes a team after confirmation and announces the async notification", async () => {
     mockLists();
     const deleteSpy = vi.spyOn(adminTeamsApi, "deleteAdminTeam").mockResolvedValue({
       equipoId: "t1",
-      nombreEquipo: "Los Halcones",
-      integrantesTotal: 2,
-      integrantesNotificados: 2,
-      servidorCorreoRespondio: true
+      nombreEquipo: "Los Halcones"
     });
     vi.spyOn(adminTeamsApi, "listAdminTeams").mockResolvedValueOnce([TEAM]).mockResolvedValueOnce([]);
 
@@ -147,27 +144,8 @@ describe("TeamsAdminPage", () => {
 
     expect(deleteSpy).toHaveBeenCalledWith("t1", "token");
     await waitFor(() => expect(screen.queryByTestId("delete-team-modal")).toBeNull());
-    expect(await screen.findByText(/Se notificó a 2 de 2 integrante/)).toBeInTheDocument();
-  });
-
-  it("informa cuando el servidor de correo no respondió al eliminar", async () => {
-    mockLists();
-    vi.spyOn(adminTeamsApi, "deleteAdminTeam").mockResolvedValue({
-      equipoId: "t1",
-      nombreEquipo: "Los Halcones",
-      integrantesTotal: 2,
-      integrantesNotificados: 0,
-      servidorCorreoRespondio: false
-    });
-    vi.spyOn(adminTeamsApi, "listAdminTeams").mockResolvedValueOnce([TEAM]).mockResolvedValueOnce([]);
-
-    render(<TeamsAdminPage accessToken="token" />);
-
-    await userEvent.click(await screen.findByTestId("team-delete-open-t1"));
-    await userEvent.click(screen.getByTestId("delete-team-confirm"));
-
     expect(
-      await screen.findByText(/el servidor de correo no respondió/)
+      await screen.findByText(/Equipo Los Halcones eliminado correctamente\. Se notificará a los integrantes por correo\./)
     ).toBeInTheDocument();
   });
 

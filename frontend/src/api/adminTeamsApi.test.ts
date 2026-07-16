@@ -202,15 +202,12 @@ describe("adminTeamsApi", () => {
     expect(result.estado).toBe("Desactivado");
   });
 
-  it("DELETE 200 resuelve con el desenlace de la notificación", async () => {
+  it("DELETE 200 resuelve con el equipo eliminado", async () => {
     vi.stubEnv("VITE_GATEWAY_BASE_URL", "https://gw.example.test");
     const { deleteAdminTeam } = await import("./adminTeamsApi");
     const outcome = {
       equipoId: "e1",
-      nombreEquipo: "Los Halcones",
-      integrantesTotal: 3,
-      integrantesNotificados: 2,
-      servidorCorreoRespondio: false
+      nombreEquipo: "Los Halcones"
     };
     const fetchMock = vi.fn().mockResolvedValue({
       ok: true,
