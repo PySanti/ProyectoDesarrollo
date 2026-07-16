@@ -3,7 +3,7 @@ import { ActivityIndicator, Modal, Pressable, SafeAreaView, ScrollView, StyleShe
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, radius, spacing } from "../../shared/theme";
 import { fetchMyTeamStatus } from "./teamPanelFlow.js";
-import { getEligibleLeaderMembers } from "./transferLeadershipFlow.js";
+import { getEligibleLeaderMembers, getParticipantesForTransfer } from "./transferLeadershipFlow.js";
 import { submitTransferLeadershipFromScreen } from "./transferLeadershipScreenModel.js";
 import { FetchTeamStatusResult, Participante } from "./teamTypes";
 
@@ -46,7 +46,7 @@ export function TransferLeadershipScreen({
       setTeamError("No pertenecés a ningún equipo activo.");
       return;
     }
-    setParticipantes(result.participantes);
+    setParticipantes(getParticipantesForTransfer(result));
   }, [apiBaseUrl, token, currentUserId]);
 
   useEffect(() => {
@@ -122,24 +122,26 @@ export function TransferLeadershipScreen({
         animationType="fade"
         onRequestClose={() => setSelectedMember(null)}
       >
-        <View style={styles.backdrop}>
-          <Card style={styles.modalCard}>
-            <AppText variant="bodyStrong">
-              ¿Confirmás transferir el liderazgo a {selectedMember?.nombre || "Sin nombre"}?
-            </AppText>
-            {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
-            <Button label="Transferir liderazgo" onPress={handleConfirm} loading={loading} disabled={loading} />
-            <Button
-              label="Cancelar"
-              variant="secondary"
-              onPress={() => {
-                setErrorMessage(null);
-                setSelectedMember(null);
-              }}
-              disabled={loading}
-            />
-          </Card>
-        </View>
+        {selectedMember ? (
+          <View style={styles.backdrop}>
+            <Card style={styles.modalCard}>
+              <AppText variant="bodyStrong">
+                ¿Confirmás transferir el liderazgo a {selectedMember.nombre || "Sin nombre"}?
+              </AppText>
+              {errorMessage ? <Notice variant="error">{errorMessage}</Notice> : null}
+              <Button label="Transferir liderazgo" onPress={handleConfirm} loading={loading} disabled={loading} />
+              <Button
+                label="Cancelar"
+                variant="secondary"
+                onPress={() => {
+                  setErrorMessage(null);
+                  setSelectedMember(null);
+                }}
+                disabled={loading}
+              />
+            </Card>
+          </View>
+        ) : null}
       </Modal>
     </SafeAreaView>
   );

@@ -111,7 +111,7 @@ Primera impresión de marca.
   en `transferLeadershipScreenModel.js`/`transferLeadershipFlow.js`, cubiertos por
   `transferLeadershipScreenModel.test.js`/`transferLeadershipFlow.test.js`.
 - Verificado: `tsc --noEmit` exit 0 · `npm test` 83/83 verdes (incluye `LeaveTeamScreenController`,
-  `TransferLeadershipScreenController`, `leaveTeamScreenContent`, `joinTeamScreenModel`).
+  `leaveTeamScreenContent`, `joinTeamScreenModel`).
 - **Pendiente (usuario):** pase manual en Expo — recorrer crear → invitaciones/unión legacy pendiente de
   migrar, transferir → salir; confirmar campos/botones de marca y los estados sin-equipo / error / éxito.
 

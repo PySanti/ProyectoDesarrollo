@@ -2,6 +2,7 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   getEligibleLeaderMembers,
+  getParticipantesForTransfer,
   submitTransferLeadership,
 } from "../src/features/teams/transferLeadershipFlow.js";
 
@@ -40,6 +41,33 @@ test("getEligibleLeaderMembers should exclude a leader whose id differs from cur
 
   assert.equal(result.length, 1);
   assert.equal(result[0].usuarioId, "33333333-3333-3333-3333-333333333333");
+});
+
+test("getParticipantesForTransfer should return participantes when status is lider", () => {
+  const participantes = [
+    { usuarioId: leaderUserId, nombre: "Lider", esLider: true },
+    { usuarioId: targetUserId, nombre: "Nuevo lider", esLider: false },
+  ];
+
+  const result = getParticipantesForTransfer({ ok: true, status: "lider", participantes });
+
+  assert.deepEqual(result, participantes);
+});
+
+test("getParticipantesForTransfer should return empty when status is miembro", () => {
+  // Regression guard: a non-leader (e.g. after transferring leadership away) must never see
+  // eligible rows, even though the team roster the backend returns is non-empty.
+  const participantes = [{ usuarioId: targetUserId, nombre: "Otro", esLider: false }];
+
+  const result = getParticipantesForTransfer({ ok: true, status: "miembro", participantes });
+
+  assert.deepEqual(result, []);
+});
+
+test("getParticipantesForTransfer should return empty when result is not ok", () => {
+  const result = getParticipantesForTransfer({ ok: false, type: "network" });
+
+  assert.deepEqual(result, []);
 });
 
 test("submitTransferLeadership should call PATCH leadership endpoint", async () => {
