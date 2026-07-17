@@ -1,3 +1,4 @@
+using Umbral.Puntuaciones.Application.DTOs;
 using Umbral.Puntuaciones.Application.Handlers.Queries;
 using Umbral.Puntuaciones.Domain.Entities;
 using Umbral.Puntuaciones.Domain.Enums;
@@ -16,9 +17,14 @@ public class CalculadorRankingConsolidadoTests
         return marcador;
     }
 
+    // Los casos que solo miran el agregado de marcadores no necesitan participaciones: el universo
+    // es la unión, así que sin participaciones el resultado es el de siempre.
+    private static IReadOnlyList<EntradaRankingConsolidadoDto> CalcularSoloMarcadores(params Marcador[] marcadores)
+        => CalculadorRankingConsolidado.Calcular(marcadores, Array.Empty<ParticipacionProyectada>());
+
     [Fact]
-    public void Sin_marcadores_devuelve_lista_vacia()
-        => Assert.Empty(CalculadorRankingConsolidado.Calcular(Array.Empty<Marcador>()));
+    public void Sin_participaciones_ni_marcadores_devuelve_vacio()
+        => Assert.Empty(CalcularSoloMarcadores());
 
     [Fact]
     public void Ganador_de_cada_juego_acumula_juegos_ganados()
@@ -28,7 +34,7 @@ public class CalculadorRankingConsolidadoTests
         var a = Guid.NewGuid();
         var b = Guid.NewGuid();
 
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego1, a, 20, 1000), Crear(juego1, b, 10, 500),
             Crear(juego2, a, 15, 2000), Crear(juego2, b, 10, 100)
@@ -50,7 +56,7 @@ public class CalculadorRankingConsolidadoTests
         var rapido = Guid.NewGuid();
         var lento = Guid.NewGuid();
 
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego, lento, 10, 5000), Crear(juego, rapido, 10, 1000)
         });
@@ -66,7 +72,7 @@ public class CalculadorRankingConsolidadoTests
     {
         var juego = Guid.NewGuid();
 
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego, Guid.NewGuid(), 10, 1000), Crear(juego, Guid.NewGuid(), 10, 1000)
         });
@@ -84,7 +90,7 @@ public class CalculadorRankingConsolidadoTests
         var goleador = Guid.NewGuid();
 
         // ganador gana juego1 y juego2 con poco puntaje; goleador gana solo juego3 con muchos puntos.
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego1, ganador, 10, 1000), Crear(juego1, goleador, 9, 500),
             Crear(juego2, ganador, 10, 1000), Crear(juego2, goleador, 9, 500),
@@ -106,7 +112,7 @@ public class CalculadorRankingConsolidadoTests
 
         // a gana juego1, b gana juego2 (1 juego cada uno); a tiene más puntos totales que b.
         // c no gana nada, con puntos entre ambos: queda tercero por juegosGanados = 0.
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego1, a, 30, 1000), Crear(juego1, c, 5, 500),
             Crear(juego2, b, 20, 1000), Crear(juego2, c, 6, 500)
@@ -125,7 +131,7 @@ public class CalculadorRankingConsolidadoTests
         var empatadoB = Guid.NewGuid();
         var cuarto = Guid.NewGuid();
 
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego, primero, 50, 1000),
             Crear(juego, empatadoA, 20, 2000), Crear(juego, empatadoB, 20, 2000),
@@ -141,11 +147,54 @@ public class CalculadorRankingConsolidadoTests
         var juego = Guid.NewGuid();
         var equipo = Guid.NewGuid();
 
-        var entradas = CalculadorRankingConsolidado.Calcular(new[]
+        var entradas = CalcularSoloMarcadores(new[]
         {
             Crear(juego, equipo, 10, 1000, TipoCompetidor.Equipo)
         });
 
         Assert.Equal(TipoCompetidor.Equipo, entradas[0].TipoCompetidor);
+    }
+
+    [Fact]
+    public void Competidor_con_participacion_y_sin_marcador_sale_ultimo_con_cero()
+    {
+        var juegoId = Guid.NewGuid();
+        var anotador = Guid.NewGuid();
+        var mudo = Guid.NewGuid();
+
+        var r = CalculadorRankingConsolidado.Calcular(
+            new[] { Crear(juegoId, anotador, 30, 900) },
+            new[]
+            {
+                ParticipacionProyectada.Nueva(Partida, anotador, TipoCompetidor.Participante),
+                ParticipacionProyectada.Nueva(Partida, mudo, TipoCompetidor.Participante)
+            });
+
+        Assert.Equal(2, r.Count);
+        Assert.Equal(anotador, r[0].CompetidorId);
+        Assert.Equal(1, r[0].JuegosGanados);
+        Assert.Equal(mudo, r[1].CompetidorId);
+        Assert.Equal(0, r[1].PuntosTotales);
+        Assert.Equal(0, r[1].JuegosGanados);
+        Assert.Equal(2, r[1].Posicion);
+    }
+
+    [Fact]
+    public void Dos_sin_anotar_comparten_posicion()
+    {
+        var a = Guid.NewGuid();
+        var b = Guid.NewGuid();
+
+        var r = CalculadorRankingConsolidado.Calcular(
+            Array.Empty<Marcador>(),
+            new[]
+            {
+                ParticipacionProyectada.Nueva(Partida, a, TipoCompetidor.Participante),
+                ParticipacionProyectada.Nueva(Partida, b, TipoCompetidor.Participante)
+            });
+
+        // 0 juegos ganados, 0 puntos, 0 ms: empate exacto → misma posición.
+        Assert.Equal(2, r.Count);
+        Assert.All(r, e => Assert.Equal(1, e.Posicion));
     }
 }

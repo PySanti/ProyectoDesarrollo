@@ -21,13 +21,19 @@ describe("GeoMapPanel", () => {
   });
 
   it("renderiza un marcador por ubicacion", () => {
-    render(<GeoMapPanel ubicaciones={[u("aaaaaaaa-1", 10, 20), u("bbbbbbbb-2", 11, 21)]} />);
+    render(<GeoMapPanel ubicaciones={[u("aaaaaaaa-1", 10, 20), u("bbbbbbbb-2", 11, 21)]} nombreDe={(id) => id} />);
     expect(screen.getByTestId("geo-map")).toBeInTheDocument();
     expect(screen.getAllByTestId("geo-marker")).toHaveLength(2);
   });
 
+  it("etiqueta cada marcador con el nombre resuelto, no con el id", () => {
+    const nombres: Record<string, string> = { "aaaaaaaa-1": "María González" };
+    render(<GeoMapPanel ubicaciones={[u("aaaaaaaa-1", 10, 20)]} nombreDe={(id) => nombres[id] ?? id} />);
+    expect(screen.getByText(/María González/)).toBeInTheDocument();
+  });
+
   it("sin ubicaciones muestra leyenda de espera y ningun marcador", () => {
-    render(<GeoMapPanel ubicaciones={[]} />);
+    render(<GeoMapPanel ubicaciones={[]} nombreDe={(id) => id} />);
     expect(screen.getByText(/esperando ubicaciones/i)).toBeInTheDocument();
     expect(screen.queryAllByTestId("geo-marker")).toHaveLength(0);
   });

@@ -2,6 +2,11 @@ using System;
 
 namespace Umbral.OperacionesSesion.Api.Realtime;
 
+// Un solo mensaje con booleano en vez de dos (Aceptada/Rechazada): la pantalla hace lo mismo en
+// ambos casos — refrescar y decidir el aviso.
+public sealed record InscripcionResueltaPayload(
+    Guid PartidaId, Guid InscripcionId, string Modalidad, bool Aceptada);
+
 public sealed record PartidaEnLobbyPayload(Guid PartidaId);
 public sealed record PartidaIniciadaPayload(Guid PartidaId);
 public sealed record JuegoActivadoPayload(Guid PartidaId, Guid JuegoId, int Orden, string TipoJuego);

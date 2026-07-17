@@ -5,12 +5,14 @@ import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { cargarLive } from "./partidaLiveFlow.js";
 import { getRankingConsolidado } from "./gameplayApi.js";
-import { crearSesionHub } from "./sesionHub.js";
+import { crearSesionHub, reengancharAlReconectar } from "./sesionHub.js";
 import { crearRankingHub } from "./rankingHub.js";
 import { TriviaPlayPanel } from "./TriviaPlayPanel";
 import { BdtPlayPanel, type Pista } from "./BdtPlayPanel";
 import { requestBdtGeolocationPermission } from "../../permissions/bdtGeolocationPermission.js";
 import { RankingTable, type RankingEntrada } from "./liveShared";
+import { idsDeCompetidores } from "./liveLabels.js";
+import { useNombres } from "../shared/useNombres.js";
 
 type JuegoActivo = { juegoId: string; orden: number; tipoJuego: string; estadoJuego: string };
 
@@ -25,6 +27,7 @@ type ConsolidadoEntrada = {
   competidorId: string;
   juegosGanados: number;
   puntosTotales: number;
+  tipoCompetidor?: "Participante" | "Equipo";
 };
 type ConsolidadoResult =
   | { ok: true; ranking: { entradas: ConsolidadoEntrada[] } }
@@ -52,6 +55,7 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
   const [resetSignal, setResetSignal] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
   const [consolidado, setConsolidado] = useState<ConsolidadoEntrada[] | null>(null);
+  const nombreDeConsolidado = useNombres(idsDeCompetidores(consolidado ?? []), apiBaseUrl, token);
   const [consolidadoError, setConsolidadoError] = useState(false);
   const [pistas, setPistas] = useState<Pista[]>([]);
   const [avisoGeo, setAvisoGeo] = useState<string | null>(null);
@@ -130,6 +134,7 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
     hub.on("PartidaCancelada", (p: { motivo?: string }) =>
       setFase({ status: "cancelada", motivo: p?.motivo })
     );
+    reengancharAlReconectar(hub, partidaId);
     hub
       .start()
       .then(() => hub.invoke("SuscribirAPartida", partidaId))
@@ -251,8 +256,10 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
                 competidorId: e.competidorId,
                 puntos: e.puntosTotales,
                 juegosGanados: e.juegosGanados,
+                tipoCompetidor: e.tipoCompetidor,
               }))}
               resaltarId={miSub}
+              nombreDe={nombreDeConsolidado}
             />
           ) : null}
           {consolidadoError ? (

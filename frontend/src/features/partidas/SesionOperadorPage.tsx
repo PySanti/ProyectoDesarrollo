@@ -22,6 +22,7 @@ import { PistasPanel } from "./PistasPanel";
 import { EnviosTesoroPanel } from "./EnviosTesoroPanel";
 import { GeoMapPanel, type UbicacionParticipante } from "./GeoMapPanel";
 import { Countdown } from "./runtimeShared";
+import { useNombres } from "../shared/useNombres";
 import { ConsolidadoPanel } from "./ConsolidadoPanel";
 import type { RankingJuegoDto, RankingConsolidadoDto } from "../../api/puntuacionesApi";
 
@@ -414,6 +415,19 @@ function LobbyView({
   const { lobby, modoInicio, tiempoInicio } = vista;
   const mostrarManual = modoInicio === "Manual" || modoInicio === "ManualYAutomatico";
   const mostrarAutomatico = modoInicio === "Automatico" || modoInicio === "ManualYAutomatico";
+  const nombreDe = useNombres(
+    {
+      participanteIds: [
+        ...lobby.participantes,
+        ...lobby.solicitudesPendientesIndividual.map((s) => s.participanteId)
+      ],
+      equipoIds: [
+        ...lobby.equipos.map((e) => e.equipoId),
+        ...lobby.solicitudesPendientesEquipo.map((s) => s.equipoId)
+      ]
+    },
+    ctx.accessToken
+  );
 
   return (
     <div className="card stack" data-testid="lobby-panel">
@@ -459,7 +473,7 @@ function LobbyView({
             <tbody>
               {lobby.participantes.map((participanteId) => (
                 <tr key={participanteId}>
-                  <td>{participanteId}</td>
+                  <td>{nombreDe(participanteId)}</td>
                 </tr>
               ))}
             </tbody>
@@ -480,7 +494,7 @@ function LobbyView({
             <tbody>
               {lobby.equipos.map((equipo) => (
                 <tr key={equipo.equipoId}>
-                  <td>{equipo.equipoId}</td>
+                  <td>{nombreDe(equipo.equipoId)}</td>
                   <td>{equipo.convocados}</td>
                   <td>{equipo.aceptados}</td>
                 </tr>
@@ -504,7 +518,7 @@ function LobbyView({
             <tbody>
               {lobby.solicitudesPendientesIndividual.map((s) => (
                 <tr key={s.inscripcionId}>
-                  <td>{s.participanteId}</td>
+                  <td>{nombreDe(s.participanteId)}</td>
                   <td>{new Date(s.fechaInscripcion).toLocaleString()}</td>
                   {ctx.puedeOperar ? (
                     <td className="compact-actions">
@@ -520,7 +534,7 @@ function LobbyView({
               ))}
               {lobby.solicitudesPendientesEquipo.map((s) => (
                 <tr key={s.inscripcionId}>
-                  <td>{s.equipoId} ({s.miembros} miembros)</td>
+                  <td>{nombreDe(s.equipoId)} ({s.miembros} miembros)</td>
                   <td>{new Date(s.fechaInscripcion).toLocaleString()}</td>
                   {ctx.puedeOperar ? (
                     <td className="compact-actions">
@@ -600,6 +614,11 @@ function IniciadaView({
 }: IniciadaViewProps) {
   const juegos = [...estado.juegos].sort((a, b) => a.orden - b.orden);
   const juegoActual = juegos.find((j) => j.orden === estado.juegoActualOrden);
+  // La geolocalización BDT es siempre por persona: nunca hay equipos que resolver aquí.
+  const nombreDeUbicacion = useNombres(
+    { participanteIds: ubicaciones.map((u) => u.participanteId), equipoIds: [] },
+    accessToken
+  );
   return (
     <div className="card stack" data-testid="sesion-iniciada">
       <header className="create-head">
@@ -656,7 +675,7 @@ function IniciadaView({
           />
           {puedeOperar ? <PistasPanel partidaId={partidaId} accessToken={accessToken} /> : null}
           <EnviosTesoroPanel partidaId={partidaId} accessToken={accessToken} refetchSignal={refetchSignal} />
-          <GeoMapPanel ubicaciones={ubicaciones} />
+          <GeoMapPanel ubicaciones={ubicaciones} nombreDe={nombreDeUbicacion} />
         </div>
       ) : null}
     </div>

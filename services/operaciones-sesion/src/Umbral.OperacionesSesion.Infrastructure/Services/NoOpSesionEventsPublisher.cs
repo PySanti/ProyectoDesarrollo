@@ -66,9 +66,9 @@ public sealed class NoOpSesionEventsPublisher : ISesionEventsPublisher
     public Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    public Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, CancellationToken cancellationToken)
+    public Task PublicarInscripcionAceptadaAsync(InscripcionAceptadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken)
         => Task.CompletedTask;
 
-    public Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, CancellationToken cancellationToken)
+    public Task PublicarInscripcionRechazadaAsync(InscripcionRechazadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken)
         => Task.CompletedTask;
 }

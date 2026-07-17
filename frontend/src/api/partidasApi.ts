@@ -61,6 +61,9 @@ export interface PartidaSummary {
   maximosParticipacion: number;
   estado: string | null;
   cantidadJuegos: number;
+  // Instante de creación (UTC). El backend entrega la lista ordenada por este campo,
+  // descendente: no reordenar en cliente.
+  fechaCreacion: string;
 }
 
 export interface OpcionDetail {

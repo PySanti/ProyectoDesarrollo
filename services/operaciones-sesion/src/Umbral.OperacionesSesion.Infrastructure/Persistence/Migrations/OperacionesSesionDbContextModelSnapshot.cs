@@ -142,6 +142,12 @@ namespace Umbral.OperacionesSesion.Infrastructure.Persistence.Migrations
                         .HasColumnType("timestamp with time zone")
                         .HasColumnName("fechainscripcion");
 
+                    b.Property<Guid>("LiderId")
+                        .ValueGeneratedOnAdd()
+                        .HasColumnType("uuid")
+                        .HasDefaultValue(new Guid("00000000-0000-0000-0000-000000000000"))
+                        .HasColumnName("liderid");
+
                     b.Property<int>("Modalidad")
                         .HasColumnType("integer")
                         .HasColumnName("modalidad");

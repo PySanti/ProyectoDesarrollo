@@ -33,7 +33,7 @@ public class ObtenerMarcadorQueryHandlerTests
     }
 
     [Fact]
-    public async Task Competidor_sin_marcador_lanza_404()
+    public async Task Competidor_sin_marcador_ni_participacion_lanza_404()
     {
         var partidaId = Guid.NewGuid();
         var juegoId = Guid.NewGuid();
@@ -42,6 +42,25 @@ public class ObtenerMarcadorQueryHandlerTests
         await Assert.ThrowsAsync<MarcadorNoEncontradoException>(() =>
             new ObtenerMarcadorQueryHandler(_repo).Handle(
                 new ObtenerMarcadorQuery(partidaId, juegoId, Guid.NewGuid()), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Inscrito_que_no_anoto_ve_su_cero_en_vez_de_404()
+    {
+        var partidaId = Guid.NewGuid();
+        var juegoId = Guid.NewGuid();
+        var mudo = Guid.NewGuid();
+        _repo.AddJuego(JuegoProyectado.Desde(juegoId, partidaId, 1, TipoJuego.Trivia));
+        var anotador = Marcador.Nuevo(juegoId, Guid.NewGuid(), partidaId, TipoCompetidor.Participante);
+        anotador.Acreditar(30, 1000);
+        _repo.AddMarcador(anotador);
+        _repo.AddParticipacion(ParticipacionProyectada.Nueva(partidaId, mudo, TipoCompetidor.Participante));
+
+        var r = await new ObtenerMarcadorQueryHandler(_repo).Handle(
+            new ObtenerMarcadorQuery(partidaId, juegoId, mudo), CancellationToken.None);
+
+        Assert.Equal(0, r.Puntos);
+        Assert.Equal(2, r.Posicion);
     }
 
     [Fact]

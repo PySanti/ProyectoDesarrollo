@@ -63,6 +63,24 @@ docker compose -f "infra/docker-compose.yml" --env-file .env up -d keycloak
 ```
 
 ## Permisos funcionales (ADR-0013)
+**Aplicar cambios del JSON a un realm ya importado** (conserva usuarios de runtime):
+
+```powershell
+docker compose -f "infra/docker-compose.yml" --env-file .env up keycloak-config
+```
+
+(Corre solo también en cada `up -d` del stack; termina con exit 0 y no queda corriendo.)
+
+**Re-sembrar desde cero** (descarta TODOS los datos de runtime de Keycloak, incluidos
+usuarios creados durante las pruebas):
+
+```powershell
+docker compose -f "infra/docker-compose.yml" rm -sfv keycloak
+docker volume rm infra_umbral-keycloak-data
+docker compose -f "infra/docker-compose.yml" --env-file .env up -d keycloak
+```
+
+## Permisos funcionales (SP-5a, ADR-0013)
 
 El realm define 3 realm roles técnicos — `GestionarPartidas`, `GestionarEquipos`,
 `ParticiparEnPartidas` — que Keycloak expande automáticamente en `realm_access.roles`

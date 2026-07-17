@@ -17,6 +17,7 @@ public sealed class ListPartidasQueryHandler : IRequestHandler<ListPartidasQuery
 
     public async Task<IReadOnlyList<PartidaSummaryDto>> Handle(ListPartidasQuery request, CancellationToken cancellationToken)
     {
+        // Sin ordenar aqui: ListAsync ya entrega ordenado (FechaCreacion DESC).
         var partidas = await _partidas.ListAsync(cancellationToken);
         return partidas
             .Select(p => new PartidaSummaryDto(
@@ -28,7 +29,8 @@ public sealed class ListPartidasQueryHandler : IRequestHandler<ListPartidasQuery
                 p.MinimosParticipacion,
                 p.MaximosParticipacion,
                 p.Estado?.ToString(),
-                p.Juegos.Count))
+                p.Juegos.Count,
+                p.FechaCreacion))
             .ToList();
     }
 }

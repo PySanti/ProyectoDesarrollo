@@ -35,7 +35,13 @@ export function Countdown({
   );
 }
 
-export function RankingView({ ranking }: { ranking: RankingJuegoDto | null }) {
+export function RankingView({
+  ranking,
+  nombreDe
+}: {
+  ranking: RankingJuegoDto | null;
+  nombreDe: (id: string) => string;
+}) {
   if (!ranking?.entradas?.length) {
     return <p className="muted">Sin datos de ranking todavía.</p>;
   }
@@ -55,7 +61,7 @@ export function RankingView({ ranking }: { ranking: RankingJuegoDto | null }) {
           {ranking.entradas.map((entrada) => (
             <tr key={entrada.competidorId}>
               <td>{entrada.posicion}</td>
-              <td>{entrada.competidorId.slice(0, 8)}</td>
+              <td>{nombreDe(entrada.competidorId)}</td>
               <td>{entrada.puntos}</td>
               <td>{formatTiempo(entrada.tiempoAcumuladoMs)}</td>
               <td>{entrada.unidadesGanadas}</td>

@@ -64,7 +64,7 @@ public class SesionPartidaAprobacionTests
     {
         var s = Equipo();
         var m1 = Guid.NewGuid();
-        var insc = s.PreinscribirEquipo(Guid.NewGuid(), callerEsLider: true, new[] { m1 },
+        var insc = s.PreinscribirEquipo(Guid.NewGuid(), callerEsLider: true, m1, new[] { m1 },
             equipoTieneParticipacionActivaEnOtra: false, equiposActivos: 0, T0);
 
         var creadas = s.AceptarInscripcion(insc.Id.Valor, inscritosActivos: 0, T0);
@@ -110,7 +110,7 @@ public class SesionPartidaAprobacionTests
     {
         var s = Equipo();
         var equipoId = Guid.NewGuid();
-        var insc = s.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid() }, false, 0, T0);
+        var insc = s.PreinscribirEquipo(equipoId, true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
 
         var (inscId, equipo) = s.RechazarInscripcion(insc.Id.Valor, T0);
 

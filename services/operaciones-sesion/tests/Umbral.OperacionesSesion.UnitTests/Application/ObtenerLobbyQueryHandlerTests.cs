@@ -83,7 +83,7 @@ public class ObtenerLobbyQueryHandlerTests
         var partidaId = Guid.NewGuid();
         var sesion = PublishedEquipoSession(partidaId);
         var equipoId = Guid.NewGuid();
-        var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { Guid.NewGuid(), Guid.NewGuid() }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(equipoId, true, Guid.NewGuid(), new[] { Guid.NewGuid(), Guid.NewGuid() }, false, 0, T0);
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         var handler = new ObtenerLobbyQueryHandler(repo);

@@ -36,8 +36,16 @@ public sealed class AceptarInscripcionCommandHandler : IRequestHandler<AceptarIn
             ? sesion.Inscripciones.Count(i => i.Modalidad == Modalidad.Equipo && i.EsActiva)
             : sesion.Inscripciones.Count(i => i.Modalidad == Modalidad.Individual && i.EsActiva);
 
+        // La convocatoria del lider nace Aceptada (preinscribir ya era su declaracion de
+        // intencion), pero no puede saltarse BR-G09: si ya participa en otra partida, su
+        // convocatoria se queda Pendiente igual que si intentara aceptarla a mano.
+        var liderPuedeAutoAceptar = inscripcion is { Modalidad: Modalidad.Equipo }
+            && !await _sesiones.ParticipanteTieneParticipacionActivaAsync(
+                inscripcion.LiderId, request.PartidaId, cancellationToken);
+
         var now = _timeProvider.GetUtcNow().UtcDateTime;
-        var convocatorias = sesion.AceptarInscripcion(request.InscripcionId, inscritosActivos, now);
+        var convocatorias = sesion.AceptarInscripcion(
+            request.InscripcionId, inscritosActivos, now, liderPuedeAutoAceptar);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
@@ -49,12 +57,30 @@ public sealed class AceptarInscripcionCommandHandler : IRequestHandler<AceptarIn
             await _events.PublicarConvocatoriaCreadaAsync(
                 new ConvocatoriaCreadaEvent(sesion.PartidaId, sesion.Id.Valor, c.Id.Valor, c.EquipoId, c.UsuarioId),
                 cancellationToken);
+
+            // ConvocatoriaCreadaEvent no lleva Estado, asi que un consumidor asumiria Pendiente y
+            // proyectaria un estado falso para la del lider, que nace Aceptada. Se anuncia igual
+            // que el camino manual.
+            if (c.EstaAceptada)
+            {
+                await _events.PublicarConvocatoriaRespondidaAsync(
+                    new ConvocatoriaRespondidaEvent(
+                        sesion.PartidaId, sesion.Id.Valor, c.Id.Valor, c.UsuarioId, c.Estado.ToString()),
+                    cancellationToken);
+            }
         }
+
+        // Individual: el solicitante. Equipo: el snapshot de miembros — el lider no se guarda
+        // (InscripcionPartida.ParticipanteId = Guid.Empty en Equipo), asi que se notifica al conjunto.
+        var destinatarios = esEquipo
+            ? aceptada.MiembrosSnapshot
+            : (IReadOnlyList<Guid>)new[] { aceptada.ParticipanteId };
 
         await _events.PublicarInscripcionAceptadaAsync(
             new InscripcionAceptadaEvent(
                 sesion.PartidaId, sesion.Id.Valor, aceptada.Id.Valor, aceptada.Modalidad.ToString(),
                 esEquipo ? null : aceptada.ParticipanteId, esEquipo ? aceptada.EquipoId : null, now),
+            destinatarios,
             cancellationToken);
 
         return PublicarPartidaCommandHandler.MapearLobby(sesion);

@@ -7,6 +7,9 @@ import {
   PuntuacionesApiError,
   type HistorialPartidaDto
 } from "../../api/puntuacionesApi";
+import { useNombres } from "../shared/useNombres";
+import { useNombresPartida } from "../shared/useNombresPartida";
+import { etiquetaJuego } from "./juegoLabels";
 
 export const TIPOS_EVENTO = [
   "PartidaPublicadaEnLobby",
@@ -35,7 +38,6 @@ type Estado =
   | { status: "ok"; historial: HistorialPartidaDto }
   | { status: "error"; message: string };
 
-const guidCorto = (v: string | null) => (v ? v.slice(0, 8) : "—");
 // Etiqueta legible para el <select>: distinta del texto crudo de la tabla
 // (evita colisión de getByText entre <option> y <td> para el mismo tipo de evento).
 const etiquetaTipoEvento = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
@@ -45,6 +47,15 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [tipo, setTipo] = useState("");
   const [offset, setOffset] = useState(0);
+  const entradas = estado.status === "ok" ? estado.historial.entradas : [];
+  const nombrePartidaDe = useNombresPartida(accessToken);
+  const nombreDe = useNombres(
+    {
+      participanteIds: entradas.map((e) => e.participanteId).filter((id): id is string => !!id),
+      equipoIds: entradas.map((e) => e.equipoId).filter((id): id is string => !!id)
+    },
+    accessToken
+  );
 
   useEffect(() => {
     if (!partidaId) return;
@@ -80,7 +91,7 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
   return (
     <div className="page" data-testid="historial-partida">
       <div className="card stack">
-        <h1>Historial de la partida</h1>
+        <h1>Historial de la partida{partidaId ? ` — ${nombrePartidaDe(partidaId)}` : ""}</h1>
         <div className="compact-actions">
           <label>
             Tipo de evento{" "}
@@ -134,9 +145,9 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                       <tr key={`${e.occurredAt}-${i}`}>
                         <td>{new Date(e.occurredAt).toLocaleString()}</td>
                         <td>{e.tipoEvento}</td>
-                        <td>{guidCorto(e.juegoId)}</td>
-                        <td>{guidCorto(e.participanteId)}</td>
-                        <td>{guidCorto(e.equipoId)}</td>
+                        <td>{etiquetaJuego(e.juegoOrden, e.tipoJuego, e.juegoId)}</td>
+                        <td>{e.participanteId ? nombreDe(e.participanteId) : "—"}</td>
+                        <td>{e.equipoId ? nombreDe(e.equipoId) : "—"}</td>
                         <td className="muted">{JSON.stringify(e.detalle)}</td>
                       </tr>
                     ))}

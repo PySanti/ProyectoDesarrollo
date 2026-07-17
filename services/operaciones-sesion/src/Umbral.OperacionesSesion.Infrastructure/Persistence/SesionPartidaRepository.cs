@@ -120,16 +120,27 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
                 cancellationToken);
     }
 
-    public async Task<IReadOnlyList<Convocatoria>> GetConvocatoriasPendientesByUsuarioAsync(
+    public async Task<IReadOnlyList<ConvocatoriaPendienteProyeccion>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken)
-        => await _dbContext.Sesiones
+    {
+        // Proyeccion anonima entidad+escalar y mapeo en memoria: proyectar c.Id.Valor
+        // directo en la consulta no traduce con el value object del id.
+        var filas = await _dbContext.Sesiones
             .Where(s => s.Estado == EstadoSesion.Lobby)
-            .SelectMany(s => s.Inscripciones)
-            .Where(i => i.Estado == EstadoInscripcion.Activa)
-            .SelectMany(i => i.Convocatorias)
-            .Where(c => c.UsuarioId == usuarioId && c.Estado == EstadoConvocatoria.Pendiente)
-            .OrderBy(c => c.FechaEnvio)
+            .SelectMany(s => s.Inscripciones
+                .Where(i => i.Estado == EstadoInscripcion.Activa)
+                .SelectMany(i => i.Convocatorias
+                    .Where(c => c.UsuarioId == usuarioId && c.Estado == EstadoConvocatoria.Pendiente)
+                    .Select(c => new { Convocatoria = c, s.Nombre })))
             .ToListAsync(cancellationToken);
+
+        return filas
+            .Select(f => new ConvocatoriaPendienteProyeccion(
+                f.Convocatoria.Id.Valor, f.Convocatoria.PartidaId, f.Nombre,
+                f.Convocatoria.EquipoId, f.Convocatoria.FechaEnvio))
+            .OrderBy(x => x.FechaEnvio)
+            .ToList();
+    }
 
     public async Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
         => await _dbContext.Sesiones
@@ -137,6 +148,16 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Where(s => s.Estado == EstadoSesion.Lobby)
             // Solo Inscripciones: el listado cuenta activas; no necesita convocatorias ni juegos.
             .Include(s => s.Inscripciones)
+            .ToListAsync(cancellationToken);
+
+    public async Task<IReadOnlyList<NombrePartidaProyeccion>> GetNombresByPartidaIdsAsync(
+        IReadOnlyList<Guid> partidaIds, CancellationToken cancellationToken)
+        // Proyeccion directa al record: PartidaId y Nombre son escalares planos, asi que
+        // traduce sin el mapeo en memoria que exige GetConvocatoriasPendientesByUsuarioAsync
+        // (alli el id es un value object).
+        => await _dbContext.Sesiones
+            .Where(s => partidaIds.Contains(s.PartidaId))
+            .Select(s => new NombrePartidaProyeccion(s.PartidaId, s.Nombre))
             .ToListAsync(cancellationToken);
 
     private static bool TienePasoVencido(SesionPartida sesion, DateTime now)

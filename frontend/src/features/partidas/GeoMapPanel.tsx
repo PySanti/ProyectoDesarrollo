@@ -21,7 +21,15 @@ function hace(timestampUtc: string): string {
   return `${seg}s`;
 }
 
-export function GeoMapPanel({ ubicaciones }: { ubicaciones: UbicacionParticipante[] }) {
+// nombreDe llega por prop (y no se resuelve aquí) para que el mapa siga siendo
+// presentacional: no necesita token ni conocer el directorio.
+export function GeoMapPanel({
+  ubicaciones,
+  nombreDe
+}: {
+  ubicaciones: UbicacionParticipante[];
+  nombreDe: (id: string) => string;
+}) {
   const centro = calcularCentro(ubicaciones);
   const tieneUbicaciones = ubicaciones.length > 0;
   return (
@@ -42,7 +50,7 @@ export function GeoMapPanel({ ubicaciones }: { ubicaciones: UbicacionParticipant
         {ubicaciones.map((u) => (
           <CircleMarker key={u.participanteId} center={[u.latitud, u.longitud]} radius={8}>
             <Popup>
-              {u.participanteId.slice(0, 8)} · visto hace {hace(u.timestampUtc)}
+              {nombreDe(u.participanteId)} · visto hace {hace(u.timestampUtc)}
             </Popup>
           </CircleMarker>
         ))}

@@ -1,3 +1,5 @@
+using System;
+using System.Linq;
 using Umbral.Partidas.Domain.Enums;
 using Umbral.Partidas.Domain.Exceptions;
 using Umbral.Partidas.Domain.ValueObjects;
@@ -42,6 +44,7 @@ public sealed class JuegoBDT
             throw new JuegoBDTSinEtapasException();
 
         juego.ValidarOrdenContiguo();
+        juego.ValidarCodigosUnicos();
         return juego;
     }
 
@@ -61,5 +64,19 @@ public sealed class JuegoBDT
             if (ordenes[i] != i + 1)
                 throw new EtapaBDTInvalidaException("el orden de las etapas debe ser una secuencia contigua desde 1.");
         }
+    }
+
+    // OrdinalIgnoreCase a proposito: mas estricto que la comparacion de runtime (que es exacta).
+    // Dos codigos que solo difieren en mayusculas serian dos tesoros distintos para el operador
+    // pero indistinguibles a simple vista, y eso no ayuda a nadie.
+    private void ValidarCodigosUnicos()
+    {
+        var distintos = _etapas
+            .Select(e => e.CodigoQREsperado)
+            .Distinct(StringComparer.OrdinalIgnoreCase)
+            .Count();
+
+        if (distintos != _etapas.Count)
+            throw new EtapaBDTInvalidaException("cada etapa debe tener un codigo QR distinto.");
     }
 }

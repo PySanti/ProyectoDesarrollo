@@ -3,6 +3,8 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Card, Notice, ScreenHeader, StatePill } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { getHistorialPartidas } from "./historialPartidasApi.js";
+import { useNombresPartida } from "../shared/useNombresPartida.js";
+import { lineaContextoPartida } from "./historialLabels.js";
 
 type JuegoHistorial = {
   juegoId: string;
@@ -43,6 +45,11 @@ export function HistorialPartidasScreen({ apiBaseUrl, token }: Props) {
   const [partidas, setPartidas] = useState<PartidaHistorial[]>([]);
   const [loading, setLoading] = useState(true);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const nombrePartidaDe = useNombresPartida(
+    partidas.map((p) => p.partidaId),
+    apiBaseUrl,
+    token
+  );
 
   const load = useCallback(async () => {
     setErrorMessage(null);
@@ -75,14 +82,13 @@ export function HistorialPartidasScreen({ apiBaseUrl, token }: Props) {
       {partidas.map((p) => (
         <Card key={p.partidaId} style={styles.card}>
           <View style={styles.headerRow}>
-            <AppText variant="bodyStrong">
-              {p.modalidad ?? "Partida"} · {p.puntosTotales} pts
+            <AppText variant="bodyStrong" style={styles.titulo}>
+              {nombrePartidaDe(p.partidaId)}
             </AppText>
             <StatePill state={p.gano ? "ok" : "done"} label={p.gano ? "Ganó" : "No ganó"} />
           </View>
           <AppText variant="label" color={colors.muted}>
-            Posición {p.posicion}
-            {p.fechaFin ? ` · ${new Date(p.fechaFin).toLocaleDateString()}` : ""}
+            {lineaContextoPartida(p)}
           </AppText>
           <View style={styles.juegos}>
             {p.juegos.map((j) => (
@@ -104,5 +110,8 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, textAlign: "center" },
   card: { gap: spacing.xs },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.md },
+  // El nombre es texto libre del operador (antes el título era el acotado
+  // "Individual · N pts"): sin flex, uno largo empuja el StatePill fuera de la tarjeta.
+  titulo: { flex: 1 },
   juegos: { marginTop: spacing.xs, gap: 2 },
 });

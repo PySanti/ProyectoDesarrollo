@@ -50,7 +50,9 @@ orden). Empate exacto en ambas claves comparte `posicion` (1, 2, 2, 4). Calculad
 ```
 
 - `404` `{ "message": "..." }`: el juego no existe en la proyección o no pertenece a la partida.
-- Juego conocido sin marcadores → `200` con `entradas: []`.
+- Juego de una partida con competidores → `200` con todos ellos, a `0` mientras nadie haya anotado
+  (empatados en posición 1). `entradas: []` solo si la partida no tiene participaciones proyectadas
+  ni marcadores.
 - `competidorId` sigue la identidad dual slice-E: participante en `Individual`, equipo en `Equipo`.
 
 ## `GET /puntuaciones/partidas/{partidaId}/juegos/{juegoId}/marcadores/{competidorId}`
@@ -70,7 +72,9 @@ Marcador propio de un competidor con su posición actual (misma regla de orden/e
 }
 ```
 
-- `404` `{ "message": "..." }`: juego desconocido, o el competidor no tiene marcador en el juego.
+- `404` `{ "message": "..." }`: juego desconocido, o el competidor no está en la partida (ni
+  participación proyectada ni marcador). Quien se inscribió y aún no anotó recibe `200` con
+  `puntos: 0` y su posición, no `404`.
 
 ## `GET /puntuaciones/partidas/{partidaId}/ranking-consolidado`
 
@@ -100,13 +104,19 @@ comparte `posicion` (1, 2, 2, 4). Calculado al leer.
 
 - `404` `{ "message": "..." }`: la partida no existe en la proyección.
 - `409` `{ "message": "..." }`: la partida no está `Terminada` (el consolidado se calcula al finalizar; sin consolidado provisional).
-- Partida terminada sin marcadores → `200` con `entradas: []`.
-- **Participación = tener ≥1 marcador**: competidores que nunca anotaron no aparecen (no hay evento de inscripción en el broker; best-effort ADR-0012).
+- Partida terminada sin participaciones ni marcadores → `200` con `entradas: []`.
+- **Participación = inscripción aceptada**, no haber anotado: los competidores que nunca puntuaron
+  aparecen con `0` y en la última posición. Se proyecta desde `InscripcionAceptada`
+  (`participaciones_proyectadas`). El universo es `participaciones ∪ marcadores`: si se perdiera
+  `InscripcionAceptada` (best-effort ADR-0012), el marcador prueba que el competidor jugó.
+  Las partidas anteriores al slice de 2026-07-15 no tienen participaciones proyectadas (sin
+  backfill) y conservan el comportamiento previo.
 
 ## `GET /puntuaciones/equipos/{equipoId}/rendimiento`
 
 Rendimiento histórico de un equipo (RF-44/HU-49): por cada partida por equipos **terminada**
-donde el equipo tiene ≥1 marcador, su posición en el ranking consolidado y si la ganó
+donde el equipo tiene participación proyectada (inscripción aceptada), anotara o no, su posición
+en el ranking consolidado y si la ganó
 (`gano` = posición 1; si comparten la posición 1, ambos ganaron). Ordenado por `fechaFin`
 descendente. Reusa el mismo cálculo del consolidado (RF-44: sin duplicar el cálculo).
 
@@ -144,13 +154,20 @@ Proyectado por el consumidor dedicado de historial (ver `contracts/events/operac
       "juegoId": "guid | null",
       "participanteId": "guid | null",
       "equipoId": "guid | null",
-      "detalle": {}
+      "detalle": {},
+      "juegoOrden": "int | null",
+      "tipoJuego": "Trivia | BusquedaDelTesoro | null"
     }
   ]
 }
 ```
 
 - Orden fijo `occurredAt ASC`. `total` = conteo con el filtro `tipo` aplicado (para paginar).
+- `juegoOrden` y `tipoJuego` acompañan a `juegoId`, unidos desde la proyección `JuegoProyectado`.
+  Son `null` en eventos de partida (`PartidaIniciada`, `PartidaFinalizada`), que no tienen juego, y
+  también cuando el `juegoId` existe pero su proyección falta (lag / evento perdido) — el cliente
+  distingue ambos casos: `—` para el primero, GUID corto para el segundo. **`Juego` no tiene nombre
+  en el dominio**: la etiqueta legible ("Juego 1 · Trivia") la compone el cliente.
 - `400` `{ "message": "..." }`: `limit` fuera de `[1, 500]` u `offset` negativo.
 - `404` `{ "message": "..." }`: la partida no existe en `partidas_proyectadas`. Partida conocida sin
   eventos → `200` con `entradas: []` (el historial no depende de la proyección para escribirse).
@@ -191,13 +208,13 @@ cálculo).
 - Orden `fechaFin DESC`. Participante sin partidas (o id desconocido) → `200` con `partidas: []`
   (paridad con rendimiento de equipo, SP-4b).
 - `401` sin token; cualquier rol autenticado (sin permiso funcional específico).
-- **Participación:** marcador propio (`Individual`) o membresía resuelta del historial (cualquier
-  `EventoHistorial` de la partida con `participanteId` + `equipoId` propios, excluyendo
-  `ConvocatoriaCreada`) con **≥1 marcador del equipo** en la partida (sin marcador no hay posición
-  calculable, misma regla de SP-4b). En ese caso la puntuación/posición mostrada es la del equipo.
-- **Limitaciones documentadas:** un integrante de equipo que jamás autoró una acción de juego en la
-  partida no la ve listada; las partidas `Canceladas` no aparecen (RB-30 — sus resultados parciales
-  no cuentan como resultado final).
+- **Participación:** inscripción aceptada propia (`Individual`) o **convocatoria aceptada** a un
+  equipo con participación en la partida (`Equipo`), proyectadas desde `InscripcionAceptada` y
+  `ConvocatoriaCreada`/`ConvocatoriaRespondida`. No se exige haber anotado ni haber autorado ninguna
+  acción de juego: la limitación previa del integrante pasivo queda retirada. En el caso `Equipo` la
+  puntuación/posición mostrada es la del equipo.
+- **Limitaciones documentadas:** las partidas `Canceladas` no aparecen (RB-30 — sus resultados
+  parciales no cuentan como resultado final).
 
 ## SignalR — ranking en vivo (SP-4c)
 

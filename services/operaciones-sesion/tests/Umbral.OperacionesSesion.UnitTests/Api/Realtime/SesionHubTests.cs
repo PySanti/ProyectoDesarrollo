@@ -61,11 +61,55 @@ public class SesionHubTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(partidaId, snap);
         var t0 = new DateTime(2026, 7, 2, 12, 0, 0, DateTimeKind.Utc);
-        var ins = s.PreinscribirEquipo(equipoLocal, true, new[] { participanteId }, false, 0, t0);
+        var ins = s.PreinscribirEquipo(equipoLocal, true, participanteId, new[] { participanteId }, false, 0, t0);
         s.AceptarInscripcion(ins.Id.Valor, 0, t0); // HU-19: aceptar crea las convocatorias
         s.ResponderConvocatoria(ins.Convocatorias.Single().Id.Valor, participanteId, true, false, t0);
         equipoId = equipoLocal;
         return s;
+    }
+
+    [Fact]
+    public async Task Al_conectar_el_participante_entra_a_su_canal_personal()
+    {
+        var participanteId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake();
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
+
+        await hub.OnConnectedAsync();
+
+        // Sin partida de por medio: el canal personal es tuyo por ser quien eres.
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Added);
+    }
+
+    [Fact]
+    public async Task Al_conectar_el_operador_no_entra_a_canal_personal()
+    {
+        var repo = new ISesionPartidaRepositorioFake();
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: Guid.NewGuid().ToString(), rol: "Operador"), groups);
+
+        await hub.OnConnectedAsync();
+
+        Assert.Empty(groups.Added);
+    }
+
+    [Fact]
+    public async Task Desuscribir_de_partida_no_saca_del_canal_personal()
+    {
+        var partidaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake();
+        repo.Inner.Add(SesionDe(partidaId, participanteId));
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
+        await hub.SuscribirAPartida(partidaId);
+
+        await hub.DesuscribirDePartida(partidaId);
+
+        // Salir de una partida no puede dejarte sordo a tus convocatorias.
+        Assert.DoesNotContain(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Removed);
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoPartida(partidaId)), groups.Removed);
     }
 
     [Fact]
@@ -297,21 +341,10 @@ public class SesionHubTests
         Assert.DoesNotContain(groups.Added, x => x.Group.StartsWith("participante:"));
     }
 
-    [Fact]
-    public async Task Desuscribir_quita_al_participante_de_su_grupo()
-    {
-        var partidaId = Guid.NewGuid();
-        var participanteId = Guid.NewGuid();
-        var repo = new ISesionPartidaRepositorioFake();
-        repo.Inner.Add(SesionDe(partidaId, participanteId));
-        var groups = new FakeGroupManager();
-        var hub = Construir(repo, Usuario(sub: participanteId.ToString(), rol: "Participante"), groups);
-
-        await hub.SuscribirAPartida(partidaId); // puebla Context.Items[participanteId]
-        await hub.DesuscribirDePartida(partidaId);
-
-        Assert.Contains(("c1", SesionRealtimeMessages.GrupoParticipante(participanteId)), groups.Removed);
-    }
+    // Desuscribir_quita_al_participante_de_su_grupo se retiró aquí: afirmaba que salir de una partida
+    // saca del canal personal, y eso es justo lo que este slice deroga (el canal es de la identidad,
+    // no de la partida). Lo sustituye Desuscribir_de_partida_no_saca_del_canal_personal, que además
+    // comprueba que del grupo de la partida sí se sale.
 
     [Fact]
     public async Task Convocado_aceptado_se_une_al_grupo_de_su_equipo()
@@ -363,8 +396,8 @@ public class SesionHubTests
     public async Task Al_conectar_reemite_las_convocatorias_pendientes_al_caller()
     {
         var usuario = Guid.NewGuid();
-        var primeraConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
-        var segundaConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0);
+        var primeraConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0, "Copa");
+        var segundaConvocatoria = new ConvocatoriaPendienteDto(Guid.NewGuid(), Guid.NewGuid(), Guid.NewGuid(), T0, "Liga");
         var pendientes = new[] { primeraConvocatoria, segundaConvocatoria };
         var clients = new FakeClients();
         var sender = new SenderDeConvocatorias(pendientes);

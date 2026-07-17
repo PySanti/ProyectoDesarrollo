@@ -77,7 +77,7 @@ public sealed class SesionPartida
     }
 
     public InscripcionPartida PreinscribirEquipo(
-        Guid equipoId, bool callerEsLider, IReadOnlyList<Guid> miembros,
+        Guid equipoId, bool callerEsLider, Guid liderId, IReadOnlyList<Guid> miembros,
         bool equipoTieneParticipacionActivaEnOtra, int equiposActivos, DateTime fecha)
     {
         if (Estado != EstadoSesion.Lobby)
@@ -93,12 +93,14 @@ public sealed class SesionPartida
         if (equiposActivos >= MaximosParticipacion)
             throw new CupoLlenoException(PartidaId);
 
-        var inscripcion = InscripcionPartida.PreinscribirEquipo(equipoId, miembros, PartidaId, fecha);
+        var inscripcion = InscripcionPartida.PreinscribirEquipo(equipoId, liderId, miembros, PartidaId, fecha);
         _inscripciones.Add(inscripcion);
         return inscripcion;
     }
 
-    public IReadOnlyList<Convocatoria> AceptarInscripcion(Guid inscripcionId, int inscritosActivos, DateTime now)
+    // liderPuedeAutoAceptar: ver la nota en InscripcionPartida.Aceptar — default fail-closed.
+    public IReadOnlyList<Convocatoria> AceptarInscripcion(
+        Guid inscripcionId, int inscritosActivos, DateTime now, bool liderPuedeAutoAceptar = false)
     {
         if (Estado != EstadoSesion.Lobby)
             throw new SesionNoEnLobbyException(PartidaId);
@@ -111,7 +113,7 @@ public sealed class SesionPartida
             throw new CupoLlenoException(PartidaId);
 
         inscripcion.FijarPartidaIdParaConvocar(PartidaId);
-        return inscripcion.Aceptar(now);
+        return inscripcion.Aceptar(now, liderPuedeAutoAceptar);
     }
 
     public (Guid InscripcionId, Guid? EquipoId) RechazarInscripcion(Guid inscripcionId, DateTime now)

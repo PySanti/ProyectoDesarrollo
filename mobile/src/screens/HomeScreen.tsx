@@ -57,6 +57,7 @@ export function HomeScreen({ navigation }: Props) {
           feature
           onPress={() => navigation.navigate("TeamPanel")}
         />
+        <NavCard icon="award" label="Rendimiento de mi equipo" onPress={() => navigation.navigate("RendimientoEquipo")} />
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>

@@ -11,6 +11,8 @@ namespace Umbral.Partidas.ContractTests;
 
 public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
 {
+    private const string QrEtapa1 = "11111111-1111-1111-1111-111111111111";
+
     private readonly HttpClient _client;
 
     public PartidasConfigEndpointsTests(PartidasWebFactory factory)
@@ -27,6 +29,21 @@ public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
         minimosParticipacion = 1,
         maximosParticipacion = 10
     };
+
+    [Fact]
+    public async Task List_partidas_expone_fechaCreacion()
+    {
+        var create = await _client.PostAsJsonAsync("/partidas", CrearPartidaBody("Copa-fechada-" + Guid.NewGuid()));
+        Assert.Equal(HttpStatusCode.Created, create.StatusCode);
+        var created = await create.Content.ReadFromJsonAsync<CrearPartidaResponse>();
+
+        var list = await _client.GetFromJsonAsync<List<PartidaSummaryDto>>("/partidas");
+
+        var partida = Assert.Single(list!, p => p.PartidaId == created!.PartidaId);
+        // No basta con que el campo exista: si el handler no lo mapeara vendria default,
+        // y el test pasaria igual aseverando solo la forma.
+        Assert.NotEqual(default, partida.FechaCreacion);
+    }
 
     [Fact]
     public async Task Full_config_flow_returns_expected_shapes()
@@ -54,7 +71,7 @@ public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
         {
             orden = 2,
             areaBusqueda = "Plaza",
-            etapas = new[] { new { orden = 1, codigoQREsperado = "QR", puntaje = 50, tiempoLimiteSegundos = 120 } }
+            etapas = new[] { new { orden = 1, codigoQREsperado = QrEtapa1, puntaje = 50, tiempoLimiteSegundos = 120 } }
         };
         var addBdt = await _client.PostAsJsonAsync($"/partidas/{partidaId}/juegos/bdt", bdtBody);
         Assert.Equal(HttpStatusCode.Created, addBdt.StatusCode);
@@ -100,7 +117,7 @@ public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
         {
             orden = 1,
             areaBusqueda = "Plaza",
-            etapas = new[] { new { orden = 1, codigoQREsperado = "QR", puntaje = 50, tiempoLimiteSegundos = 120 } }
+            etapas = new[] { new { orden = 1, codigoQREsperado = QrEtapa1, puntaje = 50, tiempoLimiteSegundos = 120 } }
         };
         var response = await _client.PostAsJsonAsync($"/partidas/{Guid.NewGuid()}/juegos/bdt", bdtBody);
         Assert.Equal(HttpStatusCode.NotFound, response.StatusCode);
@@ -129,7 +146,7 @@ public class PartidasConfigEndpointsTests : IClassFixture<PartidasWebFactory>
         {
             orden = 1, // duplicate orden → conflict (partidas-config.md:69)
             areaBusqueda = "Plaza",
-            etapas = new[] { new { orden = 1, codigoQREsperado = "QR", puntaje = 50, tiempoLimiteSegundos = 120 } }
+            etapas = new[] { new { orden = 1, codigoQREsperado = QrEtapa1, puntaje = 50, tiempoLimiteSegundos = 120 } }
         };
         var conflict = await _client.PostAsJsonAsync($"/partidas/{partidaId}/juegos/bdt", bdtBody);
         Assert.Equal(HttpStatusCode.Conflict, conflict.StatusCode);

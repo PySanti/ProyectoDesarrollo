@@ -11,11 +11,14 @@ public sealed class CrearPartidaCommandHandler : IRequestHandler<CrearPartidaCom
 {
     private readonly IPartidaRepository _partidas;
     private readonly IPartidasUnitOfWork _unitOfWork;
+    private readonly TimeProvider _timeProvider;
 
-    public CrearPartidaCommandHandler(IPartidaRepository partidas, IPartidasUnitOfWork unitOfWork)
+    public CrearPartidaCommandHandler(
+        IPartidaRepository partidas, IPartidasUnitOfWork unitOfWork, TimeProvider timeProvider)
     {
         _partidas = partidas;
         _unitOfWork = unitOfWork;
+        _timeProvider = timeProvider;
     }
 
     public async Task<CrearPartidaResponse> Handle(CrearPartidaCommand request, CancellationToken cancellationToken)
@@ -26,7 +29,8 @@ public sealed class CrearPartidaCommandHandler : IRequestHandler<CrearPartidaCom
             request.ModoInicioPartida,
             request.TiempoInicio,
             request.MinimosParticipacion,
-            request.MaximosParticipacion);
+            request.MaximosParticipacion,
+            _timeProvider.GetUtcNow().UtcDateTime);
 
         _partidas.Add(partida);
         await _unitOfWork.SaveChangesAsync(cancellationToken);

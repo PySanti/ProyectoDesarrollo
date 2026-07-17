@@ -6,6 +6,8 @@ import { spacing } from "../../shared/theme";
 import { getEtapaActual, validarTesoro, getRankingJuego } from "./gameplayApi.js";
 import { pickBdtTreasureImage, requestBdtTreasureImagePermission } from "../../permissions/bdtTreasureImagePicker.js";
 import { Countdown, RankingTable, type RankingEntrada } from "./liveShared";
+import { idsDeCompetidores } from "./liveLabels.js";
+import { useNombres } from "../shared/useNombres.js";
 
 type Etapa = {
   etapaId: string;
@@ -55,6 +57,7 @@ export function BdtPlayPanel({
   const [etapa, setEtapa] = useState<Etapa | null>(null);
   const [sinEtapa, setSinEtapa] = useState(false);
   const [entradas, setEntradas] = useState<RankingEntrada[]>([]);
+  const nombreDe = useNombres(idsDeCompetidores(entradas), apiBaseUrl, token);
   const [posting, setPosting] = useState(false);
   const [aviso, setAviso] = useState<Aviso>(null);
 
@@ -153,7 +156,7 @@ export function BdtPlayPanel({
       ) : null}
       <Card style={styles.card}>
         <AppText variant="bodyStrong">Ranking del juego</AppText>
-        <RankingTable entradas={entradas} resaltarId={miSub} />
+        <RankingTable entradas={entradas} resaltarId={miSub} nombreDe={nombreDe} />
       </Card>
     </View>
   );

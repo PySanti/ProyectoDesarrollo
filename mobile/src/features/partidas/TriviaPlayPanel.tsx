@@ -7,6 +7,8 @@ import {
   getPreguntaActual, responderPregunta, getRankingJuego, formatRespuestaCorrecta, seleccionarRespuestaCorrecta,
 } from "./gameplayApi.js";
 import { Countdown, RankingTable, type RankingEntrada } from "./liveShared";
+import { idsDeCompetidores } from "./liveLabels.js";
+import { useNombres } from "../shared/useNombres.js";
 
 type Pregunta = {
   preguntaId: string;
@@ -55,6 +57,7 @@ export function TriviaPlayPanel({
   const [respondida, setRespondida] = useState(yaRespondioInicial);
   const [resultado, setResultado] = useState<Resultado>(null);
   const [entradas, setEntradas] = useState<RankingEntrada[]>([]);
+  const nombreDe = useNombres(idsDeCompetidores(entradas), apiBaseUrl, token);
   const [posting, setPosting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [textoCorrecta, setTextoCorrecta] = useState<string | null>(null);
@@ -164,7 +167,7 @@ export function TriviaPlayPanel({
       ) : null}
       <Card style={styles.card}>
         <AppText variant="bodyStrong">Ranking del juego</AppText>
-        <RankingTable entradas={entradas} resaltarId={miSub} />
+        <RankingTable entradas={entradas} resaltarId={miSub} nombreDe={nombreDe} />
       </Card>
     </View>
   );

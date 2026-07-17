@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen, act } from "@testing-library/react";
+import { render, screen, act, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { SesionOperadorPage } from "./SesionOperadorPage";
@@ -16,6 +16,8 @@ import {
   type LobbyDto
 } from "../../api/operacionesApi";
 import { getPartida, type PartidaDetail } from "../../api/partidasApi";
+import { resolverNombres } from "../../api/directoryApi";
+import { resetNombresCache } from "../shared/useNombres";
 import { useSesionHub, type SesionHubHandlers } from "./useSesionHub";
 
 vi.mock("../../api/operacionesApi", async (importOriginal) => {
@@ -33,6 +35,10 @@ vi.mock("../../api/operacionesApi", async (importOriginal) => {
 vi.mock("../../api/partidasApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/partidasApi")>();
   return { ...actual, getPartida: vi.fn() };
+});
+vi.mock("../../api/directoryApi", async (importOriginal) => {
+  const actual = await importOriginal<typeof import("../../api/directoryApi")>();
+  return { ...actual, resolverNombres: vi.fn() };
 });
 vi.mock("./useSesionHub", () => ({ useSesionHub: vi.fn() }));
 vi.mock("./useRankingHub", () => ({ useRankingHub: vi.fn() }));
@@ -53,6 +59,9 @@ const estadoLobby: EstadoSesionDto = {
   modalidad: "Individual",
   juegos: []
 };
+const SUB_A = "aaaaaaaa-0000-0000-0000-000000000000";
+const SUB_B = "bbbbbbbb-0000-0000-0000-000000000000";
+const EQ_A = "eeeeeeee-0000-0000-0000-000000000000";
 const lobby: LobbyDto = {
   partidaId: "p1",
   sesionPartidaId: "s1",
@@ -101,6 +110,10 @@ describe("SesionOperadorPage", () => {
     vi.mocked(aceptarInscripcion).mockReset();
     vi.mocked(rechazarInscripcion).mockReset();
     vi.mocked(cancelarPartida).mockReset();
+    vi.mocked(resolverNombres).mockReset();
+    // La cache de useNombres es de modulo: sin reset los tests se contaminan entre si.
+    resetNombresCache();
+    vi.mocked(resolverNombres).mockResolvedValue({ participantes: [], equipos: [] });
   });
 
   it("en Lobby (modo Manual) muestra inscritos y el boton Iniciar", async () => {
@@ -115,15 +128,51 @@ describe("SesionOperadorPage", () => {
     expect(screen.queryByTestId("inicio-countdown")).not.toBeInTheDocument();
   });
 
-  it("en modalidad Individual lista los participantes inscritos (IDs crudos)", async () => {
+  it("en modalidad Individual lista los participantes inscritos por nombre", async () => {
     vi.mocked(getEstadoSesion).mockResolvedValue(estadoLobby);
-    vi.mocked(getLobby).mockResolvedValue({ ...lobby, participantes: ["u1", "u2"] });
+    vi.mocked(getLobby).mockResolvedValue({ ...lobby, participantes: [SUB_A, SUB_B] });
     vi.mocked(getPartida).mockResolvedValue(configManual);
+    vi.mocked(resolverNombres).mockResolvedValue({
+      participantes: [
+        { participanteId: SUB_A, nombre: "María González" },
+        { participanteId: SUB_B, nombre: "Pedro Ramírez" }
+      ],
+      equipos: []
+    });
     renderPage();
 
     const lista = await screen.findByTestId("lobby-participantes");
-    expect(lista).toHaveTextContent("u1");
-    expect(lista).toHaveTextContent("u2");
+    await waitFor(() => expect(lista).toHaveTextContent("María González"));
+    expect(lista).toHaveTextContent("Pedro Ramírez");
+    expect(lista).not.toHaveTextContent(SUB_A);
+  });
+
+  it("en modalidad Equipo lista los equipos convocados por nombre", async () => {
+    vi.mocked(getEstadoSesion).mockResolvedValue(estadoLobby);
+    vi.mocked(getLobby).mockResolvedValue({
+      ...lobby,
+      modalidad: "Equipo",
+      equipos: [{ equipoId: EQ_A, convocados: 3, aceptados: 2 }]
+    });
+    vi.mocked(getPartida).mockResolvedValue({ ...configManual, modalidad: "Equipo" });
+    vi.mocked(resolverNombres).mockResolvedValue({
+      participantes: [],
+      equipos: [{ equipoId: EQ_A, nombreEquipo: "Los Cazadores" }]
+    });
+    renderPage();
+
+    expect(await screen.findByText("Los Cazadores")).toBeInTheDocument();
+  });
+
+  it("mantiene el GUID corto si el directorio de nombres falla", async () => {
+    vi.mocked(getEstadoSesion).mockResolvedValue(estadoLobby);
+    vi.mocked(getLobby).mockResolvedValue({ ...lobby, participantes: [SUB_A] });
+    vi.mocked(getPartida).mockResolvedValue(configManual);
+    vi.mocked(resolverNombres).mockRejectedValue(new Error("directorio caido"));
+    renderPage();
+
+    const lista = await screen.findByTestId("lobby-participantes");
+    await waitFor(() => expect(lista).toHaveTextContent(SUB_A.slice(0, 8)));
   });
 
   it("sin participantes inscritos no renderiza la lista", async () => {

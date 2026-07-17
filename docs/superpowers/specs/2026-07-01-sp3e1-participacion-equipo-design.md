@@ -78,6 +78,12 @@ Operaciones necesita, al preinscribir, la composición del equipo del líder. La
   - `Aceptar(now)` / `Rechazar(now)`.
 - **`CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)`**
   - `Estado == Lobby`; `callerEsLider`; localiza inscripción activa del equipo (si no `InscripcionNoEncontradaException`, reuso); `Cancelar()` (las convocatorias aceptadas dejan de contar por estar la inscripción `Cancelada`).
+> **SUPERSEDED (2026-07-16, parcial):** la convocatoria del líder ahora nace `Aceptada`.
+> Preinscribir el equipo ya es su declaración de intención (HU-15); exigirle además
+> convocarse a sí mismo hacía que un equipo de solo el líder no pudiera arrancar nunca.
+> El resto de esta sección sigue vigente: el mínimo sigue contando equipos con ≥1
+> convocatoria aceptada. Ver `2026-07-16-autoaceptar-convocatoria-lider-design.md`.
+
 - **Participante activo & mínimos (default simple aprobado):**
   - **Participante activo (Equipo)** = integrante con convocatoria **Aceptada** en inscripción **Activa**.
   - **Cupo (`Maximos`)** = nº de inscripciones de equipo **Activas** (chequeo al preinscribir).

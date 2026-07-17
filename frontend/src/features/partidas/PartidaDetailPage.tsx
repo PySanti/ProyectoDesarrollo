@@ -10,6 +10,7 @@ import {
   type PreguntaDetail
 } from "../../api/partidasApi";
 import { publicarPartida, OperacionesApiError } from "../../api/operacionesApi";
+import { nombreArchivoQr, renderizarQrDataUrl } from "./qrTesoro";
 
 interface PartidaDetailPageProps {
   accessToken: string;
@@ -171,7 +172,9 @@ function JuegoCard({ juego }: { juego: JuegoDetail }) {
       </div>
 
       {juego.trivia ? <TriviaView preguntas={juego.trivia.preguntas} /> : null}
-      {juego.bdt ? <BdtView areaBusqueda={juego.bdt.areaBusqueda} etapas={juego.bdt.etapas} /> : null}
+      {juego.bdt ? (
+        <BdtView areaBusqueda={juego.bdt.areaBusqueda} etapas={juego.bdt.etapas} juegoOrden={juego.orden} />
+      ) : null}
     </section>
   );
 }
@@ -200,7 +203,37 @@ function TriviaView({ preguntas }: { preguntas: PreguntaDetail[] }) {
   );
 }
 
-function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: EtapaDetail[] }) {
+function BdtView({
+  areaBusqueda,
+  etapas,
+  juegoOrden
+}: {
+  areaBusqueda: string;
+  etapas: EtapaDetail[];
+  juegoOrden: number;
+}) {
+  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+
+  useEffect(() => {
+    let vigente = true;
+    Promise.allSettled(
+      etapas.map(async (e) => [e.etapaBDTId, await renderizarQrDataUrl(e.codigoQREsperado)] as const)
+    ).then((resultados) => {
+      if (!vigente) return;
+      // No dejar que el fallo de una etapa oculte el QR de las demas: cada etapa se
+      // resuelve por separado y solo se descarta la que rechazo.
+      const pares = resultados
+        .filter((resultado): resultado is PromiseFulfilledResult<readonly [string, string]> =>
+          resultado.status === "fulfilled"
+        )
+        .map((resultado) => resultado.value);
+      setQrDataUrls(Object.fromEntries(pares));
+    });
+    return () => {
+      vigente = false;
+    };
+  }, [etapas]);
+
   return (
     <div className="stack">
       <p>
@@ -212,6 +245,7 @@ function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: Etapa
             <tr>
               <th scope="col">Orden</th>
               <th scope="col">QR esperado</th>
+              <th scope="col">QR</th>
               <th scope="col">Puntaje</th>
               <th scope="col">Tiempo límite</th>
             </tr>
@@ -221,6 +255,25 @@ function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: Etapa
               <tr key={etapa.etapaBDTId}>
                 <td>{etapa.orden}</td>
                 <td className="mono">{etapa.codigoQREsperado}</td>
+                <td>
+                  {qrDataUrls[etapa.etapaBDTId] ? (
+                    <details>
+                      <summary>Mostrar QR</summary>
+                      <img
+                        src={qrDataUrls[etapa.etapaBDTId]}
+                        alt={`QR del tesoro del juego ${juegoOrden}, etapa ${etapa.orden}`}
+                        width={96}
+                        height={96}
+                      />
+                      <a
+                        href={qrDataUrls[etapa.etapaBDTId]}
+                        download={nombreArchivoQr(juegoOrden, etapa.orden, etapa.codigoQREsperado)}
+                      >
+                        Descargar QR etapa {etapa.orden}
+                      </a>
+                    </details>
+                  ) : null}
+                </td>
                 <td>{etapa.puntajeAsignado}</td>
                 <td>{etapa.tiempoLimiteSegundos}s</td>
               </tr>

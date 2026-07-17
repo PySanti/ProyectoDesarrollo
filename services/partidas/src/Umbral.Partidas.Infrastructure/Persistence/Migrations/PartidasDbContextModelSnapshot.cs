@@ -171,6 +171,10 @@ namespace Umbral.Partidas.Infrastructure.Persistence.Migrations
                         .HasColumnType("integer")
                         .HasColumnName("estado");
 
+                    b.Property<DateTime>("FechaCreacion")
+                        .HasColumnType("timestamp with time zone")
+                        .HasColumnName("fechacreacion");
+
                     b.Property<int>("MaximosParticipacion")
                         .HasColumnType("integer")
                         .HasColumnName("maximos");

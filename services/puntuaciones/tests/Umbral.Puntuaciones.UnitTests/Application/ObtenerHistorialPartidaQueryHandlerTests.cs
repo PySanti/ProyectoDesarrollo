@@ -27,6 +27,10 @@ public class ObtenerHistorialPartidaQueryHandlerTests
         => _historial.AddEvento(EventoHistorial.Registrar(
             Guid.NewGuid(), partidaId, null, tipo, occurredAt, null, null, detalle));
 
+    private void SembrarEventoDeJuego(Guid partidaId, Guid juegoId, string tipo, DateTime occurredAt)
+        => _historial.AddEvento(EventoHistorial.Registrar(
+            Guid.NewGuid(), partidaId, juegoId, tipo, occurredAt, null, null, """{}"""));
+
     [Fact]
     public async Task Devuelve_entradas_en_orden_cronologico_con_total_y_detalle()
     {
@@ -102,5 +106,54 @@ public class ObtenerHistorialPartidaQueryHandlerTests
 
         await Assert.ThrowsAsync<ArgumentException>(() => Handler().Handle(
             new ObtenerHistorialPartidaQuery(partidaId, limit, offset, null), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Entrada_con_juego_proyectado_trae_orden_y_tipo()
+    {
+        var partidaId = SembrarPartida();
+        var juegoId = Guid.NewGuid();
+        _proyecciones.AddJuego(JuegoProyectado.Desde(juegoId, partidaId, 2, TipoJuego.Trivia));
+        SembrarEventoDeJuego(partidaId, juegoId, "RespuestaTriviaValidada", Ahora);
+
+        var response = await Handler().Handle(
+            new ObtenerHistorialPartidaQuery(partidaId, 100, 0, null), CancellationToken.None);
+
+        var entrada = Assert.Single(response.Entradas);
+        Assert.Equal(2, entrada.JuegoOrden);
+        Assert.Equal(TipoJuego.Trivia, entrada.TipoJuego);
+    }
+
+    [Fact]
+    public async Task Evento_de_partida_sin_juego_deja_orden_y_tipo_en_null()
+    {
+        var partidaId = SembrarPartida();
+        SembrarEvento(partidaId, "PartidaIniciada", Ahora);
+
+        var response = await Handler().Handle(
+            new ObtenerHistorialPartidaQuery(partidaId, 100, 0, null), CancellationToken.None);
+
+        var entrada = Assert.Single(response.Entradas);
+        Assert.Null(entrada.JuegoId);
+        Assert.Null(entrada.JuegoOrden);
+        Assert.Null(entrada.TipoJuego);
+    }
+
+    [Fact]
+    public async Task Evento_con_juegoId_sin_proyeccion_deja_orden_null_sin_lanzar()
+    {
+        // Lag de proyeccion o evento perdido: el juego existe pero Puntuaciones no lo tiene.
+        // El cliente cae al GUID corto; el handler no debe explotar.
+        var partidaId = SembrarPartida();
+        var juegoId = Guid.NewGuid();
+        SembrarEventoDeJuego(partidaId, juegoId, "JuegoActivado", Ahora);
+
+        var response = await Handler().Handle(
+            new ObtenerHistorialPartidaQuery(partidaId, 100, 0, null), CancellationToken.None);
+
+        var entrada = Assert.Single(response.Entradas);
+        Assert.Equal(juegoId, entrada.JuegoId);
+        Assert.Null(entrada.JuegoOrden);
+        Assert.Null(entrada.TipoJuego);
     }
 }

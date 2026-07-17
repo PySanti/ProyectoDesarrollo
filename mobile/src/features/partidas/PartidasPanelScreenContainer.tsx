@@ -20,10 +20,10 @@ export function PartidasPanelScreenContainer() {
       apiBaseUrl={mobileEnv.gatewayApiBaseUrl}
       token={session.token}
       onOpenPartida={({ partidaId, nombre }) => navigation.navigate("PartidaLobby", { partidaId, nombre })}
-      onOpenMiSesion={({ partidaId, estadoPartida }) =>
+      onOpenMiSesion={({ partidaId, estadoPartida, nombre }) =>
         estadoPartida === "Iniciada"
-          ? navigation.navigate("PartidaLive", { partidaId, nombre: "Mi partida" })
-          : navigation.navigate("PartidaLobby", { partidaId, nombre: "Mi partida" })
+          ? navigation.navigate("PartidaLive", { partidaId, nombre })
+          : navigation.navigate("PartidaLobby", { partidaId, nombre })
       }
     />
   );

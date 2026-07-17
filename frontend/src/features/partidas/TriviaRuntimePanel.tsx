@@ -10,6 +10,7 @@ import {
 import { getRankingJuego, type RankingJuegoDto } from "../../api/puntuacionesApi";
 import type { PreguntaDetail } from "../../api/partidasApi";
 import { Countdown, RankingView } from "./runtimeShared";
+import { idsDeCompetidores, useNombres } from "../shared/useNombres";
 
 export interface TriviaRuntimePanelProps {
   partidaId: string;
@@ -35,6 +36,7 @@ export function TriviaRuntimePanel(props: TriviaRuntimePanelProps) {
   const [ranking, setRanking] = useState<RankingJuegoDto | null>(null);
   const [posteando, setPosteando] = useState(false);
   const [tick, setTick] = useState(0); // refetch interno tras avance/finalizar fallido
+  const nombreDe = useNombres(idsDeCompetidores(ranking?.entradas ?? []), accessToken);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
@@ -131,7 +133,7 @@ export function TriviaRuntimePanel(props: TriviaRuntimePanelProps) {
           ) : null}
         </div>
       ) : null}
-      <RankingView ranking={ranking} />
+      <RankingView ranking={ranking} nombreDe={nombreDe} />
     </div>
   );
 }

@@ -24,7 +24,7 @@ public class EnviarPistaEquipoHandlerTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.BusquedaDelTesoro, "Patio", etapas);
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        var ins = sesion.PreinscribirEquipo(equipoALocal, true, new[] { lider }, false, 0, T0);
+        var ins = sesion.PreinscribirEquipo(equipoALocal, true, lider, new[] { lider }, false, 0, T0);
         sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(ins.Convocatorias.Single().Id.Valor, lider, true, false, T0);
         sesion.Iniciar(T0);

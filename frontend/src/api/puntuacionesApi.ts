@@ -92,6 +92,8 @@ export interface EventoHistorialDto {
   participanteId: string | null;
   equipoId: string | null;
   detalle: unknown;
+  juegoOrden: number | null;
+  tipoJuego: string | null;
 }
 
 export interface HistorialPartidaDto {

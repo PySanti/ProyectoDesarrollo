@@ -3,6 +3,7 @@ import React, { useEffect, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
+import { etiquetaCompetidor } from "./liveLabels.js";
 
 export function Countdown({ target, expiredLabel = "Tiempo agotado" }: { target: string; expiredLabel?: string }) {
   const [now, setNow] = useState(() => Date.now());
@@ -21,9 +22,18 @@ export type RankingEntrada = {
   competidorId: string;
   puntos: number;
   juegosGanados?: number;
+  tipoCompetidor?: "Participante" | "Equipo";
 };
 
-export function RankingTable({ entradas, resaltarId }: { entradas: RankingEntrada[]; resaltarId?: string }) {
+export function RankingTable({
+  entradas,
+  resaltarId,
+  nombreDe,
+}: {
+  entradas: RankingEntrada[];
+  resaltarId?: string;
+  nombreDe: (id: string) => string;
+}) {
   if (!entradas?.length) {
     return <AppText>Sin datos de ranking todavía.</AppText>;
   }
@@ -32,7 +42,7 @@ export function RankingTable({ entradas, resaltarId }: { entradas: RankingEntrad
       {entradas.map((e) => (
         <View key={e.competidorId} style={[styles.fila, e.competidorId === resaltarId ? styles.propia : null]}>
           <AppText variant="bodyStrong">#{e.posicion}</AppText>
-          <AppText>{e.competidorId.slice(0, 8)}</AppText>
+          <AppText>{etiquetaCompetidor(e.competidorId, resaltarId, nombreDe)}</AppText>
           {e.juegosGanados != null ? <AppText>{e.juegosGanados} 🏆</AppText> : null}
           <AppText variant="bodyStrong">{e.puntos} pts</AppText>
         </View>

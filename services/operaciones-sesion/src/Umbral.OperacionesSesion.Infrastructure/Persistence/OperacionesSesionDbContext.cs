@@ -149,6 +149,10 @@ public sealed class OperacionesSesionDbContext : DbContext
             entity.Property(x => x.FechaInscripcion).HasColumnName("fechainscripcion").IsRequired();
             entity.Property(x => x.Modalidad).HasColumnName("modalidad").IsRequired();
             entity.Property(x => x.EquipoId).HasColumnName("equipoid");
+            // Guid.Empty en Individual y en filas preexistentes: sin lider registrado no hay
+            // auto-aceptado, que es el default seguro (ver InscripcionPartida.Aceptar).
+            entity.Property(x => x.LiderId).HasColumnName("liderid").IsRequired()
+                .HasDefaultValue(Guid.Empty);
             // HU-19: snapshot de miembros para diferir la creación de convocatorias hasta la
             // aceptación del operador. Colección primitiva (jsonb en Npgsql). Se mapea el campo
             // mutable _miembrosSnapshot (List<Guid>) — EF 8 no admite la vista de solo lectura

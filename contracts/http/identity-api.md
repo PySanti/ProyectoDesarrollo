@@ -90,6 +90,18 @@ Auth: `401` without a token; `403` without the `Participante` role.
 
 > **There is no team access code (`codigoAcceso`).** Members join only via `InvitacionEquipo` sent by the team leader from a dynamic participant list (see `GET /identity/teams/eligible-participants`). Access-code join is not supported.
 
+> **Espacio de identificadores (leer antes de tocar estos endpoints).** Todo id de competidor en
+> esta sección — `invitadoUserId`, `nuevoLiderUserId`, el `userId` de `eligible-participants`, los
+> `usuarioId` de `/identity/teams/mine` — es el **`sub` de Keycloak**, que es el id con el que el
+> actor llega en el token. **No** es `Usuario.UsuarioId`, el id local de la tabla `usuarios`: son
+> dos Guid sin relación entre sí. El estado persistido lo dice en su nombre desde el slice del
+> 2026-07-16 (`ParticipanteEquipo.SubjectId`, `InvitacionEquipo.InvitadoSubjectId`), y el id local
+> es un tipo propio (`UsuarioLocalId`) para que mezclarlos no compile. Los handlers que necesitan
+> datos de `usuarios` resuelven por `KeycloakId` parseado
+> (`ListarEquiposQueryHandler`, `ResolverNombresQueryHandler`, `GetParticipantesElegiblesQueryHandler`).
+> Devolver el id local desde cualquiera de estos endpoints archiva la invitación bajo un id que el
+> invitado nunca presenta: la invitación se crea, pero no la ve nadie. Ya pasó una vez.
+
 | Capability | Method | Path | Status | Notes |
 |---|---|---|---|---|
 | Create team | POST | `/identity/teams` | Registered | 201; creator becomes leader; response has no `codigoAcceso`; 401/403 per above |
@@ -102,6 +114,8 @@ Auth: `401` without a token; `403` without the `Participante` role.
 | Get eligible participants (leader) | GET | `/identity/teams/eligible-participants` | Registered | 200; dynamic list excluding participants already in a team; blocked when team is full; 401/403 per above |
 | Get my active team | GET | `/identity/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, nombre, esLider }] }`; `nombre` resolved via the local user reference (`Usuario.KeycloakId`), `""` when no local row exists (same resolution as the admin listing below); 404 if caller has no active team; 401/403 per above |
 | Delete my team (leader, HU-06) | DELETE | `/identity/teams/mine` | Registered (SP-Bloque4A) | 204; the leader deletes their own team **even with members** (soft-delete `Estado=Eliminado`; frees members; deletes pending invitations, BR-E06; publishes `EquipoEliminado`, which is what notifies the members — the email is sent **async** by Identity's own consumer, not inside this request); 401/403 (not leader) per above; 404 if caller has no active team; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)** |
+| Get my active team | GET | `/identity/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, esLider }] }`; 404 if caller has no active team; 401/403 per above |
+| Delete my team (leader, HU-06) | DELETE | `/identity/teams/mine` | Registered (SP-Bloque4A) | 204; the leader deletes their own team **even with members** (soft-delete `Estado=Eliminado`; frees members; deletes pending invitations, BR-E06; publishes `EquipoEliminado` + notifies members); 401/403 (not leader) per above; 404 if caller has no active team; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)** |
 | Get my team-name history (HU-48) | GET | `/identity/teams/mine/history` | Registered (SP-Bloque4A) | 200 `{ historial: [{ nombreEquipo, equipoId, fechaRegistro }] }` ordered ascending by `fechaRegistro`; **always 200, empty list if none** (BR-E11); 401 per above |
 
 ### Teams listing for the web console (policy `OperadorOAdministrador` — Bloque 3b)
@@ -116,6 +130,34 @@ existing policies. Auth: `401` without a token; `403` without `Operador`/`Admini
 | Capability | Method | Path | Status | Notes |
 |---|---|---|---|---|
 | List all teams | GET | `/identity/teams` | Registered | 200 `[{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, nombre, esLider }] }]`; ALL states (`Activo`/`Desactivado`/`Eliminado`), ordered by `nombreEquipo` asc; empty → `200 []`. `usuarioId` is the Keycloak `sub`; `nombre` resolved via the local user reference (`Usuario.KeycloakId`), `""` when no local row exists. |
+
+### Directorio de nombres (policy `Default` — cualquier usuario autenticado)
+
+Resuelve lotes de ids de competidor a nombres, para que las pantallas de operador y de
+participante pinten nombres en vez de GUIDs. Es el **único** endpoint de Identity alcanzable por
+`Participante` fuera de `/identity/teams/**`: el móvil lo necesita para el ranking en vivo. No
+usa `AdminOnly` a propósito — ver el caveat de exposición en el spec
+`docs/superpowers/specs/2026-07-14-nombres-competidores-design.md`.
+
+| Capability | Method | Path | Status | Notes |
+|---|---|---|---|---|
+| Resolver nombres de competidores | POST | `/identity/directory/names` | Registered | 200; body `{ participanteIds: [guid], equipoIds: [guid] }` (ambas opcionales, default `[]`); 400 si `participanteIds.length + equipoIds.length > 200`; 401 sin token |
+
+Respuesta:
+
+```json
+{
+  "participantes": [{ "participanteId": "guid", "nombre": "string" }],
+  "equipos": [{ "equipoId": "guid", "nombreEquipo": "string" }]
+}
+```
+
+- `participanteId` es el **sub de Keycloak** (la identidad dual slice-E del `competidorId` en
+  modalidad `Individual`), resuelto contra `Usuario.KeycloakId`. `equipoId` es `Equipo.EquipoId`.
+- **Un id que no resuelve se omite de la respuesta** — no se devuelve `""`. Esto difiere de
+  `GET /identity/teams`, que sí usa `""`: aquí la omisión deja que el cliente caiga al GUID corto.
+- Los nombres son siempre los **actuales**; este endpoint no consulta el historial de nombres de
+  equipo (BR-E11).
 
 ### Admin team management (policy `AdminOnly` — role `Administrador`) (SP-Bloque4A, HU-09)
 
@@ -132,3 +174,6 @@ Base path `identity/admin/teams`. Auth: `401` without a token; `403` without rol
 | Reassign leadership | PATCH | `/identity/admin/teams/{id}/leadership` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nuevoLiderUserId }` (an existing member; publishes `LiderazgoEquipoModificado`, which is what notifies both leaders — the email is sent **async** by Identity's own consumer, not inside this request); 404 if not found; 409 if the new leader is not a member / equals the current leader; 400 on validation; 401/403 per above |
 | Change state | PATCH | `/identity/admin/teams/{id}/estado` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ estado }` ∈ `"Activo"`\|`"Desactivado"` (Activo↔Desactivado only; a `Desactivado` team cannot be inscribed in new partidas, BR-E10; publishes `EquipoDesactivado`/`EquipoReactivado`); 404 if not found; 400 on validation; 401/403 per above |
 | Delete team | DELETE | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 200 `EliminarEquipoAdminResponse` `{ equipoId, nombreEquipo }` (soft-delete + delete pending invitations + `EquipoEliminado` `origen:"Admin"`; the member notification is **async** — Identity self-consumes `EquipoEliminado` and sends the email outside the request, so the response does **not** report a notification outcome); 404 if not found; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)**; 401/403 per above |
+| Reassign leadership | PATCH | `/identity/admin/teams/{id}/leadership` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nuevoLiderUserId }` (an existing member; publishes `LiderazgoEquipoModificado`, notifies both leaders); 404 if not found; 409 if the new leader is not a member / equals the current leader; 400 on validation; 401/403 per above |
+| Change state | PATCH | `/identity/admin/teams/{id}/estado` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ estado }` ∈ `"Activo"`\|`"Desactivado"` (Activo↔Desactivado only; a `Desactivado` team cannot be inscribed in new partidas, BR-E10; publishes `EquipoDesactivado`/`EquipoReactivado`); 404 if not found; 400 on validation; 401/403 per above |
+| Delete team | DELETE | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 204 (soft-delete + delete pending invitations + `EquipoEliminado` `origen:"Admin"` + notify members); 404 if not found; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)**; 401/403 per above |

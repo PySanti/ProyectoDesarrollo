@@ -73,7 +73,7 @@ const detail: PartidaDetail = {
           {
             etapaBDTId: "e1",
             orden: 1,
-            codigoQREsperado: "TESORO-1",
+            codigoQREsperado: "11111111-1111-1111-1111-111111111111",
             puntajeAsignado: 50,
             tiempoLimiteSegundos: 60
           }
@@ -100,6 +100,28 @@ const detail: PartidaDetail = {
         ]
       },
       bdt: null
+    },
+    // Segundo juego BDT: la partida no limita cuantos juegos BDT puede tener, y cada uno
+    // numera sus propias etapas desde 1. Esta "etapa 1" del juego 3 es la que expone la
+    // colision de nombreArchivoQr si el nombre del archivo solo mira el orden de la etapa.
+    {
+      juegoId: "j3",
+      orden: 3,
+      tipoJuego: "BusquedaDelTesoro",
+      estado: "Pendiente",
+      trivia: null,
+      bdt: {
+        areaBusqueda: "Sotano",
+        etapas: [
+          {
+            etapaBDTId: "e2",
+            orden: 1,
+            codigoQREsperado: "22222222-2222-2222-2222-222222222222",
+            puntajeAsignado: 30,
+            tiempoLimiteSegundos: 45
+          }
+        ]
+      }
     }
   ]
 };
@@ -109,7 +131,7 @@ describe("PartidaDetailPage", () => {
     getPartidaMock.mockReset();
   });
 
-  it("muestra ambos juegos en orden, la opcion correcta y la etapa BDT", async () => {
+  it("muestra los tres juegos en orden, la opcion correcta y las etapas BDT", async () => {
     getPartidaMock.mockResolvedValueOnce(detail);
     renderPage();
 
@@ -118,19 +140,24 @@ describe("PartidaDetailPage", () => {
 
     const juego1 = screen.getByTestId("juego-1");
     const juego2 = screen.getByTestId("juego-2");
+    const juego3 = screen.getByTestId("juego-3");
 
     expect(within(juego1).getByText("2+2?")).toBeInTheDocument();
     expect(within(juego1).getByText("4")).toBeInTheDocument();
     expect(within(juego1).getByText("Correcta")).toBeInTheDocument();
 
     expect(within(juego2).getByText("Plaza central")).toBeInTheDocument();
-    expect(within(juego2).getByText("TESORO-1")).toBeInTheDocument();
+    expect(within(juego2).getByText("11111111-1111-1111-1111-111111111111")).toBeInTheDocument();
 
-    // juego-1 (Trivia) debe aparecer antes que juego-2 (BDT) pese a venir en otro orden en la respuesta.
+    expect(within(juego3).getByText("Sotano")).toBeInTheDocument();
+    expect(within(juego3).getByText("22222222-2222-2222-2222-222222222222")).toBeInTheDocument();
+
+    // juego-1 (Trivia) debe aparecer antes que juego-2 y juego-3 (BDT) pese a venir en
+    // otro orden en la respuesta.
     const orderedTestIds = screen
       .getAllByTestId(/^juego-/)
       .map((el) => el.getAttribute("data-testid"));
-    expect(orderedTestIds).toEqual(["juego-1", "juego-2"]);
+    expect(orderedTestIds).toEqual(["juego-1", "juego-2", "juego-3"]);
   });
 
   it("muestra 'Partida no encontrada' y un link a la lista cuando la API responde 404", async () => {
@@ -179,5 +206,56 @@ describe("PartidaDetailPage", () => {
 
     expect(await screen.findByText(/historial de eventos/i)).toBeInTheDocument();
     expect(screen.queryByTestId("btn-publicar-operar")).toBeNull();
+  });
+
+  it("muestra el QR de cada etapa para reimprimirlo, con nombre y alt distintos por juego", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+
+    // Juego 2 y juego 3 son ambos BDT y cada uno tiene su propia "etapa 1": si el nombre
+    // de archivo o el alt solo miraran el orden de la etapa, estas dos etapas serian
+    // indistinguibles pese a tener codigos QR (tesoros) distintos.
+    const juego2 = await screen.findByTestId("juego-2");
+    const juego3 = screen.getByTestId("juego-3");
+
+    // Los codigos del fixture ("11111111-..." y "22222222-...") difieren, y el nombre de
+    // archivo debe incluir el prefijo de cada uno: es lo que garantiza que dos etapas con el
+    // mismo juego+etapa (p.ej. tras un reordenamiento en el wizard antes de crear la partida)
+    // nunca produzcan el mismo archivo, sin depender de que la posicion se mantenga estable.
+    expect(
+      await within(juego2).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i })
+    ).toBeInTheDocument();
+    expect(within(juego2).getByRole("link", { name: /descargar qr etapa 1/i })).toHaveAttribute(
+      "download",
+      "tesoro-juego-2-etapa-1-11111111.png"
+    );
+
+    expect(
+      await within(juego3).findByRole("img", { name: /qr del tesoro del juego 3, etapa 1/i })
+    ).toBeInTheDocument();
+    expect(within(juego3).getByRole("link", { name: /descargar qr etapa 1/i })).toHaveAttribute(
+      "download",
+      "tesoro-juego-3-etapa-1-22222222.png"
+    );
+  });
+
+  it("no ofrece regenerar el QR", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+    const juego2 = await screen.findByTestId("juego-2");
+    await within(juego2).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i });
+
+    expect(screen.queryByRole("button", { name: /regenerar/i })).not.toBeInTheDocument();
+  });
+
+  it("el QR queda oculto tras un disclosure cerrado por defecto al entrar al detalle", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+    const juego2 = await screen.findByTestId("juego-2");
+    await within(juego2).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i });
+
+    const details = within(juego2).getByText("Mostrar QR").closest("details");
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute("open");
   });
 });

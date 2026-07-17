@@ -46,8 +46,10 @@ public class AceptarInscripcionCommandHandlerTests
 
         Assert.True(insc.EsActiva);
         var e = Assert.Single(events.InscripcionesAceptadas);
-        Assert.Equal(insc.Id.Valor, e.InscripcionId);
-        Assert.Equal("Individual", e.Modalidad);
+        Assert.Equal(insc.Id.Valor, e.Evento.InscripcionId);
+        Assert.Equal("Individual", e.Evento.Modalidad);
+        // En Individual el destinatario del push es el propio solicitante.
+        Assert.Equal(new[] { insc.ParticipanteId }, e.Destinatarios);
         Assert.Empty(events.ConvocatoriasCreadas); // individual no convoca
     }
 
@@ -65,7 +67,7 @@ public class AceptarInscripcionCommandHandlerTests
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var m1 = Guid.NewGuid();
         var m2 = Guid.NewGuid();
-        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { m1, m2 }, false, 0, T0);
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, m1, new[] { m1, m2 }, false, 0, T0);
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
         var events = new FakeSesionEventsPublisher();
@@ -77,6 +79,64 @@ public class AceptarInscripcionCommandHandlerTests
         Assert.Equal(2, events.ConvocatoriasCreadas.Count);
         Assert.Contains(events.ConvocatoriasCreadas, c => c.UsuarioId == m1);
         Assert.Single(events.InscripcionesAceptadas);
+    }
+
+    [Fact]
+    public async Task Acepta_equipo_autoacepta_al_lider_y_anuncia_la_respuesta()
+    {
+        var partidaId = Guid.NewGuid();
+        var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[]
+        {
+            new PreguntaSnapshot(Guid.NewGuid(), 1, "Q1", 10, 30,
+                new[] { new OpcionSnapshot(Guid.NewGuid(), "ok", true) })
+        });
+        var snap = new ConfiguracionSnapshot("P", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5,
+            new List<JuegoResumen> { juego });
+        var sesion = SesionPartida.Publicar(partidaId, snap);
+        var lider = Guid.NewGuid();
+        var miembro = Guid.NewGuid();
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, lider, new[] { lider, miembro }, false, 0, T0);
+        var repo = new FakeSesionPartidaRepository { ParticipacionActivaEnOtra = false };
+        repo.Add(sesion);
+        var events = new FakeSesionEventsPublisher();
+        var handler = new AceptarInscripcionCommandHandler(
+            repo, events, new FakeOperacionesSesionUnitOfWork(), new FakeTimeProvider(T0));
+
+        await handler.Handle(new AceptarInscripcionCommand(partidaId, insc.Id.Valor), default);
+
+        Assert.True(insc.Convocatorias.Single(c => c.UsuarioId == lider).EstaAceptada);
+        Assert.True(insc.Convocatorias.Single(c => c.UsuarioId == miembro).EstaPendiente);
+
+        // Solo la del lider se anuncia como respondida: la del miembro sigue pendiente.
+        var respondida = Assert.Single(events.ConvocatoriasRespondidas);
+        Assert.Equal(lider, respondida.UsuarioId);
+    }
+
+    // BR-G09: si el lider ya participa en otra partida, el handler no le concede el auto-aceptado.
+    [Fact]
+    public async Task Acepta_equipo_no_autoacepta_al_lider_con_participacion_activa_en_otra()
+    {
+        var partidaId = Guid.NewGuid();
+        var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[]
+        {
+            new PreguntaSnapshot(Guid.NewGuid(), 1, "Q1", 10, 30,
+                new[] { new OpcionSnapshot(Guid.NewGuid(), "ok", true) })
+        });
+        var snap = new ConfiguracionSnapshot("P", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5,
+            new List<JuegoResumen> { juego });
+        var sesion = SesionPartida.Publicar(partidaId, snap);
+        var lider = Guid.NewGuid();
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, lider, new[] { lider }, false, 0, T0);
+        var repo = new FakeSesionPartidaRepository { ParticipacionActivaEnOtra = true };
+        repo.Add(sesion);
+        var events = new FakeSesionEventsPublisher();
+        var handler = new AceptarInscripcionCommandHandler(
+            repo, events, new FakeOperacionesSesionUnitOfWork(), new FakeTimeProvider(T0));
+
+        await handler.Handle(new AceptarInscripcionCommand(partidaId, insc.Id.Valor), default);
+
+        Assert.True(insc.Convocatorias.Single(c => c.UsuarioId == lider).EstaPendiente);
+        Assert.Empty(events.ConvocatoriasRespondidas);
     }
 
     [Fact]

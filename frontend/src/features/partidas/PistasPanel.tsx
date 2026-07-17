@@ -1,6 +1,7 @@
 // Envio de pistas del operador a un participante o equipo (BDT).
 import { useEffect, useState } from "react";
 import { enviarPista, getLobby, OperacionesApiError, type LobbyDto } from "../../api/operacionesApi";
+import { useNombres } from "../shared/useNombres";
 
 export function PistasPanel({ partidaId, accessToken }: { partidaId: string; accessToken: string }) {
   const [lobby, setLobby] = useState<LobbyDto | null>(null);
@@ -20,6 +21,10 @@ export function PistasPanel({ partidaId, accessToken }: { partidaId: string; acc
 
   const esEquipo = lobby?.modalidad === "Equipo";
   const opciones = esEquipo ? (lobby?.equipos.map((e) => e.equipoId) ?? []) : (lobby?.participantes ?? []);
+  const nombreDe = useNombres(
+    esEquipo ? { participanteIds: [], equipoIds: opciones } : { participanteIds: opciones, equipoIds: [] },
+    accessToken
+  );
 
   async function onEnviar() {
     if (!destino || !texto.trim()) return;
@@ -54,7 +59,7 @@ export function PistasPanel({ partidaId, accessToken }: { partidaId: string; acc
           <select data-testid="pista-destino" value={destino} onChange={(e) => setDestino(e.target.value)}>
             <option value="">— elige {esEquipo ? "equipo" : "participante"} —</option>
             {opciones.map((id) => (
-              <option key={id} value={id}>{id.slice(0, 8)}</option>
+              <option key={id} value={id}>{nombreDe(id)}</option>
             ))}
           </select>
           <textarea data-testid="pista-texto" value={texto} onChange={(e) => setTexto(e.target.value)} placeholder="Texto de la pista" />

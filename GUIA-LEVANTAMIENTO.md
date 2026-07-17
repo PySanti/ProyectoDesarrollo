@@ -84,3 +84,14 @@ cd mobile
 npx expo start --clear
 
 Con adb reverse, el teléfono ve localhost:8081 como si fuera él mismo — no depende de la IP LAN ni del router para nada. Cuando escanees el QR o abras Expo Go, debería conectar directo.
+## Móvil (Expo, fuera de compose)
+
+Con el stack de compose arriba y `LAN_IP` correcta en el `.env` raíz:
+
+```bash
+cd mobile && ./run-local.sh
+```
+
+El script regenera `mobile/.env` con valores literales desde el `.env` raíz (no edites
+`mobile/.env` a mano) y lanza `expo start --host lan`. Escanea el QR con Expo Go desde el
+teléfono (misma Wi-Fi).

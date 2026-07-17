@@ -23,6 +23,7 @@ import {
   type PreguntaDraft
 } from "./createPartidaDraft";
 import { enviarPartida, type EnvioJuego, type EstadoEnvio, type ResultadoEnvio } from "./enviarPartida";
+import { generarCodigoTesoro, nombreArchivoQr, renderizarQrDataUrl } from "./qrTesoro";
 
 interface EnvioState {
   partidaId: string | null;
@@ -634,11 +635,39 @@ function BdtEditor({
   onUpdate: (next: JuegoDraft) => void;
 }) {
   const areaId = `area-busqueda-${juegoIndex}`;
+  // Indexado por codigoQREsperado (no por eIndex): asi no hace falta re-renderizar el QR
+  // en cada tecla que el operador escribe en otros campos de la etapa.
+  const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
+  // Indexado por eIndex: si renderizarQrDataUrl falla, la etapa no debe quedar con un
+  // codigo "valido" sin QR asociado (ver nota en el onClick de mas abajo). Guarda solo un
+  // flag, no el texto: el numero de etapa se deriva de `n` en el render, nunca se congela
+  // en el string, asi que un Eliminar posterior no puede dejar un mensaje con el numero
+  // equivocado.
+  const [qrErrors, setQrErrors] = useState<Record<number, true>>({});
 
   function patchEtapa(eIndex: number, patch: Partial<EtapaDraft>) {
     onUpdate({
       ...juego,
       etapas: juego.etapas.map((e, i) => (i === eIndex ? { ...e, ...patch } : e))
+    });
+  }
+
+  // Eliminar una etapa reindexa hacia abajo todas las posteriores (etapa 2 pasa a ser la
+  // etapa 1, etc.). qrDataUrls no le teme a esto porque esta indexado por codigo (valor
+  // estable), pero qrErrors esta indexado por posicion para poder mostrarse antes de que
+  // exista un codigo confirmado — asi que hay que reconciliar sus claves aqui, en el unico
+  // lugar del componente donde el array de etapas cambia de longitud desde el medio
+  // (Agregar etapa solo agrega al final y no desplaza nada).
+  function removeEtapa(eIndex: number) {
+    onUpdate({ ...juego, etapas: juego.etapas.filter((_, i) => i !== eIndex) });
+    setQrErrors((prev) => {
+      const next: Record<number, true> = {};
+      for (const [key, value] of Object.entries(prev)) {
+        const i = Number(key);
+        if (i === eIndex) continue;
+        next[i > eIndex ? i - 1 : i] = value;
+      }
+      return next;
     });
   }
 
@@ -673,9 +702,7 @@ function BdtEditor({
                 <button
                   type="button"
                   className="secondary-button btn-icon"
-                  onClick={() =>
-                    onUpdate({ ...juego, etapas: juego.etapas.filter((_, i) => i !== eIndex) })
-                  }
+                  onClick={() => removeEtapa(eIndex)}
                   aria-label={`Eliminar etapa ${n} del juego ${juegoIndex + 1}`}
                 >
                   <X />
@@ -683,14 +710,56 @@ function BdtEditor({
                 </button>
               </div>
 
-              <label htmlFor={`${baseId}-qr`}>
-                Codigo QR esperado etapa {n}
-                <input
-                  id={`${baseId}-qr`}
-                  value={etapa.codigoQREsperado}
-                  onChange={(event) => patchEtapa(eIndex, { codigoQREsperado: event.target.value })}
-                />
-              </label>
+              <div className="stack">
+                <button
+                  type="button"
+                  className="ghost-button"
+                  onClick={async () => {
+                    // El codigo solo se confirma en el draft si renderizarQrDataUrl tiene
+                    // exito: si patcheamos antes y el render falla, la etapa quedaria con un
+                    // codigoQREsperado "valido" (pasa validateEtapa y el backend lo aceptaria
+                    // como UUID unico) pero sin QR ni descarga — el operador crearia una
+                    // partida con un tesoro que nadie puede fotografiar, sin ningun aviso.
+                    setQrErrors((prev) => {
+                      const { [eIndex]: _omitida, ...resto } = prev;
+                      return resto;
+                    });
+                    const codigo = generarCodigoTesoro();
+                    try {
+                      const dataUrl = await renderizarQrDataUrl(codigo);
+                      patchEtapa(eIndex, { codigoQREsperado: codigo });
+                      setQrDataUrls((prev) => ({ ...prev, [codigo]: dataUrl }));
+                    } catch {
+                      setQrErrors((prev) => ({ ...prev, [eIndex]: true }));
+                    }
+                  }}
+                >
+                  {etapa.codigoQREsperado ? `Regenerar QR etapa ${n}` : `Generar QR etapa ${n}`}
+                </button>
+
+                {qrErrors[eIndex] ? (
+                  <p className="notice error">
+                    No se pudo generar el QR de la etapa {n}. Intenta de nuevo.
+                  </p>
+                ) : null}
+
+                {etapa.codigoQREsperado && qrDataUrls[etapa.codigoQREsperado] ? (
+                  <>
+                    <img
+                      src={qrDataUrls[etapa.codigoQREsperado]}
+                      alt={`QR del tesoro del juego ${juegoIndex + 1}, etapa ${n}`}
+                      width={160}
+                      height={160}
+                    />
+                    <a
+                      href={qrDataUrls[etapa.codigoQREsperado]}
+                      download={nombreArchivoQr(juegoIndex + 1, n, etapa.codigoQREsperado)}
+                    >
+                      Descargar QR etapa {n}
+                    </a>
+                  </>
+                ) : null}
+              </div>
 
               <div className="q-meta">
                 <label htmlFor={`${baseId}-puntaje`}>

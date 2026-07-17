@@ -23,5 +23,8 @@ public sealed class RabbitMqConsumerOptions
         "operaciones-sesion.partida-finalizada.v1",
         "operaciones-sesion.puntaje-trivia-incrementado.v1",
         "operaciones-sesion.etapa-bdt-ganada.v1",
+        "operaciones-sesion.inscripcion-aceptada.v1",
+        "operaciones-sesion.convocatoria-creada.v1",
+        "operaciones-sesion.convocatoria-respondida.v1",
     };
 }

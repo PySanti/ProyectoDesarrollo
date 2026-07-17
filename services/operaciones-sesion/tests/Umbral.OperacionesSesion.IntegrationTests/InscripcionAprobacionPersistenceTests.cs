@@ -40,7 +40,7 @@ public class InscripcionAprobacionPersistenceTests
         await using (var write = new OperacionesSesionDbContext(options))
         {
             var sesion = PartidaEquipo(partidaId);
-            sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { m1, m2 }, false, 0, T0);
+            sesion.PreinscribirEquipo(Guid.NewGuid(), true, m1, new[] { m1, m2 }, false, 0, T0);
             new SesionPartidaRepository(write).Add(sesion);
             await write.SaveChangesAsync();
         }
@@ -53,6 +53,40 @@ public class InscripcionAprobacionPersistenceTests
         Assert.Equal(EstadoInscripcion.Pendiente, insc.Estado);
         Assert.Empty(insc.Convocatorias);
         Assert.Equal(new[] { m1, m2 }, insc.MiembrosSnapshot);
+    }
+
+    // LiderId tiene que sobrevivir al round-trip: las convocatorias se crean al aceptar el
+    // operador, que ocurre en otra request y sobre la entidad recargada. Si no se persiste, vuelve
+    // como Guid.Empty y el lider no se auto-acepta — la partida se cancelaria por minimos.
+    [Fact]
+    public async Task Preinscripcion_persiste_el_lider_y_su_convocatoria_nace_aceptada_tras_recargar()
+    {
+        var options = new DbContextOptionsBuilder<OperacionesSesionDbContext>()
+            .UseInMemoryDatabase("insc-aprob-lider-" + Guid.NewGuid()).Options;
+        var partidaId = Guid.NewGuid();
+        var lider = Guid.NewGuid();
+        var miembro = Guid.NewGuid();
+        Guid inscId;
+
+        await using (var write = new OperacionesSesionDbContext(options))
+        {
+            var sesion = PartidaEquipo(partidaId);
+            var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, lider, new[] { lider, miembro }, false, 0, T0);
+            inscId = insc.Id.Valor;
+            new SesionPartidaRepository(write).Add(sesion);
+            await write.SaveChangesAsync();
+        }
+
+        await using var read = new OperacionesSesionDbContext(options);
+        var recargada = await new SesionPartidaRepository(read).GetByPartidaIdAsync(partidaId, CancellationToken.None);
+        var reinsc = Assert.Single(recargada!.Inscripciones);
+
+        Assert.Equal(lider, reinsc.LiderId);
+
+        recargada.AceptarInscripcion(inscId, 0, T0, liderPuedeAutoAceptar: true);
+
+        Assert.True(reinsc.Convocatorias.Single(c => c.UsuarioId == lider).EstaAceptada);
+        Assert.True(reinsc.Convocatorias.Single(c => c.UsuarioId == miembro).EstaPendiente);
     }
 
     [Fact]
@@ -68,7 +102,7 @@ public class InscripcionAprobacionPersistenceTests
         await using (var write = new OperacionesSesionDbContext(options))
         {
             var sesion = PartidaEquipo(partidaId);
-            sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { m1 }, false, 0, T0);
+            sesion.PreinscribirEquipo(Guid.NewGuid(), true, m1, new[] { m1 }, false, 0, T0);
             new SesionPartidaRepository(write).Add(sesion);
             await write.SaveChangesAsync();
         }

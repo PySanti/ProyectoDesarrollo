@@ -9,6 +9,7 @@ import {
 } from "../../api/operacionesApi";
 import { getRankingJuego, type RankingJuegoDto } from "../../api/puntuacionesApi";
 import { Countdown, RankingView } from "./runtimeShared";
+import { idsDeCompetidores, useNombres } from "../shared/useNombres";
 
 export interface EtapaResultadoDto {
   etapaId: string;
@@ -51,6 +52,7 @@ export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
   const [ranking, setRanking] = useState<RankingJuegoDto | null>(null);
   const [posteando, setPosteando] = useState(false);
   const [tick, setTick] = useState(0); // refetch interno tras avance/finalizar fallido
+  const nombreDe = useNombres(idsDeCompetidores(ranking?.entradas ?? []), accessToken);
 
   const refetch = useCallback(() => setTick((t) => t + 1), []);
 
@@ -147,7 +149,7 @@ export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
         </div>
       ) : null}
       <ResultadoPorEtapa resultadosEtapas={resultadosEtapas} juegoId={juegoId} />
-      <RankingView ranking={ranking} />
+      <RankingView ranking={ranking} nombreDe={nombreDe} />
     </div>
   );
 }

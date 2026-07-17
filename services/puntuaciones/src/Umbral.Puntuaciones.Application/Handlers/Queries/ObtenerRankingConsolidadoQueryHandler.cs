@@ -27,7 +27,9 @@ public sealed class ObtenerRankingConsolidadoQueryHandler
         }
 
         var marcadores = await _repo.GetMarcadoresDePartidaAsync(request.PartidaId, cancellationToken);
+        var participaciones = await _repo.GetParticipacionesDePartidaAsync(request.PartidaId, cancellationToken);
         return new RankingConsolidadoResponse(
-            request.PartidaId, DateTime.UtcNow, CalculadorRankingConsolidado.Calcular(marcadores));
+            request.PartidaId, DateTime.UtcNow,
+            CalculadorRankingConsolidado.Calcular(marcadores, participaciones));
     }
 }

@@ -43,6 +43,12 @@ public sealed class SesionHub : Hub
         var sub = user?.FindFirst("sub")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
         if (!(user?.IsInRole("Operador") ?? false) && sub is not null && Guid.TryParse(sub, out var usuarioId))
         {
+            // Canal personal por identidad, no por partida: lo que hay que notificarle al
+            // participante (aceptacion, rechazo, convocatoria) ocurre ANTES de que tenga
+            // participacion, que es lo que SuscribirAPartida exige.
+            await Groups.AddToGroupAsync(
+                Context.ConnectionId, SesionRealtimeMessages.GrupoParticipante(usuarioId), Context.ConnectionAborted);
+
             try
             {
                 var pendientes = await _sender.Send(new ObtenerMisConvocatoriasPendientesQuery(usuarioId), Context.ConnectionAborted);
@@ -101,10 +107,8 @@ public sealed class SesionHub : Hub
     {
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, SesionRealtimeMessages.GrupoPartida(partidaId), Context.ConnectionAborted);
         await Groups.RemoveFromGroupAsync(Context.ConnectionId, SesionRealtimeMessages.GrupoOperadorPartida(partidaId), Context.ConnectionAborted);
-        if (Context.Items.TryGetValue(ClaveParticipanteId, out var u) && u is Guid participanteId)
-        {
-            await Groups.RemoveFromGroupAsync(Context.ConnectionId, SesionRealtimeMessages.GrupoParticipante(participanteId), Context.ConnectionAborted);
-        }
+        // El canal personal NO se toca aqui: es de la identidad, no de la partida. Salir de una
+        // partida no puede dejarte sordo a tus convocatorias.
         if (Context.Items.TryGetValue(ClaveEquipoId, out var e) && e is Guid equipoId)
         {
             await Groups.RemoveFromGroupAsync(Context.ConnectionId, SesionRealtimeMessages.GrupoEquipo(equipoId), Context.ConnectionAborted);

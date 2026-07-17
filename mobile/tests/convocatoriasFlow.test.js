@@ -15,6 +15,24 @@ test("fetchConvocatorias devuelve data", async () => {
   assert.equal(r.data[0].convocatoriaId, "c1");
 });
 
+// Red de seguridad: el movil pinta este nombre y el gateway le cierra /partidas/**,
+// asi que un mapeo futuro que lo pierda lo dejaria sin forma de nombrar la partida.
+test("fetchConvocatorias propaga nombrePartida del backend", async () => {
+  const fetchImpl = async () =>
+    jsonResponse(200, [
+      {
+        convocatoriaId: "c1",
+        partidaId: "p1",
+        equipoId: "e1",
+        fechaEnvio: "2026-07-08T12:00:00Z",
+        nombrePartida: "Copa UCAB",
+      },
+    ]);
+  const r = await fetchConvocatorias({ apiBaseUrl: "http://gw", token: "tok", fetchImpl });
+  assert.equal(r.ok, true);
+  assert.equal(r.data[0].nombrePartida, "Copa UCAB");
+});
+
 test("responderConvocatoria aceptar=false hace POST rechazo y mapea 409", async () => {
   const calls = [];
   const fetchImpl = async (url, init) => {

@@ -18,4 +18,15 @@ public interface IProyeccionesRepository
     Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
     Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConMarcadorDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken);
     Task<IReadOnlyList<JuegoProyectado>> GetJuegosDePartidaAsync(Guid partidaId, CancellationToken cancellationToken);
+
+    // Participación = inscripción aceptada, no haber anotado. Antes el único universo de
+    // competidores era el de marcadores, y un marcador solo nace al acreditar puntos.
+    Task<ParticipacionProyectada?> GetParticipacionAsync(Guid partidaId, Guid competidorId, CancellationToken cancellationToken);
+    void AddParticipacion(ParticipacionProyectada participacion);
+    Task<IReadOnlyList<ParticipacionProyectada>> GetParticipacionesDePartidaAsync(Guid partidaId, CancellationToken cancellationToken);
+    Task<ConvocatoriaProyectada?> GetConvocatoriaAsync(Guid convocatoriaId, CancellationToken cancellationToken);
+    void AddConvocatoria(ConvocatoriaProyectada convocatoria);
+    Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken);
+    Task<IReadOnlyList<ParticipacionEquipoHistorial>> GetEquiposConConvocatoriaAceptadaAsync(Guid usuarioId, CancellationToken cancellationToken);
 }

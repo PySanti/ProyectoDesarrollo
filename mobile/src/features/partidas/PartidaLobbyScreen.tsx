@@ -3,7 +3,8 @@ import { ActivityIndicator, ScrollView, StyleSheet } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { cargarLobby, accionParticipacion, avisoLiderEquipo } from "./partidaLobbyFlow.js";
-import { crearSesionHub } from "./sesionHub.js";
+import { crearSesionHub, reengancharAlReconectar } from "./sesionHub.js";
+import { avisoResolucion } from "./resolucionInscripcion.js";
 
 type Lobby = {
   partidaId: string;
@@ -84,6 +85,15 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
     hub.on("PartidaCancelada", (p: { motivo?: string }) =>
       setAviso({ variant: "error", texto: p?.motivo ? `Partida cancelada: ${p.motivo}` : "Partida cancelada." })
     );
+    hub.on("InscripcionResuelta", (p: { aceptada?: boolean }) => {
+      const aceptada = p?.aceptada === true;
+      setAviso(avisoResolucion(aceptada) as Aviso);
+      void loadRef.current();
+      // PartidaIniciada va al grupo de la partida, no al canal personal: sin esta
+      // resuscripcion el arranque no llegaria y habria que pulsar Recargar.
+      if (aceptada) void hub.invoke("SuscribirAPartida", partidaId).catch(() => {});
+    });
+    reengancharAlReconectar(hub, partidaId);
     hub
       .start()
       .then(() => hub.invoke("SuscribirAPartida", partidaId))

@@ -19,6 +19,9 @@ function renderPage({ puedeOperar = true }: { puedeOperar?: boolean } = {}) {
   );
 }
 
+// Las fechas no son arbitrarias: la publicada (12:00) es más nueva que la sin publicar
+// (09:00), y el mock las devuelve en ese orden — como haría el backend ya ordenado. El
+// test de orden se apoya en eso.
 const summaryPublicada: PartidaSummary = {
   partidaId: "p1",
   nombrePartida: "Trivia de verano",
@@ -28,7 +31,8 @@ const summaryPublicada: PartidaSummary = {
   minimosParticipacion: 1,
   maximosParticipacion: 10,
   estado: "Lobby",
-  cantidadJuegos: 2
+  cantidadJuegos: 2,
+  fechaCreacion: "2026-07-16T12:00:00Z"
 };
 
 const summarySinPublicar: PartidaSummary = {
@@ -40,7 +44,8 @@ const summarySinPublicar: PartidaSummary = {
   minimosParticipacion: 2,
   maximosParticipacion: 6,
   estado: null,
-  cantidadJuegos: 1
+  cantidadJuegos: 1,
+  fechaCreacion: "2026-07-16T09:00:00Z"
 };
 
 describe("PartidasListPage", () => {
@@ -59,6 +64,31 @@ describe("PartidasListPage", () => {
     expect(screen.getByTestId("fila-partida-p2")).toBeInTheDocument();
     expect(screen.getByTestId("btn-nueva-partida")).toBeInTheDocument();
     expect(screen.getByTestId("lista-partidas")).toBeInTheDocument();
+  });
+
+  it("muestra la fecha y hora de creacion de cada partida", async () => {
+    getPartidasMock.mockResolvedValueOnce([summaryPublicada]);
+    renderPage();
+
+    await screen.findByTestId("fila-partida-p1");
+    // toLocaleString, no toLocaleDateString: sin la hora el operador ve varias partidas
+    // del mismo dia y el orden vuelve a parecer arbitrario.
+    //
+    // textContent y no toHaveTextContent: en es-VE el string trae un espacio duro (U+00A0)
+    // antes de "m.". toHaveTextContent normaliza el texto del elemento pero no el esperado,
+    // asi que nunca casarian — y el diff los pinta identicos porque el caracter es invisible.
+    const celda = screen.getByTestId("fecha-creacion-p1");
+    expect(celda.textContent).toBe(new Date("2026-07-16T12:00:00Z").toLocaleString());
+  });
+
+  it("respeta el orden que llega del backend y no reordena", async () => {
+    getPartidasMock.mockResolvedValueOnce([summaryPublicada, summarySinPublicar]);
+    renderPage();
+
+    await screen.findByTestId("fila-partida-p1");
+    const filas = screen.getAllByTestId(/^fila-partida-/);
+    expect(filas[0]).toHaveTextContent("Trivia de verano");
+    expect(filas[1]).toHaveTextContent("BDT campus");
   });
 
   it("muestra el estado vacio cuando no hay partidas", async () => {

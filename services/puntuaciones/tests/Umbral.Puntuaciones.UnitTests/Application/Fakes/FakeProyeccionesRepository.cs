@@ -68,4 +68,48 @@ public sealed class FakeProyeccionesRepository : IProyeccionesRepository
         var eliminados = EventosProcesados.RemoveAll(e => e.ProcesadoAt < limite);
         return Task.FromResult(eliminados);
     }
+
+    public List<ParticipacionProyectada> Participaciones { get; } = new();
+    public List<ConvocatoriaProyectada> Convocatorias { get; } = new();
+
+    public Task<ParticipacionProyectada?> GetParticipacionAsync(Guid partidaId, Guid competidorId, CancellationToken cancellationToken)
+        => Task.FromResult(Participaciones.FirstOrDefault(p => p.PartidaId == partidaId && p.CompetidorId == competidorId));
+
+    public void AddParticipacion(ParticipacionProyectada participacion) => Participaciones.Add(participacion);
+
+    public Task<IReadOnlyList<ParticipacionProyectada>> GetParticipacionesDePartidaAsync(Guid partidaId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<ParticipacionProyectada>>(Participaciones.Where(p => p.PartidaId == partidaId).ToList());
+
+    public Task<ConvocatoriaProyectada?> GetConvocatoriaAsync(Guid convocatoriaId, CancellationToken cancellationToken)
+        => Task.FromResult(Convocatorias.FirstOrDefault(c => c.ConvocatoriaId == convocatoriaId));
+
+    public void AddConvocatoria(ConvocatoriaProyectada convocatoria) => Convocatorias.Add(convocatoria);
+
+    // Unión con marcadores: las partidas anteriores a la proyección no tienen participación.
+    public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeParticipanteAsync(Guid participanteId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada && p.Modalidad == Modalidad.Individual
+                && (Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == participanteId
+                        && x.TipoCompetidor == TipoCompetidor.Participante)
+                    || Marcadores.Any(m => m.PartidaId == p.PartidaId && m.CompetidorId == participanteId
+                        && m.TipoCompetidor == TipoCompetidor.Participante)))
+            .OrderByDescending(p => p.FechaFin)
+            .ToList());
+
+    public Task<IReadOnlyList<PartidaProyectada>> GetPartidasTerminadasConParticipacionDeEquipoAsync(Guid equipoId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<PartidaProyectada>>(Partidas
+            .Where(p => p.Estado == EstadoPartidaProyectada.Terminada && p.Modalidad == Modalidad.Equipo
+                && (Participaciones.Any(x => x.PartidaId == p.PartidaId && x.CompetidorId == equipoId
+                        && x.TipoCompetidor == TipoCompetidor.Equipo)
+                    || Marcadores.Any(m => m.PartidaId == p.PartidaId && m.CompetidorId == equipoId
+                        && m.TipoCompetidor == TipoCompetidor.Equipo)))
+            .OrderByDescending(p => p.FechaFin)
+            .ToList());
+
+    public Task<IReadOnlyList<ParticipacionEquipoHistorial>> GetEquiposConConvocatoriaAceptadaAsync(Guid usuarioId, CancellationToken cancellationToken)
+        => Task.FromResult<IReadOnlyList<ParticipacionEquipoHistorial>>(Convocatorias
+            .Where(c => c.UsuarioId == usuarioId && c.Aceptada)
+            .Select(c => new ParticipacionEquipoHistorial(c.PartidaId, c.EquipoId))
+            .Distinct()
+            .ToList());
 }

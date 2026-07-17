@@ -7,6 +7,7 @@ import {
   type RankingConsolidadoDto
 } from "../../api/puntuacionesApi";
 import { formatTiempo } from "./runtimeShared";
+import { idsDeCompetidores, useNombres } from "../shared/useNombres";
 
 const MAX_INTENTOS = 3;
 const ESPERA_MS = 1500;
@@ -27,6 +28,10 @@ export function ConsolidadoPanel({
 }) {
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [intentoManual, setIntentoManual] = useState(0);
+  const nombreDe = useNombres(
+    idsDeCompetidores(estado.status === "ok" ? estado.ranking.entradas : []),
+    accessToken
+  );
 
   useEffect(() => {
     let active = true;
@@ -77,12 +82,18 @@ export function ConsolidadoPanel({
           </button>
         </div>
       ) : null}
-      {estado.status === "ok" ? <ConsolidadoTabla ranking={estado.ranking} /> : null}
+      {estado.status === "ok" ? <ConsolidadoTabla ranking={estado.ranking} nombreDe={nombreDe} /> : null}
     </div>
   );
 }
 
-function ConsolidadoTabla({ ranking }: { ranking: RankingConsolidadoDto }) {
+function ConsolidadoTabla({
+  ranking,
+  nombreDe
+}: {
+  ranking: RankingConsolidadoDto;
+  nombreDe: (id: string) => string;
+}) {
   if (!ranking.entradas.length) {
     return <p className="muted">Sin resultados.</p>;
   }
@@ -102,7 +113,7 @@ function ConsolidadoTabla({ ranking }: { ranking: RankingConsolidadoDto }) {
           {ranking.entradas.map((entrada) => (
             <tr key={entrada.competidorId}>
               <td>{entrada.posicion}</td>
-              <td>{entrada.competidorId.slice(0, 8)}</td>
+              <td>{nombreDe(entrada.competidorId)}</td>
               <td>{entrada.juegosGanados}</td>
               <td>{entrada.puntosTotales}</td>
               <td>{formatTiempo(entrada.tiempoTotalMs)}</td>

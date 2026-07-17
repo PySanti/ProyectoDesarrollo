@@ -8,8 +8,10 @@ namespace Umbral.Partidas.UnitTests.Domain;
 
 public class PartidaTests
 {
+    private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+
     private static Partida CrearManual() =>
-        Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
 
     [Fact]
     public void Crear_manual_sets_null_estado_and_no_games()
@@ -21,24 +23,35 @@ public class PartidaTests
     }
 
     [Fact]
+    public void Crear_guarda_la_fecha_de_creacion_que_recibe()
+    {
+        var partida = Partida.Crear(
+            NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
+
+        // El dominio no lee el reloj: guarda el instante que le pasan. Eso es lo que hace
+        // deterministas al test de orden del repositorio y al del handler.
+        Assert.Equal(T0, partida.FechaCreacion);
+    }
+
+    [Fact]
     public void Crear_automatico_requires_tiempo_inicio()
     {
         Assert.Throws<ArgumentException>(() =>
-            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Automatico, null, 1, 10));
+            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Automatico, null, 1, 10, T0));
     }
 
     [Fact]
     public void Crear_manual_rejects_tiempo_inicio()
     {
         Assert.Throws<ArgumentException>(() =>
-            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, DateTime.UtcNow, 1, 10));
+            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, DateTime.UtcNow, 1, 10, T0));
     }
 
     [Fact]
     public void Crear_rejects_maximos_below_minimos()
     {
         Assert.Throws<ArgumentException>(() =>
-            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 5, 2));
+            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 5, 2, T0));
     }
 
     [Fact]
@@ -104,13 +117,13 @@ public class PartidaTests
     public void Crear_manualYAutomatico_requires_tiempo_inicio()
     {
         Assert.Throws<ArgumentException>(() =>
-            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.ManualYAutomatico, null, 1, 10));
+            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.ManualYAutomatico, null, 1, 10, T0));
     }
 
     [Fact]
     public void Crear_manualYAutomatico_with_tiempo_inicio_succeeds()
     {
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.ManualYAutomatico, DateTime.UtcNow, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.ManualYAutomatico, DateTime.UtcNow, 1, 10, T0);
         Assert.True(partida.PartidaId.EsValido());
     }
 
@@ -118,6 +131,6 @@ public class PartidaTests
     public void Crear_rejects_minimos_below_one()
     {
         Assert.Throws<ArgumentException>(() =>
-            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 0, 5));
+            Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 0, 5, T0));
     }
 }

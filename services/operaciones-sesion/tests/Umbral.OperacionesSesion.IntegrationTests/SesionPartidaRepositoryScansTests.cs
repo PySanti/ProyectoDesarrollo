@@ -142,7 +142,7 @@ public class SesionPartidaRepositoryScansTests
         {
             var writeRepo = new SesionPartidaRepository(write);
             var sesion = EquipoPublicada(T0, ModoInicioPartida.Automatico);
-            var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { miembro }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipoId, true, miembro, new[] { miembro }, false, 0, T0);
             sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, miembro, true, false, T0);
             writeRepo.Add(sesion);

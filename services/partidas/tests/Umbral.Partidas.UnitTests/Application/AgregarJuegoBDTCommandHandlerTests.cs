@@ -16,12 +16,13 @@ namespace Umbral.Partidas.UnitTests.Application;
 public class AgregarJuegoBDTCommandHandlerTests
 {
     private static Partida NewPartida()
-        => Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        => Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
+            new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc));
 
     private static AgregarJuegoBDTCommand Command(Guid partidaId, int orden = 1) =>
         new(partidaId, orden, "Plaza central", new List<EtapaRequest>
         {
-            new(1, "QR-1", 50, 120)
+            new(1, Guid.NewGuid().ToString(), 50, 120)
         });
 
     [Fact]

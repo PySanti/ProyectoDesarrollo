@@ -41,12 +41,12 @@ public class ValidarTesoroEquipoTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
 
-        var insA = sesion.PreinscribirEquipo(equipoALocal, true, new[] { liderALocal, miembroALocal, pendienteALocal }, false, 0, T0);
+        var insA = sesion.PreinscribirEquipo(equipoALocal, true, liderALocal, new[] { liderALocal, miembroALocal, pendienteALocal }, false, 0, T0);
         sesion.AceptarInscripcion(insA.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == liderALocal).Id.Valor, liderALocal, true, false, T0);
         sesion.ResponderConvocatoria(insA.Convocatorias.Single(c => c.UsuarioId == miembroALocal).Id.Valor, miembroALocal, true, false, T0);
         // pendienteALocal NO responde su convocatoria.
-        var insB = sesion.PreinscribirEquipo(equipoBLocal, true, new[] { liderBLocal }, false, 1, T0);
+        var insB = sesion.PreinscribirEquipo(equipoBLocal, true, liderBLocal, new[] { liderBLocal }, false, 1, T0);
         sesion.AceptarInscripcion(insB.Id.Valor, 1, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(insB.Convocatorias.Single(c => c.UsuarioId == liderBLocal).Id.Valor, liderBLocal, true, false, T0);
 
@@ -116,7 +116,7 @@ public class ValidarTesoroEquipoTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Equipo, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
         var lider = Guid.NewGuid();
-        var ins = sesion.PreinscribirEquipo(Guid.NewGuid(), true, new[] { lider, rechazado }, false, 0, T0);
+        var ins = sesion.PreinscribirEquipo(Guid.NewGuid(), true, lider, new[] { lider, rechazado }, false, 0, T0);
         sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == lider).Id.Valor, lider, true, false, T0);
         sesion.ResponderConvocatoria(ins.Convocatorias.Single(c => c.UsuarioId == rechazado).Id.Valor, rechazado, false, false, T0);

@@ -3,6 +3,8 @@ import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Card, Notice, ScreenHeader, StatePill } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { getRendimientoMiEquipo } from "./rendimientoEquipoApi.js";
+import { useNombresPartida } from "../shared/useNombresPartida.js";
+import { lineaContextoRendimiento } from "./historialLabels.js";
 
 type PartidaRendimiento = {
   partidaId: string;
@@ -27,6 +29,11 @@ export function RendimientoEquipoScreen({ apiBaseUrl, token }: Props) {
   const [loading, setLoading] = useState(true);
   const [sinEquipo, setSinEquipo] = useState(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
+  const nombrePartidaDe = useNombresPartida(
+    partidas.map((p) => p.partidaId),
+    apiBaseUrl,
+    token
+  );
 
   const load = useCallback(async () => {
     setErrorMessage(null);
@@ -69,14 +76,14 @@ export function RendimientoEquipoScreen({ apiBaseUrl, token }: Props) {
       {partidas.map((p) => (
         <Card key={p.partidaId} style={styles.card}>
           <View style={styles.headerRow}>
-            <AppText variant="bodyStrong">Posición {p.posicion}</AppText>
+            <AppText variant="bodyStrong" style={styles.titulo}>
+              {nombrePartidaDe(p.partidaId)}
+            </AppText>
             <StatePill state={p.gano ? "ok" : "done"} label={p.gano ? "Ganó" : "No ganó"} />
           </View>
-          {p.fechaFin ? (
-            <AppText variant="label" color={colors.muted}>
-              {new Date(p.fechaFin).toLocaleDateString()}
-            </AppText>
-          ) : null}
+          <AppText variant="label" color={colors.muted}>
+            {lineaContextoRendimiento(p)}
+          </AppText>
         </Card>
       ))}
     </ScrollView>
@@ -90,4 +97,7 @@ const styles = StyleSheet.create({
   empty: { color: colors.muted, textAlign: "center" },
   card: { gap: spacing.xs },
   headerRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", gap: spacing.md },
+  // Igual que en HistorialPartidasScreen: el nombre es texto libre del operador y sin
+  // flex empuja el StatePill fuera de la tarjeta.
+  titulo: { flex: 1 },
 });

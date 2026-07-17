@@ -13,3 +13,12 @@ export function crearSesionHub(gatewayBaseUrl, getToken) {
     .withAutomaticReconnect()
     .build();
 }
+
+// Los grupos de SignalR son por conexion: withAutomaticReconnect restablece el socket pero
+// NO devuelve al grupo. Sin esto, tras un microcorte la pantalla deja de recibir preguntas,
+// etapas y pistas en silencio, sin error visible.
+export function reengancharAlReconectar(hub, partidaId) {
+  hub.onreconnected(() => {
+    void Promise.resolve(hub.invoke("SuscribirAPartida", partidaId)).catch(() => {});
+  });
+}
