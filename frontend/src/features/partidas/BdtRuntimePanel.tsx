@@ -148,7 +148,7 @@ export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
           ) : null}
         </div>
       ) : null}
-      <ResultadoPorEtapa resultadosEtapas={resultadosEtapas} juegoId={juegoId} />
+      <ResultadoPorEtapa resultadosEtapas={resultadosEtapas} juegoId={juegoId} nombreDe={nombreDe} />
       <RankingView ranking={ranking} nombreDe={nombreDe} />
     </div>
   );
@@ -158,10 +158,12 @@ export function BdtRuntimePanel(props: BdtRuntimePanelProps) {
 // padre y filtrado aqui por juego (el mismo etapaId nunca se repite entre juegos).
 function ResultadoPorEtapa({
   resultadosEtapas,
-  juegoId
+  juegoId,
+  nombreDe
 }: {
   resultadosEtapas?: EtapaResultadoDto[];
   juegoId: string;
+  nombreDe: (id: string) => string;
 }) {
   const delJuego = (resultadosEtapas ?? []).filter((r) => r.juegoId === juegoId);
   if (delJuego.length === 0) return null;
@@ -172,7 +174,7 @@ function ResultadoPorEtapa({
         const ganador = r.ganadorEquipoId ?? r.ganadorParticipanteId;
         return (
           <p key={r.etapaId} data-testid="resultado-etapa">
-            {ganador ? `Ganada por ${ganador}` : "Nadie consiguió el tesoro"}
+            {ganador ? `Ganada por ${nombreDe(ganador)}` : "Nadie consiguió el tesoro"}
           </p>
         );
       })}
