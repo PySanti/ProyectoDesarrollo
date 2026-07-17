@@ -166,10 +166,10 @@ describe("CreatePartidaPage", () => {
 
     await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
 
-    expect(await within(bdtRegion).findByRole("img", { name: /qr del tesoro/i })).toBeInTheDocument();
+    expect(await within(bdtRegion).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i })).toBeInTheDocument();
     expect(within(bdtRegion).getByRole("link", { name: /descargar qr/i })).toHaveAttribute(
       "download",
-      "tesoro-etapa-1.png"
+      "tesoro-juego-2-etapa-1.png"
     );
     expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
   });
@@ -268,11 +268,11 @@ describe("CreatePartidaPage", () => {
 
     expect(await within(bdtRegion).findByText(/no se pudo generar el qr/i)).toBeInTheDocument();
     // El QR y la descarga previos no desaparecen: el fallo del regenerado no los borra.
-    const qrTrasFallo = within(bdtRegion).getByRole("img", { name: /qr del tesoro/i });
+    const qrTrasFallo = within(bdtRegion).getByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i });
     expect(qrTrasFallo.getAttribute("src")).toBe(primerSrc);
     expect(within(bdtRegion).getByRole("link", { name: /descargar qr/i })).toHaveAttribute(
       "download",
-      "tesoro-etapa-1.png"
+      "tesoro-juego-2-etapa-1.png"
     );
     expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
   });

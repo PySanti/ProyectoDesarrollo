@@ -48,7 +48,13 @@ describe("renderizarQrDataUrl", () => {
 });
 
 describe("nombreArchivoQr", () => {
-  it("nombra el archivo por el orden de la etapa", () => {
-    expect(nombreArchivoQr(3)).toBe("tesoro-etapa-3.png");
+  it("nombra el archivo por el juego y el orden de la etapa", () => {
+    expect(nombreArchivoQr(2, 3)).toBe("tesoro-juego-2-etapa-3.png");
+  });
+
+  it("distingue etapas con el mismo orden en juegos BDT distintos", () => {
+    // Orden es unico por juego, no por partida: una partida con dos juegos BDT tiene dos
+    // "etapa 1" (una por juego). El nombre debe incluir el juego para no colisionar.
+    expect(nombreArchivoQr(2, 1)).not.toBe(nombreArchivoQr(3, 1));
   });
 });

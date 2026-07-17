@@ -13,6 +13,10 @@ export function renderizarQrDataUrl(codigo: string): Promise<string> {
   return QRCode.toDataURL(codigo, { width: 320, margin: 2 });
 }
 
-export function nombreArchivoQr(orden: number): string {
-  return `tesoro-etapa-${orden}.png`;
+// orden es unico por juego, no por partida: una partida puede tener varios juegos BDT (1..*,
+// sin tope), y cada uno numera sus propias etapas desde 1. Si el nombre solo mirara el orden
+// de la etapa, "juego 2 etapa 1" y "juego 3 etapa 1" colisionarian en el mismo archivo pese a
+// ser tesoros distintos.
+export function nombreArchivoQr(juegoOrden: number, etapaOrden: number): string {
+  return `tesoro-juego-${juegoOrden}-etapa-${etapaOrden}.png`;
 }

@@ -747,11 +747,14 @@ function BdtEditor({
                   <>
                     <img
                       src={qrDataUrls[etapa.codigoQREsperado]}
-                      alt={`QR del tesoro de la etapa ${n}`}
+                      alt={`QR del tesoro del juego ${juegoIndex + 1}, etapa ${n}`}
                       width={160}
                       height={160}
                     />
-                    <a href={qrDataUrls[etapa.codigoQREsperado]} download={nombreArchivoQr(n)}>
+                    <a
+                      href={qrDataUrls[etapa.codigoQREsperado]}
+                      download={nombreArchivoQr(juegoIndex + 1, n)}
+                    >
                       Descargar QR etapa {n}
                     </a>
                   </>

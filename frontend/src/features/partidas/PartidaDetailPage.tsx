@@ -172,7 +172,9 @@ function JuegoCard({ juego }: { juego: JuegoDetail }) {
       </div>
 
       {juego.trivia ? <TriviaView preguntas={juego.trivia.preguntas} /> : null}
-      {juego.bdt ? <BdtView areaBusqueda={juego.bdt.areaBusqueda} etapas={juego.bdt.etapas} /> : null}
+      {juego.bdt ? (
+        <BdtView areaBusqueda={juego.bdt.areaBusqueda} etapas={juego.bdt.etapas} juegoOrden={juego.orden} />
+      ) : null}
     </section>
   );
 }
@@ -201,7 +203,15 @@ function TriviaView({ preguntas }: { preguntas: PreguntaDetail[] }) {
   );
 }
 
-function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: EtapaDetail[] }) {
+function BdtView({
+  areaBusqueda,
+  etapas,
+  juegoOrden
+}: {
+  areaBusqueda: string;
+  etapas: EtapaDetail[];
+  juegoOrden: number;
+}) {
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
 
   useEffect(() => {
@@ -251,11 +261,14 @@ function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: Etapa
                       <summary>Mostrar QR</summary>
                       <img
                         src={qrDataUrls[etapa.etapaBDTId]}
-                        alt={`QR del tesoro de la etapa ${etapa.orden}`}
+                        alt={`QR del tesoro del juego ${juegoOrden}, etapa ${etapa.orden}`}
                         width={96}
                         height={96}
                       />
-                      <a href={qrDataUrls[etapa.etapaBDTId]} download={nombreArchivoQr(etapa.orden)}>
+                      <a
+                        href={qrDataUrls[etapa.etapaBDTId]}
+                        download={nombreArchivoQr(juegoOrden, etapa.orden)}
+                      >
                         Descargar QR etapa {etapa.orden}
                       </a>
                     </details>
