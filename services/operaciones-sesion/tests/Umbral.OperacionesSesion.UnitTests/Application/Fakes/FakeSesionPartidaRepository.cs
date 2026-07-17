@@ -78,4 +78,19 @@ public sealed class FakeSesionPartidaRepository : ISesionPartidaRepository
     public Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken)
         => Task.FromResult<IReadOnlyList<SesionPartida>>(
             _store.Values.Where(s => s.Estado == EstadoSesion.Lobby).ToList());
+
+    // Test hook: el handler debe cortocircuitar el lote vacío sin consultar.
+    public int GetNombresLlamadas { get; private set; }
+
+    // Refleja el repo real: sin filtro de estado (el historial son partidas Terminadas) y
+    // los ids desconocidos simplemente no vuelven.
+    public Task<IReadOnlyList<NombrePartidaProyeccion>> GetNombresByPartidaIdsAsync(
+        IReadOnlyList<Guid> partidaIds, CancellationToken cancellationToken)
+    {
+        GetNombresLlamadas++;
+        return Task.FromResult<IReadOnlyList<NombrePartidaProyeccion>>(_store.Values
+            .Where(s => partidaIds.Contains(s.PartidaId))
+            .Select(s => new NombrePartidaProyeccion(s.PartidaId, s.Nombre))
+            .ToList());
+    }
 }

@@ -150,6 +150,16 @@ public sealed class SesionPartidaRepository : ISesionPartidaRepository
             .Include(s => s.Inscripciones)
             .ToListAsync(cancellationToken);
 
+    public async Task<IReadOnlyList<NombrePartidaProyeccion>> GetNombresByPartidaIdsAsync(
+        IReadOnlyList<Guid> partidaIds, CancellationToken cancellationToken)
+        // Proyeccion directa al record: PartidaId y Nombre son escalares planos, asi que
+        // traduce sin el mapeo en memoria que exige GetConvocatoriasPendientesByUsuarioAsync
+        // (alli el id es un value object).
+        => await _dbContext.Sesiones
+            .Where(s => partidaIds.Contains(s.PartidaId))
+            .Select(s => new NombrePartidaProyeccion(s.PartidaId, s.Nombre))
+            .ToListAsync(cancellationToken);
+
     private static bool TienePasoVencido(SesionPartida sesion, DateTime now)
     {
         var juego = sesion.Juegos.FirstOrDefault(j => j.Estado == EstadoJuego.Activo);

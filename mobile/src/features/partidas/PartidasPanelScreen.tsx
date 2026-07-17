@@ -3,6 +3,7 @@ import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, V
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { cargarPanel, filtrarPorModalidad } from "./partidasPanelFlow.js";
+import { nombrePartidaResuelto, useNombresPartida } from "../shared/useNombresPartida.js";
 
 type PartidaPublicada = {
   partidaId: string;
@@ -24,7 +25,7 @@ type Props = {
   apiBaseUrl: string;
   token: string;
   onOpenPartida: (partida: { partidaId: string; nombre: string }) => void;
-  onOpenMiSesion: (s: { partidaId: string; estadoPartida: string }) => void;
+  onOpenMiSesion: (s: { partidaId: string; estadoPartida: string; nombre: string }) => void;
 };
 
 export function PartidasPanelScreen({ apiBaseUrl, token, onOpenPartida, onOpenMiSesion }: Props) {
@@ -62,6 +63,15 @@ export function PartidasPanelScreen({ apiBaseUrl, token, onOpenPartida, onOpenMi
 
   const visibles = filtrarPorModalidad(partidas, filtro) as PartidaPublicada[];
 
+  // Se resuelve al cargar el panel, no al pulsar: una partida Iniciada no esta en
+  // partidas-publicadas, asi que su nombre solo puede venir del directorio, y resolverlo
+  // dentro del onPress dejaria el tap colgado mientras va la red.
+  //
+  // El retorno se descarta a proposito (no es un olvido): aqui el hook solo dispara la
+  // carga y el repintado. El nombre se lee con nombrePartidaResuelto, que devuelve null
+  // en vez del GUID corto, para poder caer a "Mi partida".
+  useNombresPartida(miSesion ? [miSesion.partidaId] : [], apiBaseUrl, token);
+
   return (
     <ScrollView
       style={styles.container}
@@ -73,7 +83,15 @@ export function PartidasPanelScreen({ apiBaseUrl, token, onOpenPartida, onOpenMi
       {miSesion ? (
         <Pressable
           accessibilityLabel="Ir a mi participación activa"
-          onPress={() => onOpenMiSesion({ partidaId: miSesion.partidaId, estadoPartida: miSesion.estadoPartida })}
+          onPress={() =>
+            onOpenMiSesion({
+              partidaId: miSesion.partidaId,
+              estadoPartida: miSesion.estadoPartida,
+              // "Mi partida" y no el GUID corto: en una cabecera de juego en vivo es
+              // mejor copy que "a3f9c1d2".
+              nombre: nombrePartidaResuelto(miSesion.partidaId) ?? "Mi partida",
+            })
+          }
         >
           <Notice variant="info">Tienes una participación activa. Toca para volver a tu partida.</Notice>
         </Pressable>

@@ -23,4 +23,11 @@ public interface ISesionPartidaRepository
     Task<IReadOnlyList<ConvocatoriaPendienteProyeccion>> GetConvocatoriasPendientesByUsuarioAsync(
         Guid usuarioId, CancellationToken cancellationToken);
     Task<IReadOnlyList<SesionPartida>> GetSesionesEnLobbyAsync(CancellationToken cancellationToken);
+    /// <summary>
+    /// Resuelve nombres por lote para el directorio de partidas. Proyecta solo los dos
+    /// campos: no materializa <c>SesionPartida</c> entera para leer un nombre. Los ids
+    /// desconocidos no vuelven en el resultado.
+    /// </summary>
+    Task<IReadOnlyList<NombrePartidaProyeccion>> GetNombresByPartidaIdsAsync(
+        IReadOnlyList<Guid> partidaIds, CancellationToken cancellationToken);
 }

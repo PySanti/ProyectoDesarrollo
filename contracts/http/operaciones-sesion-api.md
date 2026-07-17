@@ -2,7 +2,11 @@
 
 ## Status
 
-Endpoints SP-3a..SP-3e-4 registered (21). Trivia and BDT runtime operational in `Individual` and `Equipo` modality; clue delivery, geolocation relay and realtime push via SignalR. RabbitMQ broker delivery and clue persistence remain deferred (see SDD specs). Functional-permission authorization enforced per endpoint since SP-5a (see "Autorización (SP-5a)" below).
+Endpoints SP-3a..SP-3e-4 registered (21), más el directorio de nombres de partida (22, refinamiento
+transversal de 2026-07-15). Trivia and BDT runtime operational in `Individual` and `Equipo` modality;
+clue delivery, geolocation relay and realtime push via SignalR. RabbitMQ broker delivery and clue
+persistence remain deferred (see SDD specs). Functional-permission authorization enforced per endpoint
+since SP-5a (see "Autorización (SP-5a)" below).
 
 ## Access Path
 
@@ -40,6 +44,7 @@ Requests enter through the YARP gateway.
 | Cancelar partida (operador, HU-40) | POST | `/operaciones-sesion/partidas/{partidaId}/cancelacion` | Policy `GestionarPartidas` | 200 + CancelacionPartidaResponse | 401 sin token · 403 sin el permiso · 404 sesión no existe · 409 estado terminal (`Cancelada`/`Terminada`) |
 | Session state | GET | `/operaciones-sesion/partidas/{partidaId}/estado` | Autenticado (cualquier rol; sin policy de permiso) | 200 + EstadoSesionDto | 401 sin token · 404 sesión no existe |
 | Partidas publicadas (descubrimiento) | GET | `/operaciones-sesion/partidas-publicadas` | Autenticado (cualquier rol; sin policy de permiso) | 200 + PartidaPublicadaDto[] (solo sesiones en `Lobby`; vacía si no hay) | 401 sin token |
+| Directorio de nombres de partida | POST | `/operaciones-sesion/directory/partidas` | Autenticado (cualquier rol; sin policy de permiso) | 200 + ResolverNombresPartidaResponse | 401 sin token · 400 lote > 200 ids |
 | Answer active question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/respuesta` | Policy `ParticiparEnPartidas` | 200 + RespuestaTriviaResponse | 401 sin identidad · 403 sin el permiso / no inscrito / sin convocatoria aceptada (Equipo) · 404 sesión no existe · 409 no iniciada / juego no Trivia / sin pregunta activa / duplicada (individual o, en Equipo, por equipo) / fuera de tiempo |
 | Advance current question | POST | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual/avance` | Policy `GestionarPartidas` | 200 + AvancePreguntaResponse | 401 sin token · 403 sin el permiso · 404 · 409 no iniciada / juego no Trivia / sin pregunta activa |
 | Current question | GET | `/operaciones-sesion/partidas/{partidaId}/pregunta-actual` | Autenticado (cualquier rol; sin policy de permiso) | 200 + PreguntaActualDto | 401 sin token · 404 sesión no existe · 409 sin pregunta activa |
@@ -76,8 +81,44 @@ Requests enter through the YARP gateway.
 - `MiSesionDto.convocatoria: { convocatoriaId, equipoId, estado } | null` (estado de la convocatoria del caller en modalidad Equipo)
 - `MiSesionDto { partidaId, sesionPartidaId, estadoPartida, modalidad, inscripcion{ inscripcionId, estado }, juegoActivo?{ juegoId, orden, tipoJuego, estadoJuego }, preguntaActual?, etapaActual?, yaRespondioPreguntaActual?, convocatoria? }` (participant-safe; reusa PreguntaActualDto/EtapaActualDto; nunca `codigoQREsperado` ni la opción correcta). `inscripcion.estado` ∈ `Pendiente|Activa` también en modalidad Equipo (7b-bis): se resuelve por la convocatoria del caller sobre la inscripción de su equipo (`OcupaParticipacion` + `Convocatorias.Any(UsuarioId == caller)`), no por `ParticipanteId` (que en Equipo es `Guid.Empty`); `"Equipo"` queda solo como fallback cuando no hay inscripción resoluble.
 - `ConvocatoriaPendienteDto { convocatoriaId, partidaId, equipoId, fechaEnvio, nombrePartida }` (solo convocatorias Pendientes accionables: partida en Lobby, inscripción del equipo activa; orden por fechaEnvio). `nombrePartida` es el snapshot `SesionPartida.Nombre`, proyectado en la misma consulta del repositorio: evita que el móvil (Participante) tenga que llegar a Partidas, que el gateway le cierra (`/partidas/{**catch-all}` → `OperadorOAdministrador`).
+- `ResolverNombresPartidaResponse { partidas: [{ partidaId, nombre }] }` (ver "Directorio de nombres de partida" más abajo)
 
 Notes: enums serialized as strings. `participanteId` is taken from the JWT `sub` claim (never the body). Config handoff is an internal `GET /partidas/{id}` (not via the gateway), forwarding the caller's bearer. Start/advance return 200 (state transition, not resource creation). Minimums not met on start is a valid `200 + estado=Cancelada` outcome (not a 4xx). `/inicio-automatico` is idempotent: not in Lobby or before `TiempoInicio` → no-op `200` with the current estado. Request body for `/pregunta-actual/respuesta` is `{ opcionId }`; `participanteId` taken from the JWT `sub` claim. Request body for `/etapa-actual/tesoro` is `{ imagenBase64 }`; `participanteId` taken from the JWT `sub` claim. The backend decodes the image server-side (RF-29). `GET /mi-sesion` direcciona por participante (JWT `sub`, sin `partidaId`): devuelve la única participación activa vigente (partida en Lobby/Iniciada) o `204` si no hay. `estadoPartida` en el cuerpo solo toma Lobby/Iniciada. `yaRespondioPreguntaActual` es true/false solo con pregunta Trivia activa, null en BDT/lobby. Read-only; no emite eventos. Concurrencia (SP-3f-1): `SesionPartida` usa token optimista (`xmin`). Los endpoints de runtime/inicio (responder pregunta, validar tesoro, avanzar pregunta/etapa, iniciar) pueden devolver `409 Conflict` cuando un barrido de fondo modifica la misma sesión en el instante de la petición; el cliente refetchea (`GET /mi-sesion`) y reintenta. Dos barridos de fondo (sin endpoint, dentro de Operaciones de Sesión) avanzan el estado por tiempo: inicio automático al cumplirse `TiempoInicio` (Lobby + Automatico/ManualYAutomatico) y cierre por timeout de la pregunta/etapa vencida del juego activo. Read/write internos; emiten los mismos eventos de dominio que el path request (No-Op por ahora). Modalidad Equipo (SP-3e-2): en `POST .../pregunta-actual/respuesta` responde cualquier miembro con convocatoria aceptada; la PRIMERA respuesta del equipo (correcta o no) lo sella — los demás miembros reciben 409 duplicada. `MiSesionDto.yaRespondioPreguntaActual` en Equipo significa "mi equipo ya respondió". Aceptar una convocatoria teniendo otra aceptada en la misma partida devuelve 409. Los eventos internos `RespuestaTriviaValidada`/`PuntajeTriviaIncrementado`/`PreguntaTriviaCerrada` portan `equipoId`/`ganadorEquipoId` (null en Individual); los payloads SignalR difundidos no cambian. Modalidad Equipo (SP-3e-3): en `POST .../etapa-actual/tesoro` valida cualquier miembro con convocatoria aceptada (403 `ParticipanteNoInscritoException` si no la hay) — a diferencia de Trivia, **reintentos ilimitados**: un QR incorrecto solo registra el intento (`TesoroQR` con autor + equipo), no sella nada, sin 409 de duplicado. La primera validación correcta dentro de la ventana gana la etapa para todo el equipo (`GanadorEquipoId`). Los eventos internos `TesoroQRValidado`/`EtapaBDTGanada`/`EtapaBDTCerrada` portan `equipoId`/`ganadorEquipoId` (null en Individual); los payloads SignalR difundidos no cambian.
+
+### Directorio de nombres de partida (autenticado, cualquier rol)
+
+Resuelve lotes de `partidaId` a nombres, para que el **móvil** pinte identidad de partida en el
+historial del participante, en el rendimiento de equipo y en la cabecera de la sesión retomada.
+Es el espejo de `POST /identity/directory/names` (que resuelve competidores), servido desde
+Operaciones porque el nombre vive aquí como snapshot (`SesionPartida.Nombre`) y el gateway le
+cierra `/partidas/**` al Participante (`OperadorOAdministrador`). El **web no lo usa**: el
+Operador sí alcanza `GET /partidas` y resuelve nombres por ahí (`useNombresPartida.ts`) — la
+asimetría la impone el gateway y es deliberada. Fuente:
+`docs/superpowers/specs/2026-07-15-nombre-partida-historial-movil-design.md`.
+
+```json
+// POST /operaciones-sesion/directory/partidas
+{ "partidaIds": ["guid", "guid"] }
+
+// 200
+{ "partidas": [ { "partidaId": "guid", "nombre": "Copa UMBRAL" } ] }
+```
+
+- **Los ids desconocidos se omiten** de la respuesta (no vuelven con `nombre: null`). El cliente
+  cachea lo pedido-y-no-vuelto como no resoluble y cae a su propio fallback.
+- **Cobertura total sin backfill:** existe fila `SesionPartida` para toda partida publicada, y el
+  historial solo contiene partidas `Terminada`, que necesariamente se publicaron. El método **no
+  filtra por estado** — hacerlo dejaría el historial sin nombres.
+- Campo `nombre` (no `nombrePartida`) por paridad con `PartidaPublicadaDto` dentro de este
+  servicio; bajo la clave `partidas` no hay ambigüedad.
+- `partidaIds` ausente o vacío → `200` con `partidas: []`, sin consultar la base.
+- Tope de **200 ids por lote**, igual que `/identity/directory/names`, para que el troceo del
+  cliente sea el mismo. El 400 lo produce el `ValidationBehavior` del pipeline y el middleware
+  centralizado lo serializa como `{ "message": "..." }` (forma de error del servicio; **no**
+  `ValidationProblemDetails`).
+- **Privacidad:** el nombre de una partida no es sensible — ya se expone a cualquier autenticado en
+  `GET /operaciones-sesion/partidas-publicadas`. No se filtra por participación del caller: hacerlo
+  exigiría una consulta de participación por id y no protegería nada.
 
 ## Autorización (SP-5a)
 
@@ -93,7 +134,7 @@ sin el permiso requerido.
 | Operación de la partida (10) | `GestionarPartidas` | `publicacion` (POST) · `inicio` (POST) · `inicio-automatico` (POST) · `cancelacion` (POST, HU-40) · `juego-actual/finalizacion` (POST) · `pregunta-actual/avance` (POST) · `etapa-actual/avance` (POST) · `pistas` (POST) · `inscripciones/{id}/aceptacion` (POST, HU-19) · `inscripciones/{id}/rechazo` (POST, HU-19) |
 | Monitoreo operador/admin (1) | `OperadorOAdministrador` | `juego-actual/envios-tesoro` (GET, HU-38) |
 | Participación (10) | `ParticiparEnPartidas` | `inscripciones` (POST, Individual) · `inscripciones/mia` (DELETE) · `inscripciones-equipo` (POST, líder) · `inscripciones-equipo/mia` (DELETE, líder) · `convocatorias/{id}/aceptacion` (POST, convocado) · `convocatorias/{id}/rechazo` (POST, convocado) · `pregunta-actual/respuesta` (POST) · `etapa-actual/tesoro` (POST) · `mi-sesion` (GET) · `mis-convocatorias` (GET) |
-| Lectura compartida (5) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) · `partidas-publicadas` (GET) |
+| Lectura compartida (6) | Autenticado, sin policy de permiso | `lobby` (GET) · `estado` (GET) · `pregunta-actual` (GET) · `etapa-actual` (GET) · `partidas-publicadas` (GET) · `directory/partidas` (POST) |
 | Infraestructura | Anónimo | `health` (GET) |
 
 Notas: los calificadores "líder"/"convocado" en el grupo `ParticiparEnPartidas` son reglas de
