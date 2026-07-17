@@ -10,6 +10,8 @@ import {
 import { useNombres } from "../shared/useNombres";
 import { useNombresPartida } from "../shared/useNombresPartida";
 import { etiquetaJuego } from "./juegoLabels";
+import { describirDetalle } from "./detalleEvento";
+import { ClipboardList } from "../../shell/icons";
 
 export const TIPOS_EVENTO = [
   "PartidaPublicadaEnLobby",
@@ -41,6 +43,24 @@ type Estado =
 // Etiqueta legible para el <select>: distinta del texto crudo de la tabla
 // (evita colisión de getByText entre <option> y <td> para el mismo tipo de evento).
 const etiquetaTipoEvento = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+// El detalle es un objeto abierto (el payload del evento menos los ids ya extraidos), asi que
+// se pinta como pares etiqueta→valor en vez de como JSON: el operador lee "Puntaje 50", no
+// {"puntaje":50}. Los ids sueltos van en mono (regla Mono For Machine Strings).
+function DetalleEvento({ detalle }: { detalle: unknown }) {
+  const campos = describirDetalle(detalle);
+  if (campos.length === 0) return <span className="muted">—</span>;
+  return (
+    <div>
+      {campos.map((campo) => (
+        <div key={campo.label}>
+          <span className="muted">{campo.label}</span>{" "}
+          <span className={campo.mono ? "mono" : undefined}>{campo.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
   const { partidaId } = useParams<{ partidaId: string }>();
@@ -130,7 +150,20 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
 
         {estado.status === "ok" ? (
           estado.historial.entradas.length === 0 ? (
-            <p className="muted">Sin eventos registrados.</p>
+            <div className="empty-panel" data-testid="historial-vacio">
+              <ClipboardList />
+              <p>Sin eventos registrados.</p>
+              <p className="muted">
+                {tipo ? (
+                  <>
+                    Ningún evento del tipo <strong>{etiquetaTipoEvento(tipo)}</strong> en esta partida.
+                    Cambia el filtro a <strong>Todos</strong> para ver el resto.
+                  </>
+                ) : (
+                  <>El historial se llena solo, a medida que la partida se publica, se juega y termina.</>
+                )}
+              </p>
+            </div>
           ) : (
             <>
               <div className="table-wrap">
@@ -153,7 +186,9 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                         <td>{etiquetaJuego(e.juegoOrden, e.tipoJuego, e.juegoId)}</td>
                         <td>{e.participanteId ? nombreDe(e.participanteId) : "—"}</td>
                         <td>{e.equipoId ? nombreDe(e.equipoId) : "—"}</td>
-                        <td className="muted">{JSON.stringify(e.detalle)}</td>
+                        <td data-testid="detalle-evento">
+                          <DetalleEvento detalle={e.detalle} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
