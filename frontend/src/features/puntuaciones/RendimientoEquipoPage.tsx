@@ -1,5 +1,6 @@
 // Rendimiento histórico de un equipo (HU-49/RF-44): posición y victoria por partida
-// terminada. Entrada manual por equipoId o profunda vía ?equipoId= desde la vista de equipos (3b).
+// terminada. Se elige el equipo por nombre, o se llega ya resuelto vía ?equipoId= desde la
+// vista de equipos (3b), que es el camino natural desde su columna "Ver rendimiento".
 import { useEffect, useRef, useState } from "react";
 import { useSearchParams } from "react-router-dom";
 import {
@@ -7,9 +8,19 @@ import {
   PuntuacionesApiError,
   type RendimientoEquipoDto
 } from "../../api/puntuacionesApi";
+import { listAdminTeams, type AdminTeam } from "../../api/adminTeamsApi";
 import { useNombresPartida } from "../shared/useNombresPartida";
 
 const GUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+// El listado no filtra por estado a propósito: esta pantalla es historial, y un equipo
+// eliminado o desactivado conserva el suyo. Se marca el estado para que el operador sepa
+// qué está eligiendo, con el mismo vocabulario que la vista de equipos.
+function etiquetaEquipo(equipo: AdminTeam): string {
+  return equipo.estado === "Activo"
+    ? equipo.nombreEquipo
+    : `${equipo.nombreEquipo} (${equipo.estado.toLowerCase()})`;
+}
 
 type Estado =
   | { status: "inicial" }
@@ -22,7 +33,24 @@ export function RendimientoEquipoPage({ accessToken }: { accessToken: string }) 
   const [equipoId, setEquipoId] = useState("");
   const [formError, setFormError] = useState<string | null>(null);
   const [estado, setEstado] = useState<Estado>({ status: "inicial" });
+  const [equipos, setEquipos] = useState<AdminTeam[] | null>(null);
+  // Sin lista no hay desplegable: se cae al ID manual en vez de dejar la pantalla sin salida.
+  const [listaCaida, setListaCaida] = useState(false);
   const nombrePartidaDe = useNombresPartida(accessToken);
+
+  useEffect(() => {
+    let active = true;
+    listAdminTeams(accessToken)
+      .then((lista) => {
+        if (active) setEquipos(lista);
+      })
+      .catch(() => {
+        if (active) setListaCaida(true);
+      });
+    return () => {
+      active = false;
+    };
+  }, [accessToken]);
 
   async function consultar(id: string) {
     setFormError(null);
@@ -54,6 +82,18 @@ export function RendimientoEquipoPage({ accessToken }: { accessToken: string }) 
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
+  // Un ?equipoId= puede apuntar a un equipo que el listado no trae (lista aún cargando, o id
+  // ajeno al listado). Se le añade una opción con su GUID corto: el selector debe reflejar lo
+  // que se está consultando en vez de aparentar que no se eligió nada.
+  const listaEquipos = equipos ?? [];
+  const opciones =
+    equipoId && !listaEquipos.some((e) => e.equipoId === equipoId)
+      ? [
+          ...listaEquipos,
+          { equipoId, nombreEquipo: equipoId.slice(0, 8), estado: "Activo", integrantes: [] } as AdminTeam
+        ]
+      : listaEquipos;
+
   async function onConsultar(e: React.FormEvent) {
     e.preventDefault();
     const id = equipoId.trim();
@@ -69,25 +109,59 @@ export function RendimientoEquipoPage({ accessToken }: { accessToken: string }) 
     <div className="page" data-testid="rendimiento-equipo">
       <div className="card stack">
         <h1>Rendimiento de equipo</h1>
-        <form className="compact-actions" onSubmit={(e) => void onConsultar(e)}>
-          <label>
-            ID del equipo{" "}
-            <input
-              value={equipoId}
-              aria-label="ID del equipo"
-              placeholder="00000000-0000-0000-0000-000000000000"
-              disabled={estado.status === "cargando"}
-              onChange={(e) => {
-                setEquipoId(e.target.value);
-                setFormError(null);
-                setEstado({ status: "inicial" });
-              }}
-            />
-          </label>
-          <button type="submit" disabled={estado.status === "cargando"}>
-            Consultar
-          </button>
-        </form>
+        {listaCaida ? (
+          <>
+            <div className="notice error" role="alert">
+              No se pudo cargar la lista de equipos. Puedes consultar por ID mientras tanto.
+            </div>
+            <form className="compact-actions" onSubmit={(e) => void onConsultar(e)}>
+              <label>
+                ID del equipo{" "}
+                <input
+                  value={equipoId}
+                  aria-label="ID del equipo"
+                  placeholder="00000000-0000-0000-0000-000000000000"
+                  disabled={estado.status === "cargando"}
+                  onChange={(e) => {
+                    setEquipoId(e.target.value);
+                    setFormError(null);
+                    setEstado({ status: "inicial" });
+                  }}
+                />
+              </label>
+              <button type="submit" disabled={estado.status === "cargando"}>
+                Consultar
+              </button>
+            </form>
+          </>
+        ) : (
+          <div className="compact-actions">
+            <label>
+              Equipo{" "}
+              <select
+                value={equipoId}
+                aria-label="Equipo"
+                disabled={estado.status === "cargando" || equipos === null}
+                onChange={(e) => {
+                  const id = e.target.value;
+                  setEquipoId(id);
+                  if (id) {
+                    void consultar(id);
+                  } else {
+                    setEstado({ status: "inicial" });
+                  }
+                }}
+              >
+                <option value="">{equipos === null ? "Cargando equipos…" : "— elige equipo —"}</option>
+                {opciones.map((equipo) => (
+                  <option key={equipo.equipoId} value={equipo.equipoId}>
+                    {etiquetaEquipo(equipo)}
+                  </option>
+                ))}
+              </select>
+            </label>
+          </div>
+        )}
         {formError ? (
           <div className="notice error" role="alert">
             {formError}
