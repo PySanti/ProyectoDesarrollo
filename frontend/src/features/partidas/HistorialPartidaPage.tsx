@@ -11,27 +11,8 @@ import { useNombres } from "../shared/useNombres";
 import { useNombresPartida } from "../shared/useNombresPartida";
 import { etiquetaJuego } from "./juegoLabels";
 import { describirDetalle } from "./detalleEvento";
+import { etiquetaTipoEvento, TIPOS_EVENTO } from "./eventoLabels";
 import { ClipboardList } from "../../shell/icons";
-
-export const TIPOS_EVENTO = [
-  "PartidaPublicadaEnLobby",
-  "PartidaIniciada",
-  "PartidaCancelada",
-  "PartidaFinalizada",
-  "JuegoActivado",
-  "PreguntaTriviaActivada",
-  "RespuestaTriviaValidada",
-  "PuntajeTriviaIncrementado",
-  "PreguntaTriviaCerrada",
-  "EtapaBDTActivada",
-  "TesoroQRValidado",
-  "EtapaBDTGanada",
-  "EtapaBDTCerrada",
-  "PistaEnviada",
-  "ConvocatoriaCreada",
-  "ConvocatoriaRespondida",
-  "UbicacionActualizada"
-];
 
 const LIMIT = 100;
 
@@ -40,9 +21,6 @@ type Estado =
   | { status: "ok"; historial: HistorialPartidaDto }
   | { status: "error"; message: string };
 
-// Etiqueta legible para el <select>: distinta del texto crudo de la tabla
-// (evita colisión de getByText entre <option> y <td> para el mismo tipo de evento).
-const etiquetaTipoEvento = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
 
 // El detalle es un objeto abierto (el payload del evento menos los ids ya extraidos), asi que
 // se pinta como pares etiqueta→valor en vez de como JSON: el operador lee "Puntaje 50", no
@@ -182,7 +160,7 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                     {estado.historial.entradas.map((e, i) => (
                       <tr key={`${e.occurredAt}-${i}`}>
                         <td>{new Date(e.occurredAt).toLocaleString()}</td>
-                        <td>{e.tipoEvento}</td>
+                        <td>{etiquetaTipoEvento(e.tipoEvento)}</td>
                         <td>{etiquetaJuego(e.juegoOrden, e.tipoJuego, e.juegoId)}</td>
                         <td>{e.participanteId ? nombreDe(e.participanteId) : "—"}</td>
                         <td>{e.equipoId ? nombreDe(e.equipoId) : "—"}</td>

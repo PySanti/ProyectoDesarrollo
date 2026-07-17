@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { HistorialPartidaPage } from "./HistorialPartidaPage";
@@ -103,10 +103,23 @@ describe("HistorialPartidaPage", () => {
   it("muestra la tabla con eventos y el rango de paginación", async () => {
     vi.spyOn(puntuacionesApi, "getHistorialPartida").mockResolvedValue(historial);
     renderPage();
-    expect(await screen.findByTestId("tabla-historial")).toBeInTheDocument();
-    expect(screen.getByText("EtapaBDTGanada")).toBeInTheDocument();
+    const tabla = await screen.findByTestId("tabla-historial");
+    // within: la etiqueta del evento ahora es la misma en la tabla y en el <option>.
+    expect(within(tabla).getByText("Etapa BDT ganada")).toBeInTheDocument();
     expect(screen.getByText("abcdef12")).toBeInTheDocument();
     expect(screen.getByText(/1–1 de 150/)).toBeInTheDocument();
+  });
+
+  it("el filtro deja aislar los eventos de inscripcion que el backend proyecta", async () => {
+    const spy = vi.spyOn(puntuacionesApi, "getHistorialPartida").mockResolvedValue(historial);
+    renderPage();
+    await screen.findByTestId("tabla-historial");
+    await userEvent.selectOptions(
+      screen.getByLabelText("Filtrar por tipo de evento"),
+      "InscripcionAceptada"
+    );
+    const ultima = spy.mock.calls[spy.mock.calls.length - 1];
+    expect(ultima[2]).toMatchObject({ tipo: "InscripcionAceptada" });
   });
 
   it("la columna Detalle se lee en claro, sin JSON crudo", async () => {
