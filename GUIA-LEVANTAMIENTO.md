@@ -34,12 +34,6 @@ docker compose -f infra/docker-compose.yml --env-file .env down -v
 docker compose -f infra/docker-compose.yml --env-file .env up -d --build
 ```
 
-- `down -v` elimina los volúmenes `umbral-postgres-data` y `umbral-keycloak-data`.
-- Al levantar se recrean las 4 bases, cada servicio aplica su esquema, el realm
-  `UMBRAL-UCAB` se re-importa (usuarios seed `admin`/`operador`/`participante`) y
-  RabbitMQ vuelve a declarar sus colas.
-- Se pierden todos los usuarios, equipos y partidas creados durante las pruebas.
-
 ## Móvil (Expo, fuera de compose)
 
 Con el stack de compose arriba y `LAN_IP` correcta en el `.env` raíz:
@@ -75,23 +69,19 @@ $env:PATH += ";$env:LOCALAPPDATA\Android\platform-tools"
 adb devices
 Tiene que listar tu dispositivo (si dice "unauthorized", revisá el popup en el teléfono y aceptalo).
 
-4. Redirigir los puertos y levantar Expo
+4. Redirigir los puertos
 
-adb reverse tcp:8081 tcp:8081
-adb reverse tcp:5080 tcp:5080
-adb reverse tcp:8080 tcp:8080
+Luego de levantar expo y tener abierto expo en todos los dispositivos y confirmar que windows los ve a todos con adb:
+
+ $adb = "$env:LOCALAPPDATA\Android\Sdk\platform-tools\adb.exe"
+  & $adb devices | Where-Object { $_ -match '^\S+\s+device$' } | ForEach-Object {
+      $s = ($_ -split '\s+')[0]
+      foreach ($p in 8081, 8080, 5080) { & $adb -s $s reverse "tcp:$p" "tcp:$p" }
+      Write-Host "reverse listo en $s"
+  }?
+
+
+5. Levantar app movil (expo)
+
 cd mobile
-npx expo start --clear
-
-Con adb reverse, el teléfono ve localhost:8081 como si fuera él mismo — no depende de la IP LAN ni del router para nada. Cuando escanees el QR o abras Expo Go, debería conectar directo.
-## Móvil (Expo, fuera de compose)
-
-Con el stack de compose arriba y `LAN_IP` correcta en el `.env` raíz:
-
-```bash
-cd mobile && ./run-local.sh
-```
-
-El script regenera `mobile/.env` con valores literales desde el `.env` raíz (no edites
-`mobile/.env` a mano) y lanza `expo start --host lan`. Escanea el QR con Expo Go desde el
-teléfono (misma Wi-Fi).
+./run-local.ps1
