@@ -639,13 +639,35 @@ function BdtEditor({
   // en cada tecla que el operador escribe en otros campos de la etapa.
   const [qrDataUrls, setQrDataUrls] = useState<Record<string, string>>({});
   // Indexado por eIndex: si renderizarQrDataUrl falla, la etapa no debe quedar con un
-  // codigo "valido" sin QR asociado (ver nota en el onClick de mas abajo).
-  const [qrErrors, setQrErrors] = useState<Record<number, string>>({});
+  // codigo "valido" sin QR asociado (ver nota en el onClick de mas abajo). Guarda solo un
+  // flag, no el texto: el numero de etapa se deriva de `n` en el render, nunca se congela
+  // en el string, asi que un Eliminar posterior no puede dejar un mensaje con el numero
+  // equivocado.
+  const [qrErrors, setQrErrors] = useState<Record<number, true>>({});
 
   function patchEtapa(eIndex: number, patch: Partial<EtapaDraft>) {
     onUpdate({
       ...juego,
       etapas: juego.etapas.map((e, i) => (i === eIndex ? { ...e, ...patch } : e))
+    });
+  }
+
+  // Eliminar una etapa reindexa hacia abajo todas las posteriores (etapa 2 pasa a ser la
+  // etapa 1, etc.). qrDataUrls no le teme a esto porque esta indexado por codigo (valor
+  // estable), pero qrErrors esta indexado por posicion para poder mostrarse antes de que
+  // exista un codigo confirmado — asi que hay que reconciliar sus claves aqui, en el unico
+  // lugar del componente donde el array de etapas cambia de longitud desde el medio
+  // (Agregar etapa solo agrega al final y no desplaza nada).
+  function removeEtapa(eIndex: number) {
+    onUpdate({ ...juego, etapas: juego.etapas.filter((_, i) => i !== eIndex) });
+    setQrErrors((prev) => {
+      const next: Record<number, true> = {};
+      for (const [key, value] of Object.entries(prev)) {
+        const i = Number(key);
+        if (i === eIndex) continue;
+        next[i > eIndex ? i - 1 : i] = value;
+      }
+      return next;
     });
   }
 
@@ -680,9 +702,7 @@ function BdtEditor({
                 <button
                   type="button"
                   className="secondary-button btn-icon"
-                  onClick={() =>
-                    onUpdate({ ...juego, etapas: juego.etapas.filter((_, i) => i !== eIndex) })
-                  }
+                  onClick={() => removeEtapa(eIndex)}
                   aria-label={`Eliminar etapa ${n} del juego ${juegoIndex + 1}`}
                 >
                   <X />
@@ -710,17 +730,18 @@ function BdtEditor({
                       patchEtapa(eIndex, { codigoQREsperado: codigo });
                       setQrDataUrls((prev) => ({ ...prev, [codigo]: dataUrl }));
                     } catch {
-                      setQrErrors((prev) => ({
-                        ...prev,
-                        [eIndex]: `No se pudo generar el QR de la etapa ${n}. Intenta de nuevo.`
-                      }));
+                      setQrErrors((prev) => ({ ...prev, [eIndex]: true }));
                     }
                   }}
                 >
                   {etapa.codigoQREsperado ? `Regenerar QR etapa ${n}` : `Generar QR etapa ${n}`}
                 </button>
 
-                {qrErrors[eIndex] ? <p className="notice error">{qrErrors[eIndex]}</p> : null}
+                {qrErrors[eIndex] ? (
+                  <p className="notice error">
+                    No se pudo generar el QR de la etapa {n}. Intenta de nuevo.
+                  </p>
+                ) : null}
 
                 {etapa.codigoQREsperado && qrDataUrls[etapa.codigoQREsperado] ? (
                   <>
