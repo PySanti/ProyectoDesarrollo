@@ -81,35 +81,15 @@ public sealed class EquipoRepository : IEquipoRepository
                 _dbContext.Equipos.Attach(equipo);
             }
 
-            var currentParticipanteIds = equipo.Participantes
-                .Select(p => p.ParticipanteEquipoId)
-                .ToHashSet();
-
+            // Los participantes que salieron de la coleccion los borra EF solo: la relacion es
+            // requerida (ver IdentityDbContext), asi que el huerfano se marca Deleted en vez de
+            // quedarse con equipoid = NULL. Aca solo queda resolver el alta de los nuevos.
             var persistedParticipanteIds = (await _dbContext.ParticipantesEquipo
                     .AsNoTracking()
                     .Where(p => EF.Property<Guid>(p, "equipoid") == equipo.EquipoId)
                     .Select(p => p.ParticipanteEquipoId)
                     .ToListAsync(cancellationToken))
                 .ToHashSet();
-
-            // Collect persisted participantes that are currently tracked FOR THIS EQUIPO ONLY.
-            // We filter by the shadow FK "equipoid" to avoid deleting members of other
-            // aggregates that may be tracked in the same DbContext scope (e.g. when a
-            // handler loads two Equipo instances before calling UpdateAsync on one).
-            var trackedPersistedParticipantes = _dbContext.ChangeTracker
-                .Entries<ParticipanteEquipo>()
-                .Where(e => e.Property("equipoid").CurrentValue is Guid fk && fk == equipo.EquipoId)
-                .Where(e => persistedParticipanteIds.Contains(e.Entity.ParticipanteEquipoId))
-                .Select(e => e.Entity)
-                .ToList();
-
-            foreach (var tracked in trackedPersistedParticipantes)
-            {
-                if (!currentParticipanteIds.Contains(tracked.ParticipanteEquipoId))
-                {
-                    _dbContext.Entry(tracked).State = EntityState.Deleted;
-                }
-            }
 
             foreach (var participante in equipo.Participantes)
             {

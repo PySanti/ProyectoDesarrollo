@@ -46,21 +46,26 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
         var emailChanged = !string.Equals(previousEmail, normalizedEmail, StringComparison.Ordinal);
 
         // Solo se reenvían credenciales cuando el correo realmente cambia y el usuario todavía tiene
-        // contraseña temporal pendiente (no completó el cambio en su primer inicio de sesión).
+        // contraseña temporal pendiente (no completó el cambio en su primer inicio de sesión). Esto
+        // condiciona el reenvío, nunca la sincronización con Keycloak: ver el bloque de abajo.
         var mustResendCredentials = emailChanged
             && await _keycloakIdentityPort.HasTemporaryPasswordAsync(user.KeycloakId, cancellationToken);
 
         user.EditarDatosGenerales(request.Name, normalizedEmail);
         await _usuarioRepository.UpdateAsync(user, cancellationToken);
 
-        if (mustResendCredentials)
+        try
         {
-            try
-            {
-                // El correo temporal original es irrecuperable (RB-U03): se sincroniza el email en
-                // Keycloak y se genera/reasigna una nueva contraseña temporal para poder enviarla.
-                await _keycloakIdentityPort.UpdateEmailAsync(user.KeycloakId, user.Correo, cancellationToken);
+            // Se sincroniza SIEMPRE, cambie o no algo y haya o no credencial temporal. Keycloak es quien
+            // autentica: un correo que se quede solo en la BD local deja al usuario sin poder iniciar
+            // sesión con él. Sincronizar incondicionalmente además hace de esta edición el camino de
+            // reparación de cualquier usuario que ya haya quedado desincronizado: guardar reconcilia.
+            await _keycloakIdentityPort.SyncUserProfileAsync(user.KeycloakId, user.Nombre, user.Correo, cancellationToken);
 
+            if (mustResendCredentials)
+            {
+                // El correo temporal original es irrecuperable (RB-U03): se genera/reasigna una
+                // nueva contraseña temporal para poder enviarla.
                 var newTemporaryPassword = _temporaryPasswordGenerator.Generate();
                 await _keycloakIdentityPort.ResetTemporaryPasswordAsync(user.KeycloakId, newTemporaryPassword, cancellationToken);
 
@@ -71,13 +76,13 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
                     new CredencialTemporalEmitidaIntegrationEvent(user.Nombre, user.Correo, user.Rol.ToString(), newTemporaryPassword, DateTime.UtcNow),
                     cancellationToken);
             }
-            catch
-            {
-                // Falló el reenvío: revertir la edición (local + email en Keycloak) al estado previo.
-                // La contraseña ya reseteada se deja como está (la anterior era irrecuperable).
-                await RevertEmailChangeAsync(user, previousName, previousEmail, cancellationToken);
-                throw;
-            }
+        }
+        catch
+        {
+            // Falló la sincronización o el reenvío: revertir la edición (local + Keycloak) al estado
+            // previo. La contraseña ya reseteada se deja como está (la anterior era irrecuperable).
+            await RevertEmailChangeAsync(user, previousName, previousEmail, cancellationToken);
+            throw;
         }
 
         return new UpdateUserGeneralDataResponse(
@@ -102,7 +107,7 @@ public sealed class UpdateUserGeneralDataCommandHandler : IRequestHandler<Update
 
         try
         {
-            await _keycloakIdentityPort.UpdateEmailAsync(user.KeycloakId, previousEmail, cancellationToken);
+            await _keycloakIdentityPort.SyncUserProfileAsync(user.KeycloakId, previousName, previousEmail, cancellationToken);
         }
         catch
         {

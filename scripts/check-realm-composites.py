@@ -1,16 +1,26 @@
 #!/usr/bin/env python3
-"""Verifica que el realm UMBRAL-UCAB defina los permisos funcionales como
-realm roles técnicos composite de los roles base (SP-5a, ADR-0013)."""
+"""Verifica que el realm UMBRAL-UCAB declare sólo lo fijo.
+
+El realm declara un único composite: Participante -> ParticiparEnPartidas, que por eso no es
+asignable desde el panel. Los privilegios gobernables (GestionarPartidas, GestionarEquipos) NO
+deben declararse aquí: su fuente de verdad es la tabla permisos_rol, y el reconciliador de Identity
+converge Keycloak hacia ella al arrancar. Por eso este script exige que Administrador y Operador
+NO declaren composites — si los declarasen, keycloak-config los reaplicaría en cada `up` y borraría
+lo que el panel hubiera asignado (ADR-0013 sigue vigente: los permisos son realm roles composite).
+"""
 import json
 import sys
 
 REALM = "infra/keycloak/import/umbral-realm.json"
 BASE = {"Administrador", "Operador", "Participante"}
 TECNICOS = {"GestionarPartidas", "GestionarEquipos", "ParticiparEnPartidas"}
+# El realm solo declara el composite fijo. Los privilegios gobernables
+# (GestionarPartidas, GestionarEquipos) los pone el reconciliador de Identity
+# desde permisos_rol, asi que no deben aparecer declarados aqui.
 COMPOSITES = {
-    "Operador": {"GestionarPartidas"},
-    "Participante": {"GestionarEquipos", "ParticiparEnPartidas"},
+    "Participante": {"ParticiparEnPartidas"},
 }
+NO_COMPOSITE = {"Administrador", "Operador"}
 
 def fail(msg):
     print(f"FAIL: {msg}")
@@ -32,8 +42,9 @@ for base_role, expected in COMPOSITES.items():
     if got != expected:
         fail(f"{base_role} composites = {sorted(got)}; esperado {sorted(expected)}")
 
-if roles["Administrador"].get("composite"):
-    fail("Administrador no debe ser composite (sus privilegios = rol base)")
+for base_role in NO_COMPOSITE:
+    if roles[base_role].get("composite"):
+        fail(f"{base_role} no debe declarar composites: sus privilegios los gobierna permisos_rol")
 
 for t in TECNICOS:
     if roles[t].get("composite"):

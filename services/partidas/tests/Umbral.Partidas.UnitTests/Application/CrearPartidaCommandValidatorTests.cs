@@ -64,4 +64,14 @@ public class CrearPartidaCommandValidatorTests
         var cmd = new CrearPartidaCommand(new string('x', 121), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
         Assert.False(_validator.Validate(cmd).IsValid);
     }
+
+    [Theory]
+    [InlineData("****")]
+    [InlineData("   ")]
+    [InlineData("123 !!")]
+    public void Name_without_any_letter_fails(string nombre)
+    {
+        var cmd = new CrearPartidaCommand(nombre, Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        Assert.False(_validator.Validate(cmd).IsValid);
+    }
 }

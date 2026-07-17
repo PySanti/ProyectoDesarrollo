@@ -6,10 +6,10 @@ using Umbral.Puntuaciones.Application.Queries;
 namespace Umbral.Puntuaciones.Api.Controllers;
 
 // HU-43: el historial expone respuestas, pistas y ubicaciones de todos los participantes —
-// primer endpoint de Puntuaciones con autorización por rol (solo operador/administrador).
+// autorizado por el privilegio GestionarPartidas, sin importar el rol de quien lo tenga.
 [ApiController]
 [Route("puntuaciones")]
-[Authorize(Roles = "Operador,Administrador")]
+[Authorize(Policy = "GestionarPartidas")]
 public sealed class HistorialController : ControllerBase
 {
     private readonly ISender _mediator;

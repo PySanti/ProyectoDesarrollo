@@ -17,17 +17,15 @@ public sealed class EliminarMiEquipoHandlerTests
         FakeEquipoRepository equipoRepo,
         FakeInvitacionEquipoRepository? invitacionRepo = null,
         FakeParticipacionActivaEquipoRepository? participacionRepo = null,
-        FakeIdentityEventsPublisher? publisher = null,
-        FakeTeamLifecycleNotifier? notifier = null)
+        FakeIdentityEventsPublisher? publisher = null)
         => new EliminarMiEquipoCommandHandler(
             equipoRepo,
             invitacionRepo ?? new FakeInvitacionEquipoRepository(),
             participacionRepo ?? new FakeParticipacionActivaEquipoRepository(),
-            publisher ?? new FakeIdentityEventsPublisher(),
-            notifier ?? new FakeTeamLifecycleNotifier());
+            publisher ?? new FakeIdentityEventsPublisher());
 
     [Fact]
-    public async Task Elimina_borra_invitaciones_publica_y_notifica()
+    public async Task Elimina_borra_invitaciones_y_publica_evento_con_los_miembros_a_notificar()
     {
         var lider = Guid.NewGuid();
         var miembro = Guid.NewGuid();
@@ -37,8 +35,7 @@ public sealed class EliminarMiEquipoHandlerTests
         var invitacionRepo = new FakeInvitacionEquipoRepository();
         var participacionRepo = new FakeParticipacionActivaEquipoRepository { ExistsByEquipoValue = false };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = CreateHandler(equipoRepo, invitacionRepo, participacionRepo, publisher, notifier);
+        var handler = CreateHandler(equipoRepo, invitacionRepo, participacionRepo, publisher);
 
         var response = await handler.Handle(new EliminarMiEquipoCommand(lider), CancellationToken.None);
 
@@ -48,6 +45,8 @@ public sealed class EliminarMiEquipoHandlerTests
         Assert.True(equipoRepo.UpdateWasCalled);
         Assert.True(invitacionRepo.DeletePendientesByEquipoWasCalled);
 
+        // El evento es lo que dispara el correo (lo consume CredencialesTemporalesConsumer): debe
+        // llevar el nombre del equipo y todos los integrantes a notificar.
         Assert.NotNull(publisher.PublishedEvent);
         Assert.Equal(equipo.EquipoId, publisher.PublishedEvent!.EquipoId);
         Assert.Equal("Equipo A", publisher.PublishedEvent.NombreEquipo);
@@ -55,12 +54,6 @@ public sealed class EliminarMiEquipoHandlerTests
         Assert.Equal(2, publisher.PublishedEvent.Miembros.Count);
         Assert.Contains(lider, publisher.PublishedEvent.Miembros);
         Assert.Contains(miembro, publisher.PublishedEvent.Miembros);
-
-        Assert.Equal("Equipo A", notifier.NotifiedNombreEquipo);
-        Assert.NotNull(notifier.NotifiedMiembros);
-        Assert.Equal(2, notifier.NotifiedMiembros!.Count);
-        Assert.Contains(lider, notifier.NotifiedMiembros);
-        Assert.Contains(miembro, notifier.NotifiedMiembros);
     }
 
     [Fact]
@@ -72,8 +65,7 @@ public sealed class EliminarMiEquipoHandlerTests
         var invitacionRepo = new FakeInvitacionEquipoRepository();
         var participacionRepo = new FakeParticipacionActivaEquipoRepository { ExistsByEquipoValue = true };
         var publisher = new FakeIdentityEventsPublisher();
-        var notifier = new FakeTeamLifecycleNotifier();
-        var handler = CreateHandler(equipoRepo, invitacionRepo, participacionRepo, publisher, notifier);
+        var handler = CreateHandler(equipoRepo, invitacionRepo, participacionRepo, publisher);
 
         await Assert.ThrowsAsync<EquipoConParticipacionActivaException>(() =>
             handler.Handle(new EliminarMiEquipoCommand(lider), CancellationToken.None));
@@ -81,7 +73,6 @@ public sealed class EliminarMiEquipoHandlerTests
         Assert.False(equipoRepo.UpdateWasCalled);
         Assert.False(invitacionRepo.DeletePendientesByEquipoWasCalled);
         Assert.Null(publisher.PublishedEvent);
-        Assert.Null(notifier.NotifiedNombreEquipo);
         Assert.Equal(EstadoEquipo.Activo, equipo.Estado);
     }
 
@@ -141,6 +132,9 @@ public sealed class EliminarMiEquipoHandlerTests
 
     private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
     {
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+
         public bool DeletePendientesByEquipoWasCalled { get; private set; }
 
         public Task AddAsync(InvitacionEquipo invitacion, CancellationToken ct)
@@ -220,22 +214,6 @@ public sealed class EliminarMiEquipoHandlerTests
             => Task.CompletedTask;
 
         public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
-            => Task.CompletedTask;
-    }
-
-    private sealed class FakeTeamLifecycleNotifier : ITeamLifecycleNotifier
-    {
-        public string? NotifiedNombreEquipo { get; private set; }
-        public IReadOnlyList<Guid>? NotifiedMiembros { get; private set; }
-
-        public Task<TeamNotificationOutcome> NotificarEquipoEliminadoAsync(string nombreEquipo, IReadOnlyList<Guid> miembros, CancellationToken ct)
-        {
-            NotifiedNombreEquipo = nombreEquipo;
-            NotifiedMiembros = miembros;
-            return Task.FromResult(new TeamNotificationOutcome(miembros.Count, miembros.Count, 0));
-        }
-
-        public Task NotificarLiderazgoModificadoAsync(Guid liderAnteriorUserId, Guid nuevoLiderUserId, CancellationToken ct)
             => Task.CompletedTask;
     }
 }

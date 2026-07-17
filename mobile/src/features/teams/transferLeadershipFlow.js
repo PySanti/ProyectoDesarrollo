@@ -1,31 +1,20 @@
 import { transferTeamLeadership } from "./transferLeadershipApi.js";
 
-const guidPattern = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
-
-export function validateNewLeaderUserId(nuevoLiderUserId) {
-  const value = typeof nuevoLiderUserId === "string" ? nuevoLiderUserId.trim() : "";
-  if (!guidPattern.test(value)) {
-    return { ok: false, type: "validation", message: "Selecciona un nuevo lider valido." };
-  }
-
-  return { ok: true, nuevoLiderUserId: value };
-}
-
 export function getEligibleLeaderMembers(members = [], currentLeaderUserId) {
   return members.filter((member) => {
-    const userId = member.userId ?? member.usuarioId;
-    return userId && userId !== currentLeaderUserId && member.esLider !== true;
+    return member.usuarioId && member.usuarioId !== currentLeaderUserId && member.esLider !== true;
   });
 }
 
-export async function submitTransferLeadership({ apiBaseUrl, token, nuevoLiderUserId, fetchImpl }) {
-  const validation = validateNewLeaderUserId(nuevoLiderUserId);
-  if (!validation.ok) {
-    return validation;
-  }
+// Only the current leader may transfer leadership: a `fetchMyTeamStatus` result of "miembro" (or
+// anything other than "lider") must yield no eligible rows, even though the team roster is non-empty.
+export function getParticipantesForTransfer(result) {
+  return result?.ok && result.status === "lider" ? result.participantes : [];
+}
 
+export async function submitTransferLeadership({ apiBaseUrl, token, nuevoLiderUserId, fetchImpl }) {
   try {
-    return await transferTeamLeadership(apiBaseUrl, token, validation.nuevoLiderUserId, fetchImpl);
+    return await transferTeamLeadership(apiBaseUrl, token, nuevoLiderUserId, fetchImpl);
   } catch {
     return {
       ok: false,

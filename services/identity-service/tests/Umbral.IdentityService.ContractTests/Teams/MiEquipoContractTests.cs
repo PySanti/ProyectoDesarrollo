@@ -30,6 +30,7 @@ public sealed class MiEquipoContractTests : IClassFixture<IdentityApiFactory>
         Assert.Equal(JsonValueKind.Array, participantes.ValueKind);
         var first = participantes[0];
         Assert.True(first.TryGetProperty("usuarioId", out _));
+        Assert.True(first.TryGetProperty("nombre", out _));
         Assert.True(first.TryGetProperty("esLider", out _));
     }
 

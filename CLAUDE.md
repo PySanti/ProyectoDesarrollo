@@ -48,8 +48,8 @@ Every service follows the same 4-project layout under `services/<service>/src/`:
 
 - The gateway is **mandatory** and built on **YARP**; it is the single entry point to the backend. It is **not** an optional stub.
 - **All** frontend/mobile ↔ backend traffic passes through the gateway, **including** real-time (WebSockets/SignalR). There is no direct client→service contact.
-- The gateway **validates the Keycloak JWT** and applies **coarse, route-level authorization by base role** (`Administrador`/`Operador`/`Participante`) using the token claims, **without querying Identity on every request**.
-- **Fine-grained authorization by functional permission stays inside the microservices.**
+- The gateway **validates the Keycloak JWT** and applies **coarse, route-level authorization** using the token claims, **without querying Identity on every request** — by base role (`Administrador`/`Operador`/`Participante`) for most routes, and by governance privilege (`GestionarPartidas`/`GestionarEquipos`, HU-04) for the routes those two privileges govern. Both are role claims in the same token (ADR-0013), so the mechanism is identical either way.
+- **Fine-grained, per-resource authorization by functional permission stays inside the microservices** — the gateway's privilege check above is still coarse (whole-route, not per-resource) and duplicated by each service's own policy for defense in depth.
 - The gateway routes only (plus token validation / role authorization) and is extensible to edge concerns (rate limiting, load balancing, TLS termination). It owns **no** domain logic, scores, rankings, or DB access.
 
 ### Clients
@@ -57,7 +57,7 @@ Every service follows the same 4-project layout under `services/<service>/src/`:
 - **`frontend/`** — React 18 + Vite + TypeScript web app. Used **only** by `Administrador` and `Operador` (user management, role/permission governance, team administration, partida creation with Trivia questions/BDT stages, publishing, lobby, live operation, rankings, clue delivery, BDT geolocation map, history — all in read/operate mode; admin views operations read-only).
 - **`mobile/`** — React Native + Expo (SDK 54, RN 0.81) app. Used **only** by `Participante` / `Líder de equipo` acting as participant (single "Partidas" panel with modality filter, joining individual partidas, team actions and invitations, accepting/rejecting convocatorias, answering Trivia, QR treasure upload, receiving clues, BDT geolocation sharing).
 
-**Client routing rule (from the SRS):** stories whose principal actor is `Administrador`/`Operador` → **web**; `Participante` (incl. `Líder de equipo` acting as participant) → **mobile**, unless a story says otherwise; `Sistema` → **backend**. `Líder de equipo` is **not** a Keycloak role — it is a business attribute (creator of, or transferee of leadership for, a team). Do not implement participant gameplay in web, or admin/operator screens in mobile, unless an SDD explicitly says so.
+**Client routing rule (from the SRS):** stories whose principal actor is `Administrador`/`Operador` → **web**; `Participante` (incl. `Líder de equipo` acting as participant) → **mobile**, unless a story says otherwise; `Sistema` → **backend**. `Líder de equipo` is **not** a Keycloak role — it is a business attribute (creator of, or transferee of leadership for, a team). Do not implement participant gameplay in web, or admin/operator screens in mobile, unless an SDD explicitly says so. **Explicit exception (HU-04):** a Participante holding `GestionarPartidas` or `GestionarEquipos` uses the **web** panel for that privilege, not mobile — the privilege is the same permission regardless of base role, and its UI is never duplicated for mobile.
 
 ### Other components
 
@@ -96,7 +96,11 @@ There are **two levels** of ranking. Use these concepts; do not invent others.
 
 - Exactly three base roles exist — `Administrador`, `Operador`, `Participante`. **No new roles are ever created.**
 - Two authorization levels: **governance privileges** (system administration) and **functional permissions** (`GestionarPartidas`, `GestionarEquipos`, `ParticiparEnPartidas`). Both are managed **per role**, never per user, from the admin **governance panel**.
-- Defaults: Administrador → governance privileges; Operador → `GestionarPartidas`; Participante → `GestionarEquipos` + `ParticiparEnPartidas`.
+- **The panel governs exactly two privileges: `GestionarPartidas` and `GestionarEquipos`.** Each always opens its whole area on **web**, regardless of the holder's base role — a Participante who receives either privilege uses the same web panel an Operador/Administrador would, not a mobile equivalent. `GestionarEquipos` governs only the **web panels for administering other people's teams** — a participant's own team (create, invite, lead, leave) comes with the `Participante` role and stays on mobile.
+- **`ParticiparEnPartidas` is not governable.** It still exists in the domain, fixed to `Participante` as a composite declared in `umbral-realm.json`; the PUT rejects it with 400. Only that role has a client to play in, so moving it would enable nothing and removing it would take down all gameplay.
+- **The área Identidad is not a privilege either** — it comes with the `Administrador` role and is protected. If it were governable, revoking it would lock everyone out of governance permanently.
+- Defaults: Administrador → `GestionarEquipos`; Operador → `GestionarPartidas`; Participante → none (plus playing and own-team, which come with the role).
+- **The realm declares what is fixed; `permisos_rol` governs what is variable.** They must not overlap: `keycloak-config` reapplies the realm on every `docker compose up`, so any governable privilege declared there would erase what the panel assigned. Identity's `PermisosRolKeycloakReconciler` converges Keycloak toward `permisos_rol` at startup.
 - The admin may modify the role of operators/participants — **including promotion to admin** — but **never the role of an admin**, and the change is **propagated to Keycloak**. The Administrador role's governance privileges are protected and cannot be withdrawn.
 - On user creation, a **temporary password** is generated and **emailed asynchronously (RabbitMQ)**; mandatory change on first login is handled by Keycloak. Changing the email while the credential is still temporary re-issues a new temporary password.
 
@@ -141,10 +145,20 @@ Must contain exactly these top-level folders (no per-feature slice folders): `Co
 ### Infrastructure (from repo root)
 
 ```powershell
-docker compose -f "infra/docker-compose.yml" up -d postgres rabbitmq keycloak
-docker compose -f "infra/docker-compose.yml" ps
-docker compose -f "infra/docker-compose.yml" down        # add -v to wipe Postgres data
+docker compose --env-file .env -f "infra/docker-compose.yml" up -d postgres rabbitmq keycloak
+docker compose --env-file .env -f "infra/docker-compose.yml" ps
+docker compose --env-file .env -f "infra/docker-compose.yml" down        # add -v to wipe Postgres data
 ```
+
+> ⚠️ **`--env-file .env` is mandatory on *every* compose command, including `ps`/`down`.**
+> The project `.env` lives at the **repo root** but the compose file lives in `infra/`, and Compose
+> looks for `.env` next to the compose file — so without the flag it reads **no** root variable at
+> all. `KEYCLOAK_CLIENT_SECRET` is declared `${...:?}` precisely so that omitting the flag aborts
+> with an explanatory error instead of silently emptying the secret: that silent failure made every
+> Identity→Keycloak call return `502` (`Keycloak settings are missing or incomplete`) and killed
+> SMTP, with nothing in the output to say why. `SMTP_*` still default to empty (`${...:-}`), so a
+> missing flag would silently disable email if the `:?` guard is ever removed.
+> Full startup walkthrough: `GUIA-LEVANTAMIENTO.md`.
 
 Create the per-service databases once after first start (they are not auto-created):
 
@@ -189,10 +203,17 @@ npm install
 npm run dev        # http://localhost:5173
 npm test           # vitest run
 npm run test:watch
-npm run build      # vite build (tsc + bundle)
+npm run build      # vite build — NO hace typecheck (vite sólo transpila, no comprueba tipos)
+npx tsc --noEmit -p tsconfig.app.json   # el typecheck de verdad
 ```
 
 `src/` is organized as `api/`, `auth/`, `app/`, `features/`. Requires `.env` with `VITE_*` vars (see `GUIA-LEVANTAMIENTO.md`).
+
+> ⚠️ **`npx tsc --noEmit` without `-p tsconfig.app.json` is a no-op and always exits 0.**
+> `tsconfig.json` is a project-references stub (`"files": []`), so the bare command checks no files
+> at all — verified by planting a type error and watching it exit 0. Always pass
+> `-p tsconfig.app.json`. Note also that `npm run build` (`vite build`) does **not** typecheck: Vite
+> transpiles without checking types. Nothing in this project typechecks unless you run that command.
 
 ### Mobile
 

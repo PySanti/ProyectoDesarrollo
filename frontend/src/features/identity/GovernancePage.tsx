@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import {
   getGovernanceRoles,
   IdentityApiError,
-  PermisoFuncional,
+  PermisoGobernable,
   RolePermissions,
   updateRolePermissions
 } from "../../api/identityApi";
@@ -12,23 +12,22 @@ interface GovernancePageProps {
   accessToken: string;
 }
 
-const PERMISOS: { key: PermisoFuncional; label: string }[] = [
+const PERMISOS: { key: PermisoGobernable; label: string }[] = [
   { key: "GestionarPartidas", label: "Gestionar partidas" },
-  { key: "GestionarEquipos", label: "Gestionar equipos" },
-  { key: "ParticiparEnPartidas", label: "Participar en partidas" }
+  { key: "GestionarEquipos", label: "Gestionar equipos" }
 ];
 
 interface CardState {
   info: RolePermissions;
   /* Último set confirmado por el servidor; Guardar solo se habilita si marked difiere. */
-  confirmed: PermisoFuncional[];
-  marked: PermisoFuncional[];
+  confirmed: PermisoGobernable[];
+  marked: PermisoGobernable[];
   saving: boolean;
   error: string | null;
   saved: boolean;
 }
 
-function sameSet(a: PermisoFuncional[], b: PermisoFuncional[]): boolean {
+function sameSet(a: PermisoGobernable[], b: PermisoGobernable[]): boolean {
   return a.length === b.length && a.every((permiso) => b.includes(permiso));
 }
 
@@ -78,7 +77,7 @@ export function GovernancePage({ accessToken }: GovernancePageProps) {
     }
   }
 
-  function toggle(rol: string, permiso: PermisoFuncional) {
+  function toggle(rol: string, permiso: PermisoGobernable) {
     setCards((current) =>
       current.map((card) => {
         if (card.info.rol !== rol) {

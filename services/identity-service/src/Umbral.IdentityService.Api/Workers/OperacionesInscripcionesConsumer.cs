@@ -25,7 +25,7 @@ public sealed class OperacionesInscripcionesConsumer : BackgroundService
         _scopeFactory = scopeFactory;
         _logger = logger;
     }
-
+    // los bindgins viven en Infrastructure\Services\Messaging\RabbitMqConsumerOptions.cs
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         if (!_options.Enabled || string.IsNullOrWhiteSpace(_options.Host))
@@ -86,6 +86,7 @@ public sealed class OperacionesInscripcionesConsumer : BackgroundService
         try
         {
             using var scope = _scopeFactory.CreateScope();
+            // Application\Services\ParticipacionProjectionUpdater.cs
             var updater = scope.ServiceProvider.GetRequiredService<IParticipacionProjectionUpdater>();
             await updater.AplicarAsync(eventType, payload, ct);
             _logger.LogInformation(

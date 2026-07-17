@@ -24,10 +24,14 @@ public interface IKeycloakIdentityPort
     Task<bool> HasTemporaryPasswordAsync(string keycloakId, CancellationToken cancellationToken);
 
     /// <summary>
-    /// Actualiza el correo del usuario en Keycloak (atributo <c>email</c>) para mantenerlo en
-    /// sincronía con la edición administrativa.
+    /// Sincroniza en Keycloak los datos generales del usuario: <c>username</c> y <c>email</c> (ambos
+    /// el correo, igual que en el alta) más <c>firstName</c> (el nombre). Keycloak es quien autentica,
+    /// así que un correo que no llegue aquí deja al usuario sin poder iniciar sesión con él; y como
+    /// Keycloak admite iniciar sesión por <c>username</c> o por <c>email</c>, el <c>username</c> debe
+    /// seguir al correo para que el anterior deje de ser una credencial válida. Requiere
+    /// <c>editUsernameAllowed=true</c> en el realm.
     /// </summary>
-    Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken);
+    Task SyncUserProfileAsync(string keycloakId, string nombre, string correo, CancellationToken cancellationToken);
 
     /// <summary>
     /// Restablece la contraseña del usuario a una nueva contraseña temporal (<c>temporary=true</c>),

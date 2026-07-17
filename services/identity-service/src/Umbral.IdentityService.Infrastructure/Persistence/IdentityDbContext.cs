@@ -39,9 +39,14 @@ public sealed class IdentityDbContext : DbContext
             entity.Property(x => x.EquipoId).HasColumnName("equipoid");
             entity.Property(x => x.NombreEquipo).HasColumnName("nombreequipo").HasMaxLength(120).IsRequired();
             entity.Property(x => x.Estado).HasColumnName("estado").IsRequired();
+            // IsRequired() es lo que hace que EF BORRE al participante que sale del equipo.
+            // Con la FK opcional, sacarlo de la coleccion solo emitia UPDATE ... SET equipoid = NULL:
+            // la fila sobrevivia huerfana y seguia ocupando el slot del usuario en
+            // ux_equipos_participantes_usuarioid, bloqueando cualquier equipo posterior.
             entity.HasMany(x => x.Participantes)
                 .WithOne()
                 .HasForeignKey("equipoid")
+                .IsRequired()
                 .OnDelete(DeleteBehavior.Cascade);
         });
 

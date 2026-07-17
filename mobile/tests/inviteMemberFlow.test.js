@@ -119,6 +119,30 @@ test("sendInvitation should return conflict on 409 (team full or user already in
   assert.equal(result.type, "conflict");
 });
 
+test("sendInvitation should map 409 code InvitacionPendienteYaExisteException to specific message", async () => {
+  const result = await sendInvitation(API_BASE, TOKEN, INVITADO_USER_ID, async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({ code: "InvitacionPendienteYaExisteException" }),
+  }));
+
+  assert.equal(result.ok, false);
+  assert.equal(result.type, "conflict");
+  assert.equal(result.message, "Ya hay una invitacion activa para este participante.");
+});
+
+test("sendInvitation should fall back to generic message on 409 with unknown/absent code", async () => {
+  const result = await sendInvitation(API_BASE, TOKEN, INVITADO_USER_ID, async () => ({
+    ok: false,
+    status: 409,
+    json: async () => ({}),
+  }));
+
+  assert.equal(result.ok, false);
+  assert.equal(result.type, "conflict");
+  assert.match(result.message, /El equipo puede estar lleno/);
+});
+
 test("sendInvitation should return forbidden on 403 (not leader)", async () => {
   const result = await sendInvitation(API_BASE, TOKEN, INVITADO_USER_ID, async () => ({
     ok: false,

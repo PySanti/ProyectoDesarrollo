@@ -15,14 +15,17 @@ namespace Umbral.IdentityService.Infrastructure.Services.Notifications;
 /// diferencia de aquel, esta implementación es <b>best-effort</b> (ADR-0012): un destinatario
 /// no resoluble o cualquier fallo de envío se registra en el log y nunca se relanza, porque
 /// estas notificaciones no deben revertir ni bloquear la operación de dominio que las origina.
+/// <para>
+/// Lo invoca el consumidor de RabbitMQ (<c>CredencialesTemporalesConsumer</c>) al autoconsumir
+/// <c>EquipoEliminado</c> / <c>LiderazgoEquipoModificado</c>, nunca un handler dentro del request:
+/// eliminar un equipo o reasignar liderazgo no espera al SMTP.
+/// </para>
 /// </summary>
 public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
 {
-    // Presupuesto total de envío por operación. SmtpClient.SendMailAsync ignora
-    // SmtpClient.Timeout; sin este límite, un SMTP que conecta pero no responde deja el
-    // envío colgado ~100s y bloquea la operación de dominio (p. ej. eliminar equipo, que
-    // espera esta notificación best-effort). ponytail: 10s fijo; mover a SmtpOptions si
-    // algún entorno necesita otro valor.
+    // Presupuesto de envío. SmtpClient.SendMailAsync ignora SmtpClient.Timeout; sin este límite,
+    // un SMTP que conecta pero no responde deja el envío colgado ~100s. ponytail: 10s fijo; mover
+    // a SmtpOptions si algún entorno necesita otro valor.
     private static readonly TimeSpan NotificacionTimeout = TimeSpan.FromSeconds(10);
 
     private readonly IUsuarioRepository _usuarioRepository;
@@ -43,14 +46,11 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
     {
         var (subject, plainText) = TeamLifecycleEmailTemplate.BuildEquipoEliminado(nombreEquipo);
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(NotificacionTimeout);
-
         var notificados = 0;
         var fallasServidor = 0;
         foreach (var miembroId in miembros)
         {
-            switch (await EnviarCorreoBestEffortAsync(miembroId, subject, plainText, deadline.Token))
+            switch (await EnviarConDeadlineAsync(miembroId, subject, plainText, ct))
             {
                 case ResultadoEnvio.Enviado:
                     notificados++;
@@ -69,10 +69,10 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         var (subjectAnterior, textoAnterior) = TeamLifecycleEmailTemplate.BuildLiderazgo(esNuevoLider: false);
         var (subjectNuevo, textoNuevo) = TeamLifecycleEmailTemplate.BuildLiderazgo(esNuevoLider: true);
 
-        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
-        deadline.CancelAfter(NotificacionTimeout);
-        await EnviarCorreoBestEffortAsync(liderAnteriorUserId, subjectAnterior, textoAnterior, deadline.Token);
-        await EnviarCorreoBestEffortAsync(nuevoLiderUserId, subjectNuevo, textoNuevo, deadline.Token);
+        // Deadline por destinatario, no compartido: un SMTP lento con el líder anterior no debe
+        // dejar sin correo al nuevo (HU-09 exige notificar a ambos).
+        await EnviarConDeadlineAsync(liderAnteriorUserId, subjectAnterior, textoAnterior, ct);
+        await EnviarConDeadlineAsync(nuevoLiderUserId, subjectNuevo, textoNuevo, ct);
     }
 
     private enum ResultadoEnvio
@@ -80,6 +80,20 @@ public sealed class SmtpTeamLifecycleNotifier : ITeamLifecycleNotifier
         Enviado,
         ServidorNoRespondio,
         Omitido
+    }
+
+    /// <summary>
+    /// Envía un correo acotado por <see cref="NotificacionTimeout"/>. El presupuesto es <b>por
+    /// destinatario</b>, no compartido por la operación: un SMTP lento con el primero no debe dejar
+    /// sin correo al resto (RB-E15 / HU-09 exigen notificar a todos los implicados). Puede ser por
+    /// destinatario porque estas notificaciones corren en el consumidor de RabbitMQ, fuera del
+    /// request de la operación de dominio.
+    /// </summary>
+    private async Task<ResultadoEnvio> EnviarConDeadlineAsync(Guid keycloakId, string subject, string plainText, CancellationToken ct)
+    {
+        using var deadline = CancellationTokenSource.CreateLinkedTokenSource(ct);
+        deadline.CancelAfter(NotificacionTimeout);
+        return await EnviarCorreoBestEffortAsync(keycloakId, subject, plainText, deadline.Token);
     }
 
     private async Task<ResultadoEnvio> EnviarCorreoBestEffortAsync(Guid miembroKeycloakId, string subject, string plainText, CancellationToken ct)

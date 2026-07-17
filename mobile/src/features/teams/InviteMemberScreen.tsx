@@ -1,6 +1,6 @@
 import React, { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text } from "react-native";
-import { Card, Notice, ScreenHeader } from "../../shared/ui";
+import { ActivityIndicator, Pressable, SafeAreaView, ScrollView, StyleSheet, Text, View } from "react-native";
+import { Card, Icon, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, fonts, radius, spacing, typography } from "../../shared/theme";
 import { fetchEligibleParticipants, submitInviteMember } from "./inviteMemberFlow.js";
 
@@ -8,6 +8,7 @@ type EligibleParticipant = {
   userId: string;
   nombre?: string;
   email?: string;
+  yaInvitado?: boolean;
 };
 
 type InviteMemberScreenProps = {
@@ -52,6 +53,10 @@ export function InviteMemberScreen({ apiBaseUrl, token, onInvited }: InviteMembe
       return;
     }
     setSuccessMessage("Invitacion enviada con exito.");
+    // Refleja el estado "Ya invitado" al instante, sin recargar el panel.
+    setParticipants((prev) =>
+      prev.map((p) => (p.userId === selected ? { ...p, yaInvitado: true } : p))
+    );
     setSelected(null);
     onInvited?.(result.data);
   }
@@ -75,17 +80,32 @@ export function InviteMemberScreen({ apiBaseUrl, token, onInvited }: InviteMembe
           </Card>
         ) : (
           <Card>
-            {participants.map((p) => (
-              <Pressable
-                key={p.userId}
-                style={[styles.item, selected === p.userId && styles.itemSelected]}
-                onPress={() => setSelected(p.userId)}
-                disabled={submitting}
-              >
-                <Text style={styles.itemName}>{p.nombre ?? p.email ?? p.userId}</Text>
-                {p.email && p.nombre ? <Text style={styles.itemEmail}>{p.email}</Text> : null}
-              </Pressable>
-            ))}
+            {participants.map((p) => {
+              const invited = p.yaInvitado === true;
+              return (
+                <Pressable
+                  key={p.userId}
+                  style={[
+                    styles.item,
+                    selected === p.userId && styles.itemSelected,
+                    invited && styles.itemInvited,
+                  ]}
+                  onPress={() => setSelected(p.userId)}
+                  disabled={submitting || invited}
+                >
+                  <Icon
+                    name={invited ? "check-circle" : "plus-circle"}
+                    size={22}
+                    color={invited ? colors.success : colors.primaryBright}
+                  />
+                  <View style={styles.itemBody}>
+                    <Text style={styles.itemName}>{p.nombre ?? p.email ?? p.userId}</Text>
+                    {p.email && p.nombre ? <Text style={styles.itemEmail}>{p.email}</Text> : null}
+                  </View>
+                  {invited ? <Text style={styles.invitedTag}>Ya invitado</Text> : null}
+                </Pressable>
+              );
+            })}
             <Pressable
               style={[styles.button, !canSubmit && styles.buttonDisabled]}
               onPress={handleInvite}
@@ -115,6 +135,9 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   item: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: spacing.md,
     backgroundColor: colors.surface,
     borderWidth: 1,
     borderColor: colors.line,
@@ -122,11 +145,23 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     marginBottom: spacing.sm,
     minHeight: 48,
-    justifyContent: "center",
   },
   itemSelected: {
     borderColor: colors.primaryBright,
     backgroundColor: colors.primaryWash,
+  },
+  itemInvited: {
+    backgroundColor: colors.surfaceSunk,
+    borderColor: colors.line,
+    opacity: 0.7,
+  },
+  itemBody: {
+    flex: 1,
+  },
+  invitedTag: {
+    fontFamily: fonts.semibold,
+    fontSize: 12,
+    color: colors.success,
   },
   itemName: {
     fontFamily: fonts.semibold,

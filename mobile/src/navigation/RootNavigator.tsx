@@ -6,6 +6,7 @@ import { LoginScreen } from "../screens/LoginScreen";
 import { RoleRestrictedScreen } from "../screens/RoleRestrictedScreen";
 import { HomeScreen } from "../screens/HomeScreen";
 import { CreateTeamScreenContainer } from "../features/teams/CreateTeamScreenContainer";
+import { TeamPanelScreenContainer } from "../features/teams/TeamPanelScreenContainer";
 import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenContainer";
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
@@ -58,13 +59,20 @@ export function RootNavigator() {
       screenOptions={{
         headerStyle: { backgroundColor: colors.bg },
         headerTintColor: colors.primaryStrong,
-        headerTitleStyle: { fontFamily: fonts.display, color: colors.ink },
+        // Sin título nativo: cada pantalla ya lo muestra abajo (ScreenHeader/Text). Se conserva
+        // el header (por lo tanto la flecha de volver), solo se vacía el texto duplicado.
+        headerTitle: "",
         headerShadowVisible: false,
         contentStyle: { backgroundColor: colors.bg },
         animation: "slide_from_right",
       }}
     >
       <AppStack.Screen name="Home" component={HomeScreen} options={{ headerShown: false }} />
+      <AppStack.Screen
+        name="TeamPanel"
+        component={TeamPanelScreenContainer}
+        options={{ title: "Gestión de equipo" }}
+      />
       <AppStack.Screen
         name="CreateTeam"
         component={CreateTeamScreenContainer}

@@ -5,12 +5,12 @@ using Umbral.IdentityService.Application.Queries;
 
 namespace Umbral.IdentityService.Api.Controllers;
 
-// Listado de equipos para Administrador/Operador (vista web de solo lectura).
-// Vive fuera de TeamsController porque la policy de clase GestionarEquipos es
-// aditiva y esos roles no tienen ese permiso funcional.
+// Listado de equipos para quien tenga GestionarEquipos (vista web de solo lectura). Vive fuera de
+// TeamsController porque administra equipos ajenos: TeamsController es para el equipo propio del
+// Participante (viene con el rol), esto es para cualquiera con el privilegio de gestión.
 [ApiController]
 [Route("identity/teams")]
-[Authorize(Policy = "OperadorOAdministrador")]
+[Authorize(Policy = "GestionarEquipos")]
 public sealed class TeamsAdminController : ControllerBase
 {
     private readonly ISender _sender;

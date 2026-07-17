@@ -37,11 +37,30 @@ export interface DeactivateUserResponse {
 export class IdentityApiError extends Error {
   constructor(
     message: string,
-    public readonly statusCode: number
+    public readonly statusCode: number,
+    /** Errores por campo del backend (400 ValidationProblemDetails), en minusculas. */
+    public readonly fieldErrors?: Record<string, string>
   ) {
     super(message);
     this.name = "IdentityApiError";
   }
+}
+
+/**
+ * Extrae los errores por campo de un ValidationProblemDetails de ASP.NET
+ * ({ errors: { "Name": ["msg"], ... } }) a un mapa por campo en minusculas
+ * ({ name: "msg" }), tomando el primer mensaje de cada campo. null si no hay.
+ */
+export function extractFieldErrors(body: unknown): Record<string, string> | undefined {
+  const errors = (body as { errors?: Record<string, string[]> } | null)?.errors;
+  if (!errors || typeof errors !== "object") return undefined;
+  const mapped: Record<string, string> = {};
+  for (const [key, messages] of Object.entries(errors)) {
+    if (Array.isArray(messages) && messages.length > 0) {
+      mapped[key.toLowerCase()] = messages[0];
+    }
+  }
+  return Object.keys(mapped).length > 0 ? mapped : undefined;
 }
 
 const baseUrl = import.meta.env.VITE_GATEWAY_BASE_URL as string | undefined;
@@ -76,7 +95,7 @@ export async function createIdentityUser(
     const message =
       (body as { message?: string }).message ??
       `Identity API error. Status=${response.status}`;
-    throw new IdentityApiError(message, response.status);
+    throw new IdentityApiError(message, response.status, extractFieldErrors(body));
   }
 
   return body as CreateUserResponse;
@@ -96,7 +115,7 @@ async function parseJsonBody<T>(response: Response): Promise<T | { message?: str
 function throwIfNotOk(response: Response, body: { message?: string }): void {
   if (!response.ok) {
     const message = body.message ?? `Identity API error. Status=${response.status}`;
-    throw new IdentityApiError(message, response.status);
+    throw new IdentityApiError(message, response.status, extractFieldErrors(body));
   }
 }
 
@@ -165,11 +184,14 @@ export async function deactivateIdentityUser(
   return body as DeactivateUserResponse;
 }
 
-export type PermisoFuncional = "GestionarPartidas" | "GestionarEquipos" | "ParticiparEnPartidas";
+/* Lo que el panel de gobernanza puede mover entre roles. El dominio tiene un tercer permiso
+   funcional (ParticiparEnPartidas), pero está fijo al rol Participante y no es asignable: el
+   backend lo rechaza. El nombre dice "gobernable" para que el tipo no mienta. */
+export type PermisoGobernable = "GestionarPartidas" | "GestionarEquipos";
 
 export interface RolePermissions {
   rol: "Administrador" | "Operador" | "Participante";
-  permisos: PermisoFuncional[];
+  permisos: PermisoGobernable[];
   privilegiosGobernanza: boolean;
 }
 
@@ -198,7 +220,7 @@ export async function getGovernanceRoles(
 
 export async function updateRolePermissions(
   rol: string,
-  permisos: PermisoFuncional[],
+  permisos: PermisoGobernable[],
   accessToken: string,
   fetchImpl: typeof fetch = fetch
 ): Promise<RolePermissions> {

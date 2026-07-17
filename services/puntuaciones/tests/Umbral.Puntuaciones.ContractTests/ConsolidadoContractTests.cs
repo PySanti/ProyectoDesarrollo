@@ -75,7 +75,9 @@ public class ConsolidadoContractTests : IClassFixture<PuntuacionesWebFactory>
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, juegoId, Guid.NewGuid(), Guid.NewGuid(), 25, 4000, equipoId));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), DateTime.UtcNow, partidaId, sesionId, DateTime.UtcNow));
 
-        var client = _factory.CreateClientAutenticado();
+        // EquiposController ahora exige rol AND privilegio (Task 5); Administrador trae
+        // GestionarEquipos por default.
+        var client = _factory.CreateClientConRoles("Administrador", "GestionarEquipos");
         var response = await client.GetAsync($"/puntuaciones/equipos/{equipoId}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 

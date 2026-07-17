@@ -59,10 +59,27 @@ export async function sendInvitation(apiBaseUrl, token, invitadoUserId, fetchImp
   }
 
   if (response.status === 409) {
+    // Varios casos comparten 409; el backend los distingue con `code` (nombre del tipo de
+    // excepcion). Sin `code` se cae al mensaje generico.
+    let code;
+    try {
+      code = (await response.json())?.code;
+    } catch {
+      code = undefined;
+    }
+
+    const messageByCode = {
+      InvitacionPendienteYaExisteException: "Ya hay una invitacion activa para este participante.",
+      EquipoLlenoException: "Tu equipo ya esta lleno (maximo 5 miembros).",
+      UsuarioYaEnEquipoException: "Ese participante ya pertenece a un equipo.",
+    };
+
     return {
       ok: false,
       type: "conflict",
-      message: "No se pudo enviar la invitacion. El equipo puede estar lleno o el participante ya pertenece a un equipo.",
+      message:
+        messageByCode[code] ??
+        "No se pudo enviar la invitacion. El equipo puede estar lleno o el participante ya pertenece a un equipo.",
     };
   }
 

@@ -1,5 +1,6 @@
 using System.Security.Claims;
 using FluentValidation;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
 using Umbral.IdentityService.Api.Contracts;
@@ -191,5 +192,25 @@ public sealed class TeamsControllerTests
         var controller = BuildController(new FakeSender(), sub: null);
         var result = await controller.MiHistorial(CancellationToken.None);
         Assert.IsType<UnauthorizedResult>(result);
+    }
+}
+
+public class TeamsControllerPolicyTests
+{
+    /// <summary>
+    /// El flujo propio del participante (su equipo) lo concede el rol, no un privilegio: el panel de
+    /// gobernanza deja al Participante sin GestionarEquipos por defecto.
+    /// </summary>
+    [Theory]
+    [InlineData(typeof(TeamsController))]
+    [InlineData(typeof(TeamInvitationsController))]
+    public void El_flujo_de_equipos_del_participante_exige_el_rol_no_el_privilegio(Type controlador)
+    {
+        var authorize = controlador
+            .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: true)
+            .Cast<AuthorizeAttribute>()
+            .Single();
+
+        Assert.Equal("Participante", authorize.Policy);
     }
 }

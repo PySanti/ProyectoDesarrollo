@@ -141,6 +141,22 @@ public sealed class Hu02HandlersTests
     }
 
     [Fact]
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Sync_Keycloak_When_Email_Changes_Without_Temp_Password()
+    {
+        var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
+        var repository = new FakeUsuarioRepository([user]);
+        var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: false);
+        var handler = BuildUpdateHandler(repository, keycloak);
+
+        await handler.Handle(
+            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
+            CancellationToken.None);
+
+        // Keycloak autentica: si no recibe el correo nuevo, el usuario no puede iniciar sesión con él.
+        Assert.Contains("new@umbral.dev", keycloak.UpdatedEmails);
+    }
+
+    [Fact]
     public async Task UpdateUserGeneralDataCommandHandler_Should_Not_Publish_When_Temp_Password_Not_Pending()
     {
         var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
@@ -153,13 +169,15 @@ public sealed class Hu02HandlersTests
             new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
             CancellationToken.None);
 
+        // Sin credencial temporal pendiente no se reenvía nada, pero el correo sí se sincroniza:
+        // lo que depende de la credencial temporal es el reenvío, nunca la sincronización.
         Assert.Null(publisher.LastCredencialEvent);
-        Assert.Empty(keycloak.UpdatedEmails);
         Assert.Empty(keycloak.ResetPasswords);
+        Assert.Contains("new@umbral.dev", keycloak.UpdatedEmails);
     }
 
     [Fact]
-    public async Task UpdateUserGeneralDataCommandHandler_Should_Not_Check_Keycloak_When_Email_Unchanged()
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Sync_Name_To_Keycloak_When_Only_Name_Changes()
     {
         var user = Usuario.Crear("kc-1", "Admin", "same@umbral.dev", RolUsuario.Operador);
         var repository = new FakeUsuarioRepository([user]);
@@ -171,9 +189,32 @@ public sealed class Hu02HandlersTests
             new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "same@umbral.dev"),
             CancellationToken.None);
 
+        // El correo no cambió: no se consulta la credencial temporal ni se reenvía nada...
         Assert.False(keycloak.HasTempPasswordCalled);
         Assert.Null(publisher.LastCredencialEvent);
         Assert.Equal("Admin Renamed", user.Nombre);
+        // ...pero el nombre nuevo sí llega a Keycloak, o quedaría desactualizado en el token.
+        Assert.Contains("Admin Renamed", keycloak.UpdatedNames);
+    }
+
+    [Fact]
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Reconcile_Keycloak_Even_When_Nothing_Changes()
+    {
+        var user = Usuario.Crear("kc-1", "Admin", "same@umbral.dev", RolUsuario.Operador);
+        var repository = new FakeUsuarioRepository([user]);
+        var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true);
+        var handler = BuildUpdateHandler(repository, keycloak);
+
+        await handler.Handle(
+            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "same@umbral.dev"),
+            CancellationToken.None);
+
+        // Guardar sin cambios es el camino de reparación de un usuario ya desincronizado: si la BD
+        // local ya tiene el dato bueno, no hay "cambio" que detectar y sin esto no habría forma de
+        // reconciliar Keycloak desde el panel. No se reenvían credenciales porque el correo no cambió.
+        Assert.Contains("same@umbral.dev", keycloak.UpdatedEmails);
+        Assert.False(keycloak.HasTempPasswordCalled);
+        Assert.Empty(keycloak.ResetPasswords);
     }
 
     [Fact]
@@ -243,6 +284,7 @@ public sealed class Hu02HandlersTests
 
         public bool HasTempPasswordCalled { get; private set; }
         public List<string> UpdatedEmails { get; } = [];
+        public List<string> UpdatedNames { get; } = [];
         public List<string> ResetPasswords { get; } = [];
         public List<(string RoleName, string CompositeRoleName)> CompositesAgregados { get; } = [];
         public List<(string RoleName, string CompositeRoleName)> CompositesQuitados { get; } = [];
@@ -266,9 +308,10 @@ public sealed class Hu02HandlersTests
             return Task.FromResult(_hasTempPassword);
         }
 
-        public Task UpdateEmailAsync(string keycloakId, string email, CancellationToken cancellationToken)
+        public Task SyncUserProfileAsync(string keycloakId, string nombre, string correo, CancellationToken cancellationToken)
         {
-            UpdatedEmails.Add(email);
+            UpdatedEmails.Add(correo);
+            UpdatedNames.Add(nombre);
             return Task.CompletedTask;
         }
 

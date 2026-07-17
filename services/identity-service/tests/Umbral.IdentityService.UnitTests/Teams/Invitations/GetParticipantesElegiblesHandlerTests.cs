@@ -15,7 +15,7 @@ public sealed class GetParticipantesElegiblesHandlerTests
     {
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = null };
         var usuarioRepo = new FakeUsuarioRepository();
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
         await Assert.ThrowsAsync<NoEsLiderException>(() =>
             handler.Handle(new GetParticipantesElegiblesQuery(Guid.NewGuid()), CancellationToken.None));
@@ -31,7 +31,7 @@ public sealed class GetParticipantesElegiblesHandlerTests
 
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var usuarioRepo = new FakeUsuarioRepository();
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
         await Assert.ThrowsAsync<NoEsLiderException>(() =>
             handler.Handle(new GetParticipantesElegiblesQuery(miembro), CancellationToken.None));
@@ -49,7 +49,7 @@ public sealed class GetParticipantesElegiblesHandlerTests
 
         var equipoRepo = new FakeEquipoRepository { TeamToReturn = equipo };
         var usuarioRepo = new FakeUsuarioRepository();
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
         var result = await handler.Handle(new GetParticipantesElegiblesQuery(lider), CancellationToken.None);
 
@@ -59,16 +59,17 @@ public sealed class GetParticipantesElegiblesHandlerTests
     [Fact]
     public async Task GetElegibles_Excludes_Users_Already_In_A_Team()
     {
-        var lider = Guid.NewGuid();
-        var equipo = Equipo.CrearPorParticipante("Equipo A", lider);
+        // El equipo indexa a sus miembros por el sub de Keycloak (ParticipanteEquipo.UsuarioId),
+        // que es el KeycloakId del Usuario, no su UsuarioId local.
+        var liderSub = Guid.NewGuid();
+        var equipo = Equipo.CrearPorParticipante("Equipo A", liderSub);
 
-        var eligibleUserId = Guid.NewGuid();
-        var inTeamUserId = Guid.NewGuid();
+        var eligibleSub = Guid.NewGuid();
+        var inTeamSub = Guid.NewGuid();
 
-        var eligibleUser = Usuario.Crear("kc-1", "Elegible", "elegible@test.com", RolUsuario.Participante);
-        var inTeamUser = Usuario.Crear("kc-2", "EnEquipo", "enequipo@test.com", RolUsuario.Participante);
+        var eligibleUser = Usuario.Crear(eligibleSub.ToString(), "Elegible", "elegible@test.com", RolUsuario.Participante);
+        var inTeamUser = Usuario.Crear(inTeamSub.ToString(), "EnEquipo", "enequipo@test.com", RolUsuario.Participante);
 
-        // Use reflection to set UserId for testing purposes — or use typed fakes
         var usuarioRepo = new FakeUsuarioRepository
         {
             AllUsers = new List<Usuario> { eligibleUser, inTeamUser }
@@ -77,34 +78,34 @@ public sealed class GetParticipantesElegiblesHandlerTests
         var equipoRepo = new FakeEquipoRepository
         {
             TeamToReturn = equipo,
-            UsersWithActiveTeam = new HashSet<Guid> { inTeamUser.UsuarioId }
+            UsersWithActiveTeam = new HashSet<Guid> { inTeamSub }
         };
 
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
-        var result = await handler.Handle(new GetParticipantesElegiblesQuery(lider), CancellationToken.None);
+        var result = await handler.Handle(new GetParticipantesElegiblesQuery(liderSub), CancellationToken.None);
 
         Assert.Single(result);
-        Assert.Equal(eligibleUser.UsuarioId, result[0].UserId);
+        // Devuelve el sub de Keycloak, no el UsuarioId local: el movil lo reenvia como invitadoUserId.
+        Assert.Equal(eligibleSub, result[0].UserId);
         Assert.Equal("Elegible", result[0].Nombre);
     }
 
     [Fact]
-    public async Task GetElegibles_Excludes_Current_Team_Members()
+    public async Task GetElegibles_Excludes_Current_Team_Members_Including_Leader()
     {
-        var lider = Guid.NewGuid();
-        var equipo = Equipo.CrearPorParticipante("Equipo A", lider);
+        // Regresion del bug reportado: el lider se veia a si mismo en la lista de invitables.
+        // El lider ES un Usuario local cuyo KeycloakId == el sub con el que se creo el equipo;
+        // debe quedar excluido.
+        var liderSub = Guid.NewGuid();
+        var equipo = Equipo.CrearPorParticipante("Equipo A", liderSub);
 
-        var liderUser = Usuario.Crear("kc-lider", "Lider", "lider@test.com", RolUsuario.Participante);
-        var otherUser = Usuario.Crear("kc-other", "Otro", "otro@test.com", RolUsuario.Participante);
-
-        // The lider is a member — even though it appears in the user list, it should be excluded
-        // We use the lider's real UsuarioId from the equipo (which is different from the Usuario entity)
-        // For simplicity: the equipo has lider as member via actorId; the fake repo checks membership
+        var liderUser = Usuario.Crear(liderSub.ToString(), "Lider", "lider@test.com", RolUsuario.Participante);
+        var otherUser = Usuario.Crear(Guid.NewGuid().ToString(), "Otro", "otro@test.com", RolUsuario.Participante);
 
         var usuarioRepo = new FakeUsuarioRepository
         {
-            AllUsers = new List<Usuario> { otherUser }
+            AllUsers = new List<Usuario> { liderUser, otherUser }
         };
         var equipoRepo = new FakeEquipoRepository
         {
@@ -112,22 +113,24 @@ public sealed class GetParticipantesElegiblesHandlerTests
             UsersWithActiveTeam = new HashSet<Guid>()
         };
 
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
-        var result = await handler.Handle(new GetParticipantesElegiblesQuery(lider), CancellationToken.None);
+        var result = await handler.Handle(new GetParticipantesElegiblesQuery(liderSub), CancellationToken.None);
 
         Assert.Single(result);
-        Assert.Equal(otherUser.UsuarioId, result[0].UserId);
+        Assert.Equal("Otro", result[0].Nombre);
+        Assert.DoesNotContain(result, r => r.Nombre == "Lider");
     }
 
     [Fact]
     public async Task GetElegibles_Excludes_Non_Participante_Role_Users()
     {
-        var lider = Guid.NewGuid();
-        var equipo = Equipo.CrearPorParticipante("Equipo A", lider);
+        var liderSub = Guid.NewGuid();
+        var equipo = Equipo.CrearPorParticipante("Equipo A", liderSub);
 
-        var adminUser = Usuario.Crear("kc-admin", "Admin", "admin@test.com", RolUsuario.Administrador);
-        var participanteUser = Usuario.Crear("kc-p", "Participante", "p@test.com", RolUsuario.Participante);
+        var participanteSub = Guid.NewGuid();
+        var adminUser = Usuario.Crear(Guid.NewGuid().ToString(), "Admin", "admin@test.com", RolUsuario.Administrador);
+        var participanteUser = Usuario.Crear(participanteSub.ToString(), "Participante", "p@test.com", RolUsuario.Participante);
 
         var usuarioRepo = new FakeUsuarioRepository
         {
@@ -139,15 +142,65 @@ public sealed class GetParticipantesElegiblesHandlerTests
             UsersWithActiveTeam = new HashSet<Guid>()
         };
 
-        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo);
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, new FakeInvitacionEquipoRepository());
 
-        var result = await handler.Handle(new GetParticipantesElegiblesQuery(lider), CancellationToken.None);
+        var result = await handler.Handle(new GetParticipantesElegiblesQuery(liderSub), CancellationToken.None);
 
         Assert.Single(result);
-        Assert.Equal(participanteUser.UsuarioId, result[0].UserId);
+        Assert.Equal(participanteSub, result[0].UserId);
+    }
+
+    [Fact]
+    public async Task GetElegibles_Marks_YaInvitado_For_Candidates_With_Pending_Invitation()
+    {
+        var liderSub = Guid.NewGuid();
+        var equipo = Equipo.CrearPorParticipante("Equipo A", liderSub);
+
+        var invitadoSub = Guid.NewGuid();
+        var noInvitadoSub = Guid.NewGuid();
+        var invitadoUser = Usuario.Crear(invitadoSub.ToString(), "Invitado", "invitado@test.com", RolUsuario.Participante);
+        var noInvitadoUser = Usuario.Crear(noInvitadoSub.ToString(), "NoInvitado", "noinvitado@test.com", RolUsuario.Participante);
+
+        var usuarioRepo = new FakeUsuarioRepository
+        {
+            AllUsers = new List<Usuario> { invitadoUser, noInvitadoUser }
+        };
+        var equipoRepo = new FakeEquipoRepository
+        {
+            TeamToReturn = equipo,
+            UsersWithActiveTeam = new HashSet<Guid>()
+        };
+        var invitacionRepo = new FakeInvitacionEquipoRepository
+        {
+            PendientesByEquipo = new HashSet<Guid> { invitadoSub }
+        };
+
+        var handler = new GetParticipantesElegiblesQueryHandler(equipoRepo, usuarioRepo, invitacionRepo);
+
+        var result = await handler.Handle(new GetParticipantesElegiblesQuery(liderSub), CancellationToken.None);
+
+        Assert.Equal(2, result.Count);
+        Assert.True(result.Single(r => r.UserId == invitadoSub).YaInvitado);
+        Assert.False(result.Single(r => r.UserId == noInvitadoSub).YaInvitado);
     }
 
     // Fakes
+
+    private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
+    {
+        public HashSet<Guid> PendientesByEquipo { get; set; } = new();
+
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(PendientesByEquipo);
+
+        public Task AddAsync(InvitacionEquipo invitacion, CancellationToken ct) => Task.CompletedTask;
+        public Task UpdateAsync(InvitacionEquipo invitacion, CancellationToken ct) => Task.CompletedTask;
+        public Task<InvitacionEquipo?> GetByIdAsync(Guid invitacionId, CancellationToken ct) => Task.FromResult<InvitacionEquipo?>(null);
+        public Task<IReadOnlyList<InvitacionEquipo>> GetPendientesByInvitadoAsync(Guid invitadoUserId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyList<InvitacionEquipo>>(Array.Empty<InvitacionEquipo>());
+        public Task<bool> ExistsPendienteAsync(Guid equipoId, Guid invitadoUserId, CancellationToken ct) => Task.FromResult(false);
+        public Task DeletePendientesByEquipoAsync(Guid equipoId, CancellationToken ct) => Task.CompletedTask;
+    }
 
     private sealed class FakeEquipoRepository : IEquipoRepository
     {

@@ -22,6 +22,9 @@
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: var(--sp-md);
+  /* Columnas alineadas por arriba: un Field con .field-msg (mas alto) junto a un
+     label/select plano no estira ni desalinea a su vecino; el error crece solo su columna. */
+  align-items: start;
 }
 
 .actions,
@@ -201,6 +204,36 @@ textarea:focus-visible {
 textarea {
   min-height: 96px;
   resize: vertical;
+}
+
+/* Campo invalido: borde de peligro + mensaje de error por campo (componente Field). */
+input[aria-invalid="true"],
+select[aria-invalid="true"],
+textarea[aria-invalid="true"] {
+  border-color: var(--danger);
+}
+
+input[aria-invalid="true"]:focus-visible,
+select[aria-invalid="true"]:focus-visible,
+textarea[aria-invalid="true"]:focus-visible {
+  border-color: var(--danger);
+  box-shadow: 0 0 0 3px var(--danger-wash, rgba(220, 38, 38, 0.15));
+}
+
+/* Reserva una linea de alto siempre, para que el mensaje no desplace el layout. */
+.field-msg {
+  display: block;
+  min-height: 1.15rem;
+  font-size: 0.85em;
+  line-height: 1.15rem;
+}
+
+.field-error {
+  color: var(--danger);
+}
+
+.field-hint {
+  color: var(--muted);
 }
 
 /* File inputs: brand the native selector button, keep the control intact */

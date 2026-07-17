@@ -73,6 +73,11 @@ describe("validateHeader", () => {
     expect(errors.length).toBeGreaterThan(0);
   });
 
+  it("rechaza nombre sin letras (solo simbolos)", () => {
+    const errors = validateHeader(validHeader({ nombrePartida: "****" }));
+    expect(errors.length).toBeGreaterThan(0);
+  });
+
   it("rechaza minimosParticipacion = 0", () => {
     const errors = validateHeader(validHeader({ minimosParticipacion: "0" }));
     expect(errors.length).toBeGreaterThan(0);
@@ -162,6 +167,11 @@ describe("validateJuego - BDT", () => {
   it("rechaza area de busqueda vacia", () => {
     const errors = validateJuego(bdtWith("", [validEtapa()]));
     expect(errors.length).toBeGreaterThan(0);
+  });
+
+  it("rechaza area de busqueda sin letras (solo simbolos)", () => {
+    const errors = validateJuego(bdtWith("****", [validEtapa()]));
+    expect(errors.some((e) => e.includes("al menos una letra"))).toBe(true);
   });
 
   it("rechaza un juego sin etapas", () => {

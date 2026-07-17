@@ -9,14 +9,15 @@ namespace Umbral.Puntuaciones.UnitTests.Api;
 public class HistorialControllerTests
 {
     [Fact]
-    public void Exige_rol_Operador_o_Administrador()
+    public void Exige_la_policy_GestionarPartidas()
     {
+        // Policy sólo-privilegio: el rol base no participa — ver Program.cs.
         var attribute = typeof(HistorialController)
             .GetCustomAttributes(typeof(AuthorizeAttribute), inherit: false)
             .Cast<AuthorizeAttribute>()
             .Single();
 
-        Assert.Equal("Operador,Administrador", attribute.Roles);
+        Assert.Equal("GestionarPartidas", attribute.Policy);
     }
 
     [Fact]

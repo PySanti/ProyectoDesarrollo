@@ -2,7 +2,10 @@ import Keycloak from "keycloak-js";
 
 export interface AuthUser {
   username: string;
+  /** Roles base del usuario: Administrador / Operador / Participante. */
   roles: string[];
+  /** Privilegios funcionales del rol: el privilegio autoriza, no el rol. */
+  permisos: string[];
   token: string;
 }
 
@@ -12,8 +15,12 @@ export interface AuthProvider {
   /** Redirects to Keycloak to start the login flow. */
   login(): Promise<void>;
   logout(): Promise<void>;
-  /** Fuerza el refresh del token contra Keycloak (RNF-24). Resuelve al token nuevo. */
-  refresh(): Promise<string>;
+  /**
+   * Fuerza el refresh del token contra Keycloak (RNF-24). Resuelve al usuario re-parseado del token
+   * nuevo, no sólo al string: si el administrador cambió los privilegios del rol, el token nuevo los
+   * trae y la sesión debe reflejarlos sin obligar a cerrar sesión.
+   */
+  refresh(): Promise<AuthUser>;
 }
 
 // Only these app roles are meaningful to UMBRAL. Keycloak technical roles
@@ -23,6 +30,15 @@ const knownRoles = new Map<string, string>([
   ["administrador", "Administrador"],
   ["operador", "Operador"],
   ["participante", "Participante"]
+]);
+
+// Los privilegios funcionales viajan en el mismo `realm_access.roles` que los roles base: ADR-0013
+// los modela como realm roles composite de Keycloak. Se extraen aparte para no mezclarlos con el rol
+// base (el shell muestra `roles` al usuario).
+// Sólo los dos gobernables: ParticiparEnPartidas está fijo al rol Participante y la web no lo usa.
+const knownPermisos = new Map<string, string>([
+  ["gestionarpartidas", "GestionarPartidas"],
+  ["gestionarequipos", "GestionarEquipos"]
 ]);
 
 const keycloakUrl = import.meta.env.VITE_KEYCLOAK_URL as string | undefined;
@@ -47,6 +63,21 @@ class KeycloakAuthProvider implements AuthProvider {
     });
   }
 
+  private usuarioDelToken(): AuthUser {
+    const parsed = this.keycloak.tokenParsed;
+    const username =
+      (parsed?.preferred_username as string | undefined) ??
+      (parsed?.name as string | undefined) ??
+      "unknown";
+
+    return {
+      username,
+      roles: extractRoles(parsed),
+      permisos: extractPermisos(parsed),
+      token: this.keycloak.token as string
+    };
+  }
+
   async init(): Promise<AuthUser | null> {
     if (this.initPromise) {
       return this.initPromise;
@@ -66,19 +97,7 @@ class KeycloakAuthProvider implements AuthProvider {
           return null;
         }
 
-        const parsed = this.keycloak.tokenParsed;
-        const roles = extractRoles(parsed);
-
-        const username =
-          (parsed?.preferred_username as string | undefined) ??
-          (parsed?.name as string | undefined) ??
-          "unknown";
-
-        return {
-          username,
-          roles,
-          token: this.keycloak.token as string
-        };
+        return this.usuarioDelToken();
       })
       .catch((error) => {
         this.initPromise = null;
@@ -100,7 +119,7 @@ class KeycloakAuthProvider implements AuthProvider {
     await this.keycloak.logout({ redirectUri: `${window.location.origin}/` });
   }
 
-  async refresh(): Promise<string> {
+  async refresh(): Promise<AuthUser> {
     // -1 fuerza el refresh aunque el token siga válido: RNF-24 pide refresh
     // incondicional en cada tick de 270s. keycloak-js usa el refresh token
     // internamente, directo contra Keycloak (sin gateway/backend).
@@ -108,11 +127,14 @@ class KeycloakAuthProvider implements AuthProvider {
     if (!this.keycloak.token) {
       throw new Error("Keycloak no devolvió token tras el refresh.");
     }
-    return this.keycloak.token;
+    return this.usuarioDelToken();
   }
 }
 
-function extractRoles(parsed: Keycloak.KeycloakTokenParsed | undefined): string[] {
+function extractKnown(
+  parsed: Keycloak.KeycloakTokenParsed | undefined,
+  known: Map<string, string>
+): string[] {
   const realmRoles = Array.isArray(parsed?.realm_access?.roles) ? parsed.realm_access.roles : [];
 
   const resourceAccess = parsed?.resource_access ?? {};
@@ -124,10 +146,18 @@ function extractRoles(parsed: Keycloak.KeycloakTokenParsed | undefined): string[
   return Array.from(
     new Set(
       [...realmRoles, ...clientRoles]
-        .map((role) => knownRoles.get(role.trim().toLowerCase()))
+        .map((role) => known.get(role.trim().toLowerCase()))
         .filter((role): role is string => Boolean(role))
     )
   );
+}
+
+export function extractRoles(parsed: Keycloak.KeycloakTokenParsed | undefined): string[] {
+  return extractKnown(parsed, knownRoles);
+}
+
+export function extractPermisos(parsed: Keycloak.KeycloakTokenParsed | undefined): string[] {
+  return extractKnown(parsed, knownPermisos);
 }
 
 export const authProvider: AuthProvider = new KeycloakAuthProvider();

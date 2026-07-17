@@ -1,8 +1,10 @@
 import { createTeam } from "./createTeamApi.js";
+import { nombreEquipo } from "../../shared/validation.js";
 
 export async function submitCreateTeam({ apiBaseUrl, token, teamName, fetchImpl = fetch }) {
-  if (!teamName || !teamName.trim()) {
-    return { ok: false, type: "validation", message: "El nombre del equipo es obligatorio." };
+  const validationError = nombreEquipo(teamName);
+  if (validationError) {
+    return { ok: false, type: "validation", message: validationError };
   }
 
   let result;

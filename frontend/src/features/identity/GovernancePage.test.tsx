@@ -10,7 +10,7 @@ const MATRIZ: identityApi.GovernanceRolesResponse = {
     { rol: "Operador", permisos: ["GestionarPartidas"], privilegiosGobernanza: false },
     {
       rol: "Participante",
-      permisos: ["GestionarEquipos", "ParticiparEnPartidas"],
+      permisos: ["GestionarEquipos"],
       privilegiosGobernanza: false
     }
   ]
@@ -91,5 +91,18 @@ describe("GovernancePage", () => {
 
     expect(await screen.findByTestId("gov-card-Operador")).toBeInTheDocument();
     expect(getSpy).toHaveBeenCalledTimes(2);
+  });
+
+  /* El panel gobierna dos privilegios. ParticiparEnPartidas está fijo al rol Participante
+     (composite del realm) y no es asignable: mostrarlo prometería algo que el backend rechaza. */
+  it("no ofrece ParticiparEnPartidas como privilegio asignable", async () => {
+    vi.spyOn(identityApi, "getGovernanceRoles").mockResolvedValue(MATRIZ);
+
+    render(<GovernancePage accessToken="token" />);
+
+    // "Gestionar partidas"/"Gestionar equipos" aparecen una vez por card (3 roles).
+    await screen.findAllByText("Gestionar partidas");
+    expect(screen.getAllByText("Gestionar equipos").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Participar en partidas")).not.toBeInTheDocument();
   });
 });

@@ -14,6 +14,19 @@ test("submitCreateTeam should fail validation when name is empty", async () => {
   assert.equal(result.type, "validation");
 });
 
+test("submitCreateTeam should fail validation when name has no letters", async () => {
+  const result = await submitCreateTeam({
+    apiBaseUrl: "http://localhost:5001",
+    token: "token",
+    teamName: "****",
+    fetchImpl: async () => ({ ok: true, status: 201, json: async () => ({}) }),
+  });
+
+  assert.equal(result.ok, false);
+  assert.equal(result.type, "validation");
+  assert.match(result.message, /al menos una letra/i);
+});
+
 test("submitCreateTeam should return conflict message on 409", async () => {
   const result = await submitCreateTeam({
     apiBaseUrl: "http://localhost:5001",

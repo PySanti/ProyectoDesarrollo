@@ -9,12 +9,6 @@ type Estado =
   | { status: "ok"; equipos: EquipoAdminItem[] }
   | { status: "error"; message: string };
 
-function miembrosTexto(equipo: EquipoAdminItem): string {
-  return equipo.participantes
-    .map((p) => (p.esLider ? `${p.nombre} (líder)` : p.nombre))
-    .join(", ");
-}
-
 function estadoPill(estado: string): { cls: string; label: string } {
   if (estado === "Activo") {
     return { cls: "pill--ok", label: estado };
@@ -89,7 +83,15 @@ export function EquiposPage({ accessToken }: { accessToken: string }) {
                             {pill.label}
                           </span>
                         </td>
-                        <td>{miembrosTexto(e)}</td>
+                        <td>
+                          <ul>
+                            {e.participantes.map((p) => (
+                              <li key={p.usuarioId}>
+                                {p.esLider ? `${p.nombre} (líder)` : p.nombre}
+                              </li>
+                            ))}
+                          </ul>
+                        </td>
                         <td>
                           <Link to={`/puntuaciones/equipos?equipoId=${e.equipoId}`}>
                             Ver rendimiento

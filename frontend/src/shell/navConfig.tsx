@@ -8,13 +8,25 @@ export interface NavItemDef {
   icon: IconComponent;
   /** Sin `roles`: el item hereda la visibilidad del área. */
   roles?: readonly Role[];
+  /** Privilegio funcional opcional para este item específico. */
+  permisos?: readonly string[];
 }
 
 export interface NavAreaDef {
   id: string;
   label: string;
-  role: Role | readonly Role[];
+  /** Rol base requerido, si el área no se abre por privilegio (ej. Identidad). Las áreas
+      gobernadas por permisos (Partidas, Equipos) no declaran esto: el privilegio decide solo,
+      sin importar el rol — el privilegio autoriza, el rol no veta. */
+  role?: Role | readonly Role[];
   icon: IconComponent;
+  /** Privilegio que gobierna el área entera. Sin él, el área no existe para el usuario:
+      ni en el menú ni por URL directa (ver `Require` en App.tsx). */
+  permisos?: readonly string[];
+  /** Dónde aterrizar si ésta es la primera área del usuario. Por defecto, su primer item.
+      Se declara sólo cuando ese primero no es buen sitio para caer — un formulario vacío
+      en vez de un listado, por ejemplo. */
+  landing?: string;
   items: NavItemDef[];
 }
 
@@ -26,57 +38,84 @@ export const NAV_AREAS: NavAreaDef[] = [
     label: "Identidad",
     role: "Administrador",
     icon: Users,
+    // Su primer item es «Crear usuario»: aterrizar ahí soltaría al admin en un formulario vacío.
+    landing: "/identidad/usuarios",
     items: [
       { label: "Crear usuario", path: "/identidad/usuarios/nuevo", icon: UserPlus },
       { label: "Gestión de usuarios", path: "/identidad/usuarios", icon: Users },
       { label: "Gobernanza", path: "/identidad/gobernanza", icon: Lock }
     ]
   },
+  // GestionarPartidas gobierna el CRUD de partidas completo, consulta incluida. Sin `role`: el
+  // privilegio decide solo, sin importar el rol base (privilegio-sin-rol).
   {
     id: "partidas",
     label: "Partidas",
-    role: ["Operador", "Administrador"],
     icon: Flag,
+    permisos: ["GestionarPartidas"],
     items: [
       { label: "Partidas", path: "/partidas", icon: ListChecks },
-      { label: "Nueva partida", path: "/partidas/crear", icon: Plus, roles: ["Operador"] }
+      // Sin `roles`: el privilegio del área ya autoriza. Exigir aquí el rol Operador era la causa
+      // de que un Administrador con GestionarPartidas siguiera sin ver el panel de creación.
+      { label: "Nueva partida", path: "/partidas/crear", icon: Plus }
     ]
   },
   {
     id: "equipos",
     label: "Equipos",
-    role: ["Operador", "Administrador"],
     icon: Users,
+    permisos: ["GestionarEquipos"],
+    // Igual que Identidad: su primer item es un alta, no un listado.
+    landing: "/equipos",
+    // Los tres items los abre GestionarEquipos: ninguno filtra además por rol base. «Creación de
+    // equipos» exigía el rol Administrador, lo que dejaba el privilegio sin efecto para un Operador.
     items: [
-      { label: "Creación de equipos", path: "/identidad/equipos", icon: Flag, roles: ["Administrador"] },
+      { label: "Creación de equipos", path: "/identidad/equipos", icon: Flag },
       { label: "Gestión de equipos", path: "/equipos", icon: Users },
       { label: "Rendimiento de equipos", path: "/puntuaciones/equipos", icon: ListChecks }
     ]
   }
 ];
 
-export function areasForRoles(roles: string[]): NavAreaDef[] {
+/* El privilegio gobierna las áreas de gestión (Partidas, Equipos) sin importar el rol base: el
+   privilegio autoriza, el rol no veta. `role` sólo restringe áreas que no son un privilegio, como
+   Identidad — protegida y exclusiva de Administrador. */
+export function areasForRoles(roles: string[], permisos: string[] = []): NavAreaDef[] {
   return NAV_AREAS.filter((area) => {
-    const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
-    return allowedRoles.some((role) => roles.includes(role));
+    if (area.role !== undefined) {
+      const allowedRoles = typeof area.role === "string" ? [area.role] : area.role;
+      if (!allowedRoles.some((role) => roles.includes(role))) {
+        return false;
+      }
+    }
+    return !area.permisos || area.permisos.some((permiso) => permisos.includes(permiso));
   }).map((area) => ({
     ...area,
     items: area.items.filter(
-      (item) => !item.roles || item.roles.some((role) => roles.includes(role))
+      (item) =>
+        (!item.roles || item.roles.some((role) => roles.includes(role))) &&
+        (!item.permisos || item.permisos.some((permiso) => permisos.includes(permiso)))
     )
   }));
 }
 
-/* Landing per role: Operador -> Partidas; Administrador -> Gestión de usuarios.
-   A user with both roles lands on Partidas (Operador is checked first). */
-export function landingPath(roles: string[]): string {
-  if (roles.includes("Operador")) {
-    return "/partidas";
+/* Primera área disponible, en orden de prioridad. Depende de los privilegios porque un Operador sin
+   GestionarPartidas ya no tiene /partidas: aterrizar ahí lo rebotaría contra su propio landing en
+   bucle. `null` = ninguna área; App.tsx muestra la pantalla de sin accesos.
+
+   Se deriva de `areasForRoles` a propósito: si el landing pudiera apuntar a un área que el nav
+   oculta, la ruta rebotaría al landing y el landing volvería a rebotar. Derivarlo hace imposible esa
+   discrepancia — y por lo mismo, un `landing` declarado sólo se respeta si su item sigue visible. */
+export function landingPath(roles: string[], permisos: string[] = []): string | null {
+  for (const area of areasForRoles(roles, permisos)) {
+    const paths = area.items.map((item) => item.path);
+    if (paths.length === 0) {
+      continue;
+    }
+    return area.landing && paths.includes(area.landing) ? area.landing : paths[0];
   }
-  if (roles.includes("Administrador")) {
-    return "/identidad/usuarios";
-  }
-  return "/";
+
+  return null;
 }
 
 export function titleForPath(pathname: string): string {

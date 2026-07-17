@@ -210,10 +210,10 @@ public sealed class AdminTeamsControllerTests
     // ── Eliminar ─────────────────────────────────────────────────────────────
 
     [Fact]
-    public async Task Eliminar_Dispatches_Command_And_Returns_Ok_With_Notification_Outcome()
+    public async Task Eliminar_Dispatches_Command_And_Returns_Ok()
     {
         var equipoId = Guid.NewGuid();
-        var expected = new EliminarEquipoAdminResponse(equipoId, "Equipo A", 3, 2, false);
+        var expected = new EliminarEquipoAdminResponse(equipoId, "Equipo A");
         var sender = new FakeSender { NextResponse = expected };
         var controller = BuildController(sender);
 

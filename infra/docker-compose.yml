@@ -66,6 +66,9 @@ services:
   # Keycloak en ejecución en cada `up`: crea/actualiza roles, clientes, mappers
   # y usuarios sembrados, y NO borra usuarios creados en runtime. Sale con 0 al
   # terminar; no queda corriendo.
+  # Los composites de los privilegios gobernables (GestionarPartidas, GestionarEquipos) NO se
+  # declaran aquí: los gobierna permisos_rol y los aplica el reconciliador de Identity al arrancar.
+  # El realm solo declara el composite fijo Participante -> ParticiparEnPartidas.
   keycloak-config:
     image: adorsys/keycloak-config-cli:6.5.1-25.0.1
     environment:
@@ -76,10 +79,18 @@ services:
       KEYCLOAK_AVAILABILITYCHECK_ENABLED: "true"
       KEYCLOAK_AVAILABILITYCHECK_TIMEOUT: 120s
       IMPORT_FILES_LOCATIONS: /config/umbral-realm.json
-      # Sin esto, config-cli se salta la importación si el JSON no cambió desde el
-      # último run (caché por checksum en un atributo del realm) y NO repararía
-      # deriva hecha en runtime. (IMPORT_FORCE no existe en la serie 6.x.)
-      IMPORT_CACHE_ENABLED: "false"
+      # La caché (checksum del JSON en un atributo del realm) DEBE quedar activada: con
+      # `false`, config-cli reimporta en cada `up` y converge los roles base a lo que el
+      # JSON declara — o sea, los deja SIN los composites gobernables. Y `up -d` contra un
+      # stack ya arrancado no recrea identity-service (depends_on sólo ordena el arranque),
+      # así que el reconciliador no corre y nadie los repone: la gobernanza desaparece de
+      # todos los tokens. Verificado en vivo.
+      #
+      # De fondo: `false` existía para borrar la deriva hecha en Keycloak en caliente, y el
+      # panel de gobernanza ES deriva en caliente por diseño. Los dos son incompatibles.
+      # Con `true`, config-cli sólo reimporta cuando umbral-realm.json cambia de verdad —
+      # que es justo cuando sí queremos converger, y cuando toca reiniciar Identity detrás.
+      IMPORT_CACHE_ENABLED: "true"
     volumes:
       - ./keycloak/import:/config:ro
     depends_on:
@@ -107,7 +118,12 @@ services:
       KEYCLOAK_CLIENT_ID: identity-service
       KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
       KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      # `:?` y no `:-` a propósito. El .env vive en la RAÍZ y este compose en infra/, así que sin
+      # `--env-file .env` Compose no lee ninguna variable de la raíz. Con un default vacío eso no
+      # fallaba: dejaba el secreto vacío en silencio y toda operación de Identity contra Keycloak
+      # devolvía 502 ("Keycloak settings are missing or incomplete"). Ahora Compose se niega a
+      # arrancar y dice qué falta.
+      KEYCLOAK_CLIENT_SECRET: '${KEYCLOAK_CLIENT_SECRET:?falta KEYCLOAK_CLIENT_SECRET. El .env esta en la raiz y este compose en infra/, hace falta el flag. Levanta con --env-file .env, ver GUIA-LEVANTAMIENTO.md}'
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS:-true}
@@ -122,6 +138,9 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      # El reconciliador escribe composites sobre roles que keycloak-config debe haber creado antes.
+      keycloak-config:
+        condition: service_completed_successfully
 
   gateway:
     build:

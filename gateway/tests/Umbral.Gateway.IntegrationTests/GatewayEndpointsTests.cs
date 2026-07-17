@@ -27,7 +27,7 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     [Fact]
     public async Task Explicit_policy_route_without_token_is_401()
     {
-        // /partidas carries an explicit AuthorizationPolicy ("Operador"): no token → 401,
+        // /partidas carries an explicit AuthorizationPolicy ("GestionarPartidas"): no token → 401,
         // enforced before the proxy ever contacts the (unreachable) destination.
         var client = _factory.CreateClient(new WebApplicationFactoryClientOptions { AllowAutoRedirect = false });
 
@@ -150,17 +150,18 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
-    public async Task IdentityTeamsListing_GET_con_Operador_pasa_la_politica()
+    public async Task IdentityTeamsListing_GET_con_Operador_con_GestionarEquipos_pasa_la_politica()
     {
-        var client = CreateClientWithRoles("Operador");
+        var client = CreateClientWithRoles("Operador,GestionarEquipos");
         var response = await client.GetAsync("/identity/teams");
         AssertPolicyPassed(response);
     }
 
     [Fact]
-    public async Task IdentityTeamsListing_GET_con_Administrador_pasa_la_politica()
+    public async Task IdentityTeamsListing_GET_con_Participante_con_GestionarEquipos_pasa_la_politica()
     {
-        var client = CreateClientWithRoles("Administrador");
+        // El caso nuevo: antes esta misma ruta, con el mismo Participante, era 403 (test de abajo).
+        var client = CreateClientWithRoles("Participante,GestionarEquipos");
         var response = await client.GetAsync("/identity/teams");
         AssertPolicyPassed(response);
     }
@@ -200,17 +201,26 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
-    public async Task Partidas_con_Administrador_pasa_la_politica()
+    public async Task Partidas_con_Administrador_sin_privilegio_es_403()
     {
         var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/partidas/anything");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Partidas_con_Participante_con_GestionarPartidas_pasa_la_politica()
+    {
+        // El caso nuevo: privilegio-sin-rol, un Participante con el privilegio ya no es 403.
+        var client = CreateClientWithRoles("Participante,GestionarPartidas");
         var response = await client.GetAsync("/partidas/anything");
         AssertPolicyPassed(response);
     }
 
     [Fact]
-    public async Task Partidas_con_Operador_pasa_la_politica()
+    public async Task Partidas_con_Operador_con_GestionarPartidas_pasa_la_politica()
     {
-        var client = CreateClientWithRoles("Operador");
+        var client = CreateClientWithRoles("Operador,GestionarPartidas");
         var response = await client.GetAsync("/partidas/anything");
         AssertPolicyPassed(response);
     }
@@ -296,9 +306,17 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
     }
 
     [Fact]
-    public async Task IdentityAdminTeams_con_Administrador_pasa_la_politica()
+    public async Task IdentityAdminTeams_con_Administrador_sin_privilegio_es_403()
     {
         var client = CreateClientWithRoles("Administrador");
+        var response = await client.GetAsync("/identity/admin/teams/cualquier-cosa");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_con_Participante_con_GestionarEquipos_pasa_la_politica()
+    {
+        var client = CreateClientWithRoles("Participante,GestionarEquipos");
         var response = await client.GetAsync("/identity/admin/teams/cualquier-cosa");
         AssertPolicyPassed(response);
     }

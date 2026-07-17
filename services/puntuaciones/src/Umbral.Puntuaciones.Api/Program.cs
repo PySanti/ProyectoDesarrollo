@@ -131,7 +131,14 @@ else
     builder.Services.AddAuthentication();
 }
 
-builder.Services.AddAuthorization();
+builder.Services.AddAuthorization(options =>
+{
+    // Privilegio-sin-rol: el rol base no participa. Mismo patron que Partidas y Operaciones de
+    // Sesion — el privilegio es un role claim del token (ADR-0013), asi que RequireRole lo lee
+    // igual que un rol base.
+    options.AddPolicy("GestionarEquipos", p => p.RequireRole("GestionarEquipos"));
+    options.AddPolicy("GestionarPartidas", p => p.RequireRole("GestionarPartidas"));
+});
 
 var app = builder.Build();
 

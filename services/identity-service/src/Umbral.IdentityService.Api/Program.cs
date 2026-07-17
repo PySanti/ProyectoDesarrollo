@@ -7,6 +7,7 @@ using Umbral.IdentityService.Api.Workers;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Infrastructure;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Services.Identity;
 using Umbral.IdentityService.Infrastructure.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -32,6 +33,7 @@ var rabbitCredencialesConsumerOptions = builder.Configuration
     .Get<RabbitMqCredencialesConsumerOptions>()
     ?? new RabbitMqCredencialesConsumerOptions();
 builder.Services.AddSingleton(rabbitCredencialesConsumerOptions);
+// publicacion del consumer del servicio
 builder.Services.AddHostedService<CredencialesTemporalesConsumer>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
@@ -118,6 +120,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
     options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
+    // El flujo propio del participante (su equipo, invitaciones) lo concede el rol: el panel de
+    // gobernanza deja al Participante sin GestionarEquipos, que ahora solo abre los paneles de
+    // administrar equipos ajenos.
+    options.AddPolicy("Participante", policy => policy.RequireRole("Participante"));
 });
 
 var app = builder.Build();
@@ -127,85 +133,17 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
 
-    // EnsureCreated no evoluciona esquemas existentes: si la BD ya tiene alguna tabla,
-    // no crea las que falten. Estos parches cubren la deriva y deben correr ANTES del
-    // backfill, que consulta historial_nombre_equipo.
     if (dbContext.Database.IsRelational())
     {
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS usuarios (
-                usuarioid uuid PRIMARY KEY,
-                keycloakid varchar(128) NOT NULL,
-                nombre varchar(120) NOT NULL,
-                correo varchar(320) NOT NULL,
-                rol integer NOT NULL,
-                estado integer NOT NULL
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS ix_usuarios_correo ON usuarios (correo);
-            """);
-
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS permisos_rol (
-                rol integer NOT NULL,
-                permiso integer NOT NULL,
-                PRIMARY KEY (rol, permiso)
-            );
-
-            INSERT INTO permisos_rol (rol, permiso)
-            SELECT v.rol, v.permiso
-            FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
-            WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
-            """);
-
-        await dbContext.Database.ExecuteSqlRawAsync("""
-            CREATE TABLE IF NOT EXISTS equipos (
-                equipoid uuid PRIMARY KEY,
-                nombreequipo varchar(120) NOT NULL,
-                estado integer NOT NULL
-            );
-
-            CREATE TABLE IF NOT EXISTS equipos_participantes (
-                participanteequipoid uuid PRIMARY KEY,
-                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
-                usuarioid uuid NOT NULL,
-                fechaunionutc timestamp with time zone NOT NULL,
-                eslider boolean NOT NULL
-            );
-
-            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_usuarioid ON equipos_participantes (usuarioid);
-
-            CREATE TABLE IF NOT EXISTS invitaciones_equipo (
-                invitacionequipoid uuid PRIMARY KEY,
-                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
-                invitadouserid uuid NOT NULL,
-                invitadoporuserid uuid NOT NULL,
-                estado integer NOT NULL,
-                fechacreacionutc timestamp with time zone NOT NULL
-            );
-
-            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadouserid ON invitaciones_equipo (invitadouserid);
-
-            CREATE TABLE IF NOT EXISTS historial_nombre_equipo (
-                id uuid PRIMARY KEY,
-                usuarioid uuid NOT NULL,
-                equipoid uuid NOT NULL,
-                nombreequipo varchar(120) NOT NULL,
-                fecharegistroutc timestamp with time zone NOT NULL
-            );
-
-            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_usuarioid ON historial_nombre_equipo (usuarioid);
-
-            CREATE TABLE IF NOT EXISTS participaciones_activas_equipo (
-                equipoid uuid NOT NULL,
-                partidaid uuid NOT NULL,
-                fecharegistroutc timestamp with time zone NOT NULL,
-                PRIMARY KEY (equipoid, partidaid)
-            );
-            """);
+        await EsquemaLegadoPatch.AplicarAsync(dbContext, CancellationToken.None);
     }
 
     await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
+
+    // La DB manda sobre la gobernanza; Keycloak es su espejo. Corre después del seed de permisos_rol.
+    await scope.ServiceProvider
+        .GetRequiredService<PermisosRolKeycloakReconciler>()
+        .ReconcileAsync(CancellationToken.None);
 }
 
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();

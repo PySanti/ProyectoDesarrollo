@@ -56,16 +56,37 @@ Role/permission governance (`GovernanceController`) plus the role-change endpoin
 > back and the local `permisos_rol` table is **not** updated — Keycloak and the DB can drift
 > apart for that role. Recovery is re-issuing the **same** PUT: the diff is recomputed against
 > the (unchanged) DB state, so only the still-missing composites are (re)applied — the operation
-> is idempotent and self-healing by construction. No automatic reconciliation runs at startup.
+> is idempotent and self-healing by construction.
 
-### Teams and invitations (policy `GestionarEquipos` — functional permission, not a role) (SP-5a re-homed + swap)
+> **Where each permission lives.** The realm (`umbral-realm.json`) declares only the **fixed**
+> composite `Participante → ParticiparEnPartidas`, which is why that permission is not assignable
+> (the PUT rejects it with 400). The two **governable** privileges — `GestionarPartidas` and
+> `GestionarEquipos` — are declared nowhere in the realm: `permisos_rol` is their source of truth,
+> and Identity's `PermisosRolKeycloakReconciler` converges Keycloak toward that table **at
+> startup**. The two sets do not overlap, so `keycloak-config` can reapply the realm on every
+> `docker compose up` without erasing what the panel assigned — which it previously did.
 
-Paths re-homed under `identity/teams` (was `api/teams`), same SP-3g convention. **Policy swap
-(SP-5a):** was `ParticipantOnly` (role `Participante`); now `GestionarEquipos` — the functional
-permission (BR-R02 literal: the permission, not the role, authorizes team management). By the
-BR-R03 default composite, `Participante` carries `GestionarEquipos`, so behavior for today's
-users is unchanged; the enforcement point moved from role to permission.
-Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
+### Teams and invitations (policy `Participante` — the base role)
+
+Paths re-homed under `identity/teams` (was `api/teams`), same SP-3g convention.
+
+**Policy history — read this before changing it again.** SP-5a swapped these endpoints from the
+role (`ParticipantOnly`) to the functional permission `GestionarEquipos`, reading BR-R02 literally:
+*the permission, not the role, authorizes*. The two-privileges rework **supersedes that swap and
+returns these endpoints to the role.**
+
+Why the reversal: `GestionarEquipos` now governs **only the web panels for administering other
+people's teams**. A participant's own team — creating it, inviting, leading, transferring, leaving —
+is their core function per the SRS ("crea equipos o se une a ellos por invitación, y puede ser
+líder"), so it must not depend on a privilege the governance panel can revoke. SP-5a's swap was
+safe only because the BR-R03 default composite handed `Participante` a `GestionarEquipos` it never
+needed; under the new defaults `Participante` carries **no** governable privilege, so keeping the
+permission as the enforcement point would leave participants unable to create a team at all.
+
+BR-R02 still holds for what it governs. The participant's own-team flow simply is not one of those
+things: it is not a privilege the admin grants, it is what being a participant *means*.
+
+Auth: `401` without a token; `403` without the `Participante` role.
 
 > **There is no team access code (`codigoAcceso`).** Members join only via `InvitacionEquipo` sent by the team leader from a dynamic participant list (see `GET /identity/teams/eligible-participants`). Access-code join is not supported.
 
@@ -79,8 +100,8 @@ Auth: `401` without a token; `403` without the `GestionarEquipos` permission.
 | Accept invitation | POST | `/identity/teams/invitations/{invitacionId}/acceptance` | Registered | 200; 401/403 per above; 409 if already in a team or team is full |
 | Reject invitation | POST | `/identity/teams/invitations/{invitacionId}/rejection` | Registered | 200; 401/403 per above |
 | Get eligible participants (leader) | GET | `/identity/teams/eligible-participants` | Registered | 200; dynamic list excluding participants already in a team; blocked when team is full; 401/403 per above |
-| Get my active team | GET | `/identity/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, esLider }] }`; 404 if caller has no active team; 401/403 per above |
-| Delete my team (leader, HU-06) | DELETE | `/identity/teams/mine` | Registered (SP-Bloque4A) | 204; the leader deletes their own team **even with members** (soft-delete `Estado=Eliminado`; frees members; deletes pending invitations, BR-E06; publishes `EquipoEliminado` + notifies members); 401/403 (not leader) per above; 404 if caller has no active team; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)** |
+| Get my active team | GET | `/identity/teams/mine` | Registered | 200 `{ equipoId, nombreEquipo, estado, participantes:[{ usuarioId, nombre, esLider }] }`; `nombre` resolved via the local user reference (`Usuario.KeycloakId`), `""` when no local row exists (same resolution as the admin listing below); 404 if caller has no active team; 401/403 per above |
+| Delete my team (leader, HU-06) | DELETE | `/identity/teams/mine` | Registered (SP-Bloque4A) | 204; the leader deletes their own team **even with members** (soft-delete `Estado=Eliminado`; frees members; deletes pending invitations, BR-E06; publishes `EquipoEliminado`, which is what notifies the members — the email is sent **async** by Identity's own consumer, not inside this request); 401/403 (not leader) per above; 404 if caller has no active team; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)** |
 | Get my team-name history (HU-48) | GET | `/identity/teams/mine/history` | Registered (SP-Bloque4A) | 200 `{ historial: [{ nombreEquipo, equipoId, fechaRegistro }] }` ordered ascending by `fechaRegistro`; **always 200, empty list if none** (BR-E11); 401 per above |
 
 ### Teams listing for the web console (policy `OperadorOAdministrador` — Bloque 3b)
@@ -108,6 +129,6 @@ Base path `identity/admin/teams`. Auth: `401` without a token; `403` without rol
 | Get team detail | GET | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; 404 if not found; 401/403 per above |
 | Create team | POST | `/identity/admin/teams` | Registered (SP-Bloque4A) | 201 + Location `/identity/admin/teams/{equipoId}`; body `{ nombreEquipo, liderUserId }` (see leader-identity note); 404 if leader user not found; 409 if leader already in an active team; 400 on validation; 401/403 per above |
 | Rename team | PATCH | `/identity/admin/teams/{id}/name` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nombreEquipo }` (records one name-history row per current member, BR-E11); 404 if not found; 400 on validation; 401/403 per above |
-| Reassign leadership | PATCH | `/identity/admin/teams/{id}/leadership` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nuevoLiderUserId }` (an existing member; publishes `LiderazgoEquipoModificado`, notifies both leaders); 404 if not found; 409 if the new leader is not a member / equals the current leader; 400 on validation; 401/403 per above |
+| Reassign leadership | PATCH | `/identity/admin/teams/{id}/leadership` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nuevoLiderUserId }` (an existing member; publishes `LiderazgoEquipoModificado`, which is what notifies both leaders — the email is sent **async** by Identity's own consumer, not inside this request); 404 if not found; 409 if the new leader is not a member / equals the current leader; 400 on validation; 401/403 per above |
 | Change state | PATCH | `/identity/admin/teams/{id}/estado` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ estado }` ∈ `"Activo"`\|`"Desactivado"` (Activo↔Desactivado only; a `Desactivado` team cannot be inscribed in new partidas, BR-E10; publishes `EquipoDesactivado`/`EquipoReactivado`); 404 if not found; 400 on validation; 401/403 per above |
-| Delete team | DELETE | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 200 `EliminarEquipoAdminResponse` `{ equipoId, nombreEquipo, integrantesTotal, integrantesNotificados, servidorCorreoRespondio }` (soft-delete + delete pending invitations + `EquipoEliminado` `origen:"Admin"` + best-effort member notification, bounded ~10s; the response reports the notification outcome for the UI); 404 if not found; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)**; 401/403 per above |
+| Delete team | DELETE | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 200 `EliminarEquipoAdminResponse` `{ equipoId, nombreEquipo }` (soft-delete + delete pending invitations + `EquipoEliminado` `origen:"Admin"`; the member notification is **async** — Identity self-consumes `EquipoEliminado` and sends the email outside the request, so the response does **not** report a notification outcome); 404 if not found; **409 if the team has an active participation in a `Lobby`/`Iniciada` partida (BR-E10)**; 401/403 per above |

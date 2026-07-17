@@ -39,6 +39,9 @@ public sealed class EquipoCicloVidaDomainTests
         Assert.Contains(lider, afectados);
         Assert.Contains(miembro, afectados);
         Assert.Equal(2, afectados.Count);
+        // Libera el slot unico de usuarioid: sin esto, ex-miembros quedan
+        // bloqueados para crear/unirse a otro equipo (fila huerfana).
+        Assert.Empty(equipo.Participantes);
     }
 
     [Fact]
@@ -57,6 +60,7 @@ public sealed class EquipoCicloVidaDomainTests
 
         Assert.Equal(EstadoEquipo.Eliminado, equipo.Estado);
         Assert.Equal(new[] { lider, miembro }.OrderBy(x => x), afectados.OrderBy(x => x));
+        Assert.Empty(equipo.Participantes);
     }
 
     [Fact]

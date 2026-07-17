@@ -4,6 +4,8 @@ import {
   CreateUserResponse,
   IdentityApiError
 } from "../../api/identityApi";
+import { Field } from "../../shared/Field";
+import { correo, nombrePersona, useField } from "../../shared/validation";
 
 type Role = "Administrador" | "Operador" | "Participante";
 
@@ -13,34 +15,26 @@ interface CreateUserPageProps {
   accessToken: string;
 }
 
-interface FormState {
-  name: string;
-  email: string;
-  initialRole: Role;
-}
-
 export function CreateUserPage({ accessToken }: CreateUserPageProps) {
-  const [form, setForm] = useState<FormState>({
-    name: "",
-    email: "",
-    initialRole: "Participante"
-  });
+  const name = useField("", nombrePersona);
+  const email = useField("", correo);
+  const [initialRole, setInitialRole] = useState<Role>("Participante");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Errores por campo devueltos por el backend (400), tienen prioridad hasta editar el campo.
+  const [serverFieldErrors, setServerFieldErrors] = useState<Record<string, string>>({});
   const [result, setResult] = useState<CreateUserResponse | null>(null);
 
   async function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     setError(null);
     setResult(null);
+    setServerFieldErrors({});
 
-    if (!form.name.trim()) {
-      setError("El nombre es obligatorio.");
-      return;
-    }
-
-    if (!form.email.trim() || !form.email.includes("@")) {
-      setError("El correo es invalido.");
+    // Fuerza mostrar "obligatorio" en campos vacios no tocados.
+    name.markTouched();
+    email.markTouched();
+    if (name.error || email.error) {
       return;
     }
 
@@ -48,18 +42,22 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
     try {
       const created = await createIdentityUser(
         {
-          name: form.name.trim(),
-          email: form.email.trim(),
-          initialRole: form.initialRole
+          name: name.value.trim(),
+          email: email.value.trim(),
+          initialRole
         },
         accessToken
       );
       setResult(created);
-      setForm({ name: "", email: "", initialRole: "Participante" });
+      name.reset();
+      email.reset();
+      setInitialRole("Participante");
     } catch (caught) {
       if (caught instanceof IdentityApiError) {
-        const mapped = mapErrorMessage(caught.statusCode, caught.message);
-        setError(mapped);
+        if (caught.fieldErrors) {
+          setServerFieldErrors(caught.fieldErrors);
+        }
+        setError(mapErrorMessage(caught.statusCode, caught.message));
       } else {
         setError("Error inesperado al crear usuario.");
       }
@@ -94,46 +92,43 @@ export function CreateUserPage({ accessToken }: CreateUserPageProps) {
         ) : null}
 
         <form onSubmit={onSubmit} noValidate>
-          <label htmlFor="name">
-            Nombre
-            <input
-              id="name"
-              name="name"
-              value={form.name}
-              onChange={(event) =>
-                setForm((previous) => ({ ...previous, name: event.target.value }))
-              }
-              autoComplete="name"
-            />
-          </label>
+          <Field
+            id="name"
+            name="name"
+            label="Nombre"
+            value={name.value}
+            error={serverFieldErrors.name || name.visibleError}
+            onChange={(event) => {
+              name.onChange(event.target.value);
+              setServerFieldErrors((previous) => ({ ...previous, name: "" }));
+            }}
+            onBlur={name.markTouched}
+            autoComplete="name"
+          />
 
           <div className="row">
-            <label htmlFor="email">
-              Correo
-              <input
-                id="email"
-                name="email"
-                type="email"
-                value={form.email}
-                onChange={(event) =>
-                  setForm((previous) => ({ ...previous, email: event.target.value }))
-                }
-                autoComplete="email"
-              />
-            </label>
+            <Field
+              id="email"
+              name="email"
+              label="Correo"
+              type="email"
+              value={email.value}
+              error={serverFieldErrors.email || email.visibleError}
+              onChange={(event) => {
+                email.onChange(event.target.value);
+                setServerFieldErrors((previous) => ({ ...previous, email: "" }));
+              }}
+              onBlur={email.markTouched}
+              autoComplete="email"
+            />
 
             <label htmlFor="initialRole">
               Rol inicial
               <select
                 id="initialRole"
                 name="initialRole"
-                value={form.initialRole}
-                onChange={(event) =>
-                  setForm((previous) => ({
-                    ...previous,
-                    initialRole: event.target.value as Role
-                  }))
-                }
+                value={initialRole}
+                onChange={(event) => setInitialRole(event.target.value as Role)}
               >
                 {roles.map((role) => (
                   <option key={role} value={role}>

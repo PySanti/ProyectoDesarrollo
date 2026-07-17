@@ -40,6 +40,38 @@ describe("CreateUserPage", () => {
     expect(await screen.findByTestId("create-success")).toBeInTheDocument();
   });
 
+  it("shows a live error and blocks submit when the name has no letters", async () => {
+    const spy = vi.spyOn(identityApi, "createIdentityUser");
+
+    render(<CreateUserPage accessToken="token-1" />);
+
+    await userEvent.type(screen.getByLabelText(/nombre/i), "****");
+
+    // Error en vivo (formato) desde la primera tecla, valor no vacio.
+    expect(await screen.findByText(/al menos una letra/i)).toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
+    await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
+
+    expect(spy).not.toHaveBeenCalled();
+  });
+
+  it("paints backend per-field errors from a 400 ValidationProblemDetails", async () => {
+    vi.spyOn(identityApi, "createIdentityUser").mockRejectedValue(
+      new identityApi.IdentityApiError("Solicitud invalida.", 400, {
+        name: "Debe contener al menos una letra."
+      })
+    );
+
+    render(<CreateUserPage accessToken="token-1" />);
+
+    await userEvent.type(screen.getByLabelText(/nombre/i), "Ana");
+    await userEvent.type(screen.getByLabelText(/correo/i), "ana@test.com");
+    await userEvent.click(screen.getByRole("button", { name: /crear usuario/i }));
+
+    expect(await screen.findByText(/al menos una letra/i)).toBeInTheDocument();
+  });
+
   it("shows duplicate email message on 409", async () => {
     vi.spyOn(identityApi, "createIdentityUser").mockRejectedValue(
       new identityApi.IdentityApiError("duplicate", 409)

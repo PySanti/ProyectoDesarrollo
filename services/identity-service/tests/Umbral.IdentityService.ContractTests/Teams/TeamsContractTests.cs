@@ -58,9 +58,9 @@ public sealed class TeamsContractTests : IClassFixture<IdentityApiFactory>
     }
 
     [Fact]
-    public async Task Teams_con_rol_sin_GestionarEquipos_es_403()
+    public async Task Teams_sin_el_rol_Participante_es_403()
     {
-        // Operador autenticado pero sin el permiso GestionarEquipos.
+        // Operador autenticado: el equipo propio es del participante, y el rol es quien lo concede.
         var client = _factory.CreateClientAs("Operador", Guid.NewGuid());
 
         var response = await client.GetAsync("identity/teams/mine");

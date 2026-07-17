@@ -44,4 +44,72 @@ public class AutorizacionContractTests : IClassFixture<PuntuacionesWebFactory>
 
         Assert.Equal(HttpStatusCode.OK, response.StatusCode);
     }
+
+    // Privilegio-sin-rol: EquiposController y HistorialController exigen solo el privilegio. El rol
+    // base ya no participa — sin él, cualquier rol (incluido Administrador) es 403; con él,
+    // cualquier rol (incluido Participante) pasa.
+
+    [Fact]
+    public async Task Equipos_rendimiento_sin_privilegio_es_403()
+    {
+        var client = _factory.CreateClientConRoles("Administrador");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Equipos_rendimiento_Participante_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Participante", "GestionarEquipos");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Equipos_rendimiento_Operador_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador", "GestionarEquipos");
+
+        var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_sin_privilegio_es_403()
+    {
+        var client = _factory.CreateClientConRoles("Administrador");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_Participante_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Participante", "GestionarPartidas");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task Historial_Operador_con_privilegio_no_es_401_ni_403()
+    {
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
+
+        var response = await client.GetAsync($"/puntuaciones/partidas/{Guid.NewGuid()}/historial");
+
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

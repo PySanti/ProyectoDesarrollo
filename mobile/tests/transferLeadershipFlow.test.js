@@ -2,29 +2,72 @@ import test from "node:test";
 import assert from "node:assert/strict";
 import {
   getEligibleLeaderMembers,
+  getParticipantesForTransfer,
   submitTransferLeadership,
-  validateNewLeaderUserId,
 } from "../src/features/teams/transferLeadershipFlow.js";
 
+const leaderUserId = "11111111-1111-1111-1111-111111111111";
 const targetUserId = "22222222-2222-2222-2222-222222222222";
-
-test("validateNewLeaderUserId should reject invalid ids", () => {
-  const result = validateNewLeaderUserId("not-a-guid");
-
-  assert.equal(result.ok, false);
-  assert.equal(result.type, "validation");
-});
 
 test("getEligibleLeaderMembers should exclude current leader", () => {
   const members = [
-    { userId: "11111111-1111-1111-1111-111111111111", nombre: "Lider", esLider: true },
-    { userId: targetUserId, nombre: "Nuevo lider", esLider: false },
+    { usuarioId: leaderUserId, nombre: "Lider", esLider: true },
+    { usuarioId: targetUserId, nombre: "Nuevo lider", esLider: false },
   ];
 
-  const result = getEligibleLeaderMembers(members, "11111111-1111-1111-1111-111111111111");
+  const result = getEligibleLeaderMembers(members, leaderUserId);
 
   assert.equal(result.length, 1);
-  assert.equal(result[0].userId, targetUserId);
+  assert.equal(result[0].usuarioId, targetUserId);
+});
+
+test("getEligibleLeaderMembers should return empty when leader is the only member", () => {
+  const members = [{ usuarioId: leaderUserId, nombre: "Lider", esLider: true }];
+
+  const result = getEligibleLeaderMembers(members, leaderUserId);
+
+  assert.equal(result.length, 0);
+});
+
+test("getEligibleLeaderMembers should exclude a leader whose id differs from currentLeaderUserId", () => {
+  // Regression guard for the `esLider` clause: two members could satisfy the id-inequality
+  // check alone, so this asserts esLider is what actually hides the real leader here.
+  const members = [
+    { usuarioId: targetUserId, nombre: "Otro lider", esLider: true },
+    { usuarioId: "33333333-3333-3333-3333-333333333333", nombre: "Miembro", esLider: false },
+  ];
+
+  const result = getEligibleLeaderMembers(members, leaderUserId);
+
+  assert.equal(result.length, 1);
+  assert.equal(result[0].usuarioId, "33333333-3333-3333-3333-333333333333");
+});
+
+test("getParticipantesForTransfer should return participantes when status is lider", () => {
+  const participantes = [
+    { usuarioId: leaderUserId, nombre: "Lider", esLider: true },
+    { usuarioId: targetUserId, nombre: "Nuevo lider", esLider: false },
+  ];
+
+  const result = getParticipantesForTransfer({ ok: true, status: "lider", participantes });
+
+  assert.deepEqual(result, participantes);
+});
+
+test("getParticipantesForTransfer should return empty when status is miembro", () => {
+  // Regression guard: a non-leader (e.g. after transferring leadership away) must never see
+  // eligible rows, even though the team roster the backend returns is non-empty.
+  const participantes = [{ usuarioId: targetUserId, nombre: "Otro", esLider: false }];
+
+  const result = getParticipantesForTransfer({ ok: true, status: "miembro", participantes });
+
+  assert.deepEqual(result, []);
+});
+
+test("getParticipantesForTransfer should return empty when result is not ok", () => {
+  const result = getParticipantesForTransfer({ ok: false, type: "network" });
+
+  assert.deepEqual(result, []);
 });
 
 test("submitTransferLeadership should call PATCH leadership endpoint", async () => {
@@ -42,7 +85,7 @@ test("submitTransferLeadership should call PATCH leadership endpoint", async () 
         status: 200,
         json: async () => ({
           equipoId: "33333333-3333-3333-3333-333333333333",
-          liderAnteriorUserId: "11111111-1111-1111-1111-111111111111",
+          liderAnteriorUserId: leaderUserId,
           nuevoLiderUserId: targetUserId,
           equipoEstado: "Activo",
         }),
@@ -72,4 +115,26 @@ test("submitTransferLeadership should map 404 and 409 errors", async () => {
 
   assert.equal(notFound.type, "notFound");
   assert.equal(conflict.type, "conflict");
+});
+
+test("submitTransferLeadership should map HTTP statuses to the exact user-facing messages", async () => {
+  const statusToMessage = {
+    400: "Selecciona un nuevo lider valido.",
+    401: "Sesion expirada o no autorizada.",
+    403: "Debes tener rol Participante para transferir liderazgo.",
+    404: "No perteneces a ningun equipo activo.",
+    409: "No se pudo transferir el liderazgo. Verifica que seas lider y que el nuevo lider pertenezca al equipo.",
+    500: "No se pudo transferir el liderazgo.",
+  };
+
+  for (const [status, message] of Object.entries(statusToMessage)) {
+    const result = await submitTransferLeadership({
+      apiBaseUrl: "https://api.test",
+      token: "token",
+      nuevoLiderUserId: targetUserId,
+      fetchImpl: async () => ({ ok: false, status: Number(status) }),
+    });
+
+    assert.equal(result.message, message, `status ${status}`);
+  }
 });

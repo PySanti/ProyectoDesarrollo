@@ -71,6 +71,9 @@ public sealed class GetInvitacionesRecibidasQueryHandlerTests
 
     private sealed class FakeInvitacionEquipoRepository : IInvitacionEquipoRepository
     {
+        public Task<IReadOnlyCollection<Guid>> GetInvitadoUserIdsPendientesByEquipoAsync(Guid equipoId, CancellationToken ct)
+            => Task.FromResult<IReadOnlyCollection<Guid>>(Array.Empty<Guid>());
+
         public List<InvitacionEquipo> PendientesToReturn { get; set; } = new();
 
         public Task AddAsync(InvitacionEquipo invitacion, CancellationToken ct)

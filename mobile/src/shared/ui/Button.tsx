@@ -1,6 +1,6 @@
 import React, { useRef, useState } from 'react';
-import { ActivityIndicator, Animated, GestureResponderEvent, Pressable, StyleSheet, ViewStyle } from 'react-native';
-import { colors, game, radius, spacing } from '../theme';
+import { ActivityIndicator, Animated, GestureResponderEvent, Pressable, StyleSheet, Text, View, ViewStyle } from 'react-native';
+import { colors, fonts, game, radius, spacing } from '../theme';
 import { useReducedMotion } from '../useReducedMotion';
 import { AppText } from './AppText';
 import { Icon, IconName } from './Icon';
@@ -15,6 +15,8 @@ interface Props {
   loading?: boolean;
   /** Ícono de línea a la izquierda del label. */
   icon?: IconName;
+  /** Conteo opcional anclado a la derecha del botón (p. ej. invitaciones pendientes). Se oculta si es 0. */
+  badgeCount?: number;
   /** Tratamiento para usarse sobre un `Stage` de color (relleno blanco / contornos claros). */
   onStage?: boolean;
   style?: ViewStyle;
@@ -33,12 +35,15 @@ export function Button({
   disabled,
   loading,
   icon,
+  badgeCount,
   onStage,
   style,
   testID,
   accessibilityLabel,
 }: Props) {
   const isDisabled = !!disabled || !!loading;
+  const showBadge = typeof badgeCount === 'number' && badgeCount > 0;
+  const badgeText = showBadge ? (badgeCount > 99 ? '99+' : String(badgeCount)) : '';
   const [pressed, setPressed] = useState(false);
   const scale = useRef(new Animated.Value(1)).current;
   const reduced = useReducedMotion();
@@ -61,7 +66,7 @@ export function Button({
     <Pressable
       testID={testID}
       accessibilityRole="button"
-      accessibilityLabel={accessibilityLabel ?? label}
+      accessibilityLabel={accessibilityLabel ?? (showBadge ? `${label}, ${badgeCount} pendientes` : label)}
       accessibilityState={{ disabled: isDisabled, busy: !!loading }}
       onPress={onPress}
       onPressIn={handleIn}
@@ -77,6 +82,13 @@ export function Button({
             <AppText variant="label" color={fg}>
               {label}
             </AppText>
+            {showBadge ? (
+              <View style={styles.badgeWrap} pointerEvents="none">
+                <View style={styles.badge}>
+                  <Text style={styles.badgeText}>{badgeText}</Text>
+                </View>
+              </View>
+            ) : null}
           </>
         )}
       </Animated.View>
@@ -147,5 +159,31 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     gap: spacing.sm,
+  },
+  // Envoltura de alto completo para centrar verticalmente el pill sin cálculos de offset.
+  badgeWrap: {
+    position: 'absolute',
+    right: spacing.md,
+    top: 0,
+    bottom: 0,
+    justifyContent: 'center',
+  },
+  // Pill blanco con número magenta: contrasta sobre el botón primario magenta y sobre el secondary claro.
+  badge: {
+    minWidth: 22,
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.white,
+    borderWidth: 1,
+    borderColor: colors.lineStrong,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  badgeText: {
+    fontFamily: fonts.bold,
+    fontSize: 12,
+    lineHeight: 16,
+    color: colors.primaryStrong,
   },
 });

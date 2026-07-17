@@ -11,10 +11,15 @@ public sealed class TestAuthHandler : AuthenticationHandler<AuthenticationScheme
 {
     public const string SchemeName = "Test";
 
+    // Espeja lo que el token lleva de verdad: el composite fijo del realm
+    // (Participante -> ParticiparEnPartidas) más los privilegios gobernables que el reconciliador
+    // empuja desde los defaults de permisos_rol (Operador -> GestionarPartidas).
+    // El Participante ya NO trae GestionarEquipos: su default es ninguno, y su equipo propio
+    // depende del rol, no del privilegio.
     private static readonly Dictionary<string, string[]> ComposedPermissions = new(StringComparer.OrdinalIgnoreCase)
     {
         ["Operador"] = ["GestionarPartidas"],
-        ["Participante"] = ["GestionarEquipos", "ParticiparEnPartidas"]
+        ["Participante"] = ["ParticiparEnPartidas"]
     };
 
     public TestAuthHandler(

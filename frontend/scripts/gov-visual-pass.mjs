@@ -1,11 +1,11 @@
 // Visual-pass harness for the Gobernanza surface (SP-5c) + role-change modal.
-// Headless login as admin/admin, navigate, screenshot at desktop + mobile widths.
+// Headless login as admin/admin123, navigate, screenshot at desktop + mobile widths.
 // Output dir via SHOT_DIR env (absolute). Read-only against the running app.
 import { chromium } from 'playwright';
 
 const baseUrl = process.env.APP_URL ?? 'http://localhost:5173';
 const username = process.env.GOV_USER ?? 'admin';
-const password = process.env.GOV_PASS ?? 'admin';
+const password = process.env.GOV_PASS ?? 'admin123';
 const shotDir = process.env.SHOT_DIR ?? '.';
 
 // Playwright's bundled headless-shell build can mismatch the cache; use system chrome.

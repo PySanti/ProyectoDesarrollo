@@ -35,7 +35,7 @@ export function InvitationsScreen({ apiBaseUrl, token, onAccepted, onRejected }:
       setErrorMessage(result.message ?? "No se pudieron cargar las invitaciones.");
       return;
     }
-    setInvitations((result.data as Invitation[]).filter((inv) => inv.estado === "Pendiente"));
+    setInvitations(result.data as Invitation[]);
   }, [apiBaseUrl, token]);
 
   useEffect(() => {

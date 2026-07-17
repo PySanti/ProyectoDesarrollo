@@ -59,6 +59,10 @@ public sealed class PartidasController : ControllerBase
         return CreatedAtAction(nameof(GetPartida), new { partidaId }, response);
     }
 
+    // Task 5: sin AND aquí — el gateway ya restringe /partidas/{**catch-all} a OperadorOAdministrador
+    // y el único caller interno (Operaciones→Publicar) reenvía el bearer de quien ya tiene
+    // GestionarPartidas (SP-3a §12), así que el servicio no expone otra vía de acceso.
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpGet("{partidaId:guid}")]
     public async Task<IActionResult> GetPartida(Guid partidaId, CancellationToken cancellationToken)
     {
@@ -66,6 +70,7 @@ public sealed class PartidasController : ControllerBase
         return Ok(result);
     }
 
+    [Authorize(Policy = "GestionarPartidas")]
     [HttpGet]
     public async Task<IActionResult> ListPartidas(CancellationToken cancellationToken)
     {

@@ -129,7 +129,9 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<PuntuacionesWebFact
         await SembrarPartidaEquipoTerminada(ganada, equipo, rival, 20, 10, new DateTime(2026, 7, 1, 12, 0, 0, DateTimeKind.Utc));
         await SembrarPartidaEquipoTerminada(perdida, rival, equipo, 30, 5, new DateTime(2026, 7, 4, 12, 0, 0, DateTimeKind.Utc));
 
-        var client = _factory.CreateClientAutenticado();
+        // EquiposController ahora exige rol AND privilegio (Task 5); Administrador trae
+        // GestionarEquipos por default.
+        var client = _factory.CreateClientConRoles("Administrador", "GestionarEquipos");
         var response = await client.GetAsync($"/puntuaciones/equipos/{equipo}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 
@@ -148,7 +150,7 @@ public class ConsolidadoYRendimientoE2ETests : IClassFixture<PuntuacionesWebFact
     [Fact]
     public async Task Rendimiento_de_equipo_sin_participaciones_devuelve_lista_vacia()
     {
-        var client = _factory.CreateClientAutenticado();
+        var client = _factory.CreateClientConRoles("Administrador", "GestionarEquipos");
 
         var response = await client.GetAsync($"/puntuaciones/equipos/{Guid.NewGuid()}/rendimiento");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());

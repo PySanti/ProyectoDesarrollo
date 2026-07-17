@@ -59,8 +59,25 @@ public sealed class ExceptionHandlingMiddleware
             _logger.LogError(exception, "Unhandled exception.");
         }
 
+        // El detalle crudo de Keycloak no le sirve al cliente y puede filtrar internals: se loguea
+        // para diagnostico y se responde con un mensaje entendible. Con la validacion TextoHumano
+        // un nombre invalido ya no llega hasta aca, pero esto cubre fallos reales de integracion.
+        var clientMessage = exception.Message;
+        if (exception is KeycloakIntegrationException)
+        {
+            _logger.LogError(exception, "Keycloak integration failure.");
+            clientMessage = "No se pudo completar la operacion con el proveedor de identidad. Intenta nuevamente.";
+        }
+
         context.Response.ContentType = "application/json";
         context.Response.StatusCode = (int)status;
-        await context.Response.WriteAsync(JsonSerializer.Serialize(new { message = exception.Message }));
+        // `code` es el discriminador estable (nombre del tipo de excepcion): varios casos comparten
+        // el mismo status (p. ej. todos los 409), y el cliente necesita distinguirlos para dar un
+        // mensaje concreto sin depender del texto crudo (que trae GUIDs internos).
+        await context.Response.WriteAsync(JsonSerializer.Serialize(new
+        {
+            code = exception.GetType().Name,
+            message = clientMessage
+        }));
     }
 }

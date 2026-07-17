@@ -15,8 +15,8 @@ Sesión) + normalizador `KeycloakRoleClaims`. `FallbackPolicy = RequireAuthentic
 | `POST /partidas` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
 | `POST /partidas/{partidaId}/juegos/trivia` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
 | `POST /partidas/{partidaId}/juegos/bdt` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
-| `GET /partidas/{partidaId}` | Autenticado (cualquier rol) | 401 sin token; sin requisito de permiso — Operaciones de Sesión reenvía el bearer del **participante** llamante en el handoff de config interno (SP-3a §12); debe seguir pasando con ese token |
-| `GET /partidas` | Autenticado (cualquier rol) | 401 sin token |
+| `GET /partidas/{partidaId}` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso — el handoff de config interno (SP-3a §12) reenvía el bearer del **operador/administrador** que publicó la partida (`SesionesController.Publicar`, que ya exige `GestionarPartidas`), no el del participante |
+| `GET /partidas` | Policy `GestionarPartidas` | 401 sin token · 403 sin el permiso |
 | `GET /health` | Anónimo | sin auth |
 
 ## POST /partidas

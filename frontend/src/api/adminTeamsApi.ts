@@ -15,13 +15,13 @@ export interface AdminTeam {
   integrantes: AdminTeamMember[];
 }
 
-/** Resultado de eliminar un equipo, con el desenlace de la notificación a los integrantes. */
+/**
+ * Resultado de eliminar un equipo. No reporta el desenlace de la notificación a los integrantes:
+ * el correo lo envía Identity de forma asíncrona (RabbitMQ), fuera de este request.
+ */
 export interface DeleteAdminTeamResult {
   equipoId: string;
   nombreEquipo: string;
-  integrantesTotal: number;
-  integrantesNotificados: number;
-  servidorCorreoRespondio: boolean;
 }
 
 export interface CreateAdminTeamRequest {

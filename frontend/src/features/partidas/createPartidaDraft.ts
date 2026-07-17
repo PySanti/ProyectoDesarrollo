@@ -101,6 +101,8 @@ export function validateHeader(header: HeaderDraft): string[] {
 
   if (!header.nombrePartida.trim()) {
     errors.push("El nombre de la partida es obligatorio.");
+  } else if (!/\p{L}/u.test(header.nombrePartida)) {
+    errors.push("El nombre de la partida debe contener al menos una letra.");
   }
 
   const min = Number(header.minimosParticipacion);
@@ -174,6 +176,8 @@ export function validateJuego(juego: JuegoDraft): string[] {
   const errors: string[] = [];
   if (!juego.areaBusqueda.trim()) {
     errors.push("El area de busqueda es obligatoria.");
+  } else if (!/\p{L}/u.test(juego.areaBusqueda)) {
+    errors.push("El area de busqueda debe contener al menos una letra.");
   }
   if (juego.etapas.length === 0) {
     errors.push("El juego de busqueda del tesoro debe tener al menos una etapa.");

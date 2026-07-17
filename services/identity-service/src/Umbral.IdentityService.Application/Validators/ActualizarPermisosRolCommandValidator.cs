@@ -15,7 +15,8 @@ public sealed class ActualizarPermisosRolCommandValidator : AbstractValidator<Ac
         RuleFor(c => c.Permisos).NotNull();
 
         RuleForEach(c => c.Permisos)
-            .Must(p => Enum.TryParse<PermisoFuncional>(p, ignoreCase: false, out _))
-            .WithMessage("Permiso inválido: debe ser GestionarPartidas, GestionarEquipos o ParticiparEnPartidas.");
+            .Must(p => Enum.TryParse<PermisoFuncional>(p, ignoreCase: false, out var permiso)
+                       && PermisosGobernables.Todos.Contains(permiso))
+            .WithMessage("Permiso inválido: el panel solo gobierna GestionarPartidas y GestionarEquipos.");
     }
 }

@@ -7,8 +7,10 @@ using System.Threading.Tasks;
 namespace Umbral.Partidas.ContractTests;
 
 /// <summary>
-/// SP-5a: mutaciones de configuración exigen GestionarPartidas; GET /partidas/{id}
-/// solo exige autenticación (Operaciones reenvía el token del participante — SP-3a §12).
+/// SP-5a / Task-5: toda mutación y toda lectura de configuración exigen GestionarPartidas.
+/// GET ya no queda abierto a cualquier autenticado: el único caller interno (Operaciones→Publicar,
+/// SP-3a §12) reenvía el bearer de quien ya tiene GestionarPartidas, así que cerrar el GET no rompe
+/// ese flujo — ver el comentario sobre <c>GetPartida</c> en <c>PartidasController</c>.
 /// </summary>
 public class AutorizacionContractTests : IClassFixture<PartidasWebFactory>
 {
@@ -30,24 +32,27 @@ public class AutorizacionContractTests : IClassFixture<PartidasWebFactory>
     [InlineData("POST", "/partidas")]
     [InlineData("POST", "/partidas/{id}/juegos/trivia")]
     [InlineData("POST", "/partidas/{id}/juegos/bdt")]
-    public async Task Mutacion_sin_GestionarPartidas_es_403(string method, string template)
+    [InlineData("GET", "/partidas/{id}")]
+    [InlineData("GET", "/partidas")]
+    public async Task Endpoint_sin_GestionarPartidas_es_403(string method, string template)
     {
         var client = _factory.CreateClientAs(Guid.NewGuid(), "ParticiparEnPartidas");
         var url = template.Replace("{id}", Guid.NewGuid().ToString());
-
-        var response = await client.SendAsync(new HttpRequestMessage(new HttpMethod(method), url)
+        var request = new HttpRequestMessage(new HttpMethod(method), url);
+        if (method == "POST")
         {
-            Content = JsonContent.Create(new { })
-        });
+            request.Content = JsonContent.Create(new { });
+        }
+
+        var response = await client.SendAsync(request);
 
         Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
     }
 
     [Fact]
-    public async Task Get_partida_con_token_de_participante_pasa()
+    public async Task Get_partida_con_GestionarPartidas_pasa()
     {
-        // Pin de la llamada interna Operaciones→Partidas con el bearer del participante.
-        var client = _factory.CreateClientAs(Guid.NewGuid(), "ParticiparEnPartidas");
+        var client = _factory.CreateClientAs(Guid.NewGuid(), "GestionarPartidas");
 
         var response = await client.GetAsync($"/partidas/{Guid.NewGuid()}");
 

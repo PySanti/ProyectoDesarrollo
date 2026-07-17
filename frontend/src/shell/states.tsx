@@ -76,12 +76,11 @@ export function UnauthorizedScreen({
     <div className="sh-state">
       <div className="sh-state__card" role="alert">
         <Lock className="sh-state__icon" style={{ color: "var(--danger)" }} />
-        <h1 style={{ color: "var(--danger)" }}>
-          El panel web es exclusivo para administradores y operadores
-        </h1>
+        <h1 style={{ color: "var(--danger)" }}>Esta cuenta no tiene ningún panel disponible</h1>
         <p className="muted">
-          La cuenta <strong>{username}</strong> no tiene rol Administrador u Operador. Usa la app
-          móvil para participar en las partidas.
+          La cuenta <strong>{username}</strong> no tiene ningún privilegio de gestión asignado.
+          Pedile a un administrador que te asigne «Gestionar partidas» o «Gestionar equipos», o usa
+          la app móvil para jugar.
         </p>
         {onLogout ? (
           <button type="button" onClick={onLogout}>

@@ -8,6 +8,9 @@
   "defaultLocale": "es",
   "sslRequired": "none",
   "registrationAllowed": false,
+  "loginWithEmailAllowed": true,
+  "editUsernameAllowed": true,
+  "passwordPolicy": "length(8)",
   "roles": {
     "realm": [
       {
@@ -16,15 +19,13 @@
       },
       {
         "name": "Operador",
-        "description": "Crea y supervisa partidas de Trivia y BDT.",
-        "composite": true,
-        "composites": { "realm": ["GestionarPartidas"] }
+        "description": "Crea y supervisa partidas de Trivia y BDT."
       },
       {
         "name": "Participante",
         "description": "Juega Trivia y BDT desde la app móvil.",
         "composite": true,
-        "composites": { "realm": ["GestionarEquipos", "ParticiparEnPartidas"] }
+        "composites": { "realm": ["ParticiparEnPartidas"] }
       },
       {
         "name": "GestionarPartidas",
@@ -115,7 +116,7 @@
       "email": "admin@umbral.local",
       "firstName": "Admin",
       "lastName": "UMBRAL",
-      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
       "realmRoles": ["default-roles-umbral-ucab", "Administrador"]
     },
     {

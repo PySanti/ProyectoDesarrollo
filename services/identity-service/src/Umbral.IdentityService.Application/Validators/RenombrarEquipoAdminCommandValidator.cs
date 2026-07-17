@@ -11,7 +11,7 @@ public sealed class RenombrarEquipoAdminCommandValidator : AbstractValidator<Ren
             .NotEmpty();
 
         RuleFor(x => x.NombreEquipo)
-            .NotEmpty()
-            .MaximumLength(120);
+            .Cascade(CascadeMode.Stop)
+            .TextoHumano(120);
     }
 }

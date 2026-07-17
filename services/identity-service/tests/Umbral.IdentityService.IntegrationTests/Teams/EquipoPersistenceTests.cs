@@ -245,4 +245,44 @@ public sealed class EquipoPersistenceTests
         Assert.Contains(persistedB.Participantes, p => p.UsuarioId == liderBId);
         Assert.Contains(persistedB.Participantes, p => p.UsuarioId == miembroBId);
     }
+
+    /// <summary>
+    /// Regression test: a leader who deletes their team (EliminarPorLider, with
+    /// other members still in it) must be free to create a brand-new team
+    /// afterwards. Before the fix, EliminarPorLider/EliminarPorAdmin left the
+    /// old equipos_participantes rows in place, and the unique index on
+    /// usuarioid rejected the new team's insert with a false
+    /// "already belongs to a team" error.
+    /// </summary>
+    [Fact]
+    public async Task Leader_Can_Create_New_Team_After_Deleting_Previous_One()
+    {
+        await using var dbContext = CreateInMemoryDbContext();
+        var repository = new EquipoRepository(dbContext);
+
+        var liderUserId = Guid.NewGuid();
+        var miembroUserId = Guid.NewGuid();
+
+        var equipoViejo = Umbral.IdentityService.Domain.Entities.Equipo.CrearPorParticipante("Equipo Viejo", liderUserId);
+        equipoViejo.AgregarParticipante(miembroUserId);
+        await repository.AddAsync(equipoViejo, CancellationToken.None);
+
+        equipoViejo.EliminarPorLider(liderUserId);
+        await repository.UpdateAsync(equipoViejo, CancellationToken.None);
+
+        var existeActivo = await repository.ExistsActiveTeamByUserIdAsync(liderUserId, CancellationToken.None);
+        Assert.False(existeActivo);
+
+        var equipoNuevo = Umbral.IdentityService.Domain.Entities.Equipo.CrearPorParticipante("Equipo Nuevo", liderUserId);
+        await repository.AddAsync(equipoNuevo, CancellationToken.None);
+
+        var persisted = await dbContext.Equipos
+            .Include(e => e.Participantes)
+            .FirstOrDefaultAsync(e => e.EquipoId == equipoNuevo.EquipoId);
+
+        Assert.NotNull(persisted);
+        Assert.Equal(EstadoEquipo.Activo, persisted.Estado);
+        Assert.Single(persisted.Participantes);
+        Assert.Equal(liderUserId, persisted.Participantes.Single().UsuarioId);
+    }
 }

@@ -37,7 +37,9 @@ public class HistorialE2ETests : IClassFixture<PuntuacionesWebFactory>
         await RegistrarHistorial(partidaId, "PartidaPublicadaEnLobby", Ahora);
         await RegistrarHistorial(partidaId, "EtapaBDTGanada", Ahora.AddMinutes(2), detalle: """{"puntaje":10}""");
 
-        var client = _factory.CreateClientConRoles("Operador");
+        // HistorialController ahora exige rol AND privilegio (Task 5); Operador trae
+        // GestionarPartidas por default.
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
 
         var completo = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/historial");
         using var jsonCompleto = JsonDocument.Parse(await completo.Content.ReadAsStringAsync());
@@ -70,7 +72,9 @@ public class HistorialE2ETests : IClassFixture<PuntuacionesWebFactory>
         await RegistrarHistorial(partidaId, "UbicacionActualizada", Ahora.AddSeconds(30), participanteId);   // descartada
         await RegistrarHistorial(partidaId, "UbicacionActualizada", Ahora.AddSeconds(90), participanteId);   // guardada
 
-        var client = _factory.CreateClientConRoles("Administrador");
+        // Administrador solo, sin GestionarPartidas, ya no pasaría; el rol de operación que trae
+        // ese privilegio por default es Operador.
+        var client = _factory.CreateClientConRoles("Operador", "GestionarPartidas");
         var response = await client.GetAsync($"/puntuaciones/partidas/{partidaId}/historial?tipo=UbicacionActualizada");
         using var json = JsonDocument.Parse(await response.Content.ReadAsStringAsync());
 

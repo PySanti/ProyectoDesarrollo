@@ -4,7 +4,7 @@ import { authProvider, AuthUser } from "../auth/keycloak";
 import { useSessionRefresh } from "../auth/useSessionRefresh";
 import { SessionExpiryModal } from "../auth/SessionExpiryModal";
 import { AppShell } from "../shell/AppShell";
-import { landingPath } from "../shell/navConfig";
+import { areasForRoles, landingPath } from "../shell/navConfig";
 import {
   AuthErrorScreen,
   LoadingScreen,
@@ -30,19 +30,21 @@ type AuthState =
   | { status: "unauthenticated" }
   | { status: "ready"; user: AuthUser };
 
-function RequireRole({
-  roles,
+/* Guardia de ruta: `have` son las credenciales del usuario (roles base o privilegios funcionales) y
+   `need` las que la ruta exige. Basta una coincidencia. */
+function Require({
+  have,
   need,
   landing,
   children
 }: {
-  roles: string[];
+  have: string[];
   need: string | readonly string[];
   landing: string;
   children: JSX.Element;
 }) {
-  const allowedRoles = typeof need === "string" ? [need] : need;
-  return roles.some((role) => allowedRoles.includes(role)) ? (
+  const allowed = typeof need === "string" ? [need] : need;
+  return have.some((credencial) => allowed.includes(credencial)) ? (
     children
   ) : (
     <Navigate to={landing} replace />
@@ -56,10 +58,7 @@ export function App() {
   const sesionExpiradaKey = "umbral.sesion.expirada";
   const { modalVisible, continuar } = useSessionRefresh({
     enabled: authState.status === "ready",
-    onToken: (token) =>
-      setAuthState((prev) =>
-        prev.status === "ready" ? { status: "ready", user: { ...prev.user, token } } : prev
-      ),
+    onUsuario: (user) => setAuthState({ status: "ready", user }),
     onExpired: () => {
       // El logout de Keycloak recarga la página: el aviso sobrevive en sessionStorage.
       window.sessionStorage.setItem(sesionExpiradaKey, "1");
@@ -105,103 +104,104 @@ export function App() {
       return null;
     }
 
-    const { user } = authState;
-    const roles = user.roles;
-    const token = user.token;
-    const landing = landingPath(roles);
-    const puedeOperar = roles.includes("Operador");
+    const { roles, permisos, token, username } = authState.user;
+    const landing = landingPath(roles, permisos) ?? "/";
+    /* El área Partidas exige el privilegio, así que dentro de ella siempre se puede operar. */
+    const puedeOperar = permisos.includes("GestionarPartidas");
 
     return createBrowserRouter([
       {
-        element: <AppShell roles={roles} userName={user.username} onLogout={onLogout} />,
+        element: <AppShell roles={roles} permisos={permisos} userName={username} onLogout={onLogout} />,
         children: [
           { index: true, element: <Navigate to={landing} replace /> },
           {
             path: "identidad/usuarios",
             element: (
-              <RequireRole roles={roles} need="Administrador" landing={landing}>
+              <Require have={roles} need="Administrador" landing={landing}>
                 <UserManagementPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "identidad/usuarios/nuevo",
             element: (
-              <RequireRole roles={roles} need="Administrador" landing={landing}>
+              <Require have={roles} need="Administrador" landing={landing}>
                 <CreateUserPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "identidad/gobernanza",
             element: (
-              <RequireRole roles={roles} need="Administrador" landing={landing}>
+              <Require have={roles} need="Administrador" landing={landing}>
                 <GovernancePage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
+            // Sólo el privilegio: el rol no veta. Igual que «equipos» y «puntuaciones/equipos»
+            // más abajo (D6, gobernanza).
             path: "identidad/equipos",
             element: (
-              <RequireRole roles={roles} need="Administrador" landing={landing}>
+              <Require have={permisos} need="GestionarEquipos" landing={landing}>
                 <TeamsAdminPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "partidas",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarPartidas" landing={landing}>
                 <PartidasListPage accessToken={token} puedeOperar={puedeOperar} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "partidas/crear",
             element: (
-              <RequireRole roles={roles} need="Operador" landing={landing}>
+              <Require have={permisos} need="GestionarPartidas" landing={landing}>
                 <CreatePartidaPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "partidas/:partidaId",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarPartidas" landing={landing}>
                 <PartidaDetailPage accessToken={token} puedeOperar={puedeOperar} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "partidas/:partidaId/sesion",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarPartidas" landing={landing}>
                 <SesionOperadorPage accessToken={token} puedeOperar={puedeOperar} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "partidas/:partidaId/historial",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarPartidas" landing={landing}>
                 <HistorialPartidaPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "puntuaciones/equipos",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarEquipos" landing={landing}>
                 <RendimientoEquipoPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           {
             path: "equipos",
             element: (
-              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+              <Require have={permisos} need="GestionarEquipos" landing={landing}>
                 <EquiposPage accessToken={token} />
-              </RequireRole>
+              </Require>
             )
           },
           { path: "*", element: <NotFoundScreen /> }
@@ -242,8 +242,11 @@ export function App() {
     );
   }
 
-  const roles = authState.user.roles;
-  if (!roles.includes("Administrador") && !roles.includes("Operador")) {
+  const { roles, permisos } = authState.user;
+  /* Sin ningún área no hay dónde aterrizar: cubre al participante que entra a la web (ningún área
+     es suya) y al operador al que le retiraron los privilegios. Sin esto, el landing sería null y
+     el index redirigiría a la nada. */
+  if (areasForRoles(roles, permisos).length === 0) {
     return <UnauthorizedScreen username={authState.user.username} onLogout={onLogout} />;
   }
 
