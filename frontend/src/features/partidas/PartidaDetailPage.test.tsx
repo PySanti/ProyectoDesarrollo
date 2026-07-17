@@ -73,7 +73,7 @@ const detail: PartidaDetail = {
           {
             etapaBDTId: "e1",
             orden: 1,
-            codigoQREsperado: "TESORO-1",
+            codigoQREsperado: "11111111-1111-1111-1111-111111111111",
             puntajeAsignado: 50,
             tiempoLimiteSegundos: 60
           }
@@ -124,7 +124,7 @@ describe("PartidaDetailPage", () => {
     expect(within(juego1).getByText("Correcta")).toBeInTheDocument();
 
     expect(within(juego2).getByText("Plaza central")).toBeInTheDocument();
-    expect(within(juego2).getByText("TESORO-1")).toBeInTheDocument();
+    expect(within(juego2).getByText("11111111-1111-1111-1111-111111111111")).toBeInTheDocument();
 
     // juego-1 (Trivia) debe aparecer antes que juego-2 (BDT) pese a venir en otro orden en la respuesta.
     const orderedTestIds = screen
@@ -179,5 +179,24 @@ describe("PartidaDetailPage", () => {
 
     expect(await screen.findByText(/historial de eventos/i)).toBeInTheDocument();
     expect(screen.queryByTestId("btn-publicar-operar")).toBeNull();
+  });
+
+  it("muestra el QR de cada etapa para reimprimirlo", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+
+    expect(await screen.findByRole("img", { name: /qr del tesoro de la etapa 1/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /descargar qr etapa 1/i })).toHaveAttribute(
+      "download",
+      "tesoro-etapa-1.png"
+    );
+  });
+
+  it("no ofrece regenerar el QR", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+    await screen.findByRole("img", { name: /qr del tesoro de la etapa 1/i });
+
+    expect(screen.queryByRole("button", { name: /regenerar/i })).not.toBeInTheDocument();
   });
 });
