@@ -218,12 +218,16 @@ describe("PartidaDetailPage", () => {
     const juego2 = await screen.findByTestId("juego-2");
     const juego3 = screen.getByTestId("juego-3");
 
+    // Los codigos del fixture ("11111111-..." y "22222222-...") difieren, y el nombre de
+    // archivo debe incluir el prefijo de cada uno: es lo que garantiza que dos etapas con el
+    // mismo juego+etapa (p.ej. tras un reordenamiento en el wizard antes de crear la partida)
+    // nunca produzcan el mismo archivo, sin depender de que la posicion se mantenga estable.
     expect(
       await within(juego2).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i })
     ).toBeInTheDocument();
     expect(within(juego2).getByRole("link", { name: /descargar qr etapa 1/i })).toHaveAttribute(
       "download",
-      "tesoro-juego-2-etapa-1.png"
+      "tesoro-juego-2-etapa-1-11111111.png"
     );
 
     expect(
@@ -231,7 +235,7 @@ describe("PartidaDetailPage", () => {
     ).toBeInTheDocument();
     expect(within(juego3).getByRole("link", { name: /descargar qr etapa 1/i })).toHaveAttribute(
       "download",
-      "tesoro-juego-3-etapa-1.png"
+      "tesoro-juego-3-etapa-1-22222222.png"
     );
   });
 

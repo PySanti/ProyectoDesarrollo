@@ -753,7 +753,7 @@ function BdtEditor({
                     />
                     <a
                       href={qrDataUrls[etapa.codigoQREsperado]}
-                      download={nombreArchivoQr(juegoIndex + 1, n)}
+                      download={nombreArchivoQr(juegoIndex + 1, n, etapa.codigoQREsperado)}
                     >
                       Descargar QR etapa {n}
                     </a>

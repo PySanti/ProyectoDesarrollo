@@ -267,7 +267,7 @@ function BdtView({
                       />
                       <a
                         href={qrDataUrls[etapa.etapaBDTId]}
-                        download={nombreArchivoQr(juegoOrden, etapa.orden)}
+                        download={nombreArchivoQr(juegoOrden, etapa.orden, etapa.codigoQREsperado)}
                       >
                         Descargar QR etapa {etapa.orden}
                       </a>

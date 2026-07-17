@@ -17,6 +17,15 @@ export function renderizarQrDataUrl(codigo: string): Promise<string> {
 // sin tope), y cada uno numera sus propias etapas desde 1. Si el nombre solo mirara el orden
 // de la etapa, "juego 2 etapa 1" y "juego 3 etapa 1" colisionarian en el mismo archivo pese a
 // ser tesoros distintos.
-export function nombreArchivoQr(juegoOrden: number, etapaOrden: number): string {
-  return `tesoro-juego-${juegoOrden}-etapa-${etapaOrden}.png`;
+//
+// Ademas la posicion (juegoOrden) es MUTABLE: el wizard permite subir/bajar juegos, asi que
+// un archivo ya descargado/impreso queda con el nombre congelado (el atributo `download` solo
+// se lee al hacer click), pero el mismo juego puede terminar en otra posicion tras reordenar y
+// enviar. Por eso juego+etapa sirven solo de pista legible y pueden quedar desactualizados; lo
+// que garantiza unicidad *por construccion* es el prefijo del propio codigo de la etapa (unico
+// por regla de dominio). Solo se rebana para el nombre de archivo: el codigo en si nunca se
+// transforma en ningun otro lugar (se guarda, se envia y se codifica en el QR literal).
+export function nombreArchivoQr(juegoOrden: number, etapaOrden: number, codigo: string): string {
+  const prefijoCodigo = codigo.split("-")[0];
+  return `tesoro-juego-${juegoOrden}-etapa-${etapaOrden}-${prefijoCodigo}.png`;
 }

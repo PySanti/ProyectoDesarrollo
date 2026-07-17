@@ -167,10 +167,10 @@ describe("CreatePartidaPage", () => {
     await user.click(within(bdtRegion).getByRole("button", { name: /^generar qr/i }));
 
     expect(await within(bdtRegion).findByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i })).toBeInTheDocument();
-    expect(within(bdtRegion).getByRole("link", { name: /descargar qr/i })).toHaveAttribute(
-      "download",
-      "tesoro-juego-2-etapa-1.png"
-    );
+    // El codigo lo genera generarCodigoTesoro() (UUID real, no mockeado), asi que el sufijo
+    // no es predecible: solo se puede afirmar la forma tesoro-juego-2-etapa-1-<8 hex>.png.
+    const descarga = within(bdtRegion).getByRole("link", { name: /descargar qr/i });
+    expect(descarga.getAttribute("download")).toMatch(/^tesoro-juego-2-etapa-1-[0-9a-f]{8}\.png$/);
     expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
   });
 
@@ -270,9 +270,12 @@ describe("CreatePartidaPage", () => {
     // El QR y la descarga previos no desaparecen: el fallo del regenerado no los borra.
     const qrTrasFallo = within(bdtRegion).getByRole("img", { name: /qr del tesoro del juego 2, etapa 1/i });
     expect(qrTrasFallo.getAttribute("src")).toBe(primerSrc);
-    expect(within(bdtRegion).getByRole("link", { name: /descargar qr/i })).toHaveAttribute(
-      "download",
-      "tesoro-juego-2-etapa-1.png"
+    // El codigo (y por tanto el prefijo del nombre de archivo) sigue siendo el de la primera
+    // generacion exitosa, porque el draft solo confirma codigoQREsperado si el render tuvo
+    // exito (ver comentario en BdtEditor); el regenerado fallido no lo toca.
+    const descargaTrasFallo = within(bdtRegion).getByRole("link", { name: /descargar qr/i });
+    expect(descargaTrasFallo.getAttribute("download")).toMatch(
+      /^tesoro-juego-2-etapa-1-[0-9a-f]{8}\.png$/
     );
     expect(within(bdtRegion).getByRole("button", { name: /regenerar qr/i })).toBeInTheDocument();
   });

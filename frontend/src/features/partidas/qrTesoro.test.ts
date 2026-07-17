@@ -48,13 +48,34 @@ describe("renderizarQrDataUrl", () => {
 });
 
 describe("nombreArchivoQr", () => {
-  it("nombra el archivo por el juego y el orden de la etapa", () => {
-    expect(nombreArchivoQr(2, 3)).toBe("tesoro-juego-2-etapa-3.png");
+  it("nombra el archivo con el juego, la etapa y el prefijo del codigo de la etapa", () => {
+    expect(nombreArchivoQr(2, 3, "abcdef12-3456-7890-abcd-ef1234567890")).toBe(
+      "tesoro-juego-2-etapa-3-abcdef12.png"
+    );
   });
 
-  it("distingue etapas con el mismo orden en juegos BDT distintos", () => {
-    // Orden es unico por juego, no por partida: una partida con dos juegos BDT tiene dos
-    // "etapa 1" (una por juego). El nombre debe incluir el juego para no colisionar.
-    expect(nombreArchivoQr(2, 1)).not.toBe(nombreArchivoQr(3, 1));
+  it("no transforma el codigo: solo toma su primer segmento (hasta el primer guion) como prefijo", () => {
+    // El codigo se guarda literal en todos lados (draft, backend, QR). Aqui solo se usa una
+    // rebanada para el nombre de archivo; el propio codigo (fuera de esta funcion) nunca se
+    // toca. Un casing mixto no debe normalizarse tampoco en el prefijo.
+    expect(nombreArchivoQr(1, 1, "AbCd1234-EeFF-4a1b-9c2d-0123456789Ab")).toBe(
+      "tesoro-juego-1-etapa-1-AbCd1234.png"
+    );
+  });
+
+  it("dos etapas con el mismo orden de juego y de etapa, pero codigos distintos, producen nombres de archivo completos distintos", () => {
+    // Reproduce la regresion real: la posicion de un juego (y por tanto su "orden") es
+    // mutable via subir/bajar en el wizard, y un archivo ya descargado/impreso tiene su
+    // nombre congelado en disco. Si dos etapas terminan compartiendo juego+etapa (por
+    // reordenamiento tras una descarga previa), solo el codigo -unico por etapa por regla
+    // de dominio- garantiza que el nombre no colisione. Se asume la cadena completa, no un
+    // simple "no son iguales", para que un cambio que ignore el codigo (p.ej. solo lo
+    // concatena vacio) tambien falle.
+    const nombreA = nombreArchivoQr(2, 1, "11111111-1111-1111-1111-111111111111");
+    const nombreB = nombreArchivoQr(2, 1, "22222222-2222-2222-2222-222222222222");
+
+    expect(nombreA).toBe("tesoro-juego-2-etapa-1-11111111.png");
+    expect(nombreB).toBe("tesoro-juego-2-etapa-1-22222222.png");
+    expect(nombreA).not.toBe(nombreB);
   });
 });
