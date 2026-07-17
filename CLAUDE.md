@@ -145,10 +145,20 @@ Must contain exactly these top-level folders (no per-feature slice folders): `Co
 ### Infrastructure (from repo root)
 
 ```powershell
-docker compose -f "infra/docker-compose.yml" up -d postgres rabbitmq keycloak
-docker compose -f "infra/docker-compose.yml" ps
-docker compose -f "infra/docker-compose.yml" down        # add -v to wipe Postgres data
+docker compose --env-file .env -f "infra/docker-compose.yml" up -d postgres rabbitmq keycloak
+docker compose --env-file .env -f "infra/docker-compose.yml" ps
+docker compose --env-file .env -f "infra/docker-compose.yml" down        # add -v to wipe Postgres data
 ```
+
+> ⚠️ **`--env-file .env` is mandatory on *every* compose command, including `ps`/`down`.**
+> The project `.env` lives at the **repo root** but the compose file lives in `infra/`, and Compose
+> looks for `.env` next to the compose file — so without the flag it reads **no** root variable at
+> all. `KEYCLOAK_CLIENT_SECRET` is declared `${...:?}` precisely so that omitting the flag aborts
+> with an explanatory error instead of silently emptying the secret: that silent failure made every
+> Identity→Keycloak call return `502` (`Keycloak settings are missing or incomplete`) and killed
+> SMTP, with nothing in the output to say why. `SMTP_*` still default to empty (`${...:-}`), so a
+> missing flag would silently disable email if the `:?` guard is ever removed.
+> Full startup walkthrough: `GUIA-LEVANTAMIENTO.md`.
 
 Create the per-service databases once after first start (they are not auto-created):
 

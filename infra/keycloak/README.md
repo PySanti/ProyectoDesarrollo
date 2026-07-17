@@ -26,8 +26,24 @@ El `docker-compose.yml`:
 El import ya define `loginTheme=umbral`, así que la página de credenciales **sale con la marca
 UMBRAL sin pasos manuales**.
 
-Usuarios de prueba sembrados (password no temporal): `admin`/`admin` (Administrador),
+Usuarios de prueba sembrados (password no temporal): `admin`/`admin123` (Administrador),
 `operador`/`operador` (Operador), `participante`/`participante` (Participante).
+
+## Política de contraseñas
+
+El realm define `passwordPolicy: "length(8)"`: Keycloak rechaza cualquier contraseña de menos de
+8 caracteres, tanto en el cambio obligatorio del primer login como al setearla vía Admin REST API.
+Aplica sólo al realm `UMBRAL-UCAB`; el admin de la consola de Keycloak (realm `master`,
+`KEYCLOAK_ADMIN_PASSWORD` en el compose) no se ve afectado.
+
+Consecuencias al tocar los seeds de arriba: **la contraseña de un usuario sembrado debe tener 8+
+caracteres**. `keycloak-config-cli` los reaplica vía REST, que es la ruta donde la política **sí**
+se valida — un seed más corto hace fallar `keycloak-config` con exit ≠ 0, y como `identity-service`
+depende de `service_completed_successfully`, el servicio no arranca. Por eso `admin` usa `admin123`
+y no `admin`.
+
+La contraseña temporal que genera Identity al crear un usuario no se ve afectada:
+`CryptoTemporaryPasswordGenerator` produce 16 caracteres con mayúscula, minúscula, dígito y símbolo.
 
 **Aplicar cambios del JSON a un realm ya importado** (conserva usuarios de runtime):
 
@@ -41,7 +57,7 @@ docker compose -f "infra/docker-compose.yml" --env-file .env up keycloak-config
 usuarios creados durante las pruebas):
 
 ```powershell
-docker compose -f "infra/docker-compose.yml" rm -sfv keycloak
+docker compose --env-file .env -f "infra/docker-compose.yml" rm -sfv keycloak
 docker volume rm infra_umbral-keycloak-data
 docker compose -f "infra/docker-compose.yml" --env-file .env up -d keycloak
 ```
@@ -97,7 +113,7 @@ resiliente entre versiones de Keycloak.
 
 2. Levantar/recrear Keycloak:
    ```powershell
-   docker compose -f "infra/docker-compose.yml" up -d --force-recreate keycloak
+   docker compose --env-file .env -f "infra/docker-compose.yml" up -d --force-recreate keycloak
    ```
 
 3. El realm import ya fija `loginTheme=umbral`, así que **no hace falta activarlo a mano**.

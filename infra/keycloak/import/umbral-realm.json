@@ -10,6 +10,7 @@
   "registrationAllowed": false,
   "loginWithEmailAllowed": true,
   "editUsernameAllowed": true,
+  "passwordPolicy": "length(8)",
   "roles": {
     "realm": [
       {
@@ -115,7 +116,7 @@
       "email": "admin@umbral.local",
       "firstName": "Admin",
       "lastName": "UMBRAL",
-      "credentials": [{ "type": "password", "value": "admin", "temporary": false }],
+      "credentials": [{ "type": "password", "value": "admin123", "temporary": false }],
       "realmRoles": ["default-roles-umbral-ucab", "Administrador"]
     },
     {

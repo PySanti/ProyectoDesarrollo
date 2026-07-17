@@ -2,7 +2,7 @@ import { chromium } from 'playwright';
 
 const baseUrl = 'http://localhost:5173';
 const username = process.env.HU01_USER ?? 'admin';
-const password = process.env.HU01_PASS ?? 'admin';
+const password = process.env.HU01_PASS ?? 'admin123';
 const runId = Date.now().toString().slice(-8);
 const userName = `HU01 Runtime ${runId}`;
 const email = `hu01.runtime.${runId}@test.com`;

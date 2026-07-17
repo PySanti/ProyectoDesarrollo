@@ -118,7 +118,12 @@ services:
       KEYCLOAK_CLIENT_ID: identity-service
       KEYCLOAK_VALID_AUDIENCES: identity-service,umbral-web,umbral-mobile,account
       KEYCLOAK_VALID_ISSUERS: http://localhost:8080/realms/UMBRAL-UCAB,http://keycloak:8080/realms/UMBRAL-UCAB,http://${LAN_IP:-localhost}:8080/realms/UMBRAL-UCAB
-      KEYCLOAK_CLIENT_SECRET: ${KEYCLOAK_CLIENT_SECRET:-}
+      # `:?` y no `:-` a propósito. El .env vive en la RAÍZ y este compose en infra/, así que sin
+      # `--env-file .env` Compose no lee ninguna variable de la raíz. Con un default vacío eso no
+      # fallaba: dejaba el secreto vacío en silencio y toda operación de Identity contra Keycloak
+      # devolvía 502 ("Keycloak settings are missing or incomplete"). Ahora Compose se niega a
+      # arrancar y dice qué falta.
+      KEYCLOAK_CLIENT_SECRET: '${KEYCLOAK_CLIENT_SECRET:?falta KEYCLOAK_CLIENT_SECRET. El .env esta en la raiz y este compose en infra/, hace falta el flag. Levanta con --env-file .env, ver GUIA-LEVANTAMIENTO.md}'
       SMTP_HOST: ${SMTP_HOST:-}
       SMTP_PORT: ${SMTP_PORT:-587}
       SMTP_USE_STARTTLS: ${SMTP_USE_STARTTLS:-true}
