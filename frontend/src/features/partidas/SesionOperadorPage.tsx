@@ -1,7 +1,7 @@
 // Consola de sesion del operador: lobby (inscritos + controles de inicio) + shell de sesion iniciada
 // con runtime Trivia y BDT (etapas + pistas + mapa de ubicaciones). El consolidado llega en 2c-4.
 import { useCallback, useEffect, useRef, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { getPartida, type ModoInicioPartida, type PartidaDetail } from "../../api/partidasApi";
 import {
   aceptarInscripcion,
@@ -48,6 +48,7 @@ type Vista =
 
 export function SesionOperadorPage({ accessToken, puedeOperar }: Props) {
   const { partidaId } = useParams<{ partidaId: string }>();
+  const navigate = useNavigate();
   const [vista, setVista] = useState<Vista>({ status: "loading" });
   const [iniciando, setIniciando] = useState(false);
   const [confirmandoCancelacion, setConfirmandoCancelacion] = useState(false);
@@ -251,6 +252,7 @@ export function SesionOperadorPage({ accessToken, puedeOperar }: Props) {
         partidaId: partidaId ?? "",
         accessToken,
         puedeOperar,
+        navegarA: (ruta) => navigate(ruta),
         iniciando,
         onIniciar,
         onActualizar: () => void cargar(),
@@ -279,6 +281,8 @@ interface VistaCtx {
   partidaId: string;
   accessToken: string;
   puedeOperar: boolean;
+  // renderVista no es un componente, asi que no puede usar useNavigate: la navegacion se inyecta.
+  navegarA: (ruta: string) => void;
   iniciando: boolean;
   onIniciar: () => void;
   onActualizar: () => void;
@@ -305,9 +309,13 @@ function renderVista(vista: Vista, ctx: VistaCtx) {
       return (
         <div className="card stack" data-testid="sesion-no-publicada">
           <p>La partida no está publicada.</p>
-          <Link to={`/partidas/${ctx.partidaId}`} className="row-link">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => ctx.navegarA(`/partidas/${ctx.partidaId}`)}
+          >
             Ir al detalle para publicar
-          </Link>
+          </button>
         </div>
       );
     case "error":
@@ -360,9 +368,13 @@ function renderVista(vista: Vista, ctx: VistaCtx) {
             accessToken={ctx.accessToken}
             consolidadoPush={ctx.consolidadoPush}
           />
-          <Link to={`/partidas/${ctx.partidaId}/historial`} className="row-link">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => ctx.navegarA(`/partidas/${ctx.partidaId}/historial`)}
+          >
             Ver historial de la partida
-          </Link>
+          </button>
         </div>
       );
     default:

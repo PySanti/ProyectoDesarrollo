@@ -1,7 +1,7 @@
 // Historial cronológico de la partida (HU-43): eventos proyectados por Puntuaciones,
 // paginado limit/offset con filtro por tipo. Solo Operador/Administrador (403 backend).
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getHistorialPartida,
   PuntuacionesApiError,
@@ -44,6 +44,7 @@ const etiquetaTipoEvento = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2
 
 export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
   const { partidaId } = useParams<{ partidaId: string }>();
+  const navigate = useNavigate();
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [tipo, setTipo] = useState("");
   const [offset, setOffset] = useState(0);
@@ -111,9 +112,13 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
               ))}
             </select>
           </label>
-          <Link to={`/partidas/${partidaId}`} className="row-link">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate(`/partidas/${partidaId}`)}
+          >
             Volver a la partida
-          </Link>
+          </button>
         </div>
 
         {estado.status === "cargando" ? <p className="muted">Cargando historial…</p> : null}
@@ -155,7 +160,12 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                 </table>
               </div>
               <div className="compact-actions">
-                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - LIMIT))}
+                >
                   Anterior
                 </button>
                 <span className="muted">
@@ -163,6 +173,7 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                 </span>
                 <button
                   type="button"
+                  className="secondary-button"
                   disabled={offset + LIMIT >= total}
                   onClick={() => setOffset(offset + LIMIT)}
                 >

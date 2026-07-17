@@ -97,4 +97,15 @@ describe("ConsolidadoPanel", () => {
     await userEvent.click(screen.getByRole("button", { name: /reintentar/i }));
     expect(await screen.findByTestId("ranking-consolidado")).toBeInTheDocument();
   });
+
+  it("Reintentar usa el estilo secundario, igual que el reintentar de la lista de partidas", async () => {
+    vi.useFakeTimers();
+    vi.spyOn(puntuacionesApi, "getRankingConsolidado").mockRejectedValue(
+      new PuntuacionesApiError("no terminada", 409)
+    );
+    render(<ConsolidadoPanel partidaId="p1" accessToken="tok" />);
+    await vi.advanceTimersByTimeAsync(3200);
+    vi.useRealTimers();
+    expect(await screen.findByRole("button", { name: /reintentar/i })).toHaveClass("secondary-button");
+  });
 });

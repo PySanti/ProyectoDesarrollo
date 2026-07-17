@@ -32,6 +32,7 @@ function renderPage() {
     <MemoryRouter initialEntries={["/partidas/p1/historial"]}>
       <Routes>
         <Route path="/partidas/:partidaId/historial" element={<HistorialPartidaPage accessToken="tok" />} />
+        <Route path="/partidas/:partidaId" element={<p>pantalla de detalle</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -106,6 +107,23 @@ describe("HistorialPartidaPage", () => {
     expect(screen.getByText("abcdef12")).toBeInTheDocument();
     expect(screen.getByText(/1–1 de 150/)).toBeInTheDocument();
     expect(screen.getByText('{"puntaje":50}')).toBeInTheDocument();
+  });
+
+  it("'Volver a la partida' es un boton secundario que navega al detalle", async () => {
+    vi.spyOn(puntuacionesApi, "getHistorialPartida").mockResolvedValue(historial);
+    renderPage();
+    const volver = await screen.findByRole("button", { name: "Volver a la partida" });
+    expect(volver).toHaveClass("secondary-button");
+    await userEvent.click(volver);
+    expect(await screen.findByText("pantalla de detalle")).toBeInTheDocument();
+  });
+
+  it("la paginacion usa el estilo secundario, no el primario de marca", async () => {
+    vi.spyOn(puntuacionesApi, "getHistorialPartida").mockResolvedValue(historial);
+    renderPage();
+    await screen.findByTestId("tabla-historial");
+    expect(screen.getByText("Anterior")).toHaveClass("secondary-button");
+    expect(screen.getByText("Siguiente")).toHaveClass("secondary-button");
   });
 
   it("cambiar el filtro de tipo resetea offset y re-consulta con tipo", async () => {

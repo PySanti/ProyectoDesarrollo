@@ -1,6 +1,6 @@
 // Detalle de solo lectura de una partida: header + juegos (Trivia/BDT) via getPartida.
 import { useEffect, useState } from "react";
-import { Link, useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getPartida,
   PartidasApiError,
@@ -24,6 +24,7 @@ type LoadState =
 
 export function PartidaDetailPage({ accessToken, puedeOperar }: PartidaDetailPageProps) {
   const { partidaId } = useParams<{ partidaId: string }>();
+  const navigate = useNavigate();
   const [state, setState] = useState<LoadState>({ status: "loading" });
 
   useEffect(() => {
@@ -63,9 +64,9 @@ export function PartidaDetailPage({ accessToken, puedeOperar }: PartidaDetailPag
           <div className="notice error" role="alert">
             {state.message}
           </div>
-          <Link to="/partidas" className="row-link">
+          <button type="button" className="secondary-button" onClick={() => navigate("/partidas")}>
             Volver a partidas
-          </Link>
+          </button>
         </div>
       ) : null}
 
@@ -126,9 +127,13 @@ function PartidaDetailContent({
               label={`Min ${partida.minimosParticipacion} · Max ${partida.maximosParticipacion}`}
             />
           </div>
-          <Link to={`/partidas/${partida.partidaId}/historial`} className="row-link">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate(`/partidas/${partida.partidaId}/historial`)}
+          >
             Historial de eventos
-          </Link>
+          </button>
         </div>
         {puedeOperar ? (
           <button
