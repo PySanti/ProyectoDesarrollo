@@ -247,7 +247,8 @@ function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: Etapa
                 <td className="mono">{etapa.codigoQREsperado}</td>
                 <td>
                   {qrDataUrls[etapa.etapaBDTId] ? (
-                    <>
+                    <details>
+                      <summary>Mostrar QR</summary>
                       <img
                         src={qrDataUrls[etapa.etapaBDTId]}
                         alt={`QR del tesoro de la etapa ${etapa.orden}`}
@@ -257,7 +258,7 @@ function BdtView({ areaBusqueda, etapas }: { areaBusqueda: string; etapas: Etapa
                       <a href={qrDataUrls[etapa.etapaBDTId]} download={nombreArchivoQr(etapa.orden)}>
                         Descargar QR etapa {etapa.orden}
                       </a>
-                    </>
+                    </details>
                   ) : null}
                 </td>
                 <td>{etapa.puntajeAsignado}</td>

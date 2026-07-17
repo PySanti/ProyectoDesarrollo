@@ -199,4 +199,14 @@ describe("PartidaDetailPage", () => {
 
     expect(screen.queryByRole("button", { name: /regenerar/i })).not.toBeInTheDocument();
   });
+
+  it("el QR queda oculto tras un disclosure cerrado por defecto al entrar al detalle", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+    await screen.findByRole("img", { name: /qr del tesoro de la etapa 1/i });
+
+    const details = screen.getByText("Mostrar QR").closest("details");
+    expect(details).not.toBeNull();
+    expect(details).not.toHaveAttribute("open");
+  });
 });
