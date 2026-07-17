@@ -27,8 +27,8 @@ public sealed class TransferirLiderazgoHandlerTests
         Assert.Equal(nuevoLider, response.NuevoLiderUserId);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.EquipoEstado);
         Assert.True(repo.UpdateWasCalled);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == nuevoLider).EsLider);
-        Assert.False(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == nuevoLider).EsLider);
+        Assert.False(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
     }
 
     [Fact]
@@ -105,6 +105,9 @@ public sealed class TransferirLiderazgoHandlerTests
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn?.EquipoId == equipoId ? TeamToReturn : null);
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamToReturn is null ? Array.Empty<Equipo>() : new[] { TeamToReturn });
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;

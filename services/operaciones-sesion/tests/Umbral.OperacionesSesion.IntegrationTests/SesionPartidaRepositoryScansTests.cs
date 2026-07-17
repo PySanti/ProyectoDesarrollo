@@ -36,11 +36,13 @@ public class SesionPartidaRepositoryScansTests
         var repo = new SesionPartidaRepository(ctx);
 
         var vencida = TriviaPublicada(30, null, ModoInicioPartida.Manual);
-        vencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var inscVencida = vencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        vencida.AceptarInscripcion(inscVencida.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         vencida.Iniciar(T0); // Q1 activa, FechaActivacion = T0
 
         var noVencida = TriviaPublicada(30, null, ModoInicioPartida.Manual);
-        noVencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var inscNoVencida = noVencida.Inscribir(Guid.NewGuid(), false, 0, T0);
+        noVencida.AceptarInscripcion(inscNoVencida.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         noVencida.Iniciar(T0);
 
         var enLobby = TriviaPublicada(30, null, ModoInicioPartida.Manual);
@@ -54,6 +56,43 @@ public class SesionPartidaRepositoryScansTests
         Assert.DoesNotContain(r, s => s.PartidaId == enLobby.PartidaId);
         // noVencida: con now=T0+31 su Q (limite 30) también está vencida → también aparece;
         // el filtro clave probado aquí es "Iniciada con paso vencido" vs "Lobby".
+    }
+
+    [Fact]
+    public async Task ConActividadVencida_carga_Opciones_de_Preguntas_para_publicar_cierre()
+    {
+        // 7d review Critical #1: BarrerTimeoutsCommandHandler lee
+        // preguntaCerrada.Opciones.First(o => o.EsCorrecta) sobre el mismo grafo devuelto por
+        // este método para publicar el cierre. Sin ThenInclude(p => p.Opciones), Npgsql (sin
+        // lazy loading) devuelve la colección vacía → InvalidOperationException en todo cierre
+        // de pregunta Trivia por timeout. Escribe y lee con contextos EF distintos (mismo
+        // patrón que AutoInicioPendiente_carga_Convocatorias_para_quorum_de_Equipo): reusar el
+        // mismo DbContext devolvería la instancia ya trackeada y enmascararía el bug.
+        var options = new DbContextOptionsBuilder<OperacionesSesionDbContext>()
+            .UseInMemoryDatabase("scan-venc-opciones-" + Guid.NewGuid()).Options;
+
+        Guid partidaId;
+        await using (var write = new OperacionesSesionDbContext(options))
+        {
+            var writeRepo = new SesionPartidaRepository(write);
+            var sesion = TriviaPublicada(30, null, ModoInicioPartida.Manual);
+            var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
+            sesion.Iniciar(T0); // Q1 activa, FechaActivacion = T0
+            writeRepo.Add(sesion);
+            await write.SaveChangesAsync();
+            partidaId = sesion.PartidaId;
+        }
+
+        await using var read = new OperacionesSesionDbContext(options);
+        var readRepo = new SesionPartidaRepository(read);
+
+        var r = await readRepo.GetSesionesConActividadVencidaAsync(T0.AddSeconds(31), CancellationToken.None);
+
+        var cargada = Assert.Single(r, s => s.PartidaId == partidaId);
+        var pregunta = cargada.Juegos.Single().Preguntas.Single(p => p.Orden == 1);
+        Assert.NotEmpty(pregunta.Opciones);
+        Assert.Contains(pregunta.Opciones, o => o.EsCorrecta);
     }
 
     [Fact]
@@ -103,7 +142,8 @@ public class SesionPartidaRepositoryScansTests
         {
             var writeRepo = new SesionPartidaRepository(write);
             var sesion = EquipoPublicada(T0, ModoInicioPartida.Automatico);
-            var insc = sesion.PreinscribirEquipo(equipoId, true, new[] { miembro }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipoId, true, miembro, new[] { miembro }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, miembro, true, false, T0);
             writeRepo.Add(sesion);
             await write.SaveChangesAsync();

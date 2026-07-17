@@ -55,6 +55,8 @@ public static class DependencyInjection
         services.AddScoped<IUsuarioRepository, UsuarioRepository>();
         services.AddScoped<IEquipoRepository, EquipoRepository>();
         services.AddScoped<IInvitacionEquipoRepository, InvitacionEquipoRepository>();
+        services.AddScoped<IHistorialNombreEquipoRepository, HistorialNombreEquipoRepository>();
+        services.AddScoped<IParticipacionActivaEquipoRepository, ParticipacionActivaEquipoRepository>();
         services.AddScoped<IPermisosRolRepository, PermisosRolRepository>();
         services.AddSingleton(TimeProvider.System);
 
@@ -103,6 +105,7 @@ public static class DependencyInjection
             }
         });
         services.AddScoped<IUserWelcomeEmailSender, SmtpUserWelcomeEmailSender>();
+        services.AddScoped<ITeamLifecycleNotifier, SmtpTeamLifecycleNotifier>();
 
         return services;
     }

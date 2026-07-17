@@ -13,14 +13,48 @@ namespace Umbral.Partidas.IntegrationTests;
 
 public class PartidaRepositoryTests
 {
+    private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+
     private static PartidasDbContext NewContext(string dbName) =>
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
+
+    [Fact]
+    public async Task ListAsync_devuelve_la_ultima_creada_primero()
+    {
+        var dbName = Guid.NewGuid().ToString();
+
+        // Se insertan desordenadas a proposito: el orden no debe depender del insert.
+        var media = Partida.Crear(
+            NombrePartida.Crear("Media"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0.AddHours(1));
+        var vieja = Partida.Crear(
+            NombrePartida.Crear("Vieja"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
+        var nueva = Partida.Crear(
+            NombrePartida.Crear("Nueva"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0.AddHours(2));
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var repo = new PartidaRepository(ctx);
+            repo.Add(media);
+            repo.Add(vieja);
+            repo.Add(nueva);
+            await new PartidasUnitOfWork(ctx).SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var listadas = await new PartidaRepository(ctx).ListAsync(CancellationToken.None);
+
+            Assert.Equal(
+                new[] { "Nueva", "Media", "Vieja" },
+                listadas.Select(p => p.NombrePartida.Valor).ToArray());
+        }
+    }
 
     [Fact]
     public async Task Add_and_GetById_round_trips_partida()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
 
         await using (var ctx = NewContext(dbName))
         {
@@ -43,7 +77,7 @@ public class PartidaRepositoryTests
     public async Task UnitOfWork_commits_partida_and_trivia_in_one_save()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
 
         await using (var ctx = NewContext(dbName))
         {

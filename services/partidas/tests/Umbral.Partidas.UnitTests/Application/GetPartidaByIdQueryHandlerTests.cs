@@ -22,12 +22,14 @@ public class GetPartidaByIdQueryHandlerTests
         var trivias = new FakeJuegoTriviaRepository();
         var bdts = new FakeJuegoBDTRepository();
 
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(
+            NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
+            new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc));
         var trivia = JuegoTrivia.Crear(partida.PartidaId, 1, new[]
         {
             new PreguntaSpec("Q", new List<OpcionSpec> { new("A", true), new("B", false) }, 10, 30)
         });
-        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, "QR", 50, 120) });
+        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, Guid.NewGuid().ToString(), 50, 120) });
         partida.AgregarJuego(trivia.JuegoId, 1, TipoJuego.Trivia);
         partida.AgregarJuego(bdt.JuegoId, 2, TipoJuego.BusquedaDelTesoro);
         partidas.Add(partida);

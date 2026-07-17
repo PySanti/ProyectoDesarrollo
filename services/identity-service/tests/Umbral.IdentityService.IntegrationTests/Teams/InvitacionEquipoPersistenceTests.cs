@@ -50,7 +50,8 @@ public sealed class InvitacionEquipoPersistenceTests
         var invitacion = InvitacionEquipo.Crear(equipo.EquipoId, invitadoUserId, liderUserId);
         await invRepo.AddAsync(invitacion, CancellationToken.None);
 
-        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, new NoOpIdentityEventsPublisher());
+        var historialRepo = new HistorialNombreEquipoRepository(dbContext);
+        var handler = new AceptarInvitacionEquipoCommandHandler(invRepo, equipoRepo, new NoOpIdentityEventsPublisher(), historialRepo, TimeProvider.System);
         var response = await handler.Handle(
             new AceptarInvitacionEquipoCommand(invitadoUserId, invitacion.InvitacionEquipoId),
             CancellationToken.None);
@@ -67,7 +68,7 @@ public sealed class InvitacionEquipoPersistenceTests
             .Include(e => e.Participantes)
             .FirstOrDefaultAsync(e => e.EquipoId == equipo.EquipoId);
         Assert.NotNull(persistedEquipo);
-        Assert.Contains(persistedEquipo.Participantes, p => p.UsuarioId == invitadoUserId && !p.EsLider);
+        Assert.Contains(persistedEquipo.Participantes, p => p.SubjectId == invitadoUserId && !p.EsLider);
     }
 
     [Fact]
@@ -102,7 +103,7 @@ public sealed class InvitacionEquipoPersistenceTests
             .FirstOrDefaultAsync(e => e.EquipoId == equipo.EquipoId);
         Assert.NotNull(persistedEquipo);
         Assert.Single(persistedEquipo.Participantes);
-        Assert.DoesNotContain(persistedEquipo.Participantes, p => p.UsuarioId == invitadoUserId);
+        Assert.DoesNotContain(persistedEquipo.Participantes, p => p.SubjectId == invitadoUserId);
     }
 
     [Fact]

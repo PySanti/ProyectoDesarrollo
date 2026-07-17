@@ -19,4 +19,13 @@ public interface ISesionEventsPublisher
     Task PublicarConvocatoriaCreadaAsync(ConvocatoriaCreadaEvent evento, CancellationToken cancellationToken);
     Task PublicarConvocatoriaRespondidaAsync(ConvocatoriaRespondidaEvent evento, CancellationToken cancellationToken);
     Task PublicarUbicacionActualizadaAsync(UbicacionActualizadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionEquipoCreadaAsync(InscripcionEquipoCreadaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionEquipoCanceladaAsync(InscripcionEquipoCanceladaEvent evento, CancellationToken cancellationToken);
+    Task PublicarInscripcionSolicitadaAsync(InscripcionSolicitadaEvent evento, CancellationToken cancellationToken);
+    // destinatarios = a quien se le entrega en vivo. Es un asunto de ENTREGA, no un hecho del
+    // dominio: por eso viaja aparte y no dentro del evento (que se serializa tal cual a RabbitMQ).
+    Task PublicarInscripcionAceptadaAsync(
+        InscripcionAceptadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken);
+    Task PublicarInscripcionRechazadaAsync(
+        InscripcionRechazadaEvent evento, IReadOnlyList<Guid> destinatarios, CancellationToken cancellationToken);
 }

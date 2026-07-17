@@ -39,7 +39,8 @@ public class ConvocatoriasPendientesScanTests
         {
             var sesion = EquipoPublicada();
             partidaId = sesion.PartidaId;
-            sesion.PreinscribirEquipo(equipo, true, new[] { usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, usuario, new[] { usuario }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             new SesionPartidaRepository(ctx).Add(sesion);
             await ctx.SaveChangesAsync();
         }
@@ -50,7 +51,34 @@ public class ConvocatoriasPendientesScanTests
             var c = Assert.Single(r);
             Assert.Equal(partidaId, c.PartidaId);
             Assert.Equal(equipo, c.EquipoId);
-            Assert.Equal(EstadoConvocatoria.Pendiente, c.Estado);
+            // El estado ya no viaja en la proyeccion: el filtro Pendiente es invariante del
+            // metodo y lo cubren Excluye_respondidas / Excluye_sesion_iniciada.
+            Assert.NotEqual(Guid.Empty, c.ConvocatoriaId);
+        }
+    }
+
+    [Fact]
+    public async Task Trae_el_nombre_de_la_sesion_junto_a_la_convocatoria()
+    {
+        // El nombre vive en SesionPartida; el SelectMany hasta Convocatoria lo perdia.
+        var db = "convo-pend-" + Guid.NewGuid();
+        var equipo = Guid.NewGuid();
+        var usuario = Guid.NewGuid();
+
+        await using (var ctx = NewCtx(db))
+        {
+            var sesion = EquipoPublicada();
+            var insc = sesion.PreinscribirEquipo(equipo, true, usuario, new[] { usuario }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
+            new SesionPartidaRepository(ctx).Add(sesion);
+            await ctx.SaveChangesAsync();
+        }
+
+        await using (var ctx = NewCtx(db))
+        {
+            var r = await new SesionPartidaRepository(ctx).GetConvocatoriasPendientesByUsuarioAsync(usuario, CancellationToken.None);
+
+            Assert.Equal("Copa", Assert.Single(r).NombrePartida);
         }
     }
 
@@ -65,7 +93,8 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { otroMiembro, usuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, otroMiembro, new[] { otroMiembro, usuario }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(
                 insc.Convocatorias.Single(c => c.UsuarioId == otroMiembro).Id.Valor, otroMiembro, true, false, T0);
             sesion.Iniciar(T0); // otroMiembro aceptó → quorum cumplido (minimo=1); usuario queda Pendiente
@@ -91,7 +120,8 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            var insc = sesion.PreinscribirEquipo(equipo, true, new[] { aceptante, rechazante }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, aceptante, new[] { aceptante, rechazante }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             sesion.ResponderConvocatoria(
                 insc.Convocatorias.Single(c => c.UsuarioId == aceptante).Id.Valor, aceptante, true, false, T0);
             sesion.ResponderConvocatoria(
@@ -119,7 +149,8 @@ public class ConvocatoriasPendientesScanTests
         await using (var ctx = NewCtx(db))
         {
             var sesion = EquipoPublicada();
-            sesion.PreinscribirEquipo(equipo, true, new[] { otroUsuario }, false, 0, T0);
+            var insc = sesion.PreinscribirEquipo(equipo, true, otroUsuario, new[] { otroUsuario }, false, 0, T0);
+            sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
             new SesionPartidaRepository(ctx).Add(sesion);
             await ctx.SaveChangesAsync();
         }

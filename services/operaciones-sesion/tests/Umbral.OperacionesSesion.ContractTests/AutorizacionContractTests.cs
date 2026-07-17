@@ -20,6 +20,7 @@ public class AutorizacionContractTests : IClassFixture<OperacionesSesionWebFacto
     [InlineData("POST", "/partidas/{id}/publicacion")]
     [InlineData("POST", "/partidas/{id}/inicio")]
     [InlineData("POST", "/partidas/{id}/inicio-automatico")]
+    [InlineData("POST", "/partidas/{id}/cancelacion")]
     [InlineData("POST", "/partidas/{id}/juego-actual/finalizacion")]
     [InlineData("POST", "/partidas/{id}/pregunta-actual/avance")]
     [InlineData("POST", "/partidas/{id}/etapa-actual/avance")]
@@ -86,5 +87,31 @@ public class AutorizacionContractTests : IClassFixture<OperacionesSesionWebFacto
         var response = await client.GetAsync($"{Rutas.Base}/mi-sesion");
 
         Assert.Equal(HttpStatusCode.Unauthorized, response.StatusCode);
+    }
+
+    // HU-38: envios-tesoro usa policy por rol base (OperadorOAdministrador), no GestionarPartidas —
+    // el Administrador observador debe verlo aunque no tenga el permiso funcional de gestión.
+    [Fact]
+    public async Task Envios_tesoro_sin_rol_Operador_ni_Administrador_es_403()
+    {
+        var client = _factory.CreateClientAs(Guid.NewGuid(), "ParticiparEnPartidas");
+
+        var response = await client.GetAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/juego-actual/envios-tesoro");
+
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Theory]
+    [InlineData("Operador")]
+    [InlineData("Administrador")]
+    public async Task Envios_tesoro_con_rol_Operador_o_Administrador_no_es_403(string rol)
+    {
+        var client = _factory.CreateClientAs(Guid.NewGuid(), rol);
+
+        var response = await client.GetAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/juego-actual/envios-tesoro");
+
+        // Autorizado (la partida no existe → 404 de dominio, jamás 403/401).
+        Assert.NotEqual(HttpStatusCode.Forbidden, response.StatusCode);
+        Assert.NotEqual(HttpStatusCode.Unauthorized, response.StatusCode);
     }
 }

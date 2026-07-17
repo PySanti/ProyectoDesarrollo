@@ -17,30 +17,30 @@ public sealed class Equipo
         NombreEquipo = string.Empty;
     }
 
-    private Equipo(string nombreEquipo, Guid creadorUserId)
+    private Equipo(string nombreEquipo, Guid creadorSubjectId)
     {
         if (string.IsNullOrWhiteSpace(nombreEquipo))
             throw new ArgumentException("NombreEquipo requerido", nameof(nombreEquipo));
         EquipoId = Guid.NewGuid();
         NombreEquipo = nombreEquipo.Trim();
         Estado = EstadoEquipo.Activo;
-        Participantes.Add(ParticipanteEquipo.CrearCreador(creadorUserId));
+        Participantes.Add(ParticipanteEquipo.CrearCreador(creadorSubjectId));
         EnsureCardinalityInvariant();
     }
 
-    public static Equipo CrearPorParticipante(string nombreEquipo, Guid creadorUserId)
+    public static Equipo CrearPorParticipante(string nombreEquipo, Guid creadorSubjectId)
     {
-        return new Equipo(nombreEquipo, creadorUserId);
+        return new Equipo(nombreEquipo, creadorSubjectId);
     }
 
-    public void AgregarParticipante(Guid usuarioId)
+    public void AgregarParticipante(Guid subjectId)
     {
-        if (usuarioId == Guid.Empty)
+        if (subjectId == Guid.Empty)
         {
-            throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+            throw new ArgumentException("SubjectId requerido", nameof(subjectId));
         }
 
-        if (Participantes.Any(p => p.UsuarioId == usuarioId))
+        if (Participantes.Any(p => p.SubjectId == subjectId))
         {
             throw new InvalidOperationException("El participante ya pertenece a este equipo.");
         }
@@ -50,15 +50,15 @@ public sealed class Equipo
             throw new InvalidOperationException("El equipo ya alcanzo el maximo de 5 integrantes.");
         }
 
-        Participantes.Add(ParticipanteEquipo.CrearIntegrante(usuarioId));
+        Participantes.Add(ParticipanteEquipo.CrearIntegrante(subjectId));
         EnsureCardinalityInvariant();
     }
 
-    public ResultadoSalidaEquipo Salir(Guid usuarioId)
+    public ResultadoSalidaEquipo Salir(Guid subjectId)
     {
-        if (usuarioId == Guid.Empty)
+        if (subjectId == Guid.Empty)
         {
-            throw new ArgumentException("UsuarioId requerido", nameof(usuarioId));
+            throw new ArgumentException("SubjectId requerido", nameof(subjectId));
         }
 
         if (Estado != EstadoEquipo.Activo)
@@ -66,15 +66,15 @@ public sealed class Equipo
             throw new EquipoNoActivoException(EquipoId);
         }
 
-        var participante = Participantes.SingleOrDefault(p => p.UsuarioId == usuarioId);
+        var participante = Participantes.SingleOrDefault(p => p.SubjectId == subjectId);
         if (participante is null)
         {
-            throw new ParticipanteNoPerteneceAlEquipoException(usuarioId);
+            throw new ParticipanteNoPerteneceAlEquipoException(subjectId);
         }
 
         if (participante.EsLider && Participantes.Count > 1)
         {
-            throw new LiderDebeTransferirLiderazgoException(usuarioId);
+            throw new LiderDebeTransferirLiderazgoException(subjectId);
         }
 
         Participantes.Remove(participante);
@@ -89,16 +89,20 @@ public sealed class Equipo
         return ResultadoSalidaEquipo.SalioDelEquipo;
     }
 
-    public (Guid LiderAnteriorUserId, Guid NuevoLiderUserId) TransferirLiderazgo(Guid actorUserId, Guid nuevoLiderUserId)
+    // Los nombres de los elementos de la tupla no se renombran: los consumen los handlers por
+    // nombre, y tocarlos arrastraria el churn fuera del limite del slice (ver el spec).
+    // Los nombres de los elementos de la tupla no se renombran: los handlers los consumen por
+    // nombre y tocarlos arrastraria el churn fuera del limite del slice (ver el spec).
+    public (Guid LiderAnteriorUserId, Guid NuevoLiderUserId) TransferirLiderazgo(Guid actorSubjectId, Guid nuevoLiderSubjectId)
     {
-        if (actorUserId == Guid.Empty)
+        if (actorSubjectId == Guid.Empty)
         {
-            throw new ArgumentException("ActorUserId requerido", nameof(actorUserId));
+            throw new ArgumentException("ActorSubjectId requerido", nameof(actorSubjectId));
         }
 
-        if (nuevoLiderUserId == Guid.Empty)
+        if (nuevoLiderSubjectId == Guid.Empty)
         {
-            throw new ArgumentException("NuevoLiderUserId requerido", nameof(nuevoLiderUserId));
+            throw new ArgumentException("NuevoLiderSubjectId requerido", nameof(nuevoLiderSubjectId));
         }
 
         if (Estado != EstadoEquipo.Activo)
@@ -112,33 +116,108 @@ public sealed class Equipo
             throw new InvalidOperationException("El equipo debe tener exactamente un lider.");
         }
 
-        var actor = Participantes.SingleOrDefault(p => p.UsuarioId == actorUserId);
+        var actor = Participantes.SingleOrDefault(p => p.SubjectId == actorSubjectId);
         if (actor is null)
         {
-            throw new ParticipanteNoPerteneceAlEquipoException(actorUserId);
+            throw new ParticipanteNoPerteneceAlEquipoException(actorSubjectId);
         }
 
-        if (!actor.EsLider || liderActual.UsuarioId != actorUserId)
+        if (!actor.EsLider || liderActual.SubjectId != actorSubjectId)
         {
-            throw new ActorNoEsLiderEquipoException(actorUserId);
+            throw new ActorNoEsLiderEquipoException(actorSubjectId);
         }
 
-        if (nuevoLiderUserId == actorUserId)
+        if (nuevoLiderSubjectId == actorSubjectId)
         {
-            throw new NuevoLiderDebeSerDiferenteException(nuevoLiderUserId);
+            throw new NuevoLiderDebeSerDiferenteException(nuevoLiderSubjectId);
         }
 
-        var nuevoLider = Participantes.SingleOrDefault(p => p.UsuarioId == nuevoLiderUserId);
+        var nuevoLider = Participantes.SingleOrDefault(p => p.SubjectId == nuevoLiderSubjectId);
         if (nuevoLider is null)
         {
-            throw new NuevoLiderNoPerteneceAlEquipoException(nuevoLiderUserId);
+            throw new NuevoLiderNoPerteneceAlEquipoException(nuevoLiderSubjectId);
         }
 
         liderActual.QuitarLiderazgo();
         nuevoLider.MarcarComoLider();
         EnsureCardinalityInvariant();
 
-        return (actorUserId, nuevoLiderUserId);
+        return (actorSubjectId, nuevoLiderSubjectId);
+    }
+
+    public static Equipo CrearPorAdmin(string nombreEquipo, Guid liderSubjectId)
+    {
+        return new Equipo(nombreEquipo, liderSubjectId);
+    }
+
+    public IReadOnlyList<Guid> EliminarPorLider(Guid actorSubjectId)
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+
+        var lider = Participantes.SingleOrDefault(p => p.EsLider);
+        if (lider is null || lider.SubjectId != actorSubjectId)
+            throw new ActorNoEsLiderEquipoException(actorSubjectId);
+
+        var afectados = Participantes.Select(p => p.SubjectId).ToList();
+        Estado = EstadoEquipo.Eliminado;
+        return afectados;
+    }
+
+    public IReadOnlyList<Guid> EliminarPorAdmin()
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+
+        var afectados = Participantes.Select(p => p.SubjectId).ToList();
+        Estado = EstadoEquipo.Eliminado;
+        return afectados;
+    }
+
+    public void Desactivar()
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+        Estado = EstadoEquipo.Desactivado;
+    }
+
+    public void Reactivar()
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+        Estado = EstadoEquipo.Activo;
+    }
+
+    public void Renombrar(string nuevoNombre)
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+        if (string.IsNullOrWhiteSpace(nuevoNombre))
+            throw new ArgumentException("NombreEquipo requerido", nameof(nuevoNombre));
+        NombreEquipo = nuevoNombre.Trim();
+    }
+
+    public (Guid LiderAnteriorUserId, Guid NuevoLiderUserId) ReasignarLiderazgoPorAdmin(Guid nuevoLiderSubjectId)
+    {
+        if (Estado == EstadoEquipo.Eliminado)
+            throw new EquipoEliminadoInmutableException(EquipoId);
+        if (nuevoLiderSubjectId == Guid.Empty)
+            throw new ArgumentException("NuevoLiderUserId requerido", nameof(nuevoLiderSubjectId));
+
+        var liderActual = Participantes.SingleOrDefault(p => p.EsLider)
+            ?? throw new InvalidOperationException("El equipo debe tener exactamente un lider.");
+
+        if (liderActual.SubjectId == nuevoLiderSubjectId)
+            throw new NuevoLiderDebeSerDiferenteException(nuevoLiderSubjectId);
+
+        var nuevoLider = Participantes.SingleOrDefault(p => p.SubjectId == nuevoLiderSubjectId)
+            ?? throw new NuevoLiderNoPerteneceAlEquipoException(nuevoLiderSubjectId);
+
+        liderActual.QuitarLiderazgo();
+        nuevoLider.MarcarComoLider();
+        EnsureCardinalityInvariant();
+
+        return (liderActual.SubjectId, nuevoLiderSubjectId);
     }
 
     private void EnsureCardinalityInvariant()

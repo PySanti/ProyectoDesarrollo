@@ -14,6 +14,8 @@ public sealed class PuntuacionesDbContext : DbContext
     public DbSet<Marcador> Marcadores => Set<Marcador>();
     public DbSet<EventoProcesado> EventosProcesados => Set<EventoProcesado>();
     public DbSet<EventoHistorial> EventosHistorial => Set<EventoHistorial>();
+    public DbSet<ParticipacionProyectada> Participaciones => Set<ParticipacionProyectada>();
+    public DbSet<ConvocatoriaProyectada> Convocatorias => Set<ConvocatoriaProyectada>();
 
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {
@@ -52,6 +54,28 @@ public sealed class PuntuacionesDbContext : DbContext
             entity.Property(x => x.TiempoAcumuladoMs).HasColumnName("tiempoacumuladoms").IsRequired();
             entity.Property(x => x.UnidadesGanadas).HasColumnName("unidadesganadas").IsRequired();
             entity.HasIndex(x => x.JuegoId).HasDatabaseName("ix_marcadores_juegoid");
+        });
+
+        modelBuilder.Entity<ParticipacionProyectada>(entity =>
+        {
+            entity.ToTable("participaciones_proyectadas");
+            entity.HasKey(x => new { x.PartidaId, x.CompetidorId });
+            entity.Property(x => x.PartidaId).HasColumnName("partidaid");
+            entity.Property(x => x.CompetidorId).HasColumnName("competidorid");
+            entity.Property(x => x.TipoCompetidor).HasColumnName("tipocompetidor").IsRequired();
+            entity.HasIndex(x => x.CompetidorId).HasDatabaseName("ix_participaciones_proyectadas_competidorid");
+        });
+
+        modelBuilder.Entity<ConvocatoriaProyectada>(entity =>
+        {
+            entity.ToTable("convocatorias_proyectadas");
+            entity.HasKey(x => x.ConvocatoriaId);
+            entity.Property(x => x.ConvocatoriaId).HasColumnName("convocatoriaid").ValueGeneratedNever();
+            entity.Property(x => x.PartidaId).HasColumnName("partidaid").IsRequired();
+            entity.Property(x => x.EquipoId).HasColumnName("equipoid").IsRequired();
+            entity.Property(x => x.UsuarioId).HasColumnName("usuarioid").IsRequired();
+            entity.Property(x => x.Aceptada).HasColumnName("aceptada").IsRequired();
+            entity.HasIndex(x => x.UsuarioId).HasDatabaseName("ix_convocatorias_proyectadas_usuarioid");
         });
 
         modelBuilder.Entity<EventoProcesado>(entity =>

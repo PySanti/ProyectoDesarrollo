@@ -13,19 +13,42 @@ namespace Umbral.Partidas.IntegrationTests;
 
 public class PartidaPersistenceTests
 {
+    private static readonly DateTime T0 = new(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc);
+    private const string QrEtapa1 = "11111111-1111-1111-1111-111111111111";
+
     private static PartidasDbContext NewContext(string dbName) =>
         new(new DbContextOptionsBuilder<PartidasDbContext>().UseInMemoryDatabase(dbName).Options);
+
+    [Fact]
+    public async Task FechaCreacion_sobrevive_el_round_trip()
+    {
+        var dbName = Guid.NewGuid().ToString();
+        var partida = Partida.Crear(
+            NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
+
+        await using (var ctx = NewContext(dbName))
+        {
+            new PartidaRepository(ctx).Add(partida);
+            await new PartidasUnitOfWork(ctx).SaveChangesAsync(CancellationToken.None);
+        }
+
+        await using (var ctx = NewContext(dbName))
+        {
+            var loaded = await new PartidaRepository(ctx).GetByIdAsync(partida.PartidaId, CancellationToken.None);
+            Assert.Equal(T0, loaded!.FechaCreacion);
+        }
+    }
 
     [Fact]
     public async Task Partida_with_trivia_and_bdt_games_round_trips()
     {
         var dbName = Guid.NewGuid().ToString();
-        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10);
+        var partida = Partida.Crear(NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, T0);
         var trivia = JuegoTrivia.Crear(partida.PartidaId, 1, new[]
         {
             new PreguntaSpec("Q", new List<OpcionSpec> { new("A", true), new("B", false) }, 10, 30)
         });
-        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, "QR", 50, 120) });
+        var bdt = JuegoBDT.Crear(partida.PartidaId, 2, "Plaza", new[] { new EtapaSpec(1, QrEtapa1, 50, 120) });
         partida.AgregarJuego(trivia.JuegoId, 1, TipoJuego.Trivia);
         partida.AgregarJuego(bdt.JuegoId, 2, TipoJuego.BusquedaDelTesoro);
 
@@ -56,7 +79,7 @@ public class PartidaPersistenceTests
                 .FirstAsync(j => j.JuegoId == bdt.JuegoId);
             Assert.Equal("Plaza", loadedBdt.AreaBusqueda);
             Assert.Single(loadedBdt.Etapas);
-            Assert.Equal("QR", loadedBdt.Etapas[0].CodigoQREsperado);
+            Assert.Equal(QrEtapa1, loadedBdt.Etapas[0].CodigoQREsperado);
         }
     }
 }

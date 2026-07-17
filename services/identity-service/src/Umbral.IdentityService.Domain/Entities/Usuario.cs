@@ -1,18 +1,21 @@
 using Umbral.IdentityService.Domain.Enums;
 using Umbral.IdentityService.Domain.Exceptions;
+using Umbral.IdentityService.Domain.ValueObjects;
 
 namespace Umbral.IdentityService.Domain.Entities;
 
 public sealed class Usuario
 {
-    public Guid UsuarioId { get; private set; }
+    // Tipo propio y no Guid: el mundo de equipos se indexa por el sub de OIDC (KeycloakId), y
+    // cuando ambos eran Guid nada impedia filtrar este id alli. Ver UsuarioLocalId.
+    public UsuarioLocalId UsuarioId { get; private set; }
     public string KeycloakId { get; private set; }
     public string Nombre { get; private set; }
     public string Correo { get; private set; }
     public RolUsuario Rol { get; private set; }
     public EstadoUsuario Estado { get; private set; }
 
-    private Usuario(Guid usuarioId, string keycloakId, string nombre, string correo, RolUsuario rol)
+    private Usuario(UsuarioLocalId usuarioId, string keycloakId, string nombre, string correo, RolUsuario rol)
     {
         UsuarioId = usuarioId;
         KeycloakId = keycloakId;
@@ -28,7 +31,7 @@ public sealed class Usuario
         if (string.IsNullOrWhiteSpace(nombre)) throw new ArgumentException("Nombre requerido", nameof(nombre));
         if (string.IsNullOrWhiteSpace(correo)) throw new ArgumentException("Correo requerido", nameof(correo));
 
-        return new Usuario(Guid.NewGuid(), keycloakId.Trim(), nombre.Trim(), correo.Trim().ToLowerInvariant(), rol);
+        return new Usuario(UsuarioLocalId.New(), keycloakId.Trim(), nombre.Trim(), correo.Trim().ToLowerInvariant(), rol);
     }
 
     public void EditarDatosGenerales(string nombre, string correo)

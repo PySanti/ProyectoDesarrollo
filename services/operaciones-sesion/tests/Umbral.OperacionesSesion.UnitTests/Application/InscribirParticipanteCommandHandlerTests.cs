@@ -32,7 +32,7 @@ public class InscribirParticipanteCommandHandlerTests
         var repo = new FakeSesionPartidaRepository();
         repo.Add(PublishedSession(partidaId));
         var uow = new FakeOperacionesSesionUnitOfWork();
-        var handler = new InscribirParticipanteCommandHandler(repo, uow, Clock);
+        var handler = new InscribirParticipanteCommandHandler(repo, new FakeSesionEventsPublisher(), uow, Clock);
         var participante = Guid.NewGuid();
 
         var response = await handler.Handle(new InscribirParticipanteCommand(partidaId, participante), CancellationToken.None);
@@ -48,7 +48,7 @@ public class InscribirParticipanteCommandHandlerTests
     public async Task Throws_when_session_not_found()
     {
         var handler = new InscribirParticipanteCommandHandler(
-            new FakeSesionPartidaRepository(), new FakeOperacionesSesionUnitOfWork(), Clock);
+            new FakeSesionPartidaRepository(), new FakeSesionEventsPublisher(), new FakeOperacionesSesionUnitOfWork(), Clock);
 
         await Assert.ThrowsAsync<SesionNoEncontradaException>(
             () => handler.Handle(new InscribirParticipanteCommand(Guid.NewGuid(), Guid.NewGuid()), CancellationToken.None));
@@ -60,7 +60,7 @@ public class InscribirParticipanteCommandHandlerTests
         var partidaId = Guid.NewGuid();
         var repo = new FakeSesionPartidaRepository();
         repo.Add(PublishedSession(partidaId, Modalidad.Equipo));
-        var handler = new InscribirParticipanteCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), Clock);
+        var handler = new InscribirParticipanteCommandHandler(repo, new FakeSesionEventsPublisher(), new FakeOperacionesSesionUnitOfWork(), Clock);
 
         await Assert.ThrowsAsync<ModalidadNoSoportadaException>(
             () => handler.Handle(new InscribirParticipanteCommand(partidaId, Guid.NewGuid()), CancellationToken.None));
@@ -72,7 +72,7 @@ public class InscribirParticipanteCommandHandlerTests
         var partidaId = Guid.NewGuid();
         var repo = new FakeSesionPartidaRepository { ParticipacionActivaEnOtra = true };
         repo.Add(PublishedSession(partidaId));
-        var handler = new InscribirParticipanteCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), Clock);
+        var handler = new InscribirParticipanteCommandHandler(repo, new FakeSesionEventsPublisher(), new FakeOperacionesSesionUnitOfWork(), Clock);
 
         await Assert.ThrowsAsync<ParticipacionActivaExistenteException>(
             () => handler.Handle(new InscribirParticipanteCommand(partidaId, Guid.NewGuid()), CancellationToken.None));
@@ -84,11 +84,30 @@ public class InscribirParticipanteCommandHandlerTests
         var partidaId = Guid.NewGuid();
         var repo = new FakeSesionPartidaRepository();
         var sesion = PublishedSession(partidaId, max: 1);
-        sesion.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow); // fill the single slot
+        var ocupante = sesion.Inscribir(Guid.NewGuid(), false, 0, DateTime.UtcNow);
+        sesion.AceptarInscripcion(ocupante.Id.Valor, 0, DateTime.UtcNow); // HU-19: solo lo activo ocupa cupo
         repo.Add(sesion);
-        var handler = new InscribirParticipanteCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), Clock);
+        var handler = new InscribirParticipanteCommandHandler(repo, new FakeSesionEventsPublisher(), new FakeOperacionesSesionUnitOfWork(), Clock);
 
         await Assert.ThrowsAsync<CupoLlenoException>(
             () => handler.Handle(new InscribirParticipanteCommand(partidaId, Guid.NewGuid()), CancellationToken.None));
+    }
+
+    [Fact]
+    public async Task Inscribe_pendiente_y_publica_InscripcionSolicitada()
+    {
+        var partidaId = Guid.NewGuid();
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(PublishedSession(partidaId));
+        var events = new FakeSesionEventsPublisher();
+        var participante = Guid.NewGuid();
+        var handler = new InscribirParticipanteCommandHandler(
+            repo, events, new FakeOperacionesSesionUnitOfWork(), Clock);
+
+        await handler.Handle(new InscribirParticipanteCommand(partidaId, participante), CancellationToken.None);
+
+        var e = Assert.Single(events.InscripcionesSolicitadas);
+        Assert.Equal("Individual", e.Modalidad);
+        Assert.Equal(participante, e.ParticipanteId);
     }
 }

@@ -27,7 +27,8 @@ public class BarrerTimeoutsCommandHandlerTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { P(1, limite), P(2, limite) });
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        var insc = s.Inscribir(Guid.NewGuid(), false, 0, T0);
+        s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         s.Iniciar(T0);
         return s;
     }
@@ -51,6 +52,24 @@ public class BarrerTimeoutsCommandHandlerTests
         Assert.Equal(1, uow.SaveCount);
         Assert.Single(events.PreguntasCerradas);
         Assert.Single(events.PreguntasActivadas); // se activó Q2
+    }
+
+    [Fact]
+    public async Task Cierra_vencida_publica_texto_opcion_correcta_en_cierre()
+    {
+        var sesion = TriviaIniciada(30);
+        var correcta = sesion.Juegos.Single().Preguntas.Single(p => p.Orden == 1).Opciones.First(o => o.EsCorrecta);
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(sesion);
+        var uow = new FakeOperacionesSesionUnitOfWork();
+        var events = new FakeSesionEventsPublisher();
+        var handler = Build(repo, uow, events, T0.AddSeconds(31));
+
+        await handler.Handle(new BarrerTimeoutsCommand(), CancellationToken.None);
+
+        var cerrada = Assert.Single(events.PreguntasCerradas);
+        Assert.Equal(correcta.OpcionId, cerrada.OpcionCorrectaId);
+        Assert.Equal("ok", cerrada.TextoOpcionCorrecta);
     }
 
     [Fact]

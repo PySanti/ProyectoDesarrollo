@@ -29,7 +29,8 @@ public static class BdtBuilder
         var partidaId = Guid.NewGuid();
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var jugadorId = Guid.NewGuid();
-        sesion.Inscribir(jugadorId, false, 0, T0);
+        var insc = sesion.Inscribir(jugadorId, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
 
         var repo = new FakeSesionPartidaRepository();
         repo.Add(sesion);
@@ -59,7 +60,8 @@ public static class BdtBuilder
         var partidaId = Guid.NewGuid();
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var jugadorId = Guid.NewGuid();
-        sesion.Inscribir(jugadorId, false, 0, T0);
+        var insc = sesion.Inscribir(jugadorId, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
 
         var repo = new FakeSesionPartidaRepository();

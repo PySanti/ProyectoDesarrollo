@@ -28,6 +28,9 @@ public static class ProyeccionEventMapper
                 "PartidaFinalizada" => MapPartidaFinalizada(envelope),
                 "PuntajeTriviaIncrementado" => MapPuntajeTrivia(envelope),
                 "EtapaBDTGanada" => MapEtapaBdtGanada(envelope),
+                "InscripcionAceptada" => MapInscripcionAceptada(envelope),
+                "ConvocatoriaCreada" => MapConvocatoriaCreada(envelope),
+                "ConvocatoriaRespondida" => MapConvocatoriaRespondida(envelope),
                 _ => null
             };
         }
@@ -48,6 +51,16 @@ public static class ProyeccionEventMapper
     private sealed record EtapaBdtGanadaPayload(
         Guid PartidaId, Guid SesionPartidaId, Guid JuegoId, Guid EtapaId,
         Guid ParticipanteId, int Puntaje, long TiempoResolucionMs, Guid? EquipoId);
+
+    // Modalidad/EstadoConvocatoria viajan como string, no como enum: un valor inesperado no
+    // revienta la deserializacion del envelope, el handler simplemente no proyecta.
+    private sealed record InscripcionAceptadaPayload(
+        Guid PartidaId, Guid SesionPartidaId, Guid InscripcionId, string Modalidad,
+        Guid? ParticipanteId, Guid? EquipoId, DateTime Instante);
+    private sealed record ConvocatoriaCreadaPayload(
+        Guid PartidaId, Guid SesionPartidaId, Guid ConvocatoriaId, Guid EquipoId, Guid UsuarioId);
+    private sealed record ConvocatoriaRespondidaPayload(
+        Guid PartidaId, Guid SesionPartidaId, Guid ConvocatoriaId, Guid UsuarioId, string EstadoConvocatoria);
 
     private static T? Deserializar<T>(EnvelopeResumen envelope) where T : class
         => envelope.Payload.Deserialize<T>(JsonOpts);
@@ -85,5 +98,20 @@ public static class ProyeccionEventMapper
     private static IBaseRequest? MapEtapaBdtGanada(EnvelopeResumen e)
         => Deserializar<EtapaBdtGanadaPayload>(e) is { } p
             ? new ProyectarEtapaBdtGanadaCommand(e.EventId, e.OccurredAt, p.PartidaId, p.SesionPartidaId, p.JuegoId, p.EtapaId, p.ParticipanteId, p.Puntaje, p.TiempoResolucionMs, p.EquipoId)
+            : null;
+
+    private static IBaseRequest? MapInscripcionAceptada(EnvelopeResumen e)
+        => Deserializar<InscripcionAceptadaPayload>(e) is { } p
+            ? new ProyectarInscripcionAceptadaCommand(e.EventId, e.OccurredAt, p.PartidaId, p.Modalidad, p.ParticipanteId, p.EquipoId)
+            : null;
+
+    private static IBaseRequest? MapConvocatoriaCreada(EnvelopeResumen e)
+        => Deserializar<ConvocatoriaCreadaPayload>(e) is { } p
+            ? new ProyectarConvocatoriaCreadaCommand(e.EventId, e.OccurredAt, p.PartidaId, p.ConvocatoriaId, p.EquipoId, p.UsuarioId)
+            : null;
+
+    private static IBaseRequest? MapConvocatoriaRespondida(EnvelopeResumen e)
+        => Deserializar<ConvocatoriaRespondidaPayload>(e) is { } p
+            ? new ProyectarConvocatoriaRespondidaCommand(e.EventId, e.OccurredAt, p.ConvocatoriaId, p.UsuarioId, p.EstadoConvocatoria)
             : null;
 }

@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.Security.Claims;
 using System.Threading;
 using System.Threading.Tasks;
@@ -86,6 +87,22 @@ public class SesionesControllerBdtTests
         var ok = Assert.IsType<OkObjectResult>(result);
         Assert.IsType<EtapaActualDto>(ok.Value);
         var query = Assert.IsType<ObtenerEtapaActualQuery>(sender.LastRequest);
+        Assert.Equal(partidaId, query.PartidaId);
+    }
+
+    [Fact]
+    public async Task Obtener_envios_tesoro_dispatches_query()
+    {
+        var partidaId = Guid.NewGuid();
+        var sender = new FakeSender(new EnviosTesoroDto(partidaId, Guid.NewGuid(),
+            new List<EtapaEnviosDto> { new(Guid.NewGuid(), 1, new List<IntentoTesoroDto>()) }));
+        var controller = WithUser(sender, Guid.NewGuid());
+
+        var result = await controller.ObtenerEnviosTesoro(partidaId, CancellationToken.None);
+
+        var ok = Assert.IsType<OkObjectResult>(result);
+        Assert.IsType<EnviosTesoroDto>(ok.Value);
+        var query = Assert.IsType<ObtenerEnviosTesoroQuery>(sender.LastRequest);
         Assert.Equal(partidaId, query.PartidaId);
     }
 }

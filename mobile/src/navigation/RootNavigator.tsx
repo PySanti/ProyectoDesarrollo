@@ -10,16 +10,14 @@ import { InvitationsScreenContainer } from "../features/teams/InvitationsScreenC
 import { InviteMemberScreenContainer } from "../features/teams/InviteMemberScreenContainer";
 import { TransferLeadershipScreenContainer } from "../features/teams/TransferLeadershipScreenContainer";
 import { LeaveTeamScreenContainer } from "../features/teams/LeaveTeamScreenContainer";
-import { TriviaGamesListScreenContainer } from "../features/trivia/screens/TriviaGamesListScreenContainer";
-import { TriviaLobbyScreenContainer } from "../features/trivia/screens/TriviaLobbyScreenContainer";
-import { TriviaLivePlayScreenContainer } from "../features/trivia/live/TriviaLivePlayScreenContainer";
-import { TriviaAnswerScreenContainer } from "../features/trivia/screens/TriviaAnswerScreenContainer";
-import { TriviaResultScreenContainer } from "../features/trivia/screens/TriviaResultScreenContainer";
-import { TriviaScoreScreenContainer } from "../features/trivia/screens/TriviaScoreScreenContainer";
-import { BdtPublishedGamesScreenContainer } from "../features/bdt/BdtPublishedGamesScreenContainer";
-import { BdtRankingScreenContainer } from "../features/bdt/ranking/BdtRankingScreenContainer";
-import { BdtActiveStageScreenContainer } from "../features/bdt/BdtActiveStageScreenContainer";
-import { BdtTreasureUploadScreenContainer } from "../features/bdt/BdtTreasureUploadScreenContainer";
+import { DeleteTeamScreenContainer } from "../features/teams/DeleteTeamScreenContainer";
+import { TeamHistoryScreenContainer } from "../features/teams/TeamHistoryScreenContainer";
+import { PartidasPanelScreenContainer } from "../features/partidas/PartidasPanelScreenContainer";
+import { PartidaLobbyScreenContainer } from "../features/partidas/PartidaLobbyScreenContainer";
+import { PartidaLiveScreenContainer } from "../features/partidas/PartidaLiveScreenContainer";
+import { ConvocatoriasScreenContainer } from "../features/partidas/ConvocatoriasScreenContainer";
+import { HistorialPartidasScreenContainer } from "../features/puntuaciones/HistorialPartidasScreenContainer";
+import { RendimientoEquipoScreenContainer } from "../features/puntuaciones/RendimientoEquipoScreenContainer";
 import { AppStackParamList, AuthStackParamList } from "./types";
 import { colors, fonts } from "../shared/theme";
 
@@ -93,54 +91,44 @@ export function RootNavigator() {
         options={{ title: "Salir del equipo" }}
       />
       <AppStack.Screen
-        name="TriviaGamesList"
-        component={TriviaGamesListScreenContainer}
-        options={{ title: "Partidas Trivia" }}
+        name="DeleteTeam"
+        component={DeleteTeamScreenContainer}
+        options={{ title: "Eliminar equipo" }}
       />
       <AppStack.Screen
-        name="TriviaLobby"
-        component={TriviaLobbyScreenContainer}
-        options={{ title: "Espera Trivia" }}
+        name="TeamHistory"
+        component={TeamHistoryScreenContainer}
+        options={{ title: "Historial de equipos" }}
       />
       <AppStack.Screen
-        name="TriviaLivePlay"
-        component={TriviaLivePlayScreenContainer}
-        options={{ headerShown: false }}
+        name="PartidasPanel"
+        component={PartidasPanelScreenContainer}
+        options={{ title: "Partidas" }}
       />
       <AppStack.Screen
-        name="TriviaAnswer"
-        component={TriviaAnswerScreenContainer}
-        options={{ title: "Responder Trivia" }}
+        name="PartidaLobby"
+        component={PartidaLobbyScreenContainer}
+        options={{ title: "Lobby" }}
       />
       <AppStack.Screen
-        name="TriviaResult"
-        component={TriviaResultScreenContainer}
-        options={{ title: "Resultado Trivia" }}
+        name="PartidaLive"
+        component={PartidaLiveScreenContainer}
+        options={{ title: "En vivo" }}
       />
       <AppStack.Screen
-        name="TriviaScore"
-        component={TriviaScoreScreenContainer}
-        options={{ title: "Puntaje Trivia" }}
+        name="Convocatorias"
+        component={ConvocatoriasScreenContainer}
+        options={{ title: "Convocatorias" }}
       />
       <AppStack.Screen
-        name="BdtPublishedGames"
-        component={BdtPublishedGamesScreenContainer}
-        options={{ title: "Partidas BDT" }}
+        name="HistorialPartidas"
+        component={HistorialPartidasScreenContainer}
+        options={{ title: "Mi historial" }}
       />
       <AppStack.Screen
-        name="BdtRanking"
-        component={BdtRankingScreenContainer}
-        options={{ headerShown: false }}
-      />
-      <AppStack.Screen
-        name="BdtActiveStage"
-        component={BdtActiveStageScreenContainer}
-        options={{ title: "Etapa activa BDT" }}
-      />
-      <AppStack.Screen
-        name="BdtTreasureUpload"
-        component={BdtTreasureUploadScreenContainer}
-        options={{ title: "Subir tesoro QR" }}
+        name="RendimientoEquipo"
+        component={RendimientoEquipoScreenContainer}
+        options={{ title: "Rendimiento del equipo" }}
       />
     </AppStack.Navigator>
   );

@@ -32,7 +32,7 @@ public sealed class SalirDeEquipoHandlerTests
         Assert.Equal(ResultadoSalidaEquipo.SalioDelEquipo.ToString(), response.Resultado);
         Assert.Equal(EstadoEquipo.Activo.ToString(), response.EquipoEstado);
         Assert.True(repo.UpdateWasCalled);
-        Assert.DoesNotContain(equipo.Participantes, x => x.UsuarioId == actor);
+        Assert.DoesNotContain(equipo.Participantes, x => x.SubjectId == actor);
     }
 
     [Fact]
@@ -124,6 +124,9 @@ public sealed class SalirDeEquipoHandlerTests
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn?.EquipoId == equipoId ? TeamToReturn : null);
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamToReturn is null ? Array.Empty<Equipo>() : new[] { TeamToReturn });
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;

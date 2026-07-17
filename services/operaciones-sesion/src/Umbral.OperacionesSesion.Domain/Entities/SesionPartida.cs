@@ -55,7 +55,7 @@ public sealed class SesionPartida
             throw new SesionNoEnLobbyException(PartidaId);
         if (Modalidad != Modalidad.Individual)
             throw new ModalidadNoSoportadaException(PartidaId);
-        if (_inscripciones.Any(i => i.ParticipanteId == participanteId && i.EsActiva))
+        if (_inscripciones.Any(i => i.ParticipanteId == participanteId && i.OcupaParticipacion))
             throw new ParticipanteYaInscritoException(participanteId);
         if (tieneParticipacionActivaEnOtra)
             throw new ParticipacionActivaExistenteException(participanteId);
@@ -77,7 +77,7 @@ public sealed class SesionPartida
     }
 
     public InscripcionPartida PreinscribirEquipo(
-        Guid equipoId, bool callerEsLider, IReadOnlyList<Guid> miembros,
+        Guid equipoId, bool callerEsLider, Guid liderId, IReadOnlyList<Guid> miembros,
         bool equipoTieneParticipacionActivaEnOtra, int equiposActivos, DateTime fecha)
     {
         if (Estado != EstadoSesion.Lobby)
@@ -86,16 +86,48 @@ public sealed class SesionPartida
             throw new ModalidadNoSoportadaException(PartidaId);
         if (!callerEsLider)
             throw new NoEsLiderEquipoException(equipoId);
-        if (_inscripciones.Any(i => i.EquipoId == equipoId && i.EsActiva))
+        if (_inscripciones.Any(i => i.EquipoId == equipoId && i.OcupaParticipacion))
             throw new EquipoYaInscritoException(equipoId);
         if (equipoTieneParticipacionActivaEnOtra)
             throw new ParticipacionActivaExistenteException(equipoId);
         if (equiposActivos >= MaximosParticipacion)
             throw new CupoLlenoException(PartidaId);
 
-        var inscripcion = InscripcionPartida.PreinscribirEquipo(equipoId, miembros, PartidaId, fecha);
+        var inscripcion = InscripcionPartida.PreinscribirEquipo(equipoId, liderId, miembros, PartidaId, fecha);
         _inscripciones.Add(inscripcion);
         return inscripcion;
+    }
+
+    // liderPuedeAutoAceptar: ver la nota en InscripcionPartida.Aceptar — default fail-closed.
+    public IReadOnlyList<Convocatoria> AceptarInscripcion(
+        Guid inscripcionId, int inscritosActivos, DateTime now, bool liderPuedeAutoAceptar = false)
+    {
+        if (Estado != EstadoSesion.Lobby)
+            throw new SesionNoEnLobbyException(PartidaId);
+
+        var inscripcion = _inscripciones.FirstOrDefault(i => i.Id.Valor == inscripcionId)
+            ?? throw new InscripcionNoEncontradaException(inscripcionId);
+        if (!inscripcion.EstaPendiente)
+            throw new InscripcionNoPendienteException(inscripcionId);
+        if (inscritosActivos >= MaximosParticipacion)
+            throw new CupoLlenoException(PartidaId);
+
+        inscripcion.FijarPartidaIdParaConvocar(PartidaId);
+        return inscripcion.Aceptar(now, liderPuedeAutoAceptar);
+    }
+
+    public (Guid InscripcionId, Guid? EquipoId) RechazarInscripcion(Guid inscripcionId, DateTime now)
+    {
+        if (Estado != EstadoSesion.Lobby)
+            throw new SesionNoEnLobbyException(PartidaId);
+
+        var inscripcion = _inscripciones.FirstOrDefault(i => i.Id.Valor == inscripcionId)
+            ?? throw new InscripcionNoEncontradaException(inscripcionId);
+        if (!inscripcion.EstaPendiente)
+            throw new InscripcionNoPendienteException(inscripcionId);
+
+        inscripcion.Rechazar();
+        return (inscripcion.Id.Valor, inscripcion.EquipoId);
     }
 
     public Convocatoria ResponderConvocatoria(
@@ -129,7 +161,7 @@ public sealed class SesionPartida
         return convocatoria;
     }
 
-    public void CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
+    public Guid CancelarInscripcionEquipo(Guid equipoId, bool callerEsLider)
     {
         if (Estado != EstadoSesion.Lobby)
             throw new SesionNoEnLobbyException(PartidaId);
@@ -138,6 +170,7 @@ public sealed class SesionPartida
         var inscripcion = _inscripciones.FirstOrDefault(i => i.EquipoId == equipoId && i.EsActiva)
             ?? throw InscripcionNoEncontradaException.ParaEquipo(equipoId);
         inscripcion.Cancelar();
+        return inscripcion.Id.Valor;
     }
 
     public ResultadoInicio Iniciar(DateTime now)
@@ -301,6 +334,38 @@ public sealed class SesionPartida
         var juego = JuegoBDTActivo();
         _ = juego.EtapaActiva ?? throw new NoHayEtapaActivaException(PartidaId);
         return juego.JuegoId;
+    }
+
+    // HU-40: cancelación manual por el operador — válida en Lobby e Iniciada.
+    public void Cancelar(DateTime now)
+    {
+        if (Estado != EstadoSesion.Lobby && Estado != EstadoSesion.Iniciada)
+            throw new PartidaNoCancelableException(PartidaId, Estado.ToString());
+
+        // 7c review (Important): si veníamos de Iniciada, el juego activo (y su pregunta/etapa
+        // activa) no puede quedar "vivo" para siempre — se cierra antes de mutar el estado de
+        // la sesión, para que GET /pregunta-actual y /etapa-actual dejen de exponer contenido
+        // sobre una partida Cancelada. Sin activar el siguiente ni publicar eventos de
+        // juego/pregunta/etapa: la cancelación es partida-level (PartidaCancelada ya basta).
+        if (Estado == EstadoSesion.Iniciada)
+            CerrarJuegoActivoPorCancelacion(now);
+
+        Estado = EstadoSesion.Cancelada;
+        FechaFin = now;
+    }
+
+    private void CerrarJuegoActivoPorCancelacion(DateTime now)
+    {
+        var juego = _juegos.SingleOrDefault(j => j.Estado == EstadoJuego.Activo);
+        if (juego is null)
+            return;
+
+        if (juego.TipoJuego == TipoJuego.Trivia)
+            juego.PreguntaActiva?.Cerrar(MotivoCierrePregunta.AvanceOperador, now, ganador: null);
+        else if (juego.TipoJuego == TipoJuego.BusquedaDelTesoro)
+            juego.EtapaActiva?.CerrarPorOperador(now);
+
+        juego.Finalizar();
     }
 
     public ResultadoCierreVencido CerrarActividadVencida(DateTime now)

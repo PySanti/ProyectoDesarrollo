@@ -14,7 +14,7 @@ public sealed class UnirseAEquipoDomainTests
         equipo.AgregarParticipante(nuevo);
 
         Assert.Equal(2, equipo.Participantes.Count);
-        var nuevoIntegrante = equipo.Participantes.Single(x => x.UsuarioId == nuevo);
+        var nuevoIntegrante = equipo.Participantes.Single(x => x.SubjectId == nuevo);
         Assert.False(nuevoIntegrante.EsLider);
     }
 

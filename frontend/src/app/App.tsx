@@ -1,6 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
 import { createBrowserRouter, Navigate, RouterProvider } from "react-router-dom";
 import { authProvider, AuthUser } from "../auth/keycloak";
+import { useSessionRefresh } from "../auth/useSessionRefresh";
+import { SessionExpiryModal } from "../auth/SessionExpiryModal";
 import { AppShell } from "../shell/AppShell";
 import { landingPath } from "../shell/navConfig";
 import {
@@ -10,14 +12,17 @@ import {
   NotFoundScreen,
   UnauthorizedScreen
 } from "../shell/states";
-import { CreateBdtGamePage } from "../features/bdt/CreateBdtGamePage";
-import { PublishedBdtGamesPage } from "../features/bdt/PublishedBdtGamesPage";
 import { CreateUserPage } from "../features/identity/CreateUserPage";
+import { EquiposPage } from "../features/identity/EquiposPage";
 import { GovernancePage } from "../features/identity/GovernancePage";
+import { TeamsAdminPage } from "../features/identity/TeamsAdminPage";
 import { UserManagementPage } from "../features/identity/UserManagementPage";
-import { CreateTriviaFormPage } from "../features/trivia/CreateTriviaFormPage";
-import { CreateTriviaGamePage } from "../features/trivia/CreateTriviaGamePage";
-import { TriviaOperationsPage } from "../features/trivia/TriviaOperationsPage";
+import { CreatePartidaPage } from "../features/partidas/CreatePartidaPage";
+import { HistorialPartidaPage } from "../features/partidas/HistorialPartidaPage";
+import { PartidaDetailPage } from "../features/partidas/PartidaDetailPage";
+import { PartidasListPage } from "../features/partidas/PartidasListPage";
+import { SesionOperadorPage } from "../features/partidas/SesionOperadorPage";
+import { RendimientoEquipoPage } from "../features/puntuaciones/RendimientoEquipoPage";
 
 type AuthState =
   | { status: "loading" }
@@ -32,16 +37,35 @@ function RequireRole({
   children
 }: {
   roles: string[];
-  need: string;
+  need: string | readonly string[];
   landing: string;
   children: JSX.Element;
 }) {
-  return roles.includes(need) ? children : <Navigate to={landing} replace />;
+  const allowedRoles = typeof need === "string" ? [need] : need;
+  return roles.some((role) => allowedRoles.includes(role)) ? (
+    children
+  ) : (
+    <Navigate to={landing} replace />
+  );
 }
 
 export function App() {
   const [authState, setAuthState] = useState<AuthState>({ status: "loading" });
   const [logoutError, setLogoutError] = useState<string | null>(null);
+
+  const sesionExpiradaKey = "umbral.sesion.expirada";
+  const { modalVisible, continuar } = useSessionRefresh({
+    enabled: authState.status === "ready",
+    onToken: (token) =>
+      setAuthState((prev) =>
+        prev.status === "ready" ? { status: "ready", user: { ...prev.user, token } } : prev
+      ),
+    onExpired: () => {
+      // El logout de Keycloak recarga la página: el aviso sobrevive en sessionStorage.
+      window.sessionStorage.setItem(sesionExpiradaKey, "1");
+      void authProvider.logout();
+    }
+  });
 
   useEffect(() => {
     let active = true;
@@ -85,6 +109,7 @@ export function App() {
     const roles = user.roles;
     const token = user.token;
     const landing = landingPath(roles);
+    const puedeOperar = roles.includes("Operador");
 
     return createBrowserRouter([
       {
@@ -116,42 +141,66 @@ export function App() {
             )
           },
           {
-            path: "trivia/formularios/nuevo",
+            path: "identidad/equipos",
             element: (
-              <RequireRole roles={roles} need="Operador" landing={landing}>
-                <CreateTriviaFormPage accessToken={token} />
+              <RequireRole roles={roles} need="Administrador" landing={landing}>
+                <TeamsAdminPage accessToken={token} />
               </RequireRole>
             )
           },
           {
-            path: "trivia/crear",
+            path: "partidas",
             element: (
-              <RequireRole roles={roles} need="Operador" landing={landing}>
-                <CreateTriviaGamePage accessToken={token} />
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <PartidasListPage accessToken={token} puedeOperar={puedeOperar} />
               </RequireRole>
             )
           },
           {
-            path: "trivia/operar",
+            path: "partidas/crear",
             element: (
               <RequireRole roles={roles} need="Operador" landing={landing}>
-                <TriviaOperationsPage accessToken={token} />
+                <CreatePartidaPage accessToken={token} />
               </RequireRole>
             )
           },
           {
-            path: "bdt/crear",
+            path: "partidas/:partidaId",
             element: (
-              <RequireRole roles={roles} need="Operador" landing={landing}>
-                <CreateBdtGamePage accessToken={token} />
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <PartidaDetailPage accessToken={token} puedeOperar={puedeOperar} />
               </RequireRole>
             )
           },
           {
-            path: "bdt/partidas",
+            path: "partidas/:partidaId/sesion",
             element: (
-              <RequireRole roles={roles} need="Operador" landing={landing}>
-                <PublishedBdtGamesPage accessToken={token} />
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <SesionOperadorPage accessToken={token} puedeOperar={puedeOperar} />
+              </RequireRole>
+            )
+          },
+          {
+            path: "partidas/:partidaId/historial",
+            element: (
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <HistorialPartidaPage accessToken={token} />
+              </RequireRole>
+            )
+          },
+          {
+            path: "puntuaciones/equipos",
+            element: (
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <RendimientoEquipoPage accessToken={token} />
+              </RequireRole>
+            )
+          },
+          {
+            path: "equipos",
+            element: (
+              <RequireRole roles={roles} need={["Operador", "Administrador"]} landing={landing}>
+                <EquiposPage accessToken={token} />
               </RequireRole>
             )
           },
@@ -163,6 +212,15 @@ export function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [authState]);
 
+  // El router se recrea cuando authState rota el token (RNF-24, cada 270s);
+  // RouterProvider no hace dispose del anterior, así que lo hacemos aquí para
+  // no acumular listeners de history huérfanos.
+  useEffect(() => {
+    return () => {
+      router?.dispose();
+    };
+  }, [router]);
+
   if (authState.status === "loading") {
     return <LoadingScreen />;
   }
@@ -172,7 +230,16 @@ export function App() {
   }
 
   if (authState.status === "unauthenticated") {
-    return <LoginScreen onLogin={() => void authProvider.login()} />;
+    const expirada = window.sessionStorage.getItem(sesionExpiradaKey) === "1";
+    if (expirada) {
+      window.sessionStorage.removeItem(sesionExpiradaKey);
+    }
+    return (
+      <LoginScreen
+        onLogin={() => void authProvider.login()}
+        notice={expirada ? "Tu sesión expiró. Inicia sesión de nuevo." : null}
+      />
+    );
   }
 
   const roles = authState.user.roles;
@@ -199,6 +266,11 @@ export function App() {
           {logoutError}
         </div>
       ) : null}
+      <SessionExpiryModal
+        visible={modalVisible}
+        onContinuar={continuar}
+        onSalir={() => void onLogout()}
+      />
     </>
   );
 }

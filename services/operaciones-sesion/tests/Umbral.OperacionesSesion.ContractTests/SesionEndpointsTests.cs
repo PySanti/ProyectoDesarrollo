@@ -119,6 +119,7 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         var authClient = _factory.CreateClientAs(participanteId);
         var inscribe = await authClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
         Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        await AceptarInscripcion(partidaId, inscribe);
 
         var lobby = await _client.GetFromJsonAsync<LobbyDto>($"{Rutas.Base}/partidas/{partidaId}/lobby");
         Assert.Equal(1, lobby!.InscritosActivos);
@@ -166,7 +167,11 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         var clientA = _factory.CreateClientAs(participanteA);
         var clientB = _factory.CreateClientAs(participanteB);
 
-        Assert.Equal(HttpStatusCode.Created, (await clientA.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        // HU-19: el cupo sólo lo consumen las inscripciones ACTIVAS. A debe ser aceptada por el
+        // operador para llenar el cupo (max=1); recién entonces B choca con CupoLleno → 409.
+        var inscribeA = await clientA.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribeA.StatusCode);
+        await AceptarInscripcion(partidaId, inscribeA);
         Assert.Equal(HttpStatusCode.Conflict, (await clientB.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
     }
 
@@ -180,7 +185,9 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
 
         var authClient = _factory.CreateClientAs(participanteId);
-        Assert.Equal(HttpStatusCode.Created, (await authClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        var inscribe = await authClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        await AceptarInscripcion(partidaId, inscribe);
 
         var cancel = await authClient.DeleteAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones/mia");
         Assert.Equal(HttpStatusCode.NoContent, cancel.StatusCode);
@@ -194,7 +201,20 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         _factory.Stub.Respuestas[partidaId] = Config(modalidad: "Individual", max: 10, juegos: juegos);
         Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
         var authClient = _factory.CreateClientAs(participanteId);
-        Assert.Equal(HttpStatusCode.Created, (await authClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null)).StatusCode);
+        var inscribe = await authClient.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inscripciones", null);
+        Assert.Equal(HttpStatusCode.Created, inscribe.StatusCode);
+        await AceptarInscripcion(partidaId, inscribe);
+    }
+
+    // HU-19: una inscripción nace Pendiente; el operador debe aceptarla para que cuente
+    // como activa (mínimos, cupo, inicio). Helper que lee el InscripcionResponse del
+    // POST /inscripciones y despacha la aceptación con el cliente operador (_client).
+    private async Task AceptarInscripcion(Guid partidaId, HttpResponseMessage inscribeResponse)
+    {
+        var inscripcion = await inscribeResponse.Content.ReadFromJsonAsync<InscripcionResponse>();
+        var aceptar = await _client.PostAsync(
+            $"{Rutas.Base}/partidas/{partidaId}/inscripciones/{inscripcion!.InscripcionId}/aceptacion", null);
+        Assert.Equal(HttpStatusCode.OK, aceptar.StatusCode);
     }
 
     [Fact]
@@ -252,6 +272,38 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
 
         var second = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
         Assert.Equal(HttpStatusCode.Conflict, second.StatusCode); // already Iniciada → SesionNoEnLobby
+    }
+
+    [Fact]
+    public async Task Cancel_partida_from_lobby_returns_200_cancelada()
+    {
+        var partidaId = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = Config(juegos: 1);
+        Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+
+        var cancelar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.OK, cancelar.StatusCode);
+        var response = await cancelar.Content.ReadFromJsonAsync<CancelacionPartidaResponse>();
+        Assert.Equal("Cancelada", response!.Estado);
+    }
+
+    [Fact]
+    public async Task Cancel_partida_unknown_returns_404()
+    {
+        var cancelar = await _client.PostAsync($"{Rutas.Base}/partidas/{Guid.NewGuid()}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.NotFound, cancelar.StatusCode);
+    }
+
+    [Fact]
+    public async Task Cancel_partida_ya_cancelada_returns_409()
+    {
+        var partidaId = Guid.NewGuid();
+        _factory.Stub.Respuestas[partidaId] = Config(juegos: 1);
+        Assert.Equal(HttpStatusCode.Created, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/publicacion", null)).StatusCode);
+        Assert.Equal(HttpStatusCode.OK, (await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null)).StatusCode);
+
+        var second = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/cancelacion", null);
+        Assert.Equal(HttpStatusCode.Conflict, second.StatusCode);
     }
 
     [Fact]

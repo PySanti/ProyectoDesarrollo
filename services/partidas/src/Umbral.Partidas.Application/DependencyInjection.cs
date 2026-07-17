@@ -11,6 +11,9 @@ public static class DependencyInjection
         services.AddMediatR(cfg => cfg.RegisterServicesFromAssembly(typeof(DependencyInjection).Assembly));
         services.AddValidatorsFromAssembly(typeof(DependencyInjection).Assembly);
         services.AddTransient(typeof(IPipelineBehavior<,>), typeof(ValidationBehavior<,>));
+        // Primer reloj de este servicio: CrearPartidaCommandHandler sella FechaCreacion.
+        // Misma linea que Operaciones de Sesion.
+        services.AddSingleton(TimeProvider.System);
         return services;
     }
 }

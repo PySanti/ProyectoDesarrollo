@@ -142,6 +142,7 @@ else
 builder.Services.AddAuthorizationBuilder()
     .AddPolicy("GestionarPartidas", p => p.RequireRole("GestionarPartidas"))
     .AddPolicy("ParticiparEnPartidas", p => p.RequireRole("ParticiparEnPartidas"))
+    .AddPolicy("OperadorOAdministrador", p => p.RequireRole("Operador", "Administrador"))
     .SetFallbackPolicy(new AuthorizationPolicyBuilder().RequireAuthenticatedUser().Build());
 
 var app = builder.Build();

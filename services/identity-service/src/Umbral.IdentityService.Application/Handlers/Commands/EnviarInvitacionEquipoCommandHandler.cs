@@ -34,7 +34,7 @@ public sealed class EnviarInvitacionEquipoCommandHandler : IRequestHandler<Envia
             throw new NoEsLiderException(request.ActorUserId);
 
         var lider = equipo.Participantes.SingleOrDefault(p => p.EsLider);
-        if (lider is null || lider.UsuarioId != request.ActorUserId)
+        if (lider is null || lider.SubjectId != request.ActorUserId)
             throw new NoEsLiderException(request.ActorUserId);
 
         if (equipo.Participantes.Count >= 5)
@@ -63,8 +63,8 @@ public sealed class EnviarInvitacionEquipoCommandHandler : IRequestHandler<Envia
         return new EnviarInvitacionEquipoResponse(
             invitacion.InvitacionEquipoId,
             invitacion.EquipoId,
-            invitacion.InvitadoUserId,
-            invitacion.InvitadoPorUserId,
+            invitacion.InvitadoSubjectId,
+            invitacion.InvitadoPorSubjectId,
             invitacion.Estado.ToString(),
             invitacion.FechaCreacionUtc);
     }

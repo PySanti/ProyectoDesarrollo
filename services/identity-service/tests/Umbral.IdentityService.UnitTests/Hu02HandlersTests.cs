@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -23,7 +24,7 @@ public sealed class Hu02HandlersTests
         var response = await handler.Handle(new GetUsersQuery(), CancellationToken.None);
 
         Assert.Single(response);
-        Assert.Equal(user.UsuarioId, response[0].UserId);
+        Assert.Equal(user.UsuarioId.Valor, response[0].UserId);
         Assert.Equal("Admin", response[0].Name);
         Assert.Equal("admin@umbral.dev", response[0].Email);
         Assert.Equal("Administrador", response[0].Role);
@@ -37,9 +38,9 @@ public sealed class Hu02HandlersTests
         var repository = new FakeUsuarioRepository([user]);
         var handler = new GetUserByIdQueryHandler(repository);
 
-        var response = await handler.Handle(new GetUserByIdQuery(user.UsuarioId), CancellationToken.None);
+        var response = await handler.Handle(new GetUserByIdQuery(user.UsuarioId.Valor), CancellationToken.None);
 
-        Assert.Equal(user.UsuarioId, response.UserId);
+        Assert.Equal(user.UsuarioId.Valor, response.UserId);
         Assert.Equal("kc-1", response.KeycloakId);
         Assert.Equal("Admin", response.Name);
         Assert.Equal("admin@umbral.dev", response.Email);
@@ -63,7 +64,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository);
 
         var response = await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Updated", "updated@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Updated", "updated@umbral.dev"),
             CancellationToken.None);
 
         Assert.True(repository.UpdateWasCalled);
@@ -91,7 +92,7 @@ public sealed class Hu02HandlersTests
         var handler = BuildUpdateHandler(repository);
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() =>
-            handler.Handle(new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "other@umbral.dev"), CancellationToken.None));
+            handler.Handle(new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "other@umbral.dev"), CancellationToken.None));
     }
 
     [Fact]
@@ -101,7 +102,7 @@ public sealed class Hu02HandlersTests
         var repository = new FakeUsuarioRepository([user]);
         var handler = new DeactivateUserCommandHandler(repository);
 
-        var response = await handler.Handle(new DeactivateUserCommand(user.UsuarioId), CancellationToken.None);
+        var response = await handler.Handle(new DeactivateUserCommand(user.UsuarioId.Valor), CancellationToken.None);
 
         Assert.True(repository.UpdateWasCalled);
         Assert.Equal("Desactivado", response.Status);
@@ -119,41 +120,41 @@ public sealed class Hu02HandlersTests
     }
 
     [Fact]
-    public async Task UpdateUserGeneralDataCommandHandler_Should_Resend_Credentials_When_Email_Changes_And_Temp_Password_Pending()
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Publish_CredencialTemporalEmitida_When_Email_Changes_And_Temp_Password_Pending()
     {
         var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
         var repository = new FakeUsuarioRepository([user]);
         var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true);
         var generator = new FakeTemporaryPasswordGenerator("New-Temp-7");
-        var emailSender = new FakeWelcomeEmailSender();
-        var handler = BuildUpdateHandler(repository, keycloak, generator, emailSender);
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = BuildUpdateHandler(repository, keycloak, generator, publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "new@umbral.dev"),
             CancellationToken.None);
 
-        Assert.NotNull(emailSender.LastMessage);
-        Assert.Equal("new@umbral.dev", emailSender.LastMessage!.Email);
-        Assert.Equal("New-Temp-7", emailSender.LastMessage.TemporaryPassword);
-        Assert.Equal("Operador", emailSender.LastMessage.Role);
+        Assert.NotNull(publisher.LastCredencialEvent);
+        Assert.Equal("new@umbral.dev", publisher.LastCredencialEvent!.Correo);
+        Assert.Equal("New-Temp-7", publisher.LastCredencialEvent.PasswordTemporal);
+        Assert.Equal("Operador", publisher.LastCredencialEvent.Rol);
         Assert.Contains("new@umbral.dev", keycloak.UpdatedEmails);
         Assert.Contains("New-Temp-7", keycloak.ResetPasswords);
     }
 
     [Fact]
-    public async Task UpdateUserGeneralDataCommandHandler_Should_Not_Resend_When_Temp_Password_Not_Pending()
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Not_Publish_When_Temp_Password_Not_Pending()
     {
         var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
         var repository = new FakeUsuarioRepository([user]);
         var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: false);
-        var emailSender = new FakeWelcomeEmailSender();
-        var handler = BuildUpdateHandler(repository, keycloak, emailSender: emailSender);
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin", "new@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin", "new@umbral.dev"),
             CancellationToken.None);
 
-        Assert.Null(emailSender.LastMessage);
+        Assert.Null(publisher.LastCredencialEvent);
         Assert.Empty(keycloak.UpdatedEmails);
         Assert.Empty(keycloak.ResetPasswords);
     }
@@ -164,47 +165,78 @@ public sealed class Hu02HandlersTests
         var user = Usuario.Crear("kc-1", "Admin", "same@umbral.dev", RolUsuario.Operador);
         var repository = new FakeUsuarioRepository([user]);
         var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true);
-        var emailSender = new FakeWelcomeEmailSender();
-        var handler = BuildUpdateHandler(repository, keycloak, emailSender: emailSender);
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
         await handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "same@umbral.dev"),
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "same@umbral.dev"),
             CancellationToken.None);
 
         Assert.False(keycloak.HasTempPasswordCalled);
-        Assert.Null(emailSender.LastMessage);
+        Assert.Null(publisher.LastCredencialEvent);
         Assert.Equal("Admin Renamed", user.Nombre);
     }
 
     [Fact]
-    public async Task UpdateUserGeneralDataCommandHandler_Should_Revert_When_Email_Delivery_Fails()
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Revert_When_Keycloak_Password_Reset_Fails()
     {
         var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
         var repository = new FakeUsuarioRepository([user]);
-        var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true);
-        var emailSender = new FakeWelcomeEmailSender(throwOnSend: true);
-        var handler = BuildUpdateHandler(repository, keycloak, emailSender: emailSender);
+        var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true)
+        {
+            Lanzar = new KeycloakIntegrationException("reset failed"),
+        };
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = BuildUpdateHandler(repository, keycloak, identityEventsPublisher: publisher);
 
-        await Assert.ThrowsAsync<EmailDeliveryException>(() => handler.Handle(
-            new UpdateUserGeneralDataCommand(user.UsuarioId, "Admin Renamed", "new@umbral.dev"),
+        await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "new@umbral.dev"),
             CancellationToken.None));
 
         // Revert: el usuario local vuelve a su email/nombre previos y Keycloak se restaura.
         Assert.Equal("old@umbral.dev", user.Correo);
         Assert.Equal("Admin", user.Nombre);
         Assert.Equal("old@umbral.dev", keycloak.UpdatedEmails[^1]);
+        // El fallo ocurre en Keycloak, antes de llegar a publicar: no se emite el evento.
+        Assert.Null(publisher.LastCredencialEvent);
+    }
+
+    [Fact]
+    public async Task UpdateUserGeneralDataCommandHandler_Should_Not_Compensate_When_Event_Publication_Fails()
+    {
+        var user = Usuario.Crear("kc-1", "Admin", "old@umbral.dev", RolUsuario.Operador);
+        var repository = new FakeUsuarioRepository([user]);
+        var keycloak = new FakeKeycloakIdentityPort(hasTempPassword: true);
+        var generator = new FakeTemporaryPasswordGenerator("New-Temp-7");
+        // Mirrors the real publisher contract (RabbitMq/Composite, ADR-0012): a broker/publication
+        // failure is swallowed internally and never escapes to the caller.
+        var publisher = new FakeIdentityEventsPublisher(throwOnPublishCredencial: true);
+        var handler = BuildUpdateHandler(repository, keycloak, generator, publisher);
+
+        var response = await handler.Handle(
+            new UpdateUserGeneralDataCommand(user.UsuarioId.Valor, "Admin Renamed", "new@umbral.dev"),
+            CancellationToken.None);
+
+        // The email/name change is a fait accompli: a failed event publication does not revert it.
+        Assert.True(publisher.CredencialPublishAttempted);
+        Assert.Null(publisher.LastCredencialEvent);
+        Assert.Equal("new@umbral.dev", user.Correo);
+        Assert.Equal("Admin Renamed", user.Nombre);
+        Assert.Equal("new@umbral.dev", response.Email);
+        Assert.Contains("new@umbral.dev", keycloak.UpdatedEmails);
+        Assert.Contains("New-Temp-7", keycloak.ResetPasswords);
     }
 
     private static UpdateUserGeneralDataCommandHandler BuildUpdateHandler(
         IUsuarioRepository repository,
         FakeKeycloakIdentityPort? keycloak = null,
         FakeTemporaryPasswordGenerator? generator = null,
-        FakeWelcomeEmailSender? emailSender = null)
+        FakeIdentityEventsPublisher? identityEventsPublisher = null)
         => new(
             repository,
             keycloak ?? new FakeKeycloakIdentityPort(),
             generator ?? new FakeTemporaryPasswordGenerator("New-Temp-7"),
-            emailSender ?? new FakeWelcomeEmailSender());
+            identityEventsPublisher ?? new FakeIdentityEventsPublisher());
 
     private sealed class FakeKeycloakIdentityPort : IKeycloakIdentityPort
     {
@@ -243,6 +275,11 @@ public sealed class Hu02HandlersTests
 
         public Task ResetTemporaryPasswordAsync(string keycloakId, string temporaryPassword, CancellationToken cancellationToken)
         {
+            if (Lanzar is not null)
+            {
+                throw Lanzar;
+            }
+
             ResetPasswords.Add(temporaryPassword);
             return Task.CompletedTask;
         }
@@ -293,27 +330,60 @@ public sealed class Hu02HandlersTests
         public string Generate() => _password;
     }
 
-    private sealed class FakeWelcomeEmailSender : IUserWelcomeEmailSender
+    private sealed class FakeIdentityEventsPublisher : IIdentityEventsPublisher
     {
-        private readonly bool _throwOnSend;
+        private readonly bool _throwOnPublishCredencial;
 
-        public UserWelcomeEmailMessage? LastMessage { get; private set; }
+        public CredencialTemporalEmitidaIntegrationEvent? LastCredencialEvent { get; private set; }
+        public bool CredencialPublishAttempted { get; private set; }
 
-        public FakeWelcomeEmailSender(bool throwOnSend = false)
+        public FakeIdentityEventsPublisher(bool throwOnPublishCredencial = false)
         {
-            _throwOnSend = throwOnSend;
+            _throwOnPublishCredencial = throwOnPublishCredencial;
         }
 
-        public Task SendWelcomeEmailAsync(UserWelcomeEmailMessage message, CancellationToken cancellationToken)
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
         {
-            if (_throwOnSend)
+            CredencialPublishAttempted = true;
+            // Best-effort (ADR-0012): a real implementation swallows the failure internally and
+            // never lets it reach the caller — mirrored here instead of throwing.
+            if (!_throwOnPublishCredencial)
             {
-                throw new EmailDeliveryException("forced email failure for test");
+                LastCredencialEvent = integrationEvent;
             }
 
-            LastMessage = message;
             return Task.CompletedTask;
         }
+
+        public Task PublishEquipoCreadoAsync(EquipoCreadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoCreadaAsync(InvitacionEquipoCreadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishRolUsuarioModificadoAsync(RolUsuarioModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 
     private sealed class FakeUsuarioRepository : IUsuarioRepository
@@ -331,10 +401,13 @@ public sealed class Hu02HandlersTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(StoredUsers);
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.UsuarioId == userId));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(x => x.KeycloakId == keycloakId.ToString()));
+
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)

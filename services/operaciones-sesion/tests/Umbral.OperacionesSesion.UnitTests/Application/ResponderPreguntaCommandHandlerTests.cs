@@ -24,7 +24,8 @@ public class ResponderPreguntaCommandHandlerTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var part = Guid.NewGuid();
-        sesion.Inscribir(part, false, 0, T0);
+        var insc = sesion.Inscribir(part, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
         return (sesion, part, ok.OpcionId);
     }
@@ -49,6 +50,23 @@ public class ResponderPreguntaCommandHandlerTests
         Assert.Single(events.RespuestasValidadas);
         Assert.Single(events.PuntajesIncrementados);
         Assert.Single(events.PreguntasCerradas);
+    }
+
+    [Fact]
+    public async Task Correct_answer_publishes_texto_opcion_correcta_en_cierre()
+    {
+        var partidaId = Guid.NewGuid();
+        var (sesion, part, correcta) = Iniciada(partidaId);
+        var repo = new FakeSesionPartidaRepository();
+        repo.Add(sesion);
+        var events = new FakeSesionEventsPublisher();
+        var handler = new ResponderPreguntaCommandHandler(repo, new FakeOperacionesSesionUnitOfWork(), events, new FakeTimeProvider(T0.AddSeconds(4)));
+
+        await handler.Handle(new ResponderPreguntaCommand(partidaId, part, correcta), CancellationToken.None);
+
+        var cerrada = Assert.Single(events.PreguntasCerradas);
+        Assert.Equal(correcta, cerrada.OpcionCorrectaId);
+        Assert.Equal("ok", cerrada.TextoOpcionCorrecta);
     }
 
     [Fact]
@@ -84,7 +102,8 @@ public class ResponderPreguntaCommandHandlerTests
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
         var sesion = SesionPartida.Publicar(partidaId, snap);
         var part = Guid.NewGuid();
-        sesion.Inscribir(part, false, 0, T0);
+        var insc = sesion.Inscribir(part, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
 
         var repo = new FakeSesionPartidaRepository();

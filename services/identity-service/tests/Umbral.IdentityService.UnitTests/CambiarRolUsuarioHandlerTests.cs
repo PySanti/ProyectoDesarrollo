@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Commands;
 using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Application.Handlers.Commands;
@@ -13,7 +14,7 @@ public class CambiarRolUsuarioHandlerTests
 {
     private sealed class UsuarioRepositoryFake : IUsuarioRepository
     {
-        private readonly Dictionary<Guid, Usuario> _usuarios = new();
+        private readonly Dictionary<UsuarioLocalId, Usuario> _usuarios = new();
         public bool UpdateRecibido;
 
         public void Agregar(Usuario usuario) => _usuarios[usuario.UsuarioId] = usuario;
@@ -21,10 +22,13 @@ public class CambiarRolUsuarioHandlerTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult(_usuarios.TryGetValue(userId, out var usuario) ? usuario : null);
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)
@@ -52,6 +56,9 @@ public class CambiarRolUsuarioHandlerTests
             => throw new NotImplementedException();
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
+            => throw new NotImplementedException();
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
             => throw new NotImplementedException();
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
@@ -107,6 +114,11 @@ public class CambiarRolUsuarioHandlerTests
         public Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent e, CancellationToken ct) => Task.CompletedTask;
     }
 
     private static (CambiarRolUsuarioCommandHandler Handler, UsuarioRepositoryFake Usuarios, EquipoRepositoryFake Equipos, KeycloakFake Kc, PublisherFake Pub) Crear()
@@ -141,7 +153,7 @@ public class CambiarRolUsuarioHandlerTests
         usuarios.Agregar(admin);
 
         await Assert.ThrowsAsync<RolDeAdministradorInmutableException>(
-            () => handler.Handle(new CambiarRolUsuarioCommand(admin.UsuarioId, "Operador"), CancellationToken.None));
+            () => handler.Handle(new CambiarRolUsuarioCommand(admin.UsuarioId.Valor, "Operador"), CancellationToken.None));
 
         Assert.Empty(kc.CambiosDeRol);
         Assert.False(usuarios.UpdateRecibido);
@@ -155,9 +167,9 @@ public class CambiarRolUsuarioHandlerTests
         var operador = CrearUsuario(RolUsuario.Operador);
         usuarios.Agregar(operador);
 
-        var response = await handler.Handle(new CambiarRolUsuarioCommand(operador.UsuarioId, "Operador"), CancellationToken.None);
+        var response = await handler.Handle(new CambiarRolUsuarioCommand(operador.UsuarioId.Valor, "Operador"), CancellationToken.None);
 
-        Assert.Equal(operador.UsuarioId, response.UsuarioId);
+        Assert.Equal(operador.UsuarioId.Valor, response.UsuarioId);
         Assert.Equal("Operador", response.Rol);
         Assert.Empty(kc.CambiosDeRol);
         Assert.False(usuarios.UpdateRecibido);
@@ -173,7 +185,7 @@ public class CambiarRolUsuarioHandlerTests
         equipos.Existe = true;
 
         await Assert.ThrowsAsync<UsuarioConEquipoActivoException>(
-            () => handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId, "Operador"), CancellationToken.None));
+            () => handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId.Valor, "Operador"), CancellationToken.None));
 
         Assert.Empty(kc.CambiosDeRol);
     }
@@ -187,7 +199,7 @@ public class CambiarRolUsuarioHandlerTests
         usuarios.Agregar(participante);
         equipos.Existe = false;
 
-        var response = await handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId, "Operador"), CancellationToken.None);
+        var response = await handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId.Valor, "Operador"), CancellationToken.None);
 
         Assert.Equal(new[] { (keycloakId, "Participante", "Operador") }, kc.CambiosDeRol);
         Assert.True(usuarios.UpdateRecibido);
@@ -208,7 +220,7 @@ public class CambiarRolUsuarioHandlerTests
         kc.Lanzar = new KeycloakIntegrationException("down");
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(
-            () => handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId, "Operador"), CancellationToken.None));
+            () => handler.Handle(new CambiarRolUsuarioCommand(participante.UsuarioId.Valor, "Operador"), CancellationToken.None));
 
         Assert.False(usuarios.UpdateRecibido);
         Assert.Equal(RolUsuario.Participante, participante.Rol);
@@ -224,7 +236,7 @@ public class CambiarRolUsuarioHandlerTests
         usuarios.Agregar(operador);
         equipos.Existe = false;
 
-        var response = await handler.Handle(new CambiarRolUsuarioCommand(operador.UsuarioId, "Administrador"), CancellationToken.None);
+        var response = await handler.Handle(new CambiarRolUsuarioCommand(operador.UsuarioId.Valor, "Administrador"), CancellationToken.None);
 
         Assert.Equal(new[] { (keycloakId, "Operador", "Administrador") }, kc.CambiosDeRol);
         Assert.Equal(RolUsuario.Administrador, operador.Rol);

@@ -47,16 +47,21 @@ public sealed class PreinscribirEquipoCommandHandler
 
         var now = _timeProvider.GetUtcNow().UtcDateTime;
         var inscripcion = sesion.PreinscribirEquipo(
-            equipo.EquipoId, callerEsLider, miembros, equipoActivaEnOtra, equiposActivos, now);
+            equipo.EquipoId, callerEsLider, request.LiderId, miembros, equipoActivaEnOtra, equiposActivos, now);
 
         await _unitOfWork.SaveChangesAsync(cancellationToken);
 
-        foreach (var c in inscripcion.Convocatorias)
-        {
-            await _events.PublicarConvocatoriaCreadaAsync(
-                new ConvocatoriaCreadaEvent(sesion.PartidaId, sesion.Id.Valor, c.Id.Valor, c.EquipoId, c.UsuarioId),
-                cancellationToken);
-        }
+        // HU-19: preinscribir ya NO convoca; las convocatorias se difieren a la aceptación del operador.
+        await _events.PublicarInscripcionSolicitadaAsync(
+            new InscripcionSolicitadaEvent(
+                sesion.PartidaId, sesion.Id.Valor, inscripcion.Id.Valor, Modalidad.Equipo.ToString(),
+                null, equipo.EquipoId, now),
+            cancellationToken);
+
+        await _events.PublicarInscripcionEquipoCreadaAsync(
+            new InscripcionEquipoCreadaEvent(
+                sesion.PartidaId, sesion.Id.Valor, inscripcion.Id.Valor, equipo.EquipoId, now),
+            cancellationToken);
 
         return new PreinscripcionEquipoResponse(inscripcion.Id.Valor, equipo.EquipoId, inscripcion.Convocatorias.Count);
     }

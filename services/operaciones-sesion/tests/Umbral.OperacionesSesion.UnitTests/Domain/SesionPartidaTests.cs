@@ -64,6 +64,7 @@ public class SesionPartidaTests
         var participante = Guid.NewGuid();
 
         var inscripcion = sesion.Inscribir(participante, tieneParticipacionActivaEnOtra: false, inscritosActivos: 0, T0);
+        sesion.AceptarInscripcion(inscripcion.Id.Valor, 0, T0);
 
         Assert.Equal(EstadoInscripcion.Activa, inscripcion.Estado);
         Assert.Equal(participante, inscripcion.ParticipanteId);
@@ -133,13 +134,15 @@ public class SesionPartidaTests
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(max: 1));
         var participante = Guid.NewGuid();
-        sesion.Inscribir(participante, false, 0, T0);
+        var insc = sesion.Inscribir(participante, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
 
         sesion.CancelarInscripcion(participante);
 
         Assert.Equal(EstadoInscripcion.Cancelada, sesion.Inscripciones.Single().Estado);
-        // capacity freed → a different participant can now inscribe (active count back to 0)
+        // capacity freed → a different participant can now inscribe and be accepted (active count back to 0)
         var otra = sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        sesion.AceptarInscripcion(otra.Id.Valor, 0, T0);
         Assert.Equal(EstadoInscripcion.Activa, otra.Estado);
     }
 
@@ -170,7 +173,7 @@ public class SesionPartidaTests
     public void Iniciar_with_minimums_met_starts_and_activates_first_game()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(min: 1, max: 5, juegos: 2));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
 
         var resultado = sesion.Iniciar(T0);
 
@@ -203,7 +206,7 @@ public class SesionPartidaTests
     public void Iniciar_when_not_in_lobby_throws()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot());
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
         sesion.Iniciar(T0); // now Iniciada
 
         Assert.Throws<SesionNoEnLobbyException>(() => sesion.Iniciar(T0));
@@ -222,7 +225,7 @@ public class SesionPartidaTests
     public void IntentarInicioAutomatico_when_due_and_minimums_met_starts()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), SnapshotModo(ModoInicioPartida.Automatico, min: 1, tiempoInicio: TDue));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, TBefore);
+        InscribirYAceptar(sesion, TBefore);
 
         var resultado = sesion.IntentarInicioAutomatico(TDue);
 
@@ -258,7 +261,7 @@ public class SesionPartidaTests
     public void IntentarInicioAutomatico_when_not_in_lobby_is_idempotent_noop()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), SnapshotModo(ModoInicioPartida.ManualYAutomatico, min: 1, tiempoInicio: TDue));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, TBefore);
+        InscribirYAceptar(sesion, TBefore);
         sesion.Iniciar(TDue); // now Iniciada (manual path allowed by ManualYAutomatico)
 
         var resultado = sesion.IntentarInicioAutomatico(TDue);
@@ -276,10 +279,17 @@ public class SesionPartidaTests
         Assert.Throws<ModoInicioNoCompatibleException>(() => sesion.IntentarInicioAutomatico(TDue));
     }
 
+    // HU-19: la inscripción nace Pendiente; para que cuente en mínimos hay que aceptarla.
+    private static void InscribirYAceptar(SesionPartida sesion, DateTime fecha)
+    {
+        var insc = sesion.Inscribir(Guid.NewGuid(), false, 0, fecha);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, fecha);
+    }
+
     private static SesionPartida Iniciada(int juegos)
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(min: 1, max: 5, juegos: juegos));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0);
+        InscribirYAceptar(sesion, T0);
         sesion.Iniciar(T0);
         return sesion;
     }
@@ -333,5 +343,109 @@ public class SesionPartidaTests
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot()); // Lobby
         Assert.Throws<SesionNoIniciadaException>(() => sesion.FinalizarJuegoActual(T0));
+    }
+
+    // HU-40: cancelación manual por el operador.
+    [Fact]
+    public void Cancelar_from_lobby_sets_cancelada_and_fecha_fin()
+    {
+        var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot()); // Lobby
+
+        sesion.Cancelar(T0);
+
+        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(T0, sesion.FechaFin);
+    }
+
+    [Fact]
+    public void Cancelar_from_iniciada_sets_cancelada_and_fecha_fin()
+    {
+        var sesion = Iniciada(juegos: 2);
+
+        sesion.Cancelar(T0);
+
+        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(T0, sesion.FechaFin);
+        // 7c review (Important): el juego que estaba Activo no puede quedar "vivo" para siempre;
+        // se cierra (Finalizado). El siguiente juego, todavía Pendiente, no se toca.
+        var ordenados = sesion.Juegos.OrderBy(j => j.Orden).ToList();
+        Assert.Equal(EstadoJuego.Finalizado, ordenados[0].Estado);
+        Assert.Equal(EstadoJuego.Pendiente, ordenados[1].Estado);
+    }
+
+    // 7c review (Important): cancelar con Trivia activa debe cerrar la pregunta activa del
+    // juego activo (no solo mutar Estado/FechaFin de la sesión), reusando el mecanismo de
+    // cierre interno de PreguntaSnapshot — igual camino que CerrarActividadVencida.
+    private static PreguntaSnapshot PreguntaConOpciones(int orden = 1, int limite = 60) =>
+        new(Guid.NewGuid(), orden, $"Q{orden}", 10, limite,
+            new[] { new OpcionSnapshot(Guid.NewGuid(), "ok", true), new OpcionSnapshot(Guid.NewGuid(), "no", false) });
+
+    private static SesionPartida TriviaIniciadaConPreguntaActiva()
+    {
+        var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { PreguntaConOpciones() });
+        var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
+        var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
+        InscribirYAceptar(s, T0);
+        s.Iniciar(T0);
+        return s;
+    }
+
+    private static SesionPartida BdtIniciadaConEtapaActiva()
+    {
+        var etapa = new EtapaSnapshot(Guid.NewGuid(), 1, "QR-1", 50, 60);
+        var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.BusquedaDelTesoro, "Área", new[] { etapa });
+        var snap = new ConfiguracionSnapshot("Copa BDT", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
+        var s = SesionPartida.Publicar(Guid.NewGuid(), snap);
+        InscribirYAceptar(s, T0);
+        s.Iniciar(T0);
+        return s;
+    }
+
+    [Fact]
+    public void Cancelar_from_iniciada_con_trivia_activa_cierra_pregunta_y_finaliza_juego()
+    {
+        var sesion = TriviaIniciadaConPreguntaActiva();
+        var juego = sesion.Juegos.Single();
+        Assert.NotNull(juego.PreguntaActiva); // precondición: hay pregunta viva antes de cancelar
+
+        sesion.Cancelar(T0);
+
+        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(EstadoJuego.Finalizado, juego.Estado);
+        Assert.Null(juego.PreguntaActiva);
+        Assert.Equal(EstadoPregunta.Cerrada, juego.Preguntas.Single().Estado);
+    }
+
+    [Fact]
+    public void Cancelar_from_iniciada_con_bdt_activa_cierra_etapa_y_finaliza_juego()
+    {
+        var sesion = BdtIniciadaConEtapaActiva();
+        var juego = sesion.Juegos.Single();
+        Assert.NotNull(juego.EtapaActiva); // precondición: hay etapa viva antes de cancelar
+
+        sesion.Cancelar(T0);
+
+        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(EstadoJuego.Finalizado, juego.Estado);
+        Assert.Null(juego.EtapaActiva);
+        Assert.Equal(EstadoEtapa.Cerrada, juego.Etapas.Single().Estado);
+    }
+
+    [Fact]
+    public void Cancelar_from_terminada_throws()
+    {
+        var sesion = Iniciada(juegos: 1);
+        sesion.FinalizarJuegoActual(T0); // now Terminada
+
+        Assert.Throws<PartidaNoCancelableException>(() => sesion.Cancelar(T0));
+    }
+
+    [Fact]
+    public void Cancelar_from_cancelada_throws()
+    {
+        var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot()); // Lobby
+        sesion.Cancelar(T0);
+
+        Assert.Throws<PartidaNoCancelableException>(() => sesion.Cancelar(T0));
     }
 }

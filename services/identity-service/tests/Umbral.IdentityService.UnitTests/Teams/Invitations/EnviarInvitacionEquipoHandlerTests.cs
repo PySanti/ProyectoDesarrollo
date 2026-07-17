@@ -129,7 +129,7 @@ public sealed class EnviarInvitacionEquipoHandlerTests
         public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
         {
             // Return true for invitado checks (not for the actor leader)
-            if (TeamToReturn is not null && TeamToReturn.Participantes.Any(p => p.UsuarioId == userId))
+            if (TeamToReturn is not null && TeamToReturn.Participantes.Any(p => p.SubjectId == userId))
                 return Task.FromResult(false);
             return Task.FromResult(ExistsActiveForInvitadoValue);
         }
@@ -139,6 +139,9 @@ public sealed class EnviarInvitacionEquipoHandlerTests
 
         public Task<Equipo?> GetByIdAsync(Guid equipoId, CancellationToken cancellationToken)
             => Task.FromResult(TeamToReturn?.EquipoId == equipoId ? TeamToReturn : null);
+
+        public Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+            => Task.FromResult<IReadOnlyList<Equipo>>(TeamToReturn is null ? Array.Empty<Equipo>() : new[] { TeamToReturn });
 
         public Task AddAsync(Equipo equipo, CancellationToken cancellationToken)
             => Task.CompletedTask;
@@ -197,6 +200,21 @@ public sealed class EnviarInvitacionEquipoHandlerTests
             => Task.CompletedTask;
 
         public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
             => Task.CompletedTask;
     }
 }

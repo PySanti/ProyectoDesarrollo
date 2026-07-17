@@ -21,8 +21,8 @@ public sealed class TransferirLiderazgoDomainTests
         Assert.Equal(EstadoEquipo.Activo, equipo.Estado);
         Assert.Equal(2, equipo.Participantes.Count);
         Assert.Single(equipo.Participantes.Where(x => x.EsLider));
-        Assert.False(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == nuevoLider).EsLider);
+        Assert.False(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == nuevoLider).EsLider);
     }
 
     [Fact]
@@ -38,7 +38,7 @@ public sealed class TransferirLiderazgoDomainTests
         var ex = Assert.Throws<ActorNoEsLiderEquipoException>(() => equipo.TransferirLiderazgo(actor, target));
 
         Assert.Contains("no es el lider", ex.Message);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
     }
 
     [Fact]
@@ -51,7 +51,7 @@ public sealed class TransferirLiderazgoDomainTests
         var ex = Assert.Throws<NuevoLiderNoPerteneceAlEquipoException>(() => equipo.TransferirLiderazgo(lider, Guid.NewGuid()));
 
         Assert.Contains("no pertenece", ex.Message);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
     }
 
     [Fact]
@@ -64,7 +64,7 @@ public sealed class TransferirLiderazgoDomainTests
 
         Assert.Contains("no pertenece", ex.Message);
         Assert.Single(equipo.Participantes);
-        Assert.True(equipo.Participantes.Single(x => x.UsuarioId == lider).EsLider);
+        Assert.True(equipo.Participantes.Single(x => x.SubjectId == lider).EsLider);
     }
 
     [Fact]

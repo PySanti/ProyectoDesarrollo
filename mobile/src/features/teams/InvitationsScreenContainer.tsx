@@ -14,7 +14,7 @@ export function InvitationsScreenContainer() {
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <InvitationsScreen
-        apiBaseUrl={mobileEnv.identityApiBaseUrl}
+        apiBaseUrl={mobileEnv.gatewayApiBaseUrl}
         token={session.token}
       />
     </ScrollView>

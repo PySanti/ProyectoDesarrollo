@@ -3,6 +3,7 @@ using Umbral.IdentityService.Application.Exceptions;
 using Umbral.IdentityService.Application.Interfaces;
 
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
+using Umbral.IdentityService.Domain.Entities;
 using Umbral.IdentityService.Domain.Enums;
 using Umbral.IdentityService.Domain.Exceptions;
 
@@ -15,15 +16,21 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
     private readonly IInvitacionEquipoRepository _invitacionRepository;
     private readonly IEquipoRepository _equipoRepository;
     private readonly IIdentityEventsPublisher _eventsPublisher;
+    private readonly IHistorialNombreEquipoRepository _historialRepository;
+    private readonly TimeProvider _timeProvider;
 
     public AceptarInvitacionEquipoCommandHandler(
         IInvitacionEquipoRepository invitacionRepository,
         IEquipoRepository equipoRepository,
-        IIdentityEventsPublisher eventsPublisher)
+        IIdentityEventsPublisher eventsPublisher,
+        IHistorialNombreEquipoRepository historialRepository,
+        TimeProvider timeProvider)
     {
         _invitacionRepository = invitacionRepository;
         _equipoRepository = equipoRepository;
         _eventsPublisher = eventsPublisher;
+        _historialRepository = historialRepository;
+        _timeProvider = timeProvider;
     }
 
     public async Task<AceptarInvitacionEquipoResponse> Handle(AceptarInvitacionEquipoCommand request, CancellationToken cancellationToken)
@@ -32,7 +39,7 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
         if (invitacion is null)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
-        if (invitacion.InvitadoUserId != request.ActorUserId)
+        if (invitacion.InvitadoSubjectId != request.ActorUserId)
             throw new InvitacionNoEncontradaException(request.InvitacionId);
 
         if (invitacion.Estado != EstadoInvitacion.Pendiente)
@@ -52,8 +59,14 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
         invitacion.Aceptar();
         await _invitacionRepository.UpdateAsync(invitacion, cancellationToken);
 
-        equipo.AgregarParticipante(invitacion.InvitadoUserId);
+        equipo.AgregarParticipante(invitacion.InvitadoSubjectId);
         await _equipoRepository.UpdateAsync(equipo, cancellationToken);
+
+        await _historialRepository.AddRangeAsync(new[]
+        {
+            HistorialNombreEquipo.Registrar(
+                invitacion.InvitadoSubjectId, equipo.EquipoId, equipo.NombreEquipo, _timeProvider.GetUtcNow().UtcDateTime)
+        }, cancellationToken);
 
         var lider = equipo.Participantes.Single(p => p.EsLider);
 
@@ -61,15 +74,15 @@ public sealed class AceptarInvitacionEquipoCommandHandler : IRequestHandler<Acep
             new InvitacionEquipoAceptadaIntegrationEvent(
                 invitacion.InvitacionEquipoId,
                 equipo.EquipoId,
-                invitacion.InvitadoUserId,
-                lider.UsuarioId,
+                invitacion.InvitadoSubjectId,
+                lider.SubjectId,
                 DateTime.UtcNow),
             cancellationToken);
 
         return new AceptarInvitacionEquipoResponse(
             invitacion.InvitacionEquipoId,
             invitacion.EquipoId,
-            invitacion.InvitadoUserId,
+            invitacion.InvitadoSubjectId,
             invitacion.Estado.ToString());
     }
 }

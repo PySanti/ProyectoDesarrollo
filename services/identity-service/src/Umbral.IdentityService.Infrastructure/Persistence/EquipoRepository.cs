@@ -16,11 +16,20 @@ public sealed class EquipoRepository : IEquipoRepository
         _dbContext = dbContext;
     }
 
+    public async Task<IReadOnlyList<Equipo>> GetAllAsync(CancellationToken cancellationToken)
+    {
+        return await _dbContext.Equipos
+            .AsNoTracking()
+            .Include(x => x.Participantes)
+            .OrderBy(e => e.NombreEquipo)
+            .ToListAsync(cancellationToken);
+    }
+
     public Task<bool> ExistsActiveTeamByUserIdAsync(Guid userId, CancellationToken cancellationToken)
     {
         return _dbContext.Equipos
             .AnyAsync(
-                e => e.Estado == EstadoEquipo.Activo && e.Participantes.Any(p => p.UsuarioId == userId),
+                e => e.Estado == EstadoEquipo.Activo && e.Participantes.Any(p => p.SubjectId == userId),
                 cancellationToken);
     }
 
@@ -29,7 +38,7 @@ public sealed class EquipoRepository : IEquipoRepository
         return _dbContext.Equipos
             .Include(x => x.Participantes)
             .FirstOrDefaultAsync(
-                e => e.Estado == EstadoEquipo.Activo && e.Participantes.Any(p => p.UsuarioId == userId),
+                e => e.Estado == EstadoEquipo.Activo && e.Participantes.Any(p => p.SubjectId == userId),
                 cancellationToken);
     }
 
@@ -53,7 +62,7 @@ public sealed class EquipoRepository : IEquipoRepository
             {
                 if (string.Equals(postgresException.ConstraintName, "ux_equipos_participantes_usuarioid", StringComparison.OrdinalIgnoreCase))
                 {
-                    var creatorUserId = equipo.Participantes.FirstOrDefault()?.UsuarioId ?? Guid.Empty;
+                    var creatorUserId = equipo.Participantes.FirstOrDefault()?.SubjectId ?? Guid.Empty;
                     throw new ConcurrentTeamCreationException(creatorUserId);
                 }
             }

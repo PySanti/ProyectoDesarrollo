@@ -28,14 +28,14 @@ Copy `.env.example` into `.env` and set LAN URLs:
 - `EXPO_PUBLIC_KEYCLOAK_URL`
 - `EXPO_PUBLIC_KEYCLOAK_REALM`
 - `EXPO_PUBLIC_KEYCLOAK_CLIENT_ID`
-- `EXPO_PUBLIC_IDENTITY_API_BASE_URL` — Identity service base URL (teams, invitations, users)
+- `EXPO_PUBLIC_GATEWAY_BASE_URL` — gateway base URL (teams, invitations, users via gateway)
 - `EXPO_PUBLIC_APP_SCHEME`
 
 Important:
 
 - Do not use `localhost` for phone testing.
-- Use host LAN IP (for example `http://192.168.1.20:5000`).
-- `EXPO_PUBLIC_TEAM_API_BASE_URL` has been removed; all team and invitation endpoints are now served by Identity.
+- Use host LAN IP (for example `http://192.168.1.20:5080`).
+- The legacy team-service base URL variable has been retired; all team and invitation endpoints are served by Identity and reached through the gateway (`EXPO_PUBLIC_GATEWAY_BASE_URL`).
 
 ## 3) Keycloak client (`umbral-mobile`)
 

@@ -3,25 +3,36 @@ using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using System.Security.Claims;
 using Umbral.IdentityService.Api.Utils;
+using Umbral.IdentityService.Api.Workers;
 using Umbral.IdentityService.Application;
 using Umbral.IdentityService.Infrastructure;
 using Umbral.IdentityService.Infrastructure.Persistence;
+using Umbral.IdentityService.Infrastructure.Services.Messaging;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddIdentityApplication();
 builder.Services.AddIdentityInfrastructure(builder.Configuration);
 builder.Services.AddControllers();
-builder.Services.AddCors(options =>
-{
-    options.AddPolicy("FrontendDev", policy =>
-    {
-        policy
-            .WithOrigins("http://localhost:5173")
-            .AllowAnyHeader()
-            .AllowAnyMethod();
-    });
-});
+
+// Primer consumidor RabbitMQ de Identity (Task D3): proyecta participaciones activas de
+// equipo desde eventos de Operaciones de Sesión. El BackgroundService no arranca si está
+// deshabilitado o sin host (mismo patrón que el consumidor de Puntuaciones).
+var rabbitConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqConsumerOptions.SectionName)
+    .Get<RabbitMqConsumerOptions>()
+    ?? new RabbitMqConsumerOptions();
+builder.Services.AddSingleton(rabbitConsumerOptions);
+builder.Services.AddHostedService<OperacionesInscripcionesConsumer>();
+
+// Segundo consumidor RabbitMQ de Identity (7f, RNF-23): se autoconsume CredencialTemporalEmitida
+// (exchange umbral.identity) para disparar el correo SMTP de bienvenida de forma asíncrona.
+var rabbitCredencialesConsumerOptions = builder.Configuration
+    .GetSection(RabbitMqCredencialesConsumerOptions.SectionName)
+    .Get<RabbitMqCredencialesConsumerOptions>()
+    ?? new RabbitMqCredencialesConsumerOptions();
+builder.Services.AddSingleton(rabbitCredencialesConsumerOptions);
+builder.Services.AddHostedService<CredencialesTemporalesConsumer>();
 
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
@@ -106,6 +117,7 @@ builder.Services.AddAuthorization(options =>
 {
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
+    options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
 });
 
 var app = builder.Build();
@@ -115,6 +127,9 @@ using (var scope = app.Services.CreateScope())
     var dbContext = scope.ServiceProvider.GetRequiredService<IdentityDbContext>();
     await dbContext.Database.EnsureCreatedAsync();
 
+    // EnsureCreated no evoluciona esquemas existentes: si la BD ya tiene alguna tabla,
+    // no crea las que falten. Estos parches cubren la deriva y deben correr ANTES del
+    // backfill, que consulta historial_nombre_equipo.
     if (dbContext.Database.IsRelational())
     {
         await dbContext.Database.ExecuteSqlRawAsync("""
@@ -142,10 +157,93 @@ using (var scope = app.Services.CreateScope())
             FROM (VALUES (2, 1), (3, 2), (3, 3)) AS v(rol, permiso)
             WHERE NOT EXISTS (SELECT 1 FROM permisos_rol);
             """);
+
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            CREATE TABLE IF NOT EXISTS equipos (
+                equipoid uuid PRIMARY KEY,
+                nombreequipo varchar(120) NOT NULL,
+                estado integer NOT NULL
+            );
+
+            CREATE TABLE IF NOT EXISTS equipos_participantes (
+                participanteequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                subjectid uuid NOT NULL,
+                fechaunionutc timestamp with time zone NOT NULL,
+                eslider boolean NOT NULL
+            );
+
+            CREATE UNIQUE INDEX IF NOT EXISTS ux_equipos_participantes_subjectid ON equipos_participantes (subjectid);
+
+            CREATE TABLE IF NOT EXISTS invitaciones_equipo (
+                invitacionequipoid uuid PRIMARY KEY,
+                equipoid uuid NOT NULL REFERENCES equipos (equipoid) ON DELETE CASCADE,
+                invitadosubjectid uuid NOT NULL,
+                invitadoporsubjectid uuid NOT NULL,
+                estado integer NOT NULL,
+                fechacreacionutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_invitaciones_equipo_invitadosubjectid ON invitaciones_equipo (invitadosubjectid);
+
+            CREATE TABLE IF NOT EXISTS historial_nombre_equipo (
+                id uuid PRIMARY KEY,
+                subjectid uuid NOT NULL,
+                equipoid uuid NOT NULL,
+                nombreequipo varchar(120) NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL
+            );
+
+            CREATE INDEX IF NOT EXISTS ix_historial_nombre_equipo_subjectid ON historial_nombre_equipo (subjectid);
+
+            CREATE TABLE IF NOT EXISTS participaciones_activas_equipo (
+                equipoid uuid NOT NULL,
+                partidaid uuid NOT NULL,
+                fecharegistroutc timestamp with time zone NOT NULL,
+                PRIMARY KEY (equipoid, partidaid)
+            );
+            """);
+
+        // Renombrado usuarioid/invitadouserid -> subjectid (slice del 2026-07-16). Los CREATE de
+        // arriba solo sirven a bases nuevas: en una base ya creada, IF NOT EXISTS no hace nada y
+        // la columna se quedaria con el nombre viejo, con lo que EF pediria subjectid y toda
+        // consulta de equipos reventaria. Estos parches cubren esa deriva, que es justo para lo
+        // que existe este bloque.
+        //
+        // Guardados por information_schema en vez de IF EXISTS: ALTER ... RENAME COLUMN no admite
+        // IF EXISTS sobre la columna, y sin guarda el segundo arranque fallaria.
+        await dbContext.Database.ExecuteSqlRawAsync("""
+            DO $$
+            BEGIN
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'equipos_participantes' AND column_name = 'usuarioid') THEN
+                    ALTER TABLE equipos_participantes RENAME COLUMN usuarioid TO subjectid;
+                    ALTER INDEX IF EXISTS ux_equipos_participantes_usuarioid RENAME TO ux_equipos_participantes_subjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'historial_nombre_equipo' AND column_name = 'usuarioid') THEN
+                    ALTER TABLE historial_nombre_equipo RENAME COLUMN usuarioid TO subjectid;
+                    ALTER INDEX IF EXISTS ix_historial_nombre_equipo_usuarioid RENAME TO ix_historial_nombre_equipo_subjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'invitaciones_equipo' AND column_name = 'invitadouserid') THEN
+                    ALTER TABLE invitaciones_equipo RENAME COLUMN invitadouserid TO invitadosubjectid;
+                    ALTER INDEX IF EXISTS ix_invitaciones_equipo_invitadouserid RENAME TO ix_invitaciones_equipo_invitadosubjectid;
+                END IF;
+
+                IF EXISTS (SELECT 1 FROM information_schema.columns
+                           WHERE table_name = 'invitaciones_equipo' AND column_name = 'invitadoporuserid') THEN
+                    ALTER TABLE invitaciones_equipo RENAME COLUMN invitadoporuserid TO invitadoporsubjectid;
+                END IF;
+            END $$;
+            """);
     }
+
+    await HistorialBackfill.EjecutarAsync(dbContext, scope.ServiceProvider.GetRequiredService<TimeProvider>(), CancellationToken.None);
 }
 
-app.UseCors("FrontendDev");
 app.UseMiddleware<Umbral.IdentityService.Api.Middleware.ExceptionHandlingMiddleware>();
 app.UseAuthentication();
 app.UseAuthorization();

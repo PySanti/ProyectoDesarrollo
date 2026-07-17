@@ -1,7 +1,9 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Umbral.Puntuaciones.Api.Middleware;
+using Umbral.Puntuaciones.Api.Utils;
 using Umbral.Puntuaciones.Application;
 using Umbral.Puntuaciones.Infrastructure;
 using Umbral.Puntuaciones.Infrastructure.Persistence;
@@ -101,6 +103,14 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
             };
             options.Events = new JwtBearerEvents
             {
+                OnTokenValidated = context =>
+                {
+                    if (context.Principal?.Identity is ClaimsIdentity identity)
+                    {
+                        KeycloakRoleClaims.AddRolesFromKeycloakClaims(identity);
+                    }
+                    return Task.CompletedTask;
+                },
                 OnMessageReceived = context =>
                 {
                     // SignalR no puede mandar el header Authorization por WebSocket: el token viaja

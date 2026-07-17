@@ -40,6 +40,7 @@ public sealed class PartidasDbContext : DbContext
             entity.Property(x => x.TiempoInicio).HasColumnName("tiempoinicio");
             entity.Property(x => x.MinimosParticipacion).HasColumnName("minimos").IsRequired();
             entity.Property(x => x.MaximosParticipacion).HasColumnName("maximos").IsRequired();
+            entity.Property(x => x.FechaCreacion).HasColumnName("fechacreacion").IsRequired();
             entity.HasMany(x => x.Juegos).WithOne().HasForeignKey("partidaid").IsRequired().OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Juegos).UsePropertyAccessMode(PropertyAccessMode.Field);
         });

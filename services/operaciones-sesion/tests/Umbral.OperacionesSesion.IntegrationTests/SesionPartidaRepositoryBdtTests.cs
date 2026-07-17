@@ -96,7 +96,8 @@ public class SesionPartidaRepositoryBdtTests
         var sesion = SesionPartida.Publicar(partidaId, snapshot);
 
         // Ciclo: inscribir → iniciar (activa etapa 1) → validar QR correcto (gana etapa 1, agrega TesoroQR)
-        sesion.Inscribir(participanteId, false, 0, T0);
+        var insc = sesion.Inscribir(participanteId, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para que cuente en mínimos
         sesion.Iniciar(T0);
         sesion.ValidarTesoro(participanteId, Encoding.UTF8.GetBytes("QR-1"), T0.AddSeconds(5), new InlineDecoder());
 

@@ -7,25 +7,27 @@ public sealed class InvitacionEquipo
 {
     public Guid InvitacionEquipoId { get; private set; }
     public Guid EquipoId { get; private set; }
-    public Guid InvitadoUserId { get; private set; }
-    public Guid InvitadoPorUserId { get; private set; }
+
+    // Subs de OIDC, no UsuarioId local. Ver ParticipanteEquipo.SubjectId.
+    public Guid InvitadoSubjectId { get; private set; }
+    public Guid InvitadoPorSubjectId { get; private set; }
     public EstadoInvitacion Estado { get; private set; }
     public DateTime FechaCreacionUtc { get; private set; }
 
     private InvitacionEquipo() { }
 
-    public static InvitacionEquipo Crear(Guid equipoId, Guid invitadoUserId, Guid invitadoPorUserId)
+    public static InvitacionEquipo Crear(Guid equipoId, Guid invitadoSubjectId, Guid invitadoPorSubjectId)
     {
         if (equipoId == Guid.Empty) throw new ArgumentException("EquipoId requerido", nameof(equipoId));
-        if (invitadoUserId == Guid.Empty) throw new ArgumentException("InvitadoUserId requerido", nameof(invitadoUserId));
-        if (invitadoPorUserId == Guid.Empty) throw new ArgumentException("InvitadoPorUserId requerido", nameof(invitadoPorUserId));
+        if (invitadoSubjectId == Guid.Empty) throw new ArgumentException("InvitadoSubjectId requerido", nameof(invitadoSubjectId));
+        if (invitadoPorSubjectId == Guid.Empty) throw new ArgumentException("InvitadoPorSubjectId requerido", nameof(invitadoPorSubjectId));
 
         return new InvitacionEquipo
         {
             InvitacionEquipoId = Guid.NewGuid(),
             EquipoId = equipoId,
-            InvitadoUserId = invitadoUserId,
-            InvitadoPorUserId = invitadoPorUserId,
+            InvitadoSubjectId = invitadoSubjectId,
+            InvitadoPorSubjectId = invitadoPorSubjectId,
             Estado = EstadoInvitacion.Pendiente,
             FechaCreacionUtc = DateTime.UtcNow,
         };

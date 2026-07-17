@@ -4,6 +4,7 @@ using Umbral.Puntuaciones.Application.DTOs;
 using Umbral.Puntuaciones.Application.Exceptions;
 using Umbral.Puntuaciones.Application.Queries;
 using Umbral.Puntuaciones.Domain.Abstractions.Persistence;
+using Umbral.Puntuaciones.Domain.Entities;
 
 namespace Umbral.Puntuaciones.Application.Handlers.Queries;
 
@@ -42,9 +43,20 @@ public sealed class ObtenerHistorialPartidaQueryHandler
         var eventos = await _historial.GetHistorialDePartidaAsync(
             request.PartidaId, request.TipoEvento, request.Limit, request.Offset, cancellationToken);
 
+        // Los juegos de la partida se traen una vez y se indexan: una llamada por entrada
+        // seria N+1 sobre un conjunto que cabe entero en memoria (1..* juegos por partida).
+        var juegos = await _proyecciones.GetJuegosDePartidaAsync(request.PartidaId, cancellationToken);
+        var porJuegoId = juegos.ToDictionary(j => j.JuegoId);
+
         var entradas = eventos
-            .Select(e => new EntradaHistorialDto(
-                e.OccurredAt, e.TipoEvento, e.JuegoId, e.ParticipanteId, e.EquipoId, ParseDetalle(e.DetalleJson)))
+            .Select(e =>
+            {
+                JuegoProyectado? juego = null;
+                if (e.JuegoId.HasValue) porJuegoId.TryGetValue(e.JuegoId.Value, out juego);
+                return new EntradaHistorialDto(
+                    e.OccurredAt, e.TipoEvento, e.JuegoId, e.ParticipanteId, e.EquipoId,
+                    ParseDetalle(e.DetalleJson), juego?.Orden, juego?.TipoJuego);
+            })
             .ToList();
         return new HistorialPartidaResponse(request.PartidaId, total, entradas);
     }

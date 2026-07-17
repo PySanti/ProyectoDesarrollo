@@ -19,7 +19,7 @@ public sealed class GetUsersQueryHandler : IRequestHandler<GetUsersQuery, IReadO
 
         return usuarios
             .Select(user => new UserSummaryResponse(
-                user.UsuarioId,
+                user.UsuarioId.Valor,
                 user.KeycloakId,
                 user.Nombre,
                 user.Correo,

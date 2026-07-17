@@ -17,4 +17,4 @@ public sealed record PreguntaTriviaActivadaEvent(
 public sealed record PreguntaTriviaCerradaEvent(
     Guid PartidaId, Guid SesionPartidaId, Guid JuegoId, Guid PreguntaId,
     string Motivo, DateTime FechaCierre, Guid? GanadorParticipanteId,
-    Guid? GanadorEquipoId = null);
+    Guid? GanadorEquipoId = null, Guid? OpcionCorrectaId = null, string? TextoOpcionCorrecta = null);

@@ -10,12 +10,16 @@ public sealed class Partida
 
     public PartidaId PartidaId { get; private set; }
     public NombrePartida NombrePartida { get; private set; } = null!;
-    public EstadoPartida? Estado { get; private set; }      // null = configured, not yet published (SP-3 sets Lobby)
+    // Siempre null: ADR-0010 dejo el estado de runtime en Operaciones de Sesion y este
+    // servicio nunca lo escribe. La columna "Estado" del listado web es un problema
+    // abierto, fuera del alcance de este slice (ver el spec de 2026-07-16, seccion Alcance).
+    public EstadoPartida? Estado { get; private set; }
     public Modalidad Modalidad { get; private set; }
     public ModoInicioPartida ModoInicioPartida { get; private set; }
     public DateTime? TiempoInicio { get; private set; }
     public int MinimosParticipacion { get; private set; }
     public int MaximosParticipacion { get; private set; }
+    public DateTime FechaCreacion { get; private set; }
 
     public IReadOnlyList<JuegoReferencia> Juegos => _juegos;
 
@@ -27,7 +31,8 @@ public sealed class Partida
         ModoInicioPartida modo,
         DateTime? tiempoInicio,
         int minimos,
-        int maximos)
+        int maximos,
+        DateTime fechaCreacion)
     {
         PartidaId = PartidaId.New();
         NombrePartida = nombre;
@@ -36,20 +41,25 @@ public sealed class Partida
         TiempoInicio = tiempoInicio;
         MinimosParticipacion = minimos;
         MaximosParticipacion = maximos;
+        FechaCreacion = fechaCreacion;
         Estado = null;
 
         ValidarParametrosParticipacion();
         ValidarParametrosInicio();
     }
 
+    // fechaCreacion entra como parametro y no se lee del reloj aqui: el dominio no depende
+    // del ambiente, y por eso los tests fijan el instante sin maquinaria (patron de
+    // Operaciones, donde la fecha siempre va al final).
     public static Partida Crear(
         NombrePartida nombre,
         Modalidad modalidad,
         ModoInicioPartida modo,
         DateTime? tiempoInicio,
         int minimos,
-        int maximos)
-        => new(nombre, modalidad, modo, tiempoInicio, minimos, maximos);
+        int maximos,
+        DateTime fechaCreacion)
+        => new(nombre, modalidad, modo, tiempoInicio, minimos, maximos, fechaCreacion);
 
     public void AgregarJuego(JuegoId juegoId, int orden, TipoJuego tipoJuego)
     {

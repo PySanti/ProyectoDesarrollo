@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using MediatR;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -17,7 +18,7 @@ public sealed class DeactivateUserCommandHandler : IRequestHandler<DeactivateUse
 
     public async Task<DeactivateUserResponse> Handle(DeactivateUserCommand request, CancellationToken cancellationToken)
     {
-        var user = await _usuarioRepository.GetByIdAsync(request.UserId, cancellationToken);
+        var user = await _usuarioRepository.GetByIdAsync(UsuarioLocalId.From(request.UserId), cancellationToken);
         if (user is null)
         {
             throw new UserNotFoundException(request.UserId);
@@ -26,6 +27,6 @@ public sealed class DeactivateUserCommandHandler : IRequestHandler<DeactivateUse
         user.Desactivar();
         await _usuarioRepository.UpdateAsync(user, cancellationToken);
 
-        return new DeactivateUserResponse(user.UsuarioId, user.Estado.ToString());
+        return new DeactivateUserResponse(user.UsuarioId.Valor, user.Estado.ToString());
     }
 }

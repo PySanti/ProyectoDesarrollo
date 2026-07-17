@@ -21,7 +21,7 @@ public sealed class ObtenerMiEquipoQueryHandler : IRequestHandler<ObtenerMiEquip
             equipo.NombreEquipo,
             equipo.Estado.ToString(),
             equipo.Participantes
-                .Select(p => new MiembroEquipoResponse(p.UsuarioId, p.EsLider))
+                .Select(p => new MiembroEquipoResponse(p.SubjectId, p.EsLider))
                 .ToList());
     }
 }

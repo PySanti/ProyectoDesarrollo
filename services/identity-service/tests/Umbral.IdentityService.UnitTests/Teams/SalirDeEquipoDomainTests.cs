@@ -18,7 +18,7 @@ public sealed class SalirDeEquipoDomainTests
 
         Assert.Equal(ResultadoSalidaEquipo.SalioDelEquipo, resultado);
         Assert.Equal(EstadoEquipo.Activo, equipo.Estado);
-        Assert.DoesNotContain(equipo.Participantes, x => x.UsuarioId == integrante);
+        Assert.DoesNotContain(equipo.Participantes, x => x.SubjectId == integrante);
         Assert.Single(equipo.Participantes);
         Assert.True(equipo.Participantes.Single().EsLider);
     }
@@ -35,7 +35,7 @@ public sealed class SalirDeEquipoDomainTests
         Assert.Contains("debe transferir", ex.Message);
         Assert.Equal(EstadoEquipo.Activo, equipo.Estado);
         Assert.Equal(2, equipo.Participantes.Count);
-        Assert.Contains(equipo.Participantes, x => x.UsuarioId == lider && x.EsLider);
+        Assert.Contains(equipo.Participantes, x => x.SubjectId == lider && x.EsLider);
     }
 
     [Fact]

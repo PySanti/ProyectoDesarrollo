@@ -14,18 +14,18 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
     private readonly IUsuarioRepository _usuarioRepository;
     private readonly IKeycloakIdentityPort _keycloakIdentityPort;
     private readonly ITemporaryPasswordGenerator _temporaryPasswordGenerator;
-    private readonly IUserWelcomeEmailSender _welcomeEmailSender;
+    private readonly IIdentityEventsPublisher _identityEventsPublisher;
 
     public CreateUserWithInitialRoleCommandHandler(
         IUsuarioRepository usuarioRepository,
         IKeycloakIdentityPort keycloakIdentityPort,
         ITemporaryPasswordGenerator temporaryPasswordGenerator,
-        IUserWelcomeEmailSender welcomeEmailSender)
+        IIdentityEventsPublisher identityEventsPublisher)
     {
         _usuarioRepository = usuarioRepository;
         _keycloakIdentityPort = keycloakIdentityPort;
         _temporaryPasswordGenerator = temporaryPasswordGenerator;
-        _welcomeEmailSender = welcomeEmailSender;
+        _identityEventsPublisher = identityEventsPublisher;
     }
 
     public async Task<CreateUserWithInitialRoleResponse> Handle(CreateUserWithInitialRoleCommand request, CancellationToken cancellationToken)
@@ -67,23 +67,15 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
             throw;
         }
 
-        try
-        {
-            // El envío es el último paso: si falla, la operación falla y se compensan ambas creaciones
-            // (all-or-nothing), de modo que no queden usuarios sin notificar.
-            await _welcomeEmailSender.SendWelcomeEmailAsync(
-                new UserWelcomeEmailMessage(usuario.Nombre, usuario.Correo, usuario.Rol.ToString(), temporaryPassword),
-                cancellationToken);
-        }
-        catch
-        {
-            await CompensateLocalAsync(usuario, cancellationToken);
-            await CompensateKeycloakAsync(keycloakId, cancellationToken);
-            throw;
-        }
+        // El usuario ya está creado (Keycloak + local): el correo de bienvenida se publica como
+        // evento async (RabbitMQ) y es best-effort (ADR-0012) — un fallo de publicación se loguea
+        // pero NO compensa la creación, que ya es un hecho consumado.
+        await _identityEventsPublisher.PublishCredencialTemporalEmitidaAsync(
+            new CredencialTemporalEmitidaIntegrationEvent(usuario.Nombre, usuario.Correo, usuario.Rol.ToString(), temporaryPassword, DateTime.UtcNow),
+            cancellationToken);
 
         return new CreateUserWithInitialRoleResponse(
-            usuario.UsuarioId,
+            usuario.UsuarioId.Valor,
             usuario.KeycloakId,
             usuario.Nombre,
             usuario.Correo,
@@ -96,18 +88,6 @@ public sealed class CreateUserWithInitialRoleCommandHandler : IRequestHandler<Cr
         try
         {
             await _keycloakIdentityPort.DeleteUserAsync(keycloakId, cancellationToken);
-        }
-        catch
-        {
-            // Compensación best-effort: no enmascarar la excepción original de la operación.
-        }
-    }
-
-    private async Task CompensateLocalAsync(Usuario usuario, CancellationToken cancellationToken)
-    {
-        try
-        {
-            await _usuarioRepository.RemoveAsync(usuario, cancellationToken);
         }
         catch
         {

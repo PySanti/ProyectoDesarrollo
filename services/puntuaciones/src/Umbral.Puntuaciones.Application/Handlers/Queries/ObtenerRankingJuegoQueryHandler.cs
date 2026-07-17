@@ -21,6 +21,9 @@ public sealed class ObtenerRankingJuegoQueryHandler : IRequestHandler<ObtenerRan
         }
 
         var marcadores = await _repo.GetMarcadoresDeJuegoAsync(request.JuegoId, cancellationToken);
-        return new RankingJuegoResponse(juego.JuegoId, juego.TipoJuego, DateTime.UtcNow, RankingCalculator.Calcular(marcadores));
+        var participaciones = await _repo.GetParticipacionesDePartidaAsync(request.PartidaId, cancellationToken);
+        return new RankingJuegoResponse(
+            juego.JuegoId, juego.TipoJuego, DateTime.UtcNow,
+            RankingCalculator.Calcular(marcadores, participaciones));
     }
 }

@@ -16,7 +16,7 @@ public sealed class CrearEquipoDomainTests
         Assert.Single(equipo.Participantes);
 
         var creador = equipo.Participantes.Single();
-        Assert.Equal(actorUserId, creador.UsuarioId);
+        Assert.Equal(actorUserId, creador.SubjectId);
         Assert.True(creador.EsLider);
     }
 }

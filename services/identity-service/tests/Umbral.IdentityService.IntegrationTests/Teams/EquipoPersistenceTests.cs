@@ -35,7 +35,7 @@ public sealed class EquipoPersistenceTests
         Assert.Equal(EstadoEquipo.Activo, persisted.Estado);
         Assert.Single(persisted.Participantes);
         Assert.True(persisted.Participantes.Single().EsLider);
-        Assert.Equal(creadorUserId, persisted.Participantes.Single().UsuarioId);
+        Assert.Equal(creadorUserId, persisted.Participantes.Single().SubjectId);
     }
 
     [Fact]
@@ -95,8 +95,8 @@ public sealed class EquipoPersistenceTests
         Assert.Equal(EstadoEquipo.Activo, persisted.Estado);
         Assert.Single(persisted.Participantes);
         Assert.Equal(1, persisted.Participantes.Count(p => p.EsLider));
-        Assert.Equal(liderUserId, persisted.Participantes.Single(p => p.EsLider).UsuarioId);
-        Assert.DoesNotContain(persisted.Participantes, p => p.UsuarioId == miembroUserId);
+        Assert.Equal(liderUserId, persisted.Participantes.Single(p => p.EsLider).SubjectId);
+        Assert.DoesNotContain(persisted.Participantes, p => p.SubjectId == miembroUserId);
     }
 
     [Fact]
@@ -123,8 +123,8 @@ public sealed class EquipoPersistenceTests
         Assert.Equal(EstadoEquipo.Activo, persisted.Estado);
         Assert.Equal(2, persisted.Participantes.Count);
         Assert.Equal(1, persisted.Participantes.Count(p => p.EsLider));
-        Assert.True(persisted.Participantes.Single(p => p.UsuarioId == nuevoLiderUserId).EsLider);
-        Assert.False(persisted.Participantes.Single(p => p.UsuarioId == liderUserId).EsLider);
+        Assert.True(persisted.Participantes.Single(p => p.SubjectId == nuevoLiderUserId).EsLider);
+        Assert.False(persisted.Participantes.Single(p => p.SubjectId == liderUserId).EsLider);
     }
 
     [Fact]
@@ -232,8 +232,8 @@ public sealed class EquipoPersistenceTests
 
         Assert.NotNull(persistedA);
         Assert.Single(persistedA.Participantes);
-        Assert.DoesNotContain(persistedA.Participantes, p => p.UsuarioId == miembroAId);
-        Assert.Contains(persistedA.Participantes, p => p.UsuarioId == liderAId);
+        Assert.DoesNotContain(persistedA.Participantes, p => p.SubjectId == miembroAId);
+        Assert.Contains(persistedA.Participantes, p => p.SubjectId == liderAId);
 
         // --- Assert: team B still has ALL its members (the critical cross-team check) ---
         var persistedB = await dbContext.Equipos
@@ -242,7 +242,7 @@ public sealed class EquipoPersistenceTests
 
         Assert.NotNull(persistedB);
         Assert.Equal(2, persistedB.Participantes.Count);
-        Assert.Contains(persistedB.Participantes, p => p.UsuarioId == liderBId);
-        Assert.Contains(persistedB.Participantes, p => p.UsuarioId == miembroBId);
+        Assert.Contains(persistedB.Participantes, p => p.SubjectId == liderBId);
+        Assert.Contains(persistedB.Participantes, p => p.SubjectId == miembroBId);
     }
 }

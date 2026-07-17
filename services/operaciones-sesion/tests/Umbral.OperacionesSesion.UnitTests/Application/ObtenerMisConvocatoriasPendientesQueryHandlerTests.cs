@@ -34,7 +34,8 @@ public class ObtenerMisConvocatoriasPendientesQueryHandlerTests
         var equipoId = Guid.NewGuid();
         var sesion = EquipoPublicada();
         var partidaId = sesion.PartidaId;
-        var inscripcion = sesion.PreinscribirEquipo(equipoId, true, new[] { usuario }, false, 0, T0);
+        var inscripcion = sesion.PreinscribirEquipo(equipoId, true, usuario, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(inscripcion.Id.Valor, 0, T0); // HU-19: aceptar crea las convocatorias
         var convocatoriaId = inscripcion.Convocatorias[0].Id.Valor;
         repo.Add(sesion);
 
@@ -45,6 +46,9 @@ public class ObtenerMisConvocatoriasPendientesQueryHandlerTests
         Assert.Equal(convocatoriaId, dto.ConvocatoriaId);
         Assert.Equal(partidaId, dto.PartidaId);
         Assert.Equal(equipoId, dto.EquipoId);
+        // El movil pinta este nombre: el gateway le cierra /partidas/**, asi que si no
+        // viaja aqui no tiene forma de nombrar la partida.
+        Assert.Equal("Copa", dto.NombrePartida);
     }
 
     [Fact]

@@ -54,7 +54,7 @@ public class HistorialPartidasE2ETests : IClassFixture<PuntuacionesWebFactory>
     }
 
     [Fact]
-    public async Task Equipo_de_punta_a_punta_resuelto_del_historial()
+    public async Task Equipo_de_punta_a_punta_resuelto_por_convocatoria_aceptada()
     {
         var participanteId = Guid.NewGuid();
         var equipoId = Guid.NewGuid();
@@ -62,15 +62,19 @@ public class HistorialPartidasE2ETests : IClassFixture<PuntuacionesWebFactory>
         var partidaId = Guid.NewGuid();
         var sesionId = Guid.NewGuid();
         var juegoId = Guid.NewGuid();
+        var convocatoriaId = Guid.NewGuid();
 
         await Proyectar(new ProyectarPartidaPublicadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, Modalidad.Equipo));
         await Proyectar(new ProyectarJuegoActivadoCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, 1, TipoJuego.BusquedaDelTesoro));
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), participanteId, 30, 1000, equipoId));
         await Proyectar(new ProyectarEtapaBdtGanadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, juegoId, Guid.NewGuid(), Guid.NewGuid(), 10, 900, rival));
         await Proyectar(new ProyectarPartidaFinalizadaCommand(Guid.NewGuid(), Ahora, partidaId, sesionId, Ahora));
-        // La membresía HU-27 sale del historial, no de los marcadores: registrar la acción autorada.
-        await Proyectar(new ProyectarEventoHistorialCommand(
-            Guid.NewGuid(), "EtapaBDTGanada", Ahora, partidaId, juegoId, participanteId, equipoId, """{"puntaje":30}"""));
+        // La membresía HU-27 sale de la convocatoria aceptada, no del relato de auditoría ni de
+        // haber autorado una acción de juego.
+        await Proyectar(new ProyectarConvocatoriaCreadaCommand(
+            Guid.NewGuid(), Ahora, partidaId, convocatoriaId, equipoId, participanteId));
+        await Proyectar(new ProyectarConvocatoriaRespondidaCommand(
+            Guid.NewGuid(), Ahora, convocatoriaId, participanteId, "Aceptada"));
 
         var client = _factory.CreateClientAutenticado();
         var response = await client.GetAsync($"/puntuaciones/participantes/{participanteId}/historial-partidas");

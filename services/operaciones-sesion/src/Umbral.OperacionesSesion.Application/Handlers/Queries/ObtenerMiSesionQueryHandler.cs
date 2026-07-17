@@ -17,8 +17,17 @@ public sealed class ObtenerMiSesionQueryHandler : IRequestHandler<ObtenerMiSesio
         var sesion = await _sesiones.GetByParticipanteActivoAsync(request.ParticipanteId, cancellationToken);
         if (sesion is null) return null;
 
+        // HU-19: mi-sesion también muestra la inscripción propia Pendiente (OcupaParticipacion).
         var inscripcion = sesion.Inscripciones.FirstOrDefault(
-            i => i.EsActiva && i.ParticipanteId == request.ParticipanteId);
+            i => i.OcupaParticipacion && i.ParticipanteId == request.ParticipanteId);
+
+        // 7b-bis: en Equipo la inscripción del caller no tiene su ParticipanteId (es del equipo);
+        // se resuelve por su convocatoria para exponer el estado real (Pendiente/Activa) — HU-19.
+        if (inscripcion is null && sesion.Modalidad == Modalidad.Equipo)
+        {
+            inscripcion = sesion.Inscripciones.FirstOrDefault(
+                i => i.OcupaParticipacion && i.Convocatorias.Any(c => c.UsuarioId == request.ParticipanteId));
+        }
 
         var convocatoria = sesion.Inscripciones
             .Where(i => i.EsActiva)

@@ -25,7 +25,10 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 |---|---|---|---|
 | `/identity/governance/{**catch-all}` | 1 | `Administrador` | Identity |
 | `/identity/users/{**catch-all}` | 1 | `Administrador` | Identity |
+| `/identity/admin/teams/{**catch-all}` | 1 | `Administrador` | Identity |
+| `/identity/teams` (exacto, solo `GET`) | 0 | `OperadorOAdministrador` | Identity |
 | `/identity/teams/{**catch-all}` | 1 | `Participante` | Identity |
+| `/identity/directory/{**catch-all}` | 2 (heredado del catch-all) | Default (autenticado) | Identity |
 | `/identity/{**catch-all}` (resto) | 2 | Default (autenticado) | Identity |
 | `/partidas/{**catch-all}` | — | `OperadorOAdministrador` (`RequireRole("Operador","Administrador")`) | Partidas |
 | `/operaciones-sesion/{**catch-all}` | — | Default (autenticado) | Operaciones de Sesión |
@@ -33,6 +36,12 @@ hace falta precedencia sobre un prefijo más general del mismo servicio.
 | `/health` | — | Anónimo (endpoint propio del gateway) | Gateway |
 
 Notas:
+- `/identity/admin/teams/{**catch-all}` cubre el CRUD administrativo de equipos (HU-09,
+  Bloque 4A); su RBAC gruesa `Administrador` se añadió en Bloque 7a.
+- `/identity/directory/names` **no tiene ruta propia**: cae en `/identity/{**catch-all}` (Order 2),
+  cuya política `Default (autenticado)` es exactamente la que necesita. Las rutas de
+  `Administrador` y `Participante` son Order 1 y no lo interceptan. Se lista en la matriz por
+  claridad, no porque exista una entrada de configuración separada.
 - `/identity/governance` (Administrador, SP-5b), `/identity/users` (Administrador) y
   `/identity/teams` (Participante) son sub-rutas más específicas que ganan sobre
   `/identity/{**catch-all}` (Default) por `Order` explícito (1 < 2).
@@ -44,6 +53,10 @@ Notas:
   mantiene sin cambios (`/operaciones-sesion/hubs/sesion`).
 - `401` = sin token / token inválido (challenge); `403` = rol insuficiente (Forbid). Body vacío
   default de ASP.NET Core.
+- `/identity/teams` exacto con `Methods: ["GET"]` (Order 0) intercepta el listado para la
+  consola web antes del catch-all de Participante (Order 1); `GET /identity/teams/mine` y
+  `POST /identity/teams` siguen cayendo en la ruta de Participante. Detalle del endpoint en
+  `identity-api.md` §"Teams listing for the web console".
 
 ## Endpoint Registry
 

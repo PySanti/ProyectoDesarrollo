@@ -12,6 +12,8 @@ export interface AuthProvider {
   /** Redirects to Keycloak to start the login flow. */
   login(): Promise<void>;
   logout(): Promise<void>;
+  /** Fuerza el refresh del token contra Keycloak (RNF-24). Resuelve al token nuevo. */
+  refresh(): Promise<string>;
 }
 
 // Only these app roles are meaningful to UMBRAL. Keycloak technical roles
@@ -96,6 +98,17 @@ class KeycloakAuthProvider implements AuthProvider {
 
   async logout(): Promise<void> {
     await this.keycloak.logout({ redirectUri: `${window.location.origin}/` });
+  }
+
+  async refresh(): Promise<string> {
+    // -1 fuerza el refresh aunque el token siga válido: RNF-24 pide refresh
+    // incondicional en cada tick de 270s. keycloak-js usa el refresh token
+    // internamente, directo contra Keycloak (sin gateway/backend).
+    await this.keycloak.updateToken(-1);
+    if (!this.keycloak.token) {
+      throw new Error("Keycloak no devolvió token tras el refresh.");
+    }
+    return this.keycloak.token;
   }
 }
 

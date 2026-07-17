@@ -22,6 +22,36 @@ namespace Umbral.Puntuaciones.Infrastructure.Persistence.Migrations
 
             NpgsqlModelBuilderExtensions.UseIdentityByDefaultColumns(modelBuilder);
 
+            modelBuilder.Entity("Umbral.Puntuaciones.Domain.Entities.ConvocatoriaProyectada", b =>
+                {
+                    b.Property<Guid>("ConvocatoriaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("convocatoriaid");
+
+                    b.Property<bool>("Aceptada")
+                        .HasColumnType("boolean")
+                        .HasColumnName("aceptada");
+
+                    b.Property<Guid>("EquipoId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("equipoid");
+
+                    b.Property<Guid>("PartidaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("partidaid");
+
+                    b.Property<Guid>("UsuarioId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("usuarioid");
+
+                    b.HasKey("ConvocatoriaId");
+
+                    b.HasIndex("UsuarioId")
+                        .HasDatabaseName("ix_convocatorias_proyectadas_usuarioid");
+
+                    b.ToTable("convocatorias_proyectadas", (string)null);
+                });
+
             modelBuilder.Entity("Umbral.Puntuaciones.Domain.Entities.EventoHistorial", b =>
                 {
                     b.Property<long>("Id")
@@ -173,6 +203,28 @@ namespace Umbral.Puntuaciones.Infrastructure.Persistence.Migrations
                         .HasDatabaseName("ix_marcadores_juegoid");
 
                     b.ToTable("marcadores", (string)null);
+                });
+
+            modelBuilder.Entity("Umbral.Puntuaciones.Domain.Entities.ParticipacionProyectada", b =>
+                {
+                    b.Property<Guid>("PartidaId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("partidaid");
+
+                    b.Property<Guid>("CompetidorId")
+                        .HasColumnType("uuid")
+                        .HasColumnName("competidorid");
+
+                    b.Property<int>("TipoCompetidor")
+                        .HasColumnType("integer")
+                        .HasColumnName("tipocompetidor");
+
+                    b.HasKey("PartidaId", "CompetidorId");
+
+                    b.HasIndex("CompetidorId")
+                        .HasDatabaseName("ix_participaciones_proyectadas_competidorid");
+
+                    b.ToTable("participaciones_proyectadas", (string)null);
                 });
 
             modelBuilder.Entity("Umbral.Puntuaciones.Domain.Entities.PartidaProyectada", b =>

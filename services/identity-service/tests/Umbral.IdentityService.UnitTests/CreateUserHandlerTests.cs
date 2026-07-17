@@ -1,3 +1,4 @@
+using Umbral.IdentityService.Domain.ValueObjects;
 using Umbral.IdentityService.Application.Interfaces;
 using Umbral.IdentityService.Domain.Abstractions.Persistence;
 using Umbral.IdentityService.Application.Exceptions;
@@ -16,8 +17,8 @@ public sealed class CreateUserHandlerTests
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort("kc-123");
         var passwordGenerator = new FakeTemporaryPasswordGenerator("Temp-Pass-1");
-        var emailSender = new FakeWelcomeEmailSender();
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, publisher);
 
         var response = await handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -30,42 +31,48 @@ public sealed class CreateUserHandlerTests
     }
 
     [Fact]
-    public async Task Handle_Should_Send_Welcome_Email_With_Generated_Temporary_Password()
+    public async Task Handle_Should_Publish_CredencialTemporalEmitida_With_Generated_Temporary_Password()
     {
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort("kc-123");
         var passwordGenerator = new FakeTemporaryPasswordGenerator("Generated-Temp-9");
-        var emailSender = new FakeWelcomeEmailSender();
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
+        var publisher = new FakeIdentityEventsPublisher();
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, publisher);
 
         await handler.Handle(
             new CreateUserWithInitialRoleCommand("Ana", "ANA@umbral.dev", "Participante"),
             CancellationToken.None);
 
-        Assert.NotNull(emailSender.LastMessage);
-        Assert.Equal("ana@umbral.dev", emailSender.LastMessage!.Email);
-        Assert.Equal("Participante", emailSender.LastMessage.Role);
-        Assert.Equal("Generated-Temp-9", emailSender.LastMessage.TemporaryPassword);
+        var evento = Assert.Single(publisher.CredencialesEmitidas);
+        Assert.Equal("Ana", evento.Nombre);
+        Assert.Equal("ana@umbral.dev", evento.Correo);
+        Assert.Equal("Participante", evento.Rol);
+        Assert.Equal("Generated-Temp-9", evento.PasswordTemporal);
         // The temporary password is sent to Keycloak too (never persisted locally).
         Assert.Equal("Generated-Temp-9", keycloak.LastTemporaryPassword);
     }
 
     [Fact]
-    public async Task Handle_Should_Compensate_When_Email_Delivery_Fails()
+    public async Task Handle_Should_Not_Compensate_When_Event_Publication_Fails()
     {
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort("kc-999");
         var passwordGenerator = new FakeTemporaryPasswordGenerator("Temp-Pass-1");
-        var emailSender = new FakeWelcomeEmailSender(throwOnSend: true);
-        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, emailSender);
+        // Mirrors the real publisher contract (RabbitMq/Composite, ADR-0012): a broker/publication
+        // failure is swallowed internally and never escapes to the caller.
+        var publisher = new FakeIdentityEventsPublisher(throwOnPublishCredencial: true);
+        var handler = new CreateUserWithInitialRoleCommandHandler(repository, keycloak, passwordGenerator, publisher);
 
-        await Assert.ThrowsAsync<EmailDeliveryException>(() => handler.Handle(
+        var response = await handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
-            CancellationToken.None));
+            CancellationToken.None);
 
-        // Compensation: local persistence rolled back and Keycloak user deleted.
-        Assert.Empty(repository.StoredUsers);
-        Assert.Contains("kc-999", keycloak.DeletedIds);
+        // The user creation is a fait accompli: a failed event publication does not compensate it.
+        Assert.True(publisher.CredencialPublishAttempted);
+        Assert.Empty(publisher.CredencialesEmitidas);
+        Assert.Single(repository.StoredUsers);
+        Assert.Empty(keycloak.DeletedIds);
+        Assert.Equal("Administrador", response.Role);
     }
 
     [Fact]
@@ -74,7 +81,7 @@ public sealed class CreateUserHandlerTests
         var repository = new FakeUsuarioRepository(existsByEmail: true);
         var keycloak = new FakeKeycloakIdentityPort("kc-123");
         var handler = new CreateUserWithInitialRoleCommandHandler(
-            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeIdentityEventsPublisher());
 
         await Assert.ThrowsAsync<DuplicateEmailException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -87,7 +94,7 @@ public sealed class CreateUserHandlerTests
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort(exception: new KeycloakIntegrationException("keycloak failed"));
         var handler = new CreateUserWithInitialRoleCommandHandler(
-            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeIdentityEventsPublisher());
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Admin", "admin@umbral.dev", "Administrador"),
@@ -100,7 +107,7 @@ public sealed class CreateUserHandlerTests
         var repository = new FakeUsuarioRepository();
         var keycloak = new FakeKeycloakIdentityPort(exception: new KeycloakIntegrationException("authenticated user is not administrator"));
         var handler = new CreateUserWithInitialRoleCommandHandler(
-            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeWelcomeEmailSender());
+            repository, keycloak, new FakeTemporaryPasswordGenerator("Temp-Pass-1"), new FakeIdentityEventsPublisher());
 
         await Assert.ThrowsAsync<KeycloakIntegrationException>(() => handler.Handle(
             new CreateUserWithInitialRoleCommand("Operator", "operator@umbral.dev", "Operador"),
@@ -120,10 +127,13 @@ public sealed class CreateUserHandlerTests
         public Task<IReadOnlyList<Usuario>> GetAllAsync(CancellationToken cancellationToken)
             => Task.FromResult<IReadOnlyList<Usuario>>(StoredUsers);
 
-        public Task<Usuario?> GetByIdAsync(Guid userId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByIdAsync(UsuarioLocalId userId, CancellationToken cancellationToken)
             => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(u => u.UsuarioId == userId));
 
-        public Task<bool> ExistsByEmailAsync(string email, Guid? excludingUserId, CancellationToken cancellationToken)
+        public Task<Usuario?> GetByKeycloakIdAsync(Guid keycloakId, CancellationToken cancellationToken)
+            => Task.FromResult<Usuario?>(StoredUsers.FirstOrDefault(u => u.KeycloakId == keycloakId.ToString()));
+
+        public Task<bool> ExistsByEmailAsync(string email, UsuarioLocalId? excludingUserId, CancellationToken cancellationToken)
             => Task.FromResult(_existsByEmail);
 
         public Task AddAsync(Usuario usuario, CancellationToken cancellationToken)
@@ -232,26 +242,59 @@ public sealed class CreateUserHandlerTests
         public string Generate() => _password;
     }
 
-    private sealed class FakeWelcomeEmailSender : IUserWelcomeEmailSender
+    private sealed class FakeIdentityEventsPublisher : IIdentityEventsPublisher
     {
-        private readonly bool _throwOnSend;
+        private readonly bool _throwOnPublishCredencial;
 
-        public UserWelcomeEmailMessage? LastMessage { get; private set; }
+        public List<CredencialTemporalEmitidaIntegrationEvent> CredencialesEmitidas { get; } = [];
+        public bool CredencialPublishAttempted { get; private set; }
 
-        public FakeWelcomeEmailSender(bool throwOnSend = false)
+        public FakeIdentityEventsPublisher(bool throwOnPublishCredencial = false)
         {
-            _throwOnSend = throwOnSend;
+            _throwOnPublishCredencial = throwOnPublishCredencial;
         }
 
-        public Task SendWelcomeEmailAsync(UserWelcomeEmailMessage message, CancellationToken cancellationToken)
+        public Task PublishCredencialTemporalEmitidaAsync(CredencialTemporalEmitidaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
         {
-            if (_throwOnSend)
+            CredencialPublishAttempted = true;
+            // Best-effort (ADR-0012): a real implementation swallows the failure internally and
+            // never lets it reach the caller — mirrored here instead of throwing.
+            if (!_throwOnPublishCredencial)
             {
-                throw new EmailDeliveryException("forced email failure for test");
+                CredencialesEmitidas.Add(integrationEvent);
             }
 
-            LastMessage = message;
             return Task.CompletedTask;
         }
+
+        public Task PublishEquipoCreadoAsync(EquipoCreadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoCreadaAsync(InvitacionEquipoCreadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoAceptadaAsync(InvitacionEquipoAceptadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishInvitacionEquipoRechazadaAsync(InvitacionEquipoRechazadaIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishRolUsuarioModificadoAsync(RolUsuarioModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishPermisosRolActualizadosAsync(PermisosRolActualizadosIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoEliminadoAsync(EquipoEliminadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishLiderazgoEquipoModificadoAsync(LiderazgoEquipoModificadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoDesactivadoAsync(EquipoDesactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
+
+        public Task PublishEquipoReactivadoAsync(EquipoReactivadoIntegrationEvent integrationEvent, CancellationToken cancellationToken)
+            => Task.CompletedTask;
     }
 }
