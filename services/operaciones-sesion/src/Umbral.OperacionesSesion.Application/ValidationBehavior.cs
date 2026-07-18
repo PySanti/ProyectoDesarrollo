@@ -3,9 +3,7 @@ using MediatR;
 
 namespace Umbral.OperacionesSesion.Application;
 
-// MediatR pipeline behavior: runs FluentValidation before the handler so controllers
-// stay pure dispatchers (doctrine audit M-2). On failure throws ValidationException,
-// which the centralized exception middleware maps to 400.
+
 public sealed class ValidationBehavior<TRequest, TResponse> : IPipelineBehavior<TRequest, TResponse>
     where TRequest : notnull
 {

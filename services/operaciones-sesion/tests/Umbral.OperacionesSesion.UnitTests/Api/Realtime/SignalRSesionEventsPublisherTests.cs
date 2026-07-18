@@ -256,6 +256,34 @@ public class SignalRSesionEventsPublisherTests
     }
 
     [Fact]
+    public async Task RespuestaTriviaValidada_de_equipo_difunde_al_grupo_del_equipo()
+    {
+        // En Equipo la primera respuesta sella al equipo entero (acierte o falle). Sin esta
+        // difusion los companeros no se enteran y siguen viendo la pregunta abierta hasta que
+        // tocan una opcion y comen un 409. El grupo de equipo ya lo arma SesionHub al suscribir.
+        var (pub, clients) = Build();
+        var partidaId = Guid.NewGuid();
+        var juegoId = Guid.NewGuid();
+        var preguntaId = Guid.NewGuid();
+        var participanteId = Guid.NewGuid();
+        var equipoId = Guid.NewGuid();
+
+        await pub.PublicarRespuestaTriviaValidadaAsync(
+            new RespuestaTriviaValidadaEvent(partidaId, Guid.NewGuid(), juegoId, preguntaId,
+                participanteId, Guid.NewGuid(), false, T0, equipoId),
+            CancellationToken.None);
+
+        Assert.Equal(SesionRealtimeMessages.GrupoEquipo(equipoId), clients.LastGroup); // NO GrupoPartida
+        Assert.Equal(SesionRealtimeMessages.RespuestaEquipoRegistrada, clients.Proxy.Method);
+        var payload = Assert.IsType<RespuestaEquipoRegistradaPayload>(clients.Proxy.Args![0]);
+        Assert.Equal(partidaId, payload.PartidaId);
+        Assert.Equal(juegoId, payload.JuegoId);
+        Assert.Equal(preguntaId, payload.PreguntaId);
+        Assert.False(payload.EsCorrecta);
+        Assert.Equal(participanteId, payload.ParticipanteId);
+    }
+
+    [Fact]
     public async Task PistaEnviada_difunde_solo_al_grupo_del_participante_destino()
     {
         var (pub, clients) = Build();

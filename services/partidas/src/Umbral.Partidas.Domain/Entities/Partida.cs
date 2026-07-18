@@ -10,9 +10,9 @@ public sealed class Partida
 
     public PartidaId PartidaId { get; private set; }
     public NombrePartida NombrePartida { get; private set; } = null!;
-    // Siempre null: ADR-0010 dejo el estado de runtime en Operaciones de Sesion y este
-    // servicio nunca lo escribe. La columna "Estado" del listado web es un problema
-    // abierto, fuera del alcance de este slice (ver el spec de 2026-07-16, seccion Alcance).
+    // El estado de runtime lo posee Operaciones de Sesion (ADR-0010). Este servicio lo mantiene
+    // como PROYECCION, alimentada por los eventos PartidaPublicadaEnLobby/Iniciada/Cancelada/
+    // Finalizada via RabbitMQ (fix 4). Sigue siendo null hasta que llega el primer evento.
     public EstadoPartida? Estado { get; private set; }
     public Modalidad Modalidad { get; private set; }
     public ModoInicioPartida ModoInicioPartida { get; private set; }
@@ -73,6 +73,17 @@ public sealed class Partida
             throw new OrdenJuegoDuplicadoException(orden);
 
         _juegos.Add(new JuegoReferencia(juegoId, orden, tipoJuego));
+    }
+
+    // Proyecta el estado de runtime que reporta Operaciones de Sesion. Idempotente y robusto al
+    // desorden de RabbitMQ (topic no ordena entre routing keys distintas): una vez en un estado
+    // terminal (Cancelada/Terminada) ignora cualquier evento posterior, para que un Iniciada/Lobby
+    // rezagado no "resucite" una partida ya cerrada.
+    public void ProyectarEstado(EstadoPartida estado)
+    {
+        if (Estado is EstadoPartida.Cancelada or EstadoPartida.Terminada)
+            return;
+        Estado = estado;
     }
 
     public void ValidarIntegridadJuegos()

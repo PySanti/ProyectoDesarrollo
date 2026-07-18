@@ -18,7 +18,8 @@ public class ObtenerMiSesionQueryHandlerTests
 {
     private static readonly DateTime T0 = new(2026, 6, 29, 10, 0, 0, DateTimeKind.Utc);
 
-    private static SesionPartida Trivia(Guid partidaId, Guid participante, Guid opcionOk, Guid opcionMala, bool iniciar)
+    private static SesionPartida Trivia(Guid partidaId, Guid participante, Guid opcionOk, Guid opcionMala, bool iniciar,
+        Guid? segundoParticipante = null)
     {
         var pregunta = new PreguntaSnapshot(Guid.NewGuid(), 1, "2+2?", 100, 3600,
             new[] { new OpcionSnapshot(opcionOk, "4", true), new OpcionSnapshot(opcionMala, "5", false) });
@@ -28,6 +29,13 @@ public class ObtenerMiSesionQueryHandlerTests
         var s = SesionPartida.Publicar(partidaId, snap);
         var insc = s.Inscribir(participante, false, 0, T0);
         s.AceptarInscripcion(insc.Id.Valor, 0, T0); // HU-19: aceptar para inscripción activa
+        // Un segundo elegible que no responde: así una sola respuesta incorrecta no cierra la
+        // pregunta por "todos respondieron", que es lo que estos tests necesitan.
+        if (segundoParticipante is { } p2)
+        {
+            var insc2 = s.Inscribir(p2, false, 1, T0);
+            s.AceptarInscripcion(insc2.Id.Valor, 1, T0);
+        }
         if (iniciar) s.Iniciar(T0);   // activa juego 1 + pregunta 1
         return s;
     }
@@ -89,8 +97,8 @@ public class ObtenerMiSesionQueryHandlerTests
         var repo = new FakeSesionPartidaRepository();
         var partidaId = Guid.NewGuid(); var pid = Guid.NewGuid();
         var opcionOk = Guid.NewGuid(); var opcionMala = Guid.NewGuid();
-        var sesion = Trivia(partidaId, pid, opcionOk, opcionMala, iniciar: true);
-        sesion.ResponderPregunta(pid, opcionMala, T0);   // incorrecto → la pregunta sigue activa
+        var sesion = Trivia(partidaId, pid, opcionOk, opcionMala, iniciar: true, segundoParticipante: Guid.NewGuid());
+        sesion.ResponderPregunta(pid, opcionMala, T0);   // incorrecto y falta el otro → sigue activa
         repo.Add(sesion);
         var dto = await new ObtenerMiSesionQueryHandler(repo).Handle(new ObtenerMiSesionQuery(pid), CancellationToken.None);
         Assert.NotNull(dto!.PreguntaActual);             // sigue activa

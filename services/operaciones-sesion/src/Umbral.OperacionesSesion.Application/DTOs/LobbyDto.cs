@@ -8,6 +8,9 @@ public sealed record LobbyDto(
     int MinimosParticipacion,
     int MaximosParticipacion,
     int InscritosActivos,
+    // Participaciones que cuentan para el quórum de inicio: en Equipo exige convocatoria aceptada,
+    // así que puede ser < InscritosActivos. Es el número que el inicio manual valida de verdad.
+    int ParticipacionesConfirmadas,
     IReadOnlyList<Guid> Participantes,
     IReadOnlyList<EquipoLobbyDto> Equipos,
     IReadOnlyList<SolicitudIndividualDto> SolicitudesPendientesIndividual,

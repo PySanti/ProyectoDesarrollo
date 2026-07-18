@@ -118,18 +118,15 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         Assert.True(respuesta.CerroPregunta);
         Assert.Equal(10, respuesta.Puntaje);
 
-        // Finalizar juego: Q1 cerrada, no hay preguntas abiertas → OK, partida Terminada
-        // (NOT calling /pregunta-actual/avance – there is no active question after the correct answer)
-        var finalizar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
-        Assert.Equal(HttpStatusCode.OK, finalizar.StatusCode);
-        var avance = await finalizar.Content.ReadFromJsonAsync<AvanceJuegoResponse>();
-        Assert.True(avance!.Terminada);
-        Assert.Equal("Terminada", avance.Estado);
-
-        // GET estado: confirma estado Terminada y ningún juego activo
+        // Acertar la ÚLTIMA pregunta ya finaliza el juego y termina la partida (auto), igual que
+        // el camino por timeout: no hace falta un /juego-actual/finalizacion manual.
         var estado = await _client.GetFromJsonAsync<EstadoSesionDto>($"{Rutas.Base}/partidas/{partidaId}/estado");
         Assert.Equal("Terminada", estado!.Estado);
         Assert.Null(estado.JuegoActualOrden);
+
+        // El finalizar-manual ahora sobra: la sesión ya no está Iniciada → 409.
+        var finalizar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
+        Assert.Equal(HttpStatusCode.Conflict, finalizar.StatusCode);
     }
 
     // ─────────────────────────────────────────────────────────────────────────
@@ -186,12 +183,10 @@ public class TriviaRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFac
         Assert.True(r2!.EsCorrecta);
         Assert.True(r2.CerroPregunta);
 
-        // Finalizar → Terminada (no hay preguntas abiertas)
-        var finalizar = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
-        Assert.Equal(HttpStatusCode.OK, finalizar.StatusCode);
-        var avance = await finalizar.Content.ReadFromJsonAsync<AvanceJuegoResponse>();
-        Assert.True(avance!.Terminada);
-        Assert.Equal("Terminada", avance.Estado);
+        // Acertar la última pregunta (Q2) ya finaliza el juego y termina la partida (auto).
+        var estado = await _client.GetFromJsonAsync<EstadoSesionDto>($"{Rutas.Base}/partidas/{partidaId}/estado");
+        Assert.Equal("Terminada", estado!.Estado);
+        Assert.Null(estado.JuegoActualOrden);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

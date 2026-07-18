@@ -60,6 +60,16 @@ export function seleccionarRespuestaCorrecta(preguntaCerrada, juegoId) {
   return preguntaCerrada.texto ?? null;
 }
 
+// En modalidad Equipo la primera respuesta de un miembro sella al equipo entero. Solo se refleja
+// en el resto del equipo cuando fue INCORRECTA: ahí el equipo queda bloqueado y sus miembros deben
+// ver "Incorrecta." sin tocar nada. Un ACIERTO cierra la pregunta y la avanza para todos, así que
+// NO se sella (sellar competía con el avance y dejaba al equipo ganador clavado en "Correcto").
+// Se filtra por juego + pregunta: un evento que llegue tarde no debe sellar la pregunta nueva.
+export function aplicaRespuestaEquipo(payload, juegoId, preguntaId) {
+  if (!payload || !preguntaId || payload.esCorrecta !== false) return false;
+  return payload.juegoId === juegoId && payload.preguntaId === preguntaId;
+}
+
 export async function getRankingJuego(apiBaseUrl, token, partidaId, juegoId, fetchImpl = fetch) {
   const { response, body, error } = await get(
     apiBaseUrl, token, `/puntuaciones/partidas/${partidaId}/juegos/${juegoId}/ranking`, fetchImpl,

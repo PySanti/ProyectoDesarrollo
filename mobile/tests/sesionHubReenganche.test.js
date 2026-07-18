@@ -27,7 +27,7 @@ test("un fallo al re-suscribirse no propaga", async () => {
 
   // El handler es fire-and-forget (devuelve undefined), asi que no hay promesa que esperar.
   // Sin el .catch del impl, node reportaria una unhandled rejection y este test fallaria:
-  // la pantalla debe seguir operable con Recargar en vez de romperse.
+  // la pantalla debe sobrevivir al fallo en vez de romperse.
   assert.doesNotThrow(() => hub.handlers[0]());
   await new Promise((r) => setImmediate(r));
 });

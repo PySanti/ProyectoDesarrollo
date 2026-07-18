@@ -24,3 +24,8 @@ public sealed record EtapaGanadaPayload(Guid PartidaId, Guid JuegoId, Guid Etapa
 public sealed record UbicacionParticipantePayload(Guid PartidaId, Guid ParticipanteId, double Latitud, double Longitud, DateTime TimestampUtc);
 public sealed record PistaEnviadaPayload(Guid PartidaId, Guid JuegoId, Guid? ParticipanteDestinoId, string Texto, DateTime TimestampUtc, Guid? EquipoDestinoId = null);
 public sealed record ConvocatoriaCreadaPayload(Guid PartidaId, Guid EquipoId, Guid ConvocatoriaId, Guid UsuarioId);
+// Solo en modalidad Equipo: la respuesta de un miembro sella a todo el equipo, así que el resto
+// debe ver el mismo resultado sin tocar nada. PreguntaId viaja para que el cliente descarte un
+// evento que llegue tarde, cuando ya avanzó la pregunta.
+public sealed record RespuestaEquipoRegistradaPayload(Guid PartidaId, Guid JuegoId, Guid PreguntaId,
+    bool EsCorrecta, Guid ParticipanteId);

@@ -15,7 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddOperacionesSesionApplication();
 builder.Services.AddOperacionesSesionInfrastructure(builder.Configuration);
 builder.Services.Configure<Umbral.OperacionesSesion.Api.Configuration.MantenimientoOptions>(
-    builder.Configuration.GetSection("Mantenimiento"));
+    builder.Configuration.GetSection("Mantenimiento")); // seteas mantenimiento options hacia el valor del appsettings
 builder.Services.AddHostedService<Umbral.OperacionesSesion.Api.Workers.MantenimientoSesionesWorker>();
 
 builder.Services.AddSignalR();
@@ -111,6 +111,7 @@ if (!string.IsNullOrWhiteSpace(keycloakBaseUrl) &&
                 ValidateIssuerSigningKey = true,
                 RoleClaimType = "roles"
             };
+            // configuracion de escucha del websocket
             options.Events = new JwtBearerEvents
             {
                 OnTokenValidated = context =>

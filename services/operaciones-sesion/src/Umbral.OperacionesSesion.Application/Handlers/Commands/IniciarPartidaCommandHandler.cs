@@ -88,6 +88,29 @@ public sealed class IniciarPartidaCommandHandler : IRequestHandler<IniciarPartid
             cancellationToken);
     }
 
+    // Publica el efecto de finalizar el juego activo: JuegoActivado (+ primer paso del siguiente
+    // juego) si la partida avanzó, o PartidaFinalizada si terminó. Espeja lo que ya hacen el
+    // barrer de timeouts y el finalizar-manual; lo llaman los cierres por acierto/ganada.
+    internal static async Task PublicarFinDeJuegoAsync(
+        ISesionEventsPublisher events, SesionPartida sesion, ResultadoAvance? fin, DateTime now, CancellationToken cancellationToken)
+    {
+        if (fin is null) return;
+        if (fin.Tipo == TipoResultadoAvance.Avanzado)
+        {
+            var juego = fin.JuegoActivado!;
+            await events.PublicarJuegoActivadoAsync(
+                new JuegoActivadoEvent(sesion.PartidaId, sesion.Id.Valor, juego.JuegoId, juego.Orden, juego.TipoJuego.ToString()),
+                cancellationToken);
+            await PublicarPreguntaActivadaSiTriviaAsync(events, sesion, juego, cancellationToken);
+            await PublicarEtapaActivadaSiBdtAsync(events, sesion, juego, cancellationToken);
+        }
+        else
+        {
+            await events.PublicarPartidaFinalizadaAsync(
+                new PartidaFinalizadaEvent(sesion.PartidaId, sesion.Id.Valor, now), cancellationToken);
+        }
+    }
+
     internal static InicioPartidaResponse MapearInicio(SesionPartida sesion, ResultadoInicio resultado) =>
         new(sesion.PartidaId, sesion.Estado.ToString(), resultado.JuegoActivado?.JuegoId, resultado.JuegoActivado?.Orden);
 }

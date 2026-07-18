@@ -1,6 +1,6 @@
 import test from "node:test";
 import assert from "node:assert/strict";
-import { fetchConvocatorias, responderConvocatoria } from "../src/features/partidas/convocatoriasFlow.js";
+import { fetchConvocatorias, responderConvocatoria, destinoTrasResponder } from "../src/features/partidas/convocatoriasFlow.js";
 
 const jsonResponse = (status, body) => ({
   ok: status >= 200 && status < 300,
@@ -31,6 +31,18 @@ test("fetchConvocatorias propaga nombrePartida del backend", async () => {
   const r = await fetchConvocatorias({ apiBaseUrl: "http://gw", token: "tok", fetchImpl });
   assert.equal(r.ok, true);
   assert.equal(r.data[0].nombrePartida, "Copa UCAB");
+});
+
+// Al aceptar, el miembro debe ir al lobby de la partida (mismo lugar donde el lider
+// espera el inicio): sin esto no se suscribe al grupo y su panel no cambia al iniciar.
+test("destinoTrasResponder: aceptar lleva al lobby con partidaId y nombre", () => {
+  const conv = { convocatoriaId: "c1", partidaId: "p1", nombrePartida: "Copa UCAB" };
+  assert.deepEqual(destinoTrasResponder(conv, true), { partidaId: "p1", nombre: "Copa UCAB" });
+});
+
+test("destinoTrasResponder: rechazar no navega", () => {
+  const conv = { convocatoriaId: "c1", partidaId: "p1", nombrePartida: "Copa UCAB" };
+  assert.equal(destinoTrasResponder(conv, false), null);
 });
 
 test("responderConvocatoria aceptar=false hace POST rechazo y mapea 409", async () => {

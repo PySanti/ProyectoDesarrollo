@@ -74,6 +74,9 @@ public sealed class ValidarTesoroCommandHandler : IRequestHandler<ValidarTesoroC
             await IniciarPartidaCommandHandler.PublicarEtapaActivadaSiBdtAsync(_events, sesion, juego, cancellationToken);
         }
 
+        // Si ganar/cerrar cerró la última etapa, el juego se finalizó: avanzar o terminar.
+        await IniciarPartidaCommandHandler.PublicarFinDeJuegoAsync(_events, sesion, r.JuegoFinalizado, now, cancellationToken);
+
         return new ValidacionTesoroResponse(
             sesion.PartidaId, r.EtapaId, r.Resultado.ToString(), r.Gano, r.CerroEtapa, r.Puntaje);
     }

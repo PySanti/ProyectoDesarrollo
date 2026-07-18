@@ -24,6 +24,7 @@ export function PartidaLiveScreenContainer() {
       nombre={route.params.nombre}
       miSub={session.user.sub}
       onVolverAlPanel={() => navigation.navigate("PartidasPanel")}
+      onVolverAlMenu={() => navigation.navigate("Home")}
     />
   );
 }

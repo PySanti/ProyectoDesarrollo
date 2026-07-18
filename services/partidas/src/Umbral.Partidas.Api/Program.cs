@@ -17,6 +17,14 @@ builder.Services.AddControllers()
     .AddJsonOptions(options =>
         options.JsonSerializerOptions.Converters.Add(new System.Text.Json.Serialization.JsonStringEnumConverter()));
 
+// fix 4: proyección del estado de runtime (Operaciones de Sesión → Partidas) vía RabbitMQ.
+var rabbitConsumerOptions = builder.Configuration
+    .GetSection(Umbral.Partidas.Api.Workers.RabbitMqConsumerOptions.SectionName)
+    .Get<Umbral.Partidas.Api.Workers.RabbitMqConsumerOptions>()
+    ?? new Umbral.Partidas.Api.Workers.RabbitMqConsumerOptions();
+builder.Services.AddSingleton(rabbitConsumerOptions);
+builder.Services.AddHostedService<Umbral.Partidas.Api.Workers.OperacionesSesionEventsConsumer>();
+
 static string? ResolveSetting(IConfiguration configuration, string key, string environmentVariable)
 {
     var configuredValue = configuration[key];

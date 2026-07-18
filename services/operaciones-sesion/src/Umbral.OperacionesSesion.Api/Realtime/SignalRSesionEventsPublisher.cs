@@ -78,9 +78,20 @@ public sealed class SignalRSesionEventsPublisher : ISesionEventsPublisher
             new EtapaGanadaPayload(evento.PartidaId, evento.JuegoId, evento.EtapaId,
                 evento.ParticipanteId, evento.EquipoId), cancellationToken);
 
-    // No difunden (per-participante / scoring-adjacentes → SP-4). Documentado en diseño SP-3f-2.
+    // En Equipo la primera respuesta de cualquier miembro sella al equipo entero (acierte o falle),
+    // así que el resto del equipo debe ver el mismo resultado en el acto. Se difunde SOLO al grupo
+    // del equipo: en Individual la respuesta sigue siendo privada (sin difusión, como en SP-3f-2).
     public Task PublicarRespuestaTriviaValidadaAsync(RespuestaTriviaValidadaEvent evento, CancellationToken cancellationToken) =>
-        Task.CompletedTask;
+        evento.EquipoId is { } equipoId
+            ? _hub.Clients.Group(SesionRealtimeMessages.GrupoEquipo(equipoId))
+                .SendAsync(
+                    SesionRealtimeMessages.RespuestaEquipoRegistrada,
+                    new RespuestaEquipoRegistradaPayload(evento.PartidaId, evento.JuegoId, evento.PreguntaId,
+                        evento.EsCorrecta, evento.ParticipanteId),
+                    cancellationToken)
+            : Task.CompletedTask;
+
+    // No difunden (per-participante / scoring-adjacentes → SP-4). Documentado en diseño SP-3f-2.
 
     public Task PublicarPuntajeTriviaIncrementadoAsync(PuntajeTriviaIncrementadoEvent evento, CancellationToken cancellationToken) =>
         Task.CompletedTask;

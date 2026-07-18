@@ -12,7 +12,7 @@ namespace Umbral.OperacionesSesion.UnitTests.Api;
 public class SesionesControllerAprobacionTests
 {
     private static LobbyDto LobbyVacio(Guid partidaId) => new(
-        partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 5, 0,
+        partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 5, 0, 0,
         Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>(),
         Array.Empty<SolicitudIndividualDto>(), Array.Empty<SolicitudEquipoDto>());
 

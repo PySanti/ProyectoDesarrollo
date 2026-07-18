@@ -1,7 +1,7 @@
 // Historial cronológico de la partida (HU-43): eventos proyectados por Puntuaciones,
 // paginado limit/offset con filtro por tipo. Solo Operador/Administrador (403 backend).
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import {
   getHistorialPartida,
   PuntuacionesApiError,
@@ -10,26 +10,9 @@ import {
 import { useNombres } from "../shared/useNombres";
 import { useNombresPartida } from "../shared/useNombresPartida";
 import { etiquetaJuego } from "./juegoLabels";
-
-export const TIPOS_EVENTO = [
-  "PartidaPublicadaEnLobby",
-  "PartidaIniciada",
-  "PartidaCancelada",
-  "PartidaFinalizada",
-  "JuegoActivado",
-  "PreguntaTriviaActivada",
-  "RespuestaTriviaValidada",
-  "PuntajeTriviaIncrementado",
-  "PreguntaTriviaCerrada",
-  "EtapaBDTActivada",
-  "TesoroQRValidado",
-  "EtapaBDTGanada",
-  "EtapaBDTCerrada",
-  "PistaEnviada",
-  "ConvocatoriaCreada",
-  "ConvocatoriaRespondida",
-  "UbicacionActualizada"
-];
+import { describirDetalle } from "./detalleEvento";
+import { etiquetaTipoEvento, TIPOS_EVENTO } from "./eventoLabels";
+import { ClipboardList } from "../../shell/icons";
 
 const LIMIT = 100;
 
@@ -38,12 +21,28 @@ type Estado =
   | { status: "ok"; historial: HistorialPartidaDto }
   | { status: "error"; message: string };
 
-// Etiqueta legible para el <select>: distinta del texto crudo de la tabla
-// (evita colisión de getByText entre <option> y <td> para el mismo tipo de evento).
-const etiquetaTipoEvento = (t: string) => t.replace(/([a-z0-9])([A-Z])/g, "$1 $2");
+
+// El detalle es un objeto abierto (el payload del evento menos los ids ya extraidos), asi que
+// se pinta como pares etiqueta→valor en vez de como JSON: el operador lee "Puntaje 50", no
+// {"puntaje":50}. Los ids sueltos van en mono (regla Mono For Machine Strings).
+function DetalleEvento({ detalle }: { detalle: unknown }) {
+  const campos = describirDetalle(detalle);
+  if (campos.length === 0) return <span className="muted">—</span>;
+  return (
+    <div>
+      {campos.map((campo) => (
+        <div key={campo.label}>
+          <span className="muted">{campo.label}</span>{" "}
+          <span className={campo.mono ? "mono" : undefined}>{campo.value}</span>
+        </div>
+      ))}
+    </div>
+  );
+}
 
 export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
   const { partidaId } = useParams<{ partidaId: string }>();
+  const navigate = useNavigate();
   const [estado, setEstado] = useState<Estado>({ status: "cargando" });
   const [tipo, setTipo] = useState("");
   const [offset, setOffset] = useState(0);
@@ -111,9 +110,13 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
               ))}
             </select>
           </label>
-          <Link to={`/partidas/${partidaId}`} className="row-link">
+          <button
+            type="button"
+            className="secondary-button"
+            onClick={() => navigate(`/partidas/${partidaId}`)}
+          >
             Volver a la partida
-          </Link>
+          </button>
         </div>
 
         {estado.status === "cargando" ? <p className="muted">Cargando historial…</p> : null}
@@ -125,7 +128,20 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
 
         {estado.status === "ok" ? (
           estado.historial.entradas.length === 0 ? (
-            <p className="muted">Sin eventos registrados.</p>
+            <div className="empty-panel" data-testid="historial-vacio">
+              <ClipboardList />
+              <p>Sin eventos registrados.</p>
+              <p className="muted">
+                {tipo ? (
+                  <>
+                    Ningún evento del tipo <strong>{etiquetaTipoEvento(tipo)}</strong> en esta partida.
+                    Cambia el filtro a <strong>Todos</strong> para ver el resto.
+                  </>
+                ) : (
+                  <>El historial se llena solo, a medida que la partida se publica, se juega y termina.</>
+                )}
+              </p>
+            </div>
           ) : (
             <>
               <div className="table-wrap">
@@ -144,18 +160,25 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                     {estado.historial.entradas.map((e, i) => (
                       <tr key={`${e.occurredAt}-${i}`}>
                         <td>{new Date(e.occurredAt).toLocaleString()}</td>
-                        <td>{e.tipoEvento}</td>
+                        <td>{etiquetaTipoEvento(e.tipoEvento)}</td>
                         <td>{etiquetaJuego(e.juegoOrden, e.tipoJuego, e.juegoId)}</td>
                         <td>{e.participanteId ? nombreDe(e.participanteId) : "—"}</td>
                         <td>{e.equipoId ? nombreDe(e.equipoId) : "—"}</td>
-                        <td className="muted">{JSON.stringify(e.detalle)}</td>
+                        <td data-testid="detalle-evento">
+                          <DetalleEvento detalle={e.detalle} />
+                        </td>
                       </tr>
                     ))}
                   </tbody>
                 </table>
               </div>
               <div className="compact-actions">
-                <button type="button" disabled={offset === 0} onClick={() => setOffset(Math.max(0, offset - LIMIT))}>
+                <button
+                  type="button"
+                  className="secondary-button"
+                  disabled={offset === 0}
+                  onClick={() => setOffset(Math.max(0, offset - LIMIT))}
+                >
                   Anterior
                 </button>
                 <span className="muted">
@@ -163,6 +186,7 @@ export function HistorialPartidaPage({ accessToken }: { accessToken: string }) {
                 </span>
                 <button
                   type="button"
+                  className="secondary-button"
                   disabled={offset + LIMIT >= total}
                   onClick={() => setOffset(offset + LIMIT)}
                 >

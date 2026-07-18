@@ -20,17 +20,20 @@ Requests enter through the YARP gateway.
 
 ## Endpoint Registry
 
-### User management (policy `AdminOnly` — role `Administrador`) (SP-5a re-homed)
+### User management (mutations → `Administrador`; directory listing → `DirectorioUsuarios`) (SP-5a re-homed; S6)
 
 Paths re-homed under the service's own prefix (`identity/`), replacing the former
-`api/identity/*` paths, per the SP-3g convention (each service hosts under its own prefix) and
-the gateway matrix (`/identity/users/{**catch-all}` → policy `Administrador`, Order 1).
-Auth: `401` without a token; `403` without the `Administrador` role.
+`api/identity/*` paths, per the SP-3g convention (each service hosts under its own prefix).
+**Mutations and `GET /identity/users/{userId}`** → policy `Administrador`
+(`/identity/users/{**catch-all}`, Order 1). **`GET /identity/users` (directory listing for the
+leader dropdown, S6)** → policy `DirectorioUsuarios` = `Administrador` **or** `GestionarEquipos`
+(gateway route `identity-users-read`, GET-only, Order 0; mirrored per-action in Identity for
+defense in depth). Auth: `401` without a token; `403` if the row's policy is not met.
 
 | Capability | Method | Path | Status | Notes |
 |---|---|---|---|---|
 | Create user with initial role | POST | `/identity/users` | Registered | 201 on success; 401/403 per above; 409 duplicate email |
-| List users | GET | `/identity/users` | Registered | 200; 401/403 per above |
+| List users | GET | `/identity/users` | Registered | 200; policy `DirectorioUsuarios` (`Administrador` or `GestionarEquipos`, S6); 401/403 per above |
 | Get user by id | GET | `/identity/users/{userId}` | Registered | 200 / 404; 401/403 per above |
 | Update user general data | PATCH | `/identity/users/{userId}` | Registered | 200; body `{ name, email }`; 401/403 per above |
 | Deactivate user | PATCH | `/identity/users/{userId}/deactivation` | Registered | 200; 401/403 per above |
@@ -159,15 +162,20 @@ Respuesta:
 - Los nombres son siempre los **actuales**; este endpoint no consulta el historial de nombres de
   equipo (BR-E11).
 
-### Admin team management (policy `AdminOnly` — role `Administrador`) (SP-Bloque4A, HU-09)
+### Admin team management (mutations → `GestionarEquipos`; team listing → `ListadoEquipos`) (SP-Bloque4A, HU-09; S6)
 
-Base path `identity/admin/teams`. Auth: `401` without a token; `403` without role `Administrador` (same policy as `GovernanceController`). The admin does **not** compose membership (BR-E05 intact): create = name + a valid leader (sole initial member); edit = rename + reassign leadership among existing members. `EquipoAdminResponse = { equipoId, nombreEquipo, estado, liderUserId?, integrantes:[{ usuarioId, esLider }] }`.
+Base path `identity/admin/teams`. **Mutations and `GET /identity/admin/teams/{id}`** → policy
+`GestionarEquipos` (gateway `/identity/admin/teams/{**catch-all}`, Order 1). **`GET /identity/admin/teams`
+(team listing for the performance dropdown, S6)** → policy `ListadoEquipos` = `GestionarPartidas`
+**or** `GestionarEquipos` (gateway route `identity-admin-teams-read`, GET-only, Order 0; mirrored
+per-action in Identity). By privilege, not base role. Auth: `401` without a token; `403` if the
+row's policy is not met. The admin does **not** compose membership (BR-E05 intact): create = name + a valid leader (sole initial member); edit = rename + reassign leadership among existing members. `EquipoAdminResponse = { equipoId, nombreEquipo, estado, liderUserId?, integrantes:[{ usuarioId, esLider }] }`.
 
 > **Leader identity on create:** the `liderUserId` in the create body is the leader's **local `Usuario.UsuarioId`** (the id the admin user directory `GET /identity/users` exposes). Identity resolves it to the Keycloak-subject membership key server-side, so the created team's leader can access it from mobile. Reassign-leadership's `nuevoLiderUserId` is a current member's `usuarioId` (already in subject space).
 
 | Capability | Method | Path | Status | Notes |
 |---|---|---|---|---|
-| List teams | GET | `/identity/admin/teams` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse[]` — **all** states (Activo/Desactivado/Eliminado); 401/403 per above |
+| List teams | GET | `/identity/admin/teams` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse[]` — **all** states (Activo/Desactivado/Eliminado); policy `ListadoEquipos` (`GestionarPartidas` or `GestionarEquipos`, S6); 401/403 per above |
 | Get team detail | GET | `/identity/admin/teams/{id}` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; 404 if not found; 401/403 per above |
 | Create team | POST | `/identity/admin/teams` | Registered (SP-Bloque4A) | 201 + Location `/identity/admin/teams/{equipoId}`; body `{ nombreEquipo, liderUserId }` (see leader-identity note); 404 if leader user not found; 409 if leader already in an active team; 400 on validation; 401/403 per above |
 | Rename team | PATCH | `/identity/admin/teams/{id}/name` | Registered (SP-Bloque4A) | 200 `EquipoAdminResponse`; body `{ nombreEquipo }` (records one name-history row per current member, BR-E11); 404 if not found; 400 on validation; 401/403 per above |

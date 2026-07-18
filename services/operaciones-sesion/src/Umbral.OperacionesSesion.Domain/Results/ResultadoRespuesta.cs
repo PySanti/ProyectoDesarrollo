@@ -10,4 +10,7 @@ public sealed record ResultadoRespuesta(
     Guid OpcionId,
     DateTime Instante,
     long TiempoRespuestaMs,
-    Guid? EquipoId = null);
+    Guid? EquipoId = null,
+    // Set cuando el acierto cierra la ÚLTIMA pregunta del juego: el juego se finaliza
+    // (avanza al siguiente o termina la partida), igual que el camino por timeout.
+    ResultadoAvance? JuegoFinalizado = null);

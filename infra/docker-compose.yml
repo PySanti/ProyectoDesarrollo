@@ -176,6 +176,10 @@ services:
       ASPNETCORE_URLS: http://+:8080
       ConnectionStrings__PartidasDatabase: Host=postgres;Port=5432;Database=umbral_partidas;Username=umbral;Password=16102005
       EF_MIGRATE_ON_STARTUP: "true"
+      # fix 4: proyecta el estado de runtime (PartidaPublicadaEnLobby/Iniciada/Cancelada/Finalizada)
+      # que publica Operaciones de Sesión, para que el listado del operador refleje el estado real.
+      RabbitMqConsumer__Enabled: "true"
+      RabbitMqConsumer__Host: rabbitmq
       KEYCLOAK_BASE_URL: http://keycloak:8080
       KEYCLOAK_REALM: UMBRAL-UCAB
       KEYCLOAK_VALID_AUDIENCES: umbral-web,umbral-mobile
@@ -185,6 +189,8 @@ services:
         condition: service_healthy
       keycloak:
         condition: service_started
+      rabbitmq:
+        condition: service_healthy
 
   operaciones-sesion:
     build:

@@ -1,5 +1,6 @@
 // Hub de sesion via gateway (mismo hub que la web). El caller arranca/detiene la conexion.
 import { HubConnectionBuilder } from "@microsoft/signalr";
+import { reconexionIndefinida } from "./reconexion.js";
 
 export function sesionHubUrl(gatewayBaseUrl) {
   return `${gatewayBaseUrl.replace(/\/$/, "")}/operaciones-sesion/hubs/sesion`;
@@ -10,7 +11,7 @@ export function sesionHubUrl(gatewayBaseUrl) {
 export function crearSesionHub(gatewayBaseUrl, getToken) {
   return new HubConnectionBuilder()
     .withUrl(sesionHubUrl(gatewayBaseUrl), { accessTokenFactory: getToken })
-    .withAutomaticReconnect()
+    .withAutomaticReconnect(reconexionIndefinida)
     .build();
 }
 

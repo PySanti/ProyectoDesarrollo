@@ -70,4 +70,4 @@ EXPO_PUBLIC_APP_SCHEME=umbral
 EXPO_PUBLIC_AUTH_REDIRECT_URI=exp://${IP}:${MetroPort}/--/auth
 "@ | Set-Content -Path '.env' -Encoding utf8
 
-npx expo start -c
+npx expo start --clear

@@ -40,6 +40,24 @@ public class ValidarTesoroCommandHandlerTests
     }
 
     [Fact]
+    public async Task Winning_last_stage_publishes_partida_finalizada()
+    {
+        var (repo, uow, fake, partidaId, jugador) = BdtBuilder.SesionIniciada(("QR-1", 60)); // única etapa
+        var handler = new ValidarTesoroCommandHandler(
+            repo, uow, fake,
+            new FakeTimeProvider(new DateTime(2026, 6, 28, 10, 0, 5)),
+            new TextoQrDecoder());
+
+        var resp = await handler.Handle(new ValidarTesoroCommand(partidaId, jugador, B64("QR-1")), default);
+
+        Assert.True(resp.Gano);
+        Assert.Single(fake.EtapasGanadas);
+        Assert.Empty(fake.EtapasActivadas);      // no hay siguiente etapa
+        Assert.Single(fake.PartidasFinalizadas); // ganar la última etapa termina la partida
+        Assert.Empty(fake.JuegosActivados);
+    }
+
+    [Fact]
     public async Task Wrong_treasure_emits_only_validado()
     {
         var (repo, uow, fake, partidaId, jugador) = BdtBuilder.SesionIniciada(("QR-1", 60));

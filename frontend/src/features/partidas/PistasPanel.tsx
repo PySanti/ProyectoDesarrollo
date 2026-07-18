@@ -69,7 +69,7 @@ export function PistasPanel({ partidaId, accessToken }: { partidaId: string; acc
         </>
       )}
       {error ? <div className="notice error" role="alert">{error}</div> : null}
-      {enviadaEn ? <p className="muted" data-testid="pista-enviada">Pista enviada ({enviadaEn}).</p> : null}
+      {enviadaEn ? <p className="muted" data-testid="pista-enviada">Pista enviada ({new Date(enviadaEn).toLocaleTimeString()}).</p> : null}
     </div>
   );
 }

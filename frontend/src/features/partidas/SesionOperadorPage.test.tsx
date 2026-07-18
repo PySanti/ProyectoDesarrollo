@@ -48,6 +48,7 @@ vi.mock("./BdtRuntimePanel", () => ({
     <div data-testid="bdt-runtime-mock">{resultadosEtapas?.length ?? 0}</div>
   ))
 }));
+vi.mock("./ConsolidadoPanel", () => ({ ConsolidadoPanel: vi.fn(() => <div data-testid="consolidado-mock" />) }));
 vi.mock("./PistasPanel", () => ({ PistasPanel: vi.fn(() => <div data-testid="pistas-mock" />) }));
 vi.mock("./EnviosTesoroPanel", () => ({ EnviosTesoroPanel: vi.fn(() => <div data-testid="envios-tesoro-mock" />) }));
 vi.mock("./GeoMapPanel", () => ({ GeoMapPanel: vi.fn(({ ubicaciones }: { ubicaciones: unknown[] }) => <div data-testid="geo-mock">{ubicaciones.length}</div>) }));
@@ -96,6 +97,7 @@ function renderPage({ puedeOperar = true }: { puedeOperar?: boolean } = {}) {
           element={<SesionOperadorPage accessToken="tok" puedeOperar={puedeOperar} />}
         />
         <Route path="/partidas/:partidaId" element={<div>DETALLE</div>} />
+        <Route path="/partidas/:partidaId/historial" element={<div>HISTORIAL</div>} />
       </Routes>
     </MemoryRouter>
   );
@@ -235,13 +237,26 @@ describe("SesionOperadorPage", () => {
     expect(screen.queryByTestId("btn-iniciar")).not.toBeInTheDocument();
   });
 
-  it("cuando la sesion no existe (404) muestra 'no publicada' con link al detalle", async () => {
+  it("cuando la sesion no existe (404) muestra 'no publicada' con un boton al detalle", async () => {
     vi.mocked(getEstadoSesion).mockRejectedValue(new OperacionesApiError("no publicada", 404));
     renderPage();
 
     expect(await screen.findByTestId("sesion-no-publicada")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: /detalle|partida/i });
-    expect(link).toHaveAttribute("href", "/partidas/p1");
+    const irAlDetalle = screen.getByRole("button", { name: /detalle|partida/i });
+    expect(irAlDetalle).toHaveClass("secondary-button");
+    await userEvent.click(irAlDetalle);
+    expect(await screen.findByText("DETALLE")).toBeInTheDocument();
+  });
+
+  it("partida terminada: 'Ver historial' es un boton secundario que navega al historial", async () => {
+    vi.mocked(getEstadoSesion).mockResolvedValue({ ...estadoLobby, estado: "Terminada" });
+    vi.mocked(getPartida).mockResolvedValue(configManual);
+    renderPage();
+
+    const verHistorial = await screen.findByRole("button", { name: /ver historial/i });
+    expect(verHistorial).toHaveClass("secondary-button");
+    await userEvent.click(verHistorial);
+    expect(await screen.findByText("HISTORIAL")).toBeInTheDocument();
   });
 
   it("carga directa con estado Iniciada renderiza el shell sin pasar por lobby", async () => {

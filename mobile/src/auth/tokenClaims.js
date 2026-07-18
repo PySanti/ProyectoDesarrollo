@@ -34,8 +34,12 @@ export function buildAuthUser(accessToken) {
 
   const rawRoles = Array.isArray(payload.realm_access?.roles) ? payload.realm_access.roles : [];
   const roles = rawRoles.filter((role) => APP_ROLES.has(role));
+  // username = id de cuenta (preferred_username, normalmente el correo): identifica la cuenta en
+  // RoleRestrictedScreen. nombre = etiqueta humana para el saludo del Home (S9): primer nombre si
+  // está, luego nombre completo, y solo entonces cae al correo.
   const username = payload.preferred_username || payload.name || "unknown";
-  return { sub, username, roles };
+  const nombre = payload.given_name || payload.name || payload.preferred_username || "unknown";
+  return { sub, username, nombre, roles };
 }
 
 export function isJwtExpired(accessToken, clockSkewSeconds = 30) {

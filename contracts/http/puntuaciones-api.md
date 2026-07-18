@@ -132,6 +132,9 @@ descendente. Reusa el mismo cálculo del consolidado (RF-44: sin duplicar el cá
 ```
 
 - Equipo sin participaciones (o desconocido) → `200` con `partidas: []`.
+- `401` sin token; cualquier rol autenticado (sin permiso funcional específico). La vista "mi
+  equipo" del móvil (S7) la usa un Participante sobre su propio equipo, que no porta privilegio de
+  gobernanza; paridad con el historial individual del participante.
 
 ## `GET /puntuaciones/partidas/{partidaId}/historial`
 

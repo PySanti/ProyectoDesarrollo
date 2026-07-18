@@ -320,4 +320,52 @@ public class GatewayEndpointsTests : IClassFixture<WebApplicationFactory<Program
         var response = await client.GetAsync("/identity/admin/teams/cualquier-cosa");
         AssertPolicyPassed(response);
     }
+
+    // S6: separar la LECTURA de listados (dropdowns de la web) de las MUTACIONES.
+
+    [Fact]
+    public async Task IdentityUsersListing_GET_con_GestionarEquipos_pasa_la_politica()
+    {
+        // El dropdown de líder (TeamsAdminPage) lee el directorio de usuarios; un portador de
+        // GestionarEquipos que no es Administrador debe poder leerlo.
+        var client = CreateClientWithRoles("Participante,GestionarEquipos");
+        var response = await client.GetAsync("/identity/users");
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
+    public async Task IdentityUsersListing_GET_con_Operador_es_403()
+    {
+        // El directorio de usuarios NO se abre al Operador simple: solo Administrador/GestionarEquipos.
+        var client = CreateClientWithRoles("Operador");
+        var response = await client.GetAsync("/identity/users");
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityUsers_POST_con_GestionarEquipos_sigue_403()
+    {
+        // Solo se amplió el GET del listado: crear/editar usuario sigue Administrador-only.
+        var client = CreateClientWithRoles("GestionarEquipos");
+        var response = await client.PostAsync("/identity/users", new StringContent("{}"));
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeamsListing_GET_con_GestionarPartidas_pasa_la_politica()
+    {
+        // El dropdown de rendimiento (M6) lista equipos; el Operador porta GestionarPartidas.
+        var client = CreateClientWithRoles("Operador,GestionarPartidas");
+        var response = await client.GetAsync("/identity/admin/teams");
+        AssertPolicyPassed(response);
+    }
+
+    [Fact]
+    public async Task IdentityAdminTeams_POST_con_GestionarPartidas_sigue_403()
+    {
+        // Solo se amplió el GET del listado: crear/renombrar/borrar equipo sigue GestionarEquipos-only.
+        var client = CreateClientWithRoles("Operador,GestionarPartidas");
+        var response = await client.PostAsync("/identity/admin/teams", new StringContent("{}"));
+        Assert.Equal(HttpStatusCode.Forbidden, response.StatusCode);
+    }
 }

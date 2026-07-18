@@ -187,19 +187,22 @@ public class SesionPartidaTests
         Assert.Equal(1, resultado.JuegoActivado!.Orden);
     }
 
+    // Manual start with unmet minimums rejects and stays in Lobby — the auto-cancellation
+    // belongs to the time-based start (domain-model-summary.md §Partida). The operator must be
+    // able to accept the pending requests and retry instead of losing the partida on one click.
     [Fact]
-    public void Iniciar_with_minimums_not_met_auto_cancels()
+    public void Iniciar_with_minimums_not_met_rejects_and_stays_in_lobby()
     {
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), Snapshot(min: 2, max: 5, juegos: 1));
-        sesion.Inscribir(Guid.NewGuid(), false, 0, T0); // only 1 < 2
+        InscribirYAceptar(sesion, T0); // only 1 < 2
 
-        var resultado = sesion.Iniciar(T0);
+        var ex = Assert.Throws<MinimosNoAlcanzadosException>(() => sesion.Iniciar(T0));
 
-        Assert.Equal(TipoResultadoInicio.Cancelada, resultado.Tipo);
-        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
-        Assert.Equal(T0, sesion.FechaFin);
-        Assert.Null(resultado.JuegoActivado);
+        Assert.Equal(EstadoSesion.Lobby, sesion.Estado);
+        Assert.Null(sesion.FechaFin);
         Assert.All(sesion.Juegos, j => Assert.Equal(EstadoJuego.Pendiente, j.Estado));
+        Assert.Contains("1", ex.Message); // confirmadas
+        Assert.Contains("2", ex.Message); // mínimo exigido
     }
 
     [Fact]

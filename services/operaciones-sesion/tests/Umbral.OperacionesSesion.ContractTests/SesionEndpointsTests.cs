@@ -248,7 +248,7 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
     }
 
     [Fact]
-    public async Task Start_with_minimums_not_met_auto_cancels()
+    public async Task Start_manual_with_minimums_not_met_returns_409_and_stays_in_lobby()
     {
         var partidaId = Guid.NewGuid();
         // min defaults to 1 in Config; publish a partida with min=2 by overriding the stub config.
@@ -258,9 +258,10 @@ public class SesionEndpointsTests : IClassFixture<OperacionesSesionWebFactory>
         // no inscriptions → 0 < 2
 
         var start = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/inicio", null);
-        Assert.Equal(HttpStatusCode.OK, start.StatusCode);
-        var inicio = await start.Content.ReadFromJsonAsync<InicioPartidaResponse>();
-        Assert.Equal("Cancelada", inicio!.Estado);
+        Assert.Equal(HttpStatusCode.Conflict, start.StatusCode); // manual start rejects, no cancela
+
+        var estado = await _client.GetFromJsonAsync<EstadoSesionDto>($"{Rutas.Base}/partidas/{partidaId}/estado");
+        Assert.Equal("Lobby", estado!.Estado); // sigue publicada, el operador puede aceptar y reintentar
     }
 
     [Fact]

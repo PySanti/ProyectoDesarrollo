@@ -2,7 +2,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
-import { fetchConvocatorias, responderConvocatoria } from "./convocatoriasFlow.js";
+import { fetchConvocatorias, responderConvocatoria, destinoTrasResponder } from "./convocatoriasFlow.js";
 import { crearSesionHub } from "./sesionHub.js";
 import { useNombres } from "../shared/useNombres.js";
 
@@ -14,7 +14,11 @@ type Convocatoria = {
   nombrePartida: string;
 };
 
-type Props = { apiBaseUrl: string; token: string };
+type Props = {
+  apiBaseUrl: string;
+  token: string;
+  onAceptada?: (partidaId: string, nombre: string) => void;
+};
 
 // fetchConvocatorias/responderConvocatoria viven en un .js sin checkJs: TS pierde el discriminante
 // literal de "ok" al inferir su tipo exportado (mismo patrón que PartidaLobbyScreen).
@@ -24,7 +28,7 @@ type ConvocatoriasResult =
 
 type ResponderResult = { ok: true; data?: unknown } | { ok: false; type: string; message?: string };
 
-export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
+export function ConvocatoriasScreen({ apiBaseUrl, token, onAceptada }: Props) {
   const [convocatorias, setConvocatorias] = useState<Convocatoria[]>([]);
   const nombreDe = useNombres(
     { participanteIds: [], equipoIds: convocatorias.map((c) => c.equipoId) },
@@ -74,6 +78,7 @@ export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
   }, [apiBaseUrl]);
 
   async function onResponder(convocatoriaId: string, aceptar: boolean) {
+    const conv = convocatorias.find((c) => c.convocatoriaId === convocatoriaId);
     setActionId(convocatoriaId);
     setErrorMessage(null);
     setFeedback(null);
@@ -87,6 +92,10 @@ export function ConvocatoriasScreen({ apiBaseUrl, token }: Props) {
     }
     setFeedback(aceptar ? "Convocatoria aceptada. ¡Nos vemos en el lobby!" : "Convocatoria rechazada.");
     setConvocatorias((prev) => prev.filter((c) => c.convocatoriaId !== convocatoriaId));
+    // Aceptar lleva al lobby de la partida: ahi el miembro se suscribe al grupo y transiciona
+    // al iniciarse, igual que el lider. Sin esto se quedaria aqui, sordo al arranque.
+    const destino = conv ? destinoTrasResponder(conv, aceptar) : null;
+    if (destino) onAceptada?.(destino.partidaId, destino.nombre);
   }
 
   return (

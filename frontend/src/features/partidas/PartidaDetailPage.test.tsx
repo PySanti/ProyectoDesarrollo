@@ -29,6 +29,8 @@ function renderPage({
           path="/partidas/:partidaId"
           element={<PartidaDetailPage accessToken="token" puedeOperar={puedeOperar} />}
         />
+        <Route path="/partidas" element={<p>pantalla de partidas</p>} />
+        <Route path="/partidas/:partidaId/historial" element={<p>pantalla de historial</p>} />
       </Routes>
     </MemoryRouter>
   );
@@ -160,13 +162,25 @@ describe("PartidaDetailPage", () => {
     expect(orderedTestIds).toEqual(["juego-1", "juego-2", "juego-3"]);
   });
 
-  it("muestra 'Partida no encontrada' y un link a la lista cuando la API responde 404", async () => {
+  it("muestra 'Partida no encontrada' y un boton que vuelve a la lista cuando la API responde 404", async () => {
     getPartidaMock.mockRejectedValueOnce(new PartidasApiError("not found", 404));
     renderPage();
 
     expect(await screen.findByText("Partida no encontrada")).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: /partidas/i });
-    expect(link).toHaveAttribute("href", "/partidas");
+    const volver = screen.getByRole("button", { name: /volver a partidas/i });
+    expect(volver).toHaveClass("secondary-button");
+    await userEvent.click(volver);
+    expect(await screen.findByText("pantalla de partidas")).toBeInTheDocument();
+  });
+
+  it("'Historial de eventos' es un boton secundario que navega al historial", async () => {
+    getPartidaMock.mockResolvedValueOnce(detail);
+    renderPage();
+
+    const historial = await screen.findByRole("button", { name: /historial de eventos/i });
+    expect(historial).toHaveClass("secondary-button");
+    await userEvent.click(historial);
+    expect(await screen.findByText("pantalla de historial")).toBeInTheDocument();
   });
 
   it("publicar y operar publica y navega a la consola de sesion", async () => {

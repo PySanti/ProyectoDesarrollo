@@ -103,17 +103,22 @@ public class BdtRuntimeEndpointsTests : IClassFixture<OperacionesSesionWebFactor
         var etapa2 = await jugadorClient.GetFromJsonAsync<EtapaActualDto>($"{Rutas.Base}/partidas/{partidaId}/etapa-actual");
         Assert.Equal(2, etapa2!.Orden);
 
-        // Validar etapa 2 correcto
+        // Validar etapa 2 (la ÚLTIMA) correcto → gana y AUTO-finaliza la partida, igual que el timeout.
         var val2 = await jugadorClient.PostAsJsonAsync(
             $"{Rutas.Base}/partidas/{partidaId}/etapa-actual/tesoro",
             new ValidarTesoroRequest(Tesoro("QR-2")));
         Assert.Equal(HttpStatusCode.OK, val2.StatusCode);
+        var r2 = await val2.Content.ReadFromJsonAsync<ValidacionTesoroResponse>();
+        Assert.True(r2!.Gano);
 
-        // Finalizar → Terminada (no quedan etapas abiertas)
+        // GET estado → Terminada, sin juego activo (sin finalizar-manual).
+        var estado = await _client.GetFromJsonAsync<EstadoSesionDto>($"{Rutas.Base}/partidas/{partidaId}/estado");
+        Assert.Equal("Terminada", estado!.Estado);
+        Assert.Null(estado.JuegoActualOrden);
+
+        // El finalizar-manual ahora sobra: la sesión ya no está Iniciada → 409.
         var fin = await _client.PostAsync($"{Rutas.Base}/partidas/{partidaId}/juego-actual/finalizacion", null);
-        Assert.Equal(HttpStatusCode.OK, fin.StatusCode);
-        var avance = await fin.Content.ReadFromJsonAsync<AvanceJuegoResponse>();
-        Assert.True(avance!.Terminada);
+        Assert.Equal(HttpStatusCode.Conflict, fin.StatusCode);
     }
 
     // ─────────────────────────────────────────────────────────────────────────

@@ -23,6 +23,8 @@ export type RankingEntrada = {
   puntos: number;
   juegosGanados?: number;
   tipoCompetidor?: "Participante" | "Equipo";
+  // Solo en el consolidado: por qué ganó el desempate (ej. "por menor tiempo").
+  motivoDesempate?: string;
 };
 
 export function RankingTable({
@@ -40,11 +42,18 @@ export function RankingTable({
   return (
     <View style={styles.tabla}>
       {entradas.map((e) => (
-        <View key={e.competidorId} style={[styles.fila, e.competidorId === resaltarId ? styles.propia : null]}>
-          <AppText variant="bodyStrong">#{e.posicion}</AppText>
-          <AppText>{etiquetaCompetidor(e.competidorId, resaltarId, nombreDe)}</AppText>
-          {e.juegosGanados != null ? <AppText>{e.juegosGanados} 🏆</AppText> : null}
-          <AppText variant="bodyStrong">{e.puntos} pts</AppText>
+        <View key={e.competidorId} style={[styles.item, e.competidorId === resaltarId ? styles.propia : null]}>
+          <View style={styles.fila}>
+            <AppText variant="bodyStrong">#{e.posicion}</AppText>
+            <AppText>{etiquetaCompetidor(e.competidorId, resaltarId, nombreDe)}</AppText>
+            {e.juegosGanados != null ? <AppText>{e.juegosGanados} 🏆</AppText> : null}
+            <AppText variant="bodyStrong">{e.puntos} pts</AppText>
+          </View>
+          {e.motivoDesempate ? (
+            <AppText variant="label" color={colors.muted} style={styles.motivo}>
+              Desempate: ganó {e.motivoDesempate}
+            </AppText>
+          ) : null}
         </View>
       ))}
     </View>
@@ -53,6 +62,8 @@ export function RankingTable({
 
 const styles = StyleSheet.create({
   tabla: { gap: spacing.xs },
+  item: { borderRadius: 6 },
   fila: { flexDirection: "row", justifyContent: "space-between", paddingVertical: spacing.xs },
-  propia: { backgroundColor: colors.primaryBright + "22", borderRadius: 6, paddingHorizontal: spacing.xs },
+  propia: { backgroundColor: colors.primaryBright + "22", paddingHorizontal: spacing.xs },
+  motivo: { paddingHorizontal: spacing.xs, paddingBottom: spacing.xs },
 });

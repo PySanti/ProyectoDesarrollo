@@ -71,6 +71,7 @@ public sealed class ExceptionHandlingMiddleware
             or JuegoConEtapasPendientesException
             or EquipoYaInscritoException
             or SinEquipoActivoException
+            or MinimosNoAlcanzadosException
             or PartidaNoCancelableException => HttpStatusCode.Conflict,
         ValidationException or ArgumentException => HttpStatusCode.BadRequest,
         _ => HttpStatusCode.InternalServerError

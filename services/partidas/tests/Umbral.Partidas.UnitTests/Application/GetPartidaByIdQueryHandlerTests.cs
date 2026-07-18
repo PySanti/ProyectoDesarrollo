@@ -54,6 +54,52 @@ public class GetPartidaByIdQueryHandlerTests
     }
 
     [Fact]
+    public async Task Handle_returns_preguntas_and_opciones_in_creation_order_even_when_stored_shuffled()
+    {
+        var partidas = new FakePartidaRepository();
+        var trivias = new FakeJuegoTriviaRepository();
+        var bdts = new FakeJuegoBDTRepository();
+
+        var partida = Partida.Crear(
+            NombrePartida.Crear("Copa"), Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10,
+            new DateTime(2026, 7, 16, 12, 0, 0, DateTimeKind.Utc));
+        var trivia = JuegoTrivia.Crear(partida.PartidaId, 1, new[]
+        {
+            new PreguntaSpec("Q0", new List<OpcionSpec> { new("o0", true), new("o1", false), new("o2", false) }, 10, 30),
+            new PreguntaSpec("Q1", new List<OpcionSpec> { new("p0", false), new("p1", true) }, 10, 30),
+            new PreguntaSpec("Q2", new List<OpcionSpec> { new("r0", true), new("r1", false) }, 10, 30),
+        });
+        partida.AgregarJuego(trivia.JuegoId, 1, TipoJuego.Trivia);
+
+        // Postgres/EF do not guarantee child-row order; reverse the backing lists to
+        // simulate materialization arriving out of insertion order.
+        ReverseBackingList(trivia, "_preguntas");
+        foreach (var p in trivia.Preguntas)
+            ReverseBackingList(p, "_opciones");
+
+        partidas.Add(partida);
+        trivias.Add(trivia);
+
+        var handler = new GetPartidaByIdQueryHandler(partidas, trivias, bdts);
+        var detail = await handler.Handle(new GetPartidaByIdQuery(partida.PartidaId.Valor), CancellationToken.None);
+
+        var preguntas = detail.Juegos[0].Trivia!.Preguntas;
+        Assert.Equal(new[] { "Q0", "Q1", "Q2" }, preguntas.Select(p => p.Texto).ToArray());
+        Assert.Equal(new[] { "o0", "o1", "o2" }, preguntas[0].Opciones.Select(o => o.Texto).ToArray());
+    }
+
+    private static void ReverseBackingList(object owner, string field)
+    {
+        var f = owner.GetType().GetField(field,
+            System.Reflection.BindingFlags.NonPublic | System.Reflection.BindingFlags.Instance)!;
+        var list = (System.Collections.IList)f.GetValue(owner)!;
+        var items = list.Cast<object>().Reverse().ToList();
+        list.Clear();
+        foreach (var it in items)
+            list.Add(it);
+    }
+
+    [Fact]
     public async Task Handle_throws_when_partida_not_found()
     {
         var handler = new GetPartidaByIdQueryHandler(

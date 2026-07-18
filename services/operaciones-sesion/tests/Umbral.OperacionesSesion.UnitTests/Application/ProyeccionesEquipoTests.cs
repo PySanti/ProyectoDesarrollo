@@ -47,6 +47,35 @@ public class ProyeccionesEquipoTests
         Assert.Equal(1, equipo.Aceptados);
     }
 
+    // El operador tiene que ver el número que el inicio va a exigir de verdad: un equipo activo
+    // sin convocatoria aceptada cuenta en InscritosActivos pero NO en ParticipacionesConfirmadas.
+    [Fact]
+    public void MapearLobby_equipo_activo_sin_convocatoria_no_cuenta_como_confirmado()
+    {
+        var sesion = PartidaEquipo(Guid.NewGuid());
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // activa, pero nadie aceptó su convocatoria
+
+        var lobby = PublicarPartidaCommandHandler.MapearLobby(sesion);
+
+        Assert.Equal(1, lobby.InscritosActivos);
+        Assert.Equal(0, lobby.ParticipacionesConfirmadas);
+    }
+
+    [Fact]
+    public void MapearLobby_equipo_con_convocatoria_aceptada_cuenta_como_confirmado()
+    {
+        var sesion = PartidaEquipo(Guid.NewGuid());
+        var usuario = Guid.NewGuid();
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, usuario, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
+        sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
+
+        var lobby = PublicarPartidaCommandHandler.MapearLobby(sesion);
+
+        Assert.Equal(1, lobby.ParticipacionesConfirmadas);
+    }
+
     [Fact]
     public async Task MiSesion_expone_convocatoria_del_convocado()
     {

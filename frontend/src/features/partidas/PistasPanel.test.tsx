@@ -38,6 +38,20 @@ describe("PistasPanel", () => {
     expect(await screen.findByTestId("pista-enviada")).toBeInTheDocument();
   });
 
+  it("la confirmacion muestra la hora local, no el timestamp ISO crudo", async () => {
+    vi.mocked(getLobby).mockResolvedValue(lobbyIndividual);
+    vi.mocked(enviarPista).mockResolvedValue({ partidaId: "p1", juegoId: "j1", participanteDestinoId: "11111111-aaaa", equipoDestinoId: null, timestampUtc: "2026-07-17T10:13:19.7129106Z" });
+    render(<PistasPanel partidaId="p1" accessToken="tok" />);
+    await screen.findByTestId("pistas-panel");
+    await userEvent.selectOptions(screen.getByTestId("pista-destino"), "11111111-aaaa");
+    await userEvent.type(screen.getByTestId("pista-texto"), "mira bajo el banco");
+    await userEvent.click(screen.getByTestId("btn-enviar-pista"));
+    const aviso = await screen.findByTestId("pista-enviada");
+    // hora local del operador, sin los 7 decimales ni la Z de UTC
+    expect(aviso.textContent).toBe(`Pista enviada (${new Date("2026-07-17T10:13:19.7129106Z").toLocaleTimeString()}).`);
+    expect(aviso.textContent).not.toContain("2026-07-17T10:13:19.7129106Z");
+  });
+
   it("Equipo: el destino se envia como equipoDestinoId", async () => {
     vi.mocked(getLobby).mockResolvedValue(lobbyEquipo);
     vi.mocked(enviarPista).mockResolvedValue({ partidaId: "p1", juegoId: "j1", participanteDestinoId: null, equipoDestinoId: "eq111111-cccc", timestampUtc: "2026-07-08T12:00:00Z" });

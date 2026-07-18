@@ -9,6 +9,7 @@ import {
   validarTesoro,
   formatRespuestaCorrecta,
   seleccionarRespuestaCorrecta,
+  aplicaRespuestaEquipo,
 } from "../src/features/partidas/gameplayApi.js";
 
 const jsonResponse = (status, body) => ({
@@ -133,4 +134,29 @@ test("seleccionarRespuestaCorrecta filtra por juegoId (anti-leak al cambiar de j
   assert.equal(seleccionarRespuestaCorrecta(null, "j1"), null);
   // Cierre del juego actual sin texto (payload aditivo, backend no lo mandó).
   assert.equal(seleccionarRespuestaCorrecta({ texto: null, juegoId: "j1" }, "j1"), null);
+});
+
+test("aplicaRespuestaEquipo: acepta el evento de la pregunta que se esta mostrando", () => {
+  // En Equipo, la respuesta de un companero sella al equipo: su resultado debe pintarse igual
+  // en el resto de los telefonos (RespuestaEquipoRegistrada).
+  assert.equal(
+    aplicaRespuestaEquipo({ juegoId: "j1", preguntaId: "q1", esCorrecta: false }, "j1", "q1"),
+    true,
+  );
+});
+
+test("aplicaRespuestaEquipo: descarta eventos tardios o de otro juego/pregunta", () => {
+  // Un evento que llega tarde (ya avanzo la pregunta) no debe sellar la pregunta nueva.
+  const ev = { juegoId: "j1", preguntaId: "q1", esCorrecta: false };
+  assert.equal(aplicaRespuestaEquipo(ev, "j1", "q2"), false);
+  assert.equal(aplicaRespuestaEquipo(ev, "j2", "q1"), false);
+  assert.equal(aplicaRespuestaEquipo(null, "j1", "q1"), false);
+  assert.equal(aplicaRespuestaEquipo(ev, "j1", null), false);
+});
+
+test("aplicaRespuestaEquipo: NO sella en acierto (un acierto cierra y avanza para todos)", () => {
+  // El bug: sellar tambien en acierto dejaba al equipo ganador clavado en "Correcto", porque el
+  // sello competia con el avance de pregunta. Un acierto no debe sellar; el avance normal
+  // (PreguntaActivada) lleva a la pregunta nueva. Solo el fallo sella (bloquea al equipo).
+  assert.equal(aplicaRespuestaEquipo({ juegoId: "j1", preguntaId: "q1", esCorrecta: true }, "j1", "q1"), false);
 });

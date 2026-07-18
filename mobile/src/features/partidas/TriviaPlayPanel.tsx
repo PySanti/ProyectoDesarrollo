@@ -1,14 +1,20 @@
 // Gameplay Trivia del participante: pregunta activa + responder una vez + ranking en vivo.
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice } from "../../shared/ui";
 import { spacing } from "../../shared/theme";
 import {
   getPreguntaActual, responderPregunta, getRankingJuego, formatRespuestaCorrecta, seleccionarRespuestaCorrecta,
+  aplicaRespuestaEquipo,
 } from "./gameplayApi.js";
+import { enviarRespuestaTrivia } from "./partidaLiveFlow.js";
 import { Countdown, RankingTable, type RankingEntrada } from "./liveShared";
 import { idsDeCompetidores } from "./liveLabels.js";
 import { useNombres } from "../shared/useNombres.js";
+
+// El reveal "La respuesta correcta era X" se muestra este tiempo y se auto-borra, con reloj propio
+// para que la siguiente pregunta no lo pise (HU-28: todos deben alcanzar a leerlo).
+const REVELADO_MS = 5000;
 
 type Pregunta = {
   preguntaId: string;
@@ -46,11 +52,14 @@ type Props = {
   // juegoId (7d review fix): filtra cierres de un juego que ya no es el activo — este estado
   // vive a nivel de partida en el padre y no se limpia al cambiar de juego.
   preguntaCerrada?: { texto: string | null; juegoId: string } | null;
+  // Equipo: la respuesta de cualquier miembro sella al equipo entero, así que el resto ve el mismo
+  // resultado. Se filtra por juego+pregunta para no sellar la pregunta siguiente con un evento tardío.
+  respuestaEquipo?: { juegoId: string; preguntaId: string; esCorrecta: boolean } | null;
 };
 
 export function TriviaPlayPanel({
   apiBaseUrl, token, partidaId, juegoId, yaRespondioInicial, refetchSignal, resetSignal, miSub, rankingPush,
-  preguntaCerrada,
+  preguntaCerrada, respuestaEquipo,
 }: Props) {
   const [pregunta, setPregunta] = useState<Pregunta | null>(null);
   const [sinPregunta, setSinPregunta] = useState(false);
@@ -62,13 +71,21 @@ export function TriviaPlayPanel({
   const [error, setError] = useState<string | null>(null);
   const [textoCorrecta, setTextoCorrecta] = useState<string | null>(null);
 
-  // Nueva pregunta activada → limpiar estado de respuesta local.
+  // Valor VIVO de resetSignal para leerlo dentro de onResponder tras el await (el prop en la
+  // clausura queda stale). Se bumpea al llegar PreguntaActivada, señal de que la pregunta avanzó.
+  const resetSignalRef = useRef(resetSignal);
+  useEffect(() => {
+    resetSignalRef.current = resetSignal;
+  }, [resetSignal]);
+
+  // Nueva pregunta activada → limpiar estado de respuesta local. NO se toca textoCorrecta: el
+  // reveal de la pregunta que se cerró tiene vida propia (efecto de abajo) para que la siguiente
+  // pregunta, que llega casi pegada, no lo borre antes de que a todos les dé tiempo de leerlo.
   useEffect(() => {
     if (resetSignal > 0) {
       setRespondida(false);
       setResultado(null);
       setError(null);
-      setTextoCorrecta(null);
     }
   }, [resetSignal]);
 
@@ -78,6 +95,23 @@ export function TriviaPlayPanel({
     const texto = seleccionarRespuestaCorrecta(preguntaCerrada, juegoId);
     if (texto) setTextoCorrecta(texto);
   }, [preguntaCerrada, juegoId]);
+
+  // Reloj propio del reveal: se auto-borra a los REVELADO_MS. Un cierre nuevo lo reemplaza y
+  // reinicia el temporizador (siempre un solo cartel, el más reciente).
+  useEffect(() => {
+    if (!textoCorrecta) return;
+    const id = setTimeout(() => setTextoCorrecta(null), REVELADO_MS);
+    return () => clearTimeout(id);
+  }, [textoCorrecta]);
+
+  // Equipo: un compañero respondió MAL y eso bloquea a todo el equipo. Se pinta "Incorrecta." en
+  // el resto de los teléfonos aunque no hayan tocado nada. El acierto no llega hasta acá (cierra y
+  // avanza para todos); aplicaRespuestaEquipo solo deja pasar el fallo, filtrado por juego+pregunta.
+  useEffect(() => {
+    if (!pregunta || !aplicaRespuestaEquipo(respuestaEquipo, juegoId, pregunta.preguntaId)) return;
+    setRespondida(true);
+    setResultado({ esCorrecta: false });
+  }, [respuestaEquipo, juegoId, pregunta]);
 
   // Push SP-4c aditivo: ranking en vivo sin esperar señal de cierre.
   useEffect(() => {
@@ -108,8 +142,16 @@ export function TriviaPlayPanel({
   async function onResponder(opcionId: string) {
     setPosting(true);
     setError(null);
-    const r = (await responderPregunta(apiBaseUrl, token, partidaId, opcionId, undefined)) as ResponderResult;
+    // Si PreguntaActivada llegó mientras el POST estaba en vuelo, la pregunta ya avanzó: no
+    // fijamos estado "respondida" (dejaría clavado "¡Correcta! / Esperando…" sobre la nueva
+    // pregunta). El avance del hub (resetSignal/refetchSignal) ya maneja la UI.
+    const { avanzo, r: raw } = await enviarRespuestaTrivia(
+      () => responderPregunta(apiBaseUrl, token, partidaId, opcionId, undefined),
+      () => resetSignalRef.current,
+    );
+    const r = raw as ResponderResult;
     setPosting(false);
+    if (avanzo) return;
     if (r.ok) {
       setRespondida(true);
       setResultado({ esCorrecta: r.data.esCorrecta, puntaje: r.data.puntaje });

@@ -86,6 +86,26 @@ public class ResponderPreguntaEquipoTests
     }
 
     [Fact]
+    public void Todos_los_equipos_fallan_cierra_la_pregunta_sin_ganador_y_avanza()
+    {
+        // 2 equipos elegibles (A y B). Si ambos fallan, la pregunta cierra sola (revela y avanza),
+        // sin esperar el reloj — analogo al caso individual.
+        var sesion = SesionEquipoIniciada(out var liderA, out _, out _, out var liderB, out _);
+
+        var r1 = sesion.ResponderPregunta(liderA, OpcionMal, T0.AddSeconds(3));
+        Assert.False(r1.CerroPregunta); // falta el equipo B
+
+        var r2 = sesion.ResponderPregunta(liderB, OpcionMal, T0.AddSeconds(4));
+        Assert.True(r2.CerroPregunta);
+        Assert.False(r2.EsCorrecta);
+        var q1 = sesion.Juegos.Single().Preguntas.Single(p => p.Orden == 1);
+        Assert.Equal(MotivoCierrePregunta.TodosRespondieron, q1.MotivoCierre);
+        Assert.Null(q1.GanadorEquipoId);
+        Assert.Null(q1.GanadorParticipanteId);
+        Assert.Equal(2, sesion.Juegos.Single().PreguntaActiva!.Orden); // avanzó sola
+    }
+
+    [Fact]
     public void Convocado_pendiente_no_puede_responder()
     {
         // equipo B con 2 miembros: líder acepta, el otro queda Pendiente

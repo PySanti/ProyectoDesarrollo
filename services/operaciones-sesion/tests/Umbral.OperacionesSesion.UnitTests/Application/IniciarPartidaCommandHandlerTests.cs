@@ -57,20 +57,20 @@ public class IniciarPartidaCommandHandlerTests
         Assert.Equal(1, events.JuegosActivados[0].Orden);
     }
 
+    // Inicio manual sin mínimos: rechaza (409), NO cancela. Nada que guardar ni publicar; la
+    // partida sigue en Lobby para que el operador acepte las solicitudes y reintente.
     [Fact]
-    public async Task Iniciar_minimums_not_met_cancels_saves_and_publishes_cancelada()
+    public async Task Iniciar_minimums_not_met_rejects_without_saving_or_cancelling()
     {
         var partidaId = Guid.NewGuid();
         var (handler, repo, uow, events) = Build();
         repo.Add(Sesion(partidaId, min: 2, max: 5, juegos: 1, inscritos: 1));
 
-        var response = await handler.Handle(new IniciarPartidaCommand(partidaId), CancellationToken.None);
+        await Assert.ThrowsAsync<Umbral.OperacionesSesion.Domain.Exceptions.MinimosNoAlcanzadosException>(
+            () => handler.Handle(new IniciarPartidaCommand(partidaId), CancellationToken.None));
 
-        Assert.Equal("Cancelada", response.Estado);
-        Assert.Null(response.JuegoActivadoOrden);
-        Assert.Equal(1, uow.SaveCount);
-        Assert.Single(events.PartidasCanceladas);
-        Assert.Equal("MinimosNoAlcanzados", events.PartidasCanceladas[0].Motivo);
+        Assert.Equal(0, uow.SaveCount);
+        Assert.Empty(events.PartidasCanceladas);
         Assert.Empty(events.PartidasIniciadas);
     }
 

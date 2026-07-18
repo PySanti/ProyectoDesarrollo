@@ -121,22 +121,12 @@ public sealed class CredencialesTemporalesConsumer : BackgroundService
         }
     }
 
-    /// <summary>
-    /// Deserializa el payload camelCase del evento (<c>{ nombre, correo, rol, passwordTemporal }</c>)
-    /// a <see cref="UserWelcomeEmailMessage"/>. Campos ausentes se leen como cadena vacía — nunca
-    /// lanza, para no interrumpir el best-effort del consumidor.
-    /// </summary>
     public static UserWelcomeEmailMessage MapPayload(JsonElement payload) => new(
         LeerString(payload, "nombre"),
         LeerString(payload, "correo"),
         LeerString(payload, "rol"),
         LeerString(payload, "passwordTemporal"));
 
-    /// <summary>
-    /// Mapea el payload y envía el correo vía <paramref name="sender"/>. Best-effort estricto:
-    /// un fallo de SMTP (o cualquier otra excepción) se loguea y NUNCA se relanza, para que el
-    /// consumidor siempre haga ack (sin poison-loop, ADR-0012).
-    /// </summary>
     public static async Task EnviarBestEffortAsync(
         IUserWelcomeEmailSender sender,
         JsonElement payload,
@@ -156,14 +146,6 @@ public sealed class CredencialesTemporalesConsumer : BackgroundService
                 message.Email, routingKey);
         }
     }
-
-    /// <summary>
-    /// Notifica a los integrantes de un equipo eliminado a partir del payload camelCase del evento
-    /// (<c>{ equipoId, nombreEquipo, origen, miembros: [guid...], occurredOnUtc }</c>). Los
-    /// <c>miembros</c> vienen en espacio KeycloakId, que es lo que espera el notificador. Best-effort
-    /// estricto: un payload roto o un fallo de SMTP se loguea y NUNCA se relanza, para que el
-    /// consumidor siempre haga ack (sin poison-loop, ADR-0012).
-    /// </summary>
     public static async Task NotificarEquipoEliminadoBestEffortAsync(
         ITeamLifecycleNotifier notifier,
         JsonElement payload,

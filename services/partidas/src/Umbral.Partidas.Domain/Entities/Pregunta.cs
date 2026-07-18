@@ -11,6 +11,7 @@ public sealed class Pregunta
     public string Texto { get; private set; } = string.Empty;
     public PuntajeAsignado PuntajeAsignado { get; private set; }
     public int TiempoLimiteSegundos { get; private set; }
+    public int Orden { get; private set; }
 
     public IReadOnlyList<Opcion> Opciones => _opciones;
 
@@ -20,7 +21,8 @@ public sealed class Pregunta
         string texto,
         IEnumerable<(string Texto, bool EsCorrecta)> opciones,
         int puntaje,
-        int tiempoLimiteSegundos)
+        int tiempoLimiteSegundos,
+        int orden)
     {
         if (string.IsNullOrWhiteSpace(texto))
             throw new PreguntaInvalidaException("el texto es requerido.");
@@ -50,10 +52,12 @@ public sealed class Pregunta
             PreguntaId = Guid.NewGuid(),
             Texto = texto.Trim(),
             PuntajeAsignado = puntajeVo,
-            TiempoLimiteSegundos = tiempoLimiteSegundos
+            TiempoLimiteSegundos = tiempoLimiteSegundos,
+            Orden = orden
         };
+        var ordenOpcion = 0;
         foreach (var (opcionTexto, esCorrecta) in opcionesList)
-            pregunta._opciones.Add(Opcion.Crear(opcionTexto, esCorrecta));
+            pregunta._opciones.Add(Opcion.Crear(opcionTexto, esCorrecta, ordenOpcion++));
 
         return pregunta;
     }

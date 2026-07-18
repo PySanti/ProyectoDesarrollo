@@ -15,4 +15,7 @@ public sealed record ResultadoRegistroTesoro(
     string? QrDecodificado,
     DateTime Instante,
     Guid? EquipoId = null,
-    Guid? GanadorEquipoId = null);
+    Guid? GanadorEquipoId = null,
+    // Set cuando ganar/cerrar cierra la ÚLTIMA etapa del juego: el juego se finaliza
+    // (avanza al siguiente o termina la partida), igual que el camino por timeout.
+    ResultadoAvance? JuegoFinalizado = null);

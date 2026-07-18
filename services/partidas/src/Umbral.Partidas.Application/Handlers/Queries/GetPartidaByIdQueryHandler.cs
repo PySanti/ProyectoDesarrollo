@@ -46,7 +46,7 @@ public sealed class GetPartidaByIdQueryHandler : IRequestHandler<GetPartidaByIdQ
                         reference.Orden,
                         reference.TipoJuego.ToString(),
                         trivia.Estado.ToString(),
-                        new TriviaContenidoDto(trivia.Preguntas.Select(MapPregunta).ToList()),
+                        new TriviaContenidoDto(trivia.Preguntas.OrderBy(p => p.Orden).Select(MapPregunta).ToList()),
                         null);
                 }
 
@@ -84,7 +84,7 @@ public sealed class GetPartidaByIdQueryHandler : IRequestHandler<GetPartidaByIdQ
         p.Texto,
         p.PuntajeAsignado.Valor,
         p.TiempoLimiteSegundos,
-        p.Opciones.Select(o => new OpcionDto(o.OpcionId, o.Texto, o.EsCorrecta)).ToList());
+        p.Opciones.OrderBy(o => o.Orden).Select(o => new OpcionDto(o.OpcionId, o.Texto, o.EsCorrecta)).ToList());
 
     private static EtapaDto MapEtapa(EtapaBDT e) => new(
         e.EtapaBDTId,

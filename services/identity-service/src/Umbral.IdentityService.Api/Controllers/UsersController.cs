@@ -10,7 +10,9 @@ namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
 [Route("identity/users")]
-[Authorize(Policy = "AdminOnly")]
+// Clase = lectura del directorio (dropdown de líder): Administrador o GestionarEquipos.
+// Las mutaciones re-exigen AdminOnly por acción (AND de políticas → queda Administrador).
+[Authorize(Policy = "DirectorioUsuarios")]
 public sealed class UsersController : ControllerBase
 {
     private readonly ISender _sender;
@@ -18,6 +20,7 @@ public sealed class UsersController : ControllerBase
     public UsersController(ISender sender) => _sender = sender;
 
     [HttpPost]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Create(
         [FromBody] CreateUserWithInitialRoleCommand command,
         [FromServices] IValidator<CreateUserWithInitialRoleCommand> validator,
@@ -38,6 +41,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpGet("{userId:guid}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> GetById(Guid userId, CancellationToken cancellationToken)
     {
         var response = await _sender.Send(new GetUserByIdQuery(userId), cancellationToken);
@@ -45,6 +49,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Update(
         Guid userId,
         [FromBody] UpdateUserGeneralDataRequest request,
@@ -60,6 +65,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}/role")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> ChangeRole(
         Guid userId,
         [FromBody] ChangeUserRoleRequest request,
@@ -75,6 +81,7 @@ public sealed class UsersController : ControllerBase
     }
 
     [HttpPatch("{userId:guid}/deactivation")]
+    [Authorize(Policy = "AdminOnly")]
     public async Task<IActionResult> Deactivate(
         Guid userId,
         [FromServices] IValidator<DeactivateUserCommand> validator,

@@ -25,6 +25,29 @@ test("buildAuthUser should parse sub, username and roles", () => {
   assert.deepEqual(user.roles, ["Participante"]);
 });
 
+test("buildAuthUser expone nombre desde given_name para el saludo del Home (S9)", () => {
+  const token = buildToken({
+    sub: "22222222-2222-2222-2222-222222222222",
+    preferred_username: "juan.perez@correo.com",
+    given_name: "Juan",
+    name: "Juan Pérez",
+    realm_access: { roles: ["Participante"] },
+  });
+
+  const user = buildAuthUser(token);
+  assert.equal(user.nombre, "Juan");
+  // username sigue siendo el id de cuenta (correo), para RoleRestrictedScreen.
+  assert.equal(user.username, "juan.perez@correo.com");
+});
+
+test("buildAuthUser cae de given_name a name y luego a preferred_username para nombre", () => {
+  const soloName = buildAuthUser(buildToken({ sub: "s", preferred_username: "u@c.com", name: "Ana Gil" }));
+  assert.equal(soloName.nombre, "Ana Gil");
+
+  const soloPreferred = buildAuthUser(buildToken({ sub: "s", preferred_username: "u@c.com" }));
+  assert.equal(soloPreferred.nombre, "u@c.com");
+});
+
 test("buildAuthUser should throw when sub claim is missing", () => {
   const token = buildToken({
     preferred_username: "no-sub-user",

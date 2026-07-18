@@ -90,14 +90,15 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
       setAviso(avisoResolucion(aceptada) as Aviso);
       void loadRef.current();
       // PartidaIniciada va al grupo de la partida, no al canal personal: sin esta
-      // resuscripcion el arranque no llegaria y habria que pulsar Recargar.
+      // resuscripcion el arranque no llegaria y el lobby se quedaria colgado (ya no
+      // hay boton de recarga manual del que tirar).
       if (aceptada) void hub.invoke("SuscribirAPartida", partidaId).catch(() => {});
     });
     reengancharAlReconectar(hub, partidaId);
     hub
       .start()
       .then(() => hub.invoke("SuscribirAPartida", partidaId))
-      .catch(() => setAviso({ variant: "info", texto: "Sin conexión en vivo; usa recargar." }));
+      .catch(() => {});
     return () => {
       void hub.stop().catch(() => {});
     };
@@ -151,7 +152,6 @@ export function PartidaLobbyScreen({ apiBaseUrl, token, partidaId, nombre, onIni
           ) : (
             <Button label={labelAccion} onPress={() => void onAccion()} disabled={posting} />
           )}
-          <Button label="Recargar" variant="secondary" onPress={() => void load()} disabled={posting} />
         </Card>
       ) : null}
     </ScrollView>

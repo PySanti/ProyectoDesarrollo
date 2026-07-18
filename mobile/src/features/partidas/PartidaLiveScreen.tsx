@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, ScrollView, StyleSheet, View } from "react-native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
-import { cargarLive } from "./partidaLiveFlow.js";
+import { cargarLive, debeRecargarLive } from "./partidaLiveFlow.js";
 import { getRankingConsolidado } from "./gameplayApi.js";
 import { crearSesionHub, reengancharAlReconectar } from "./sesionHub.js";
 import { crearRankingHub } from "./rankingHub.js";
@@ -11,7 +11,7 @@ import { TriviaPlayPanel } from "./TriviaPlayPanel";
 import { BdtPlayPanel, type Pista } from "./BdtPlayPanel";
 import { requestBdtGeolocationPermission } from "../../permissions/bdtGeolocationPermission.js";
 import { RankingTable, type RankingEntrada } from "./liveShared";
-import { idsDeCompetidores } from "./liveLabels.js";
+import { idsDeCompetidores, motivosDesempateConsolidado } from "./liveLabels.js";
 import { useNombres } from "../shared/useNombres.js";
 
 type JuegoActivo = { juegoId: string; orden: number; tipoJuego: string; estadoJuego: string };
@@ -27,6 +27,7 @@ type ConsolidadoEntrada = {
   competidorId: string;
   juegosGanados: number;
   puntosTotales: number;
+  tiempoTotalMs: number;
   tipoCompetidor?: "Participante" | "Equipo";
 };
 type ConsolidadoResult =
@@ -47,16 +48,16 @@ type Props = {
   nombre: string;
   miSub: string;
   onVolverAlPanel: () => void;
+  onVolverAlMenu: () => void;
 };
 
-export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub, onVolverAlPanel }: Props) {
+export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub, onVolverAlPanel, onVolverAlMenu }: Props) {
   const [fase, setFase] = useState<Fase>({ status: "cargando" });
   const [refetchSignal, setRefetchSignal] = useState(0);
   const [resetSignal, setResetSignal] = useState(0);
   const [aviso, setAviso] = useState<string | null>(null);
   const [consolidado, setConsolidado] = useState<ConsolidadoEntrada[] | null>(null);
   const nombreDeConsolidado = useNombres(idsDeCompetidores(consolidado ?? []), apiBaseUrl, token);
-  const [consolidadoError, setConsolidadoError] = useState(false);
   const [pistas, setPistas] = useState<Pista[]>([]);
   const [avisoGeo, setAvisoGeo] = useState<string | null>(null);
   const [rankingPush, setRankingPush] = useState<{ juegoId: string; entradas: RankingEntrada[] } | null>(null);
@@ -64,13 +65,23 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
   // juegoId viaja en el payload (7d review fix): el panel descarta cierres de un juego que ya no
   // es el activo, porque este estado vive a nivel de partida y no se limpia al cambiar de juego.
   const [preguntaCerrada, setPreguntaCerrada] = useState<{ texto: string | null; juegoId: string } | null>(null);
+  // Equipo: última RespuestaEquipoRegistrada (la respuesta de un miembro sella al equipo entero).
+  const [respuestaEquipo, setRespuestaEquipo] =
+    useState<{ juegoId: string; preguntaId: string; esCorrecta: boolean } | null>(null);
   const hubRef = useRef<ReturnType<typeof crearSesionHub> | null>(null);
   // El token va por ref: un refresh de sesión (RNF-24) no debe derribar la conexión viva
   // (solo se usa en el handshake de conexión/reconexión).
   const tokenRef = useRef(token);
   tokenRef.current = token;
 
+  // fase por ref para leerla dentro de load sin re-crear el callback: si ya estamos en una fase
+  // terminal (finalizada/cancelada) no recargamos, o un refresh de token pisaría el ranking final
+  // con "sin-participacion" (a cada teléfono le pasaba a distinta hora).
+  const faseRef = useRef(fase);
+  faseRef.current = fase;
+
   const load = useCallback(async () => {
+    if (!debeRecargarLive(faseRef.current.status)) return;
     const r = (await cargarLive({ apiBaseUrl, token, partidaId, fetchImpl: undefined })) as LiveResult;
     if (!r.ok) {
       setAviso(r.message ?? "No se pudo cargar la sesión.");
@@ -90,10 +101,9 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
   }, [load]);
 
   const cargarConsolidado = useCallback(async () => {
-    setConsolidadoError(false);
+    // Si aún no está calculado, se queda en null y llega solo por el push RankingConsolidadoCalculado.
     const r = (await getRankingConsolidado(apiBaseUrl, token, partidaId, undefined)) as ConsolidadoResult;
     if (r.ok) setConsolidado(r.ranking.entradas ?? []);
-    else setConsolidadoError(true);
   }, [apiBaseUrl, token, partidaId]);
 
   // Hub: señales de pregunta → panel; transiciones → recargar/fases terminales.
@@ -107,10 +117,20 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
     hub.on("PreguntaActivada", () => {
       setResetSignal((s) => s + 1);
       setRefetchSignal((s) => s + 1);
+      // La pregunta avanzó: el sello de "respuesta de equipo" es de la pregunta anterior. Se limpia
+      // para que un evento que llegue pegado al avance no reviva el sello sobre la pregunta nueva
+      // (equipo que falla justo cuando otro acierta).
+      setRespuestaEquipo(null);
     });
     hub.on("PreguntaCerrada", (p: { juegoId?: string; textoOpcionCorrecta?: string | null }) => {
       setRefetchSignal((s) => s + 1);
       setPreguntaCerrada({ texto: p?.textoOpcionCorrecta ?? null, juegoId: p?.juegoId ?? "" });
+    });
+    // Equipo: un miembro respondió y eso sella al equipo entero. Se baja al panel para que el
+    // resto vea el mismo resultado ("Incorrecta." / "¡Correcta!") sin tener que tocar nada.
+    hub.on("RespuestaEquipoRegistrada", (p: { juegoId?: string; preguntaId?: string; esCorrecta?: boolean }) => {
+      if (!p?.juegoId || !p?.preguntaId) return;
+      setRespuestaEquipo({ juegoId: p.juegoId, preguntaId: p.preguntaId, esCorrecta: p.esCorrecta === true });
     });
     hub.on("EtapaActivada", () => {
       setResetSignal((s) => s + 1);
@@ -135,10 +155,14 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
       setFase({ status: "cancelada", motivo: p?.motivo })
     );
     reengancharAlReconectar(hub, partidaId);
+    // La reconexión es indefinida (reconexion.js): mientras reintenta, avisar en vez de
+    // dejar la pantalla congelada; al volver, limpiar el aviso.
+    hub.onreconnecting(() => setAviso("Reconectando…"));
+    hub.onreconnected(() => setAviso(null));
     hub
       .start()
       .then(() => hub.invoke("SuscribirAPartida", partidaId))
-      .catch(() => setAviso("Sin conexión en vivo; los cambios pueden tardar."));
+      .catch(() => {});
     return () => {
       hubRef.current = null;
       void hub.stop().catch(() => {});
@@ -158,7 +182,6 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
     hub.on("RankingConsolidadoCalculado", (p: { entradas?: ConsolidadoEntrada[] }) => {
       if (Array.isArray(p?.entradas)) {
         setConsolidado(p.entradas);
-        setConsolidadoError(false);
       }
     });
     hub
@@ -200,6 +223,8 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
     };
   }, [esBdtActivo]);
 
+  const motivosConsolidado: Record<string, string> = consolidado ? motivosDesempateConsolidado(consolidado) : {};
+
   return (
     <ScrollView style={styles.container} contentContainerStyle={styles.content}>
       <ScreenHeader title={nombre} subtitle="Partida en vivo" />
@@ -225,6 +250,7 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
           miSub={miSub}
           rankingPush={rankingPush}
           preguntaCerrada={preguntaCerrada}
+          respuestaEquipo={respuestaEquipo}
         />
       ) : null}
       {fase.status === "iniciada" && fase.juegoActivo?.tipoJuego === "BusquedaDelTesoro" ? (
@@ -257,18 +283,18 @@ export function PartidaLiveScreen({ apiBaseUrl, token, partidaId, nombre, miSub,
                 puntos: e.puntosTotales,
                 juegosGanados: e.juegosGanados,
                 tipoCompetidor: e.tipoCompetidor,
+                motivoDesempate: motivosConsolidado[e.competidorId],
               }))}
               resaltarId={miSub}
               nombreDe={nombreDeConsolidado}
             />
           ) : null}
-          {consolidadoError ? (
-            <View style={styles.retry}>
-              <AppText>Consolidado no disponible aún.</AppText>
-              <Button label="Reintentar" onPress={() => void cargarConsolidado()} />
-            </View>
+          {!consolidado ? (
+            // Al terminar, Puntuaciones aún calcula el consolidado (async); llega solo por el push
+            // RankingConsolidadoCalculado. Nada de botón "Reintentar": era un parpadeo redundante.
+            <AppText>Calculando el ranking final…</AppText>
           ) : null}
-          <Button label="Volver a partidas" variant="secondary" onPress={onVolverAlPanel} />
+          <Button label="Volver al menú" variant="secondary" onPress={onVolverAlMenu} />
         </Card>
       ) : null}
       {fase.status === "cancelada" ? (
@@ -288,5 +314,4 @@ const styles = StyleSheet.create({
   content: { padding: spacing.xl, gap: spacing.lg },
   spinner: { marginTop: spacing.lg },
   card: { gap: spacing.sm },
-  retry: { gap: spacing.sm },
 });

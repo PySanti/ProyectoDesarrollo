@@ -70,7 +70,7 @@ public class AutoaceptarConvocatoriaLiderTests
     }
 
     [Fact]
-    public void Sin_convocatorias_aceptadas_la_sesion_sigue_cancelandose_bajo_minimos()
+    public void Sin_convocatorias_aceptadas_el_inicio_manual_rechaza_y_sigue_en_lobby()
     {
         var sesion = SesionEquipoEnLobby(minimos: 1);
         var lider = Guid.NewGuid();
@@ -78,9 +78,9 @@ public class AutoaceptarConvocatoriaLiderTests
         var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, lider, new[] { lider }, false, 0, T0);
         sesion.AceptarInscripcion(insc.Id.Valor, 0, T0, liderPuedeAutoAceptar: false);
 
-        var resultado = sesion.Iniciar(T0.AddSeconds(5));
+        Assert.Throws<Umbral.OperacionesSesion.Domain.Exceptions.MinimosNoAlcanzadosException>(
+            () => sesion.Iniciar(T0.AddSeconds(5)));
 
-        Assert.Equal(TipoResultadoInicio.Cancelada, resultado.Tipo);
-        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(EstadoSesion.Lobby, sesion.Estado);
     }
 }

@@ -46,7 +46,8 @@ public class PrepararPistaEquipoTests
         var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.BusquedaDelTesoro, "Patio", etapas);
         var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 10, new[] { juego });
         var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
-        sesion.Inscribir(jugador, false, 0, T0);
+        var ins = sesion.Inscribir(jugador, false, 0, T0);
+        sesion.AceptarInscripcion(ins.Id.Valor, 0, T0); // HU-19: sin aceptar no cuenta para mínimos
         sesion.Iniciar(T0);
 
         Assert.Throws<ModalidadNoSoportadaException>(() => sesion.PrepararPistaEquipo(Guid.NewGuid()));

@@ -7,7 +7,10 @@ namespace Umbral.Puntuaciones.Api.Controllers;
 
 [ApiController]
 [Route("puntuaciones")]
-[Authorize(Policy = "GestionarEquipos")]
+// S7: la vista "rendimiento de mi equipo" del móvil la usa un Participante sobre su propio equipo,
+// que no porta ningún privilegio de gobernanza. Solo autenticado (paridad con ParticipantesController,
+// el historial individual). Un autenticado con GestionarEquipos/Operador/Admin también entra.
+[Authorize]
 public sealed class EquiposController : ControllerBase
 {
     private readonly ISender _mediator;

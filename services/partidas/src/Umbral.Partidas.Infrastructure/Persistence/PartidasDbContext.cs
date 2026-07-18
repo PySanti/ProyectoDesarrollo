@@ -75,6 +75,7 @@ public sealed class PartidasDbContext : DbContext
             entity.Property(x => x.Texto).HasColumnName("texto").IsRequired();
             entity.Property(x => x.PuntajeAsignado).HasColumnName("puntaje").HasConversion(PuntajeConverter).IsRequired();
             entity.Property(x => x.TiempoLimiteSegundos).HasColumnName("tiempolimite").IsRequired();
+            entity.Property(x => x.Orden).HasColumnName("orden").IsRequired();
             entity.HasMany(x => x.Opciones).WithOne().HasForeignKey("preguntaid").IsRequired().OnDelete(DeleteBehavior.Cascade);
             entity.Navigation(x => x.Opciones).UsePropertyAccessMode(PropertyAccessMode.Field);
         });
@@ -86,6 +87,7 @@ public sealed class PartidasDbContext : DbContext
             entity.Property(x => x.OpcionId).HasColumnName("opcionid").ValueGeneratedNever();
             entity.Property(x => x.Texto).HasColumnName("texto").IsRequired();
             entity.Property(x => x.EsCorrecta).HasColumnName("escorrecta").IsRequired();
+            entity.Property(x => x.Orden).HasColumnName("orden").IsRequired();
         });
 
         modelBuilder.Entity<JuegoBDT>(entity =>

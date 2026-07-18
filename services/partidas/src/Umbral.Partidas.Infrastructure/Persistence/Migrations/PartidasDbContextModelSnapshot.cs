@@ -146,6 +146,10 @@ namespace Umbral.Partidas.Infrastructure.Persistence.Migrations
                         .HasColumnType("boolean")
                         .HasColumnName("escorrecta");
 
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer")
+                        .HasColumnName("orden");
+
                     b.Property<string>("Texto")
                         .IsRequired()
                         .HasColumnType("text")
@@ -211,6 +215,10 @@ namespace Umbral.Partidas.Infrastructure.Persistence.Migrations
                     b.Property<Guid>("PreguntaId")
                         .HasColumnType("uuid")
                         .HasColumnName("preguntaid");
+
+                    b.Property<int>("Orden")
+                        .HasColumnType("integer")
+                        .HasColumnName("orden");
 
                     b.Property<int>("PuntajeAsignado")
                         .HasColumnType("integer")

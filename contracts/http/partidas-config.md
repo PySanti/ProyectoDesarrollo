@@ -2,7 +2,7 @@
 
 Service: **Partidas** (`umbral_partidas`). Base path: `/partidas` (through the YARP gateway in production). Configuration only: create a partida header, add fully-formed games. No publish/lobby/runtime (SP-3), no scoring (SP-4).
 
-Enums are serialized as their string name. `estado` is `null` until the partida is published (SP-3).
+Enums are serialized as their string name. `estado` is `null` until the partida is published; from then on Partidas keeps it as a **projection** of the runtime state owned by Operaciones de Sesión, fed by the `PartidaPublicadaEnLobby`/`PartidaIniciada`/`PartidaCancelada`/`PartidaFinalizada` events over RabbitMQ (`Lobby`/`Iniciada`/`Cancelada`/`Terminada`). A terminal state (`Cancelada`/`Terminada`) is never overwritten by a late/out-of-order event.
 
 ## Autorización (SP-5a)
 
@@ -108,6 +108,14 @@ Response `200 OK`:
 }
 ```
 - `404 Not Found` when the partida does not exist.
+
+**Orden garantizado:** `juegos` por `orden`; dentro de cada Trivia las `preguntas` y sus
+`opciones` en el **orden en que el operador las creó** (posición del array en el POST). Lo
+respalda una columna `orden` en `preguntas`/`opciones` (asignada al crear) y el `OrderBy(orden)`
+del read. Antes de esto no había columna de orden ni `OrderBy`, y Postgres devolvía las filas por
+su PK GUID aleatorio, barajando preguntas/opciones al releer (p. ej. en el panel pre-lobby). Las
+filas anteriores a la migración `AddOrdenAPreguntaYOpcion` traen `orden = 0` (su orden de creación
+es irrecuperable desde un GUID); solo se garantiza para partidas creadas desde la migración.
 
 ## GET /partidas
 List partida summaries.

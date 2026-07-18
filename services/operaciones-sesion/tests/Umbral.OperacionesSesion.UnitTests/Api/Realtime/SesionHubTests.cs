@@ -126,6 +126,36 @@ public class SesionHubTests
     }
 
     [Fact]
+    public async Task Administrador_se_une_al_grupo_sin_consultar_repo()
+    {
+        // El admin monitorea las operaciones en modo lectura (CLAUDE.md): no tiene inscripción,
+        // pero debe entrar al grupo para recibir PreguntaActivada/etc. como el operador.
+        var partidaId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake(); // repo vacío: el admin no está inscrito
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: null, rol: "Administrador"), groups);
+
+        await hub.SuscribirAPartida(partidaId);
+
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoPartida(partidaId)), groups.Added);
+    }
+
+    [Fact]
+    public async Task Con_gestionar_partidas_se_une_al_grupo_sin_consultar_repo()
+    {
+        // HU-04: un Participante con el privilegio GestionarPartidas opera desde la web; tampoco
+        // tiene inscripción, pero opera la sesión y debe entrar al grupo.
+        var partidaId = Guid.NewGuid();
+        var repo = new ISesionPartidaRepositorioFake(); // repo vacío
+        var groups = new FakeGroupManager();
+        var hub = Construir(repo, Usuario(sub: null, rol: "GestionarPartidas"), groups);
+
+        await hub.SuscribirAPartida(partidaId);
+
+        Assert.Contains(("c1", SesionRealtimeMessages.GrupoPartida(partidaId)), groups.Added);
+    }
+
+    [Fact]
     public async Task Inscrito_se_une_al_grupo()
     {
         var partidaId = Guid.NewGuid();

@@ -78,7 +78,7 @@ Luego de levantar expo y tener abierto expo en todos los dispositivos y confirma
       $s = ($_ -split '\s+')[0]
       foreach ($p in 8081, 8080, 5080) { & $adb -s $s reverse "tcp:$p" "tcp:$p" }
       Write-Host "reverse listo en $s"
-  }?
+  }
 
 
 5. Levantar app movil (expo)

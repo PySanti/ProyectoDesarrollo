@@ -4,6 +4,7 @@ using System.Linq;
 using Umbral.OperacionesSesion.Domain.Entities;
 using Umbral.OperacionesSesion.Domain.Enums;
 using Umbral.OperacionesSesion.Domain.Exceptions;
+using Umbral.OperacionesSesion.Domain.Results;
 using Umbral.OperacionesSesion.Domain.ValueObjects;
 
 namespace Umbral.OperacionesSesion.UnitTests.Domain;
@@ -135,17 +136,73 @@ public class SesionPartidaTriviaTests
     }
 
     [Fact]
-    public void Responder_correcta_en_ultima_no_deja_pregunta_activa_y_permite_finalizar()
+    public void Responder_correcta_en_ultima_finaliza_el_juego_y_termina_la_sesion()
     {
         var part = Guid.NewGuid();
         var p1 = P(1, out var c1);
         var sesion = IniciadaConTrivia(Guid.NewGuid(), part, p1);
 
-        sesion.ResponderPregunta(part, c1, T0.AddSeconds(3));
+        var r = sesion.ResponderPregunta(part, c1, T0.AddSeconds(3));
 
+        // El acierto en la última pregunta finaliza el juego (único) y termina la sesión,
+        // igual que el camino por timeout; ya no hace falta un FinalizarJuegoActual manual.
         Assert.Null(sesion.Juegos.Single().PreguntaActiva);
-        var avance = sesion.FinalizarJuegoActual(T0.AddSeconds(4));
-        Assert.True(avance.Terminada());
+        Assert.Equal(EstadoSesion.Terminada, sesion.Estado);
+        Assert.NotNull(r.JuegoFinalizado);
+        Assert.True(r.JuegoFinalizado!.Terminada());
+    }
+
+    [Fact]
+    public void Responder_correcta_en_ultima_de_juego_no_final_activa_el_siguiente_juego()
+    {
+        var part = Guid.NewGuid();
+        var p1 = P(1, out var c1);
+        var juego1 = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { p1 });
+        var juego2 = new JuegoResumen(Guid.NewGuid(), 2, TipoJuego.Trivia, new[] { P(1, out _) });
+        var snapshot = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5,
+            new[] { juego1, juego2 });
+        var sesion = SesionPartida.Publicar(Guid.NewGuid(), snapshot);
+        var insc = sesion.Inscribir(part, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
+        sesion.Iniciar(T0);
+
+        var r = sesion.ResponderPregunta(part, c1, T0.AddSeconds(3));
+
+        // Cerrar la última pregunta del juego 1 finaliza ese juego y activa el juego 2;
+        // la sesión sigue Iniciada.
+        Assert.Equal(EstadoSesion.Iniciada, sesion.Estado);
+        Assert.NotNull(r.JuegoFinalizado);
+        Assert.Equal(TipoResultadoAvance.Avanzado, r.JuegoFinalizado!.Tipo);
+        Assert.Equal(2, r.JuegoFinalizado.JuegoActivado!.Orden);
+        Assert.Equal(EstadoJuego.Activo, sesion.Juegos.Single(j => j.Orden == 2).Estado);
+    }
+
+    [Fact]
+    public void Todos_los_individuales_fallan_cierra_la_pregunta_sin_ganador_y_avanza()
+    {
+        // Nueva condición de cierre: cuando TODOS los elegibles respondieron y ninguno acertó,
+        // la pregunta cierra sola (revela la correcta y avanza), sin esperar el reloj.
+        var p1 = P(1, out _);
+        var incorrecta = p1.Opciones.Single(o => !o.EsCorrecta).OpcionId;
+        var pa = Guid.NewGuid();
+        var pb = Guid.NewGuid();
+        var juego = new JuegoResumen(Guid.NewGuid(), 1, TipoJuego.Trivia, new[] { p1, P(2, out _) });
+        var snap = new ConfiguracionSnapshot("Copa", Modalidad.Individual, ModoInicioPartida.Manual, null, 1, 5, new[] { juego });
+        var sesion = SesionPartida.Publicar(Guid.NewGuid(), snap);
+        var ia = sesion.Inscribir(pa, false, 0, T0); sesion.AceptarInscripcion(ia.Id.Valor, 0, T0);
+        var ib = sesion.Inscribir(pb, false, 1, T0); sesion.AceptarInscripcion(ib.Id.Valor, 1, T0);
+        sesion.Iniciar(T0);
+
+        var r1 = sesion.ResponderPregunta(pa, incorrecta, T0.AddSeconds(2));
+        Assert.False(r1.CerroPregunta); // aún falta pb
+
+        var r2 = sesion.ResponderPregunta(pb, incorrecta, T0.AddSeconds(3));
+        Assert.True(r2.CerroPregunta);
+        Assert.False(r2.EsCorrecta);
+        var q1 = sesion.Juegos.Single().Preguntas.Single(p => p.Orden == 1);
+        Assert.Equal(MotivoCierrePregunta.TodosRespondieron, q1.MotivoCierre);
+        Assert.Null(q1.GanadorParticipanteId);
+        Assert.Equal(2, sesion.Juegos.Single().PreguntaActiva!.Orden); // avanzó sola
     }
 
     // FU2: 403-antes-409 — el chequeo de inscripción debe preceder al de estado del juego.

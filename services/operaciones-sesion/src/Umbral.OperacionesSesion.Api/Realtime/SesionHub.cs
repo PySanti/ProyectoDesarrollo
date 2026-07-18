@@ -35,13 +35,16 @@ public sealed class SesionHub : Hub
         _logger = logger;
     }
 
-    // Re-push de cortesía (SP-3i): el convocado offline recibe sus convocatorias pendientes al volver.
-    // Datos → MediatR (ADR-0011 reserva el repositorio del hub para membresía de grupos).
+    private static bool EsOperadorOMonitor(ClaimsPrincipal? user) =>
+        (user?.IsInRole("Operador") ?? false)
+        || (user?.IsInRole("Administrador") ?? false)
+        || (user?.IsInRole("GestionarPartidas") ?? false);
+
     public override async Task OnConnectedAsync()
     {
         var user = Context.User;
         var sub = user?.FindFirst("sub")?.Value ?? user?.FindFirst(ClaimTypes.NameIdentifier)?.Value;
-        if (!(user?.IsInRole("Operador") ?? false) && sub is not null && Guid.TryParse(sub, out var usuarioId))
+        if (!EsOperadorOMonitor(user) && sub is not null && Guid.TryParse(sub, out var usuarioId))
         {
             // Canal personal por identidad, no por partida: lo que hay que notificarle al
             // participante (aceptacion, rechazo, convocatoria) ocurre ANTES de que tenga
@@ -70,7 +73,7 @@ public sealed class SesionHub : Hub
     public async Task SuscribirAPartida(Guid partidaId)
     {
         var user = Context.User;
-        var esOperador = user?.IsInRole("Operador") ?? false;
+        var esOperador = EsOperadorOMonitor(user);
         if (esOperador)
         {
             await Groups.AddToGroupAsync(Context.ConnectionId, SesionRealtimeMessages.GrupoPartida(partidaId), Context.ConnectionAborted);

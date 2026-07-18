@@ -27,6 +27,20 @@ public class JuegoTriviaTests
     }
 
     [Fact]
+    public void Crear_assigns_sequential_orden_to_preguntas_and_opciones()
+    {
+        var juego = JuegoTrivia.Crear(PartidaId.New(), 1, new[]
+        {
+            new PreguntaSpec("Q0", new List<OpcionSpec> { new("A", true), new("B", false), new("C", false) }, 10, 30),
+            new PreguntaSpec("Q1", new List<OpcionSpec> { new("D", false), new("E", true) }, 10, 30),
+        });
+
+        Assert.Equal(new[] { 0, 1 }, juego.Preguntas.Select(p => p.Orden).ToArray());
+        Assert.Equal(new[] { 0, 1, 2 }, juego.Preguntas[0].Opciones.Select(o => o.Orden).ToArray());
+        Assert.Equal(new[] { 0, 1 }, juego.Preguntas[1].Opciones.Select(o => o.Orden).ToArray());
+    }
+
+    [Fact]
     public void Crear_rejects_empty_question_list()
     {
         Assert.Throws<JuegoTriviaSinPreguntasException>(() =>

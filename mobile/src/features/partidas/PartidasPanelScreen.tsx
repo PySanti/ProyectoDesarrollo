@@ -1,5 +1,6 @@
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import { ActivityIndicator, Pressable, RefreshControl, ScrollView, StyleSheet, View } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { AppText, Button, Card, Notice, ScreenHeader } from "../../shared/ui";
 import { colors, spacing } from "../../shared/theme";
 import { cargarPanel, filtrarPorModalidad } from "./partidasPanelFlow.js";
@@ -47,13 +48,21 @@ export function PartidasPanelScreen({ apiBaseUrl, token, onOpenPartida, onOpenMi
     setMiSesion(result.miSesion as MiSesion);
   }, [apiBaseUrl, token]);
 
-  useEffect(() => {
-    (async () => {
-      setLoading(true);
-      await load();
-      setLoading(false);
-    })();
-  }, [load]);
+  // Recarga al ganar foco, no solo al montar: al volver del live tras terminar la
+  // partida el stack hace pop (no re-monta), así que un useEffect de montaje dejaría
+  // el banner "Tienes una participación activa" pegado. Mismo patrón que TeamPanelScreen.
+  useFocusEffect(
+    useCallback(() => {
+      let vivo = true;
+      (async () => {
+        await load();
+        if (vivo) setLoading(false);
+      })();
+      return () => {
+        vivo = false;
+      };
+    }, [load])
+  );
 
   async function onRefresh() {
     setRefreshing(true);

@@ -101,14 +101,15 @@ public class SesionPartidaRepositoryReconexionTests
     [Fact]
     public async Task Null_cuando_partida_cancelada_con_inscripcion_activa()
     {
-        // min=2 pero solo 1 inscrito → AplicarInicio → Estado=Cancelada; la inscripción permanece Activa.
-        // Prueba que el null viene del filtro de estado de la sesión, no del filtro de inscripción.
+        // Sesión Cancelada con la inscripción aún Activa (cancelación manual del operador — HU-40 —
+        // no toca las inscripciones). Prueba que el null viene del filtro de estado de la sesión, no
+        // del filtro de inscripción.
         var options = InMemoryOptions("recon-sesion-cancelada-" + Guid.NewGuid());
         var partidaId = Guid.NewGuid();
         var participante = Guid.NewGuid();
 
         var sesion = BuildSesion(partidaId, inscribir: true, participante, iniciar: false, min: 2);
-        sesion.Iniciar(T0); // inscritosActivos=1 < MinimosParticipacion=2 → Cancelada; inscripción no se cancela
+        sesion.Cancelar(T0); // Estado=Cancelada; la inscripción permanece Activa
 
         await using (var ctx = new OperacionesSesionDbContext(options))
         {

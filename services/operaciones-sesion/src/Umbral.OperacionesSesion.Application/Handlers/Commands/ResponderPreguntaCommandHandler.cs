@@ -45,15 +45,25 @@ public sealed class ResponderPreguntaCommandHandler : IRequestHandler<ResponderP
             var pregunta = juego.Preguntas.First(p => p.PreguntaId == r.PreguntaId);
             var opcionCorrecta = pregunta.Opciones.First(o => o.EsCorrecta);
 
-            await _events.PublicarPuntajeTriviaIncrementadoAsync(
-                new PuntajeTriviaIncrementadoEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaId,
-                    r.ParticipanteId, r.Puntaje!.Value, r.TiempoRespuestaMs, r.EquipoId), cancellationToken);
+            // Dos formas de cierre en respuesta: por acierto (hay ganador y puntaje) o porque todos
+            // respondieron mal (sin ganador ni puntaje). Ambas revelan la correcta y avanzan.
+            if (r.EsCorrecta)
+                await _events.PublicarPuntajeTriviaIncrementadoAsync(
+                    new PuntajeTriviaIncrementadoEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaId,
+                        r.ParticipanteId, r.Puntaje!.Value, r.TiempoRespuestaMs, r.EquipoId), cancellationToken);
+
+            var motivo = r.EsCorrecta ? MotivoCierrePregunta.RespuestaCorrecta : MotivoCierrePregunta.TodosRespondieron;
             await _events.PublicarPreguntaTriviaCerradaAsync(
                 new PreguntaTriviaCerradaEvent(sesion.PartidaId, sesion.Id.Valor, r.JuegoId, r.PreguntaId,
-                    MotivoCierrePregunta.RespuestaCorrecta.ToString(), r.Instante, r.ParticipanteId, r.EquipoId,
+                    motivo.ToString(), r.Instante,
+                    r.EsCorrecta ? r.ParticipanteId : null,
+                    r.EsCorrecta ? r.EquipoId : null,
                     opcionCorrecta.OpcionId, opcionCorrecta.Texto), cancellationToken);
             await IniciarPartidaCommandHandler.PublicarPreguntaActivadaSiTriviaAsync(_events, sesion, juego, cancellationToken);
         }
+
+        // Si el acierto cerró la última pregunta, el juego se finalizó: avanzar o terminar.
+        await IniciarPartidaCommandHandler.PublicarFinDeJuegoAsync(_events, sesion, r.JuegoFinalizado, now, cancellationToken);
 
         return new RespuestaTriviaResponse(sesion.PartidaId, r.PreguntaId, r.EsCorrecta, r.CerroPregunta, r.Puntaje);
     }

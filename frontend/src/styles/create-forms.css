@@ -77,6 +77,14 @@
   border-radius: var(--r-md);
 }
 
+/* Un <input> trae un ancho intrínseco del navegador (~20 caracteres, 217px aquí) y, como
+   ítem de grid, min-width:auto le impide bajar de él: desbordaba su label e invadía la
+   columna vecina (12px a 1280, 32px a 700). El minmax(0,1fr) de arriba protege la pista,
+   no al control dentro de ella. */
+.q-meta input {
+  min-width: 0;
+}
+
 /* BDT stage QR decode status (idle hint; decoded/error use .notice variants) */
 .stage-status {
   margin: 0;

@@ -1,5 +1,5 @@
 import { describe, expect, it, vi, beforeEach } from "vitest";
-import { render, screen } from "@testing-library/react";
+import { render, screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { BdtRuntimePanel } from "./BdtRuntimePanel";
 import {
@@ -10,6 +10,8 @@ import {
   type EtapaActualDto
 } from "../../api/operacionesApi";
 import { getRankingJuego, type RankingJuegoDto } from "../../api/puntuacionesApi";
+import * as directoryApi from "../../api/directoryApi";
+import { resetNombresCache } from "../shared/useNombres";
 
 vi.mock("../../api/operacionesApi", async (importOriginal) => {
   const actual = await importOriginal<typeof import("../../api/operacionesApi")>();
@@ -44,6 +46,9 @@ describe("BdtRuntimePanel", () => {
     vi.mocked(avanzarEtapa).mockReset();
     vi.mocked(finalizarJuegoActual).mockReset();
     vi.mocked(getRankingJuego).mockReset();
+    // La cache de useNombres es de modulo: sin reset los tests se contaminan entre si.
+    resetNombresCache();
+    vi.restoreAllMocks();
   });
 
   it("con etapa activa muestra area, countdown, avance y ranking", async () => {
@@ -125,6 +130,44 @@ describe("BdtRuntimePanel", () => {
     });
     const fila = await screen.findByTestId("resultado-etapa");
     expect(fila).toHaveTextContent("Ganada por part-1");
+  });
+
+  it("el ganador participante se pinta con su nombre, no con el GUID", async () => {
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(ranking);
+    vi.spyOn(directoryApi, "resolverNombres").mockResolvedValue({
+      participantes: [{ participanteId: "abcdef12-0000-0000-0000-000000000000", nombre: "Jose" }],
+      equipos: []
+    });
+    renderPanel({
+      resultadosEtapas: [
+        { etapaId: "e0", juegoId: "j1", ganadorParticipanteId: "abcdef12-0000-0000-0000-000000000000" }
+      ]
+    });
+    const fila = await screen.findByTestId("resultado-etapa");
+    await waitFor(() => expect(fila).toHaveTextContent("Ganada por Jose"));
+    expect(fila).not.toHaveTextContent("abcdef12-0000");
+  });
+
+  it("el ganador equipo se pinta con el nombre del equipo, no con el GUID", async () => {
+    const rankingEquipo: RankingJuegoDto = {
+      ...ranking,
+      entradas: [{ ...ranking.entradas[0], competidorId: "eq111111-0000-0000-0000-000000000000", tipoCompetidor: "Equipo" }]
+    };
+    vi.mocked(getEtapaActual).mockResolvedValue(etapa);
+    vi.mocked(getRankingJuego).mockResolvedValue(rankingEquipo);
+    vi.spyOn(directoryApi, "resolverNombres").mockResolvedValue({
+      participantes: [],
+      equipos: [{ equipoId: "eq111111-0000-0000-0000-000000000000", nombreEquipo: "Los Lobos" }]
+    });
+    renderPanel({
+      resultadosEtapas: [
+        { etapaId: "e0", juegoId: "j1", ganadorEquipoId: "eq111111-0000-0000-0000-000000000000" }
+      ]
+    });
+    const fila = await screen.findByTestId("resultado-etapa");
+    await waitFor(() => expect(fila).toHaveTextContent("Ganada por Los Lobos"));
+    expect(fila).not.toHaveTextContent("eq111111-0000");
   });
 
   it("resultadosEtapas sin ganador (timeout) muestra 'Nadie consiguió el tesoro'", async () => {

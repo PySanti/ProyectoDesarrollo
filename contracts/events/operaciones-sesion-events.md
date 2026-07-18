@@ -136,6 +136,18 @@ Emitted for every registered answer in a Trivia game. Published to the broker si
 }
 ```
 
+**Entrega en vivo (solo modalidad Equipo).** Cuando `equipoId != null`, este evento se difunde además por SignalR como mensaje **`RespuestaEquipoRegistrada`** al grupo `equipo:{equipoId}` (el mismo grupo que ya usa `PistaEnviada`; `SesionHub` mete a cada miembro al suscribirse). Motivo: en `Equipo` la primera respuesta de cualquier miembro **sella al equipo entero**. El móvil refleja en el resto del equipo **solo el fallo** (`esCorrecta:false`): ahí el equipo queda bloqueado y sus miembros deben ver "Incorrecta." sin tocar nada — antes se enteraban solo al intentar responder y comerse un `409`. Un **acierto** cierra la pregunta y la avanza para todos (`PreguntaCerrada` + `PreguntaActivada`), así que el cliente **no** lo usa para sellar (evita quedar clavado en "Correcto"); igual se difunde por si otro consumidor lo aprovecha. En `Individual` (`equipoId == null`) **no se difunde**. `preguntaId` viaja para descartar un evento tardío que sellaría la pregunta siguiente.
+
+```json
+{
+  "partidaId": "guid",
+  "juegoId": "guid",
+  "preguntaId": "guid",
+  "esCorrecta": true,
+  "participanteId": "guid"
+}
+```
+
 ### `PuntajeTriviaIncrementado` (SP-3c)
 
 Emitted only on the first correct answer for a Trivia question (the one that closes it). Published to the broker since SP-3i (best-effort, ADR-0012).
@@ -171,7 +183,7 @@ Emitted when a Trivia question becomes active: at game start (first question), o
 
 ### `PreguntaTriviaCerrada` (SP-3c)
 
-Emitted when a Trivia question closes (by correct answer, by timeout, or by operator advance). `ganadorParticipanteId`/`ganadorEquipoId` are present only when the question closed by a correct answer. `opcionCorrectaId`/`textoOpcionCorrecta` (added 7d, additive trailing fields, default `null`) identify the question's correct option and are populated on **every** close reason (correct answer, timeout, and operator advance alike), so consuming clients can always reveal the right answer once a question is closed. Published to the broker since SP-3i (best-effort, ADR-0012).
+Emitted when a Trivia question closes. Cuatro motivos: `RespuestaCorrecta` (primer acierto), `Tiempo` (venció el límite), `AvanceOperador` (el operador avanzó), y **`TodosRespondieron`** (todos los elegibles respondieron y ninguno acertó → cierre anticipado sin esperar el reloj). `ganadorParticipanteId`/`ganadorEquipoId` are present only when the question closed by a correct answer (en `TodosRespondieron` van `null`, no hubo ganador ni puntaje). `opcionCorrectaId`/`textoOpcionCorrecta` (added 7d, additive trailing fields, default `null`) identify the question's correct option and are populated on **every** close reason, so consuming clients can always reveal the right answer once a question is closed. Published to the broker since SP-3i (best-effort, ADR-0012).
 
 ```json
 {
@@ -179,7 +191,7 @@ Emitted when a Trivia question closes (by correct answer, by timeout, or by oper
   "sesionPartidaId": "guid",
   "juegoId": "guid",
   "preguntaId": "guid",
-  "motivo": "RespuestaCorrecta | AvanceOperador | Tiempo",
+  "motivo": "RespuestaCorrecta | AvanceOperador | Tiempo | TodosRespondieron",
   "fechaCierre": "datetime",
   "ganadorParticipanteId": "guid?",
   "ganadorEquipoId": "guid?",

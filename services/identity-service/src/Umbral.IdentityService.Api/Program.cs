@@ -120,6 +120,10 @@ builder.Services.AddAuthorization(options =>
     options.AddPolicy("AdminOnly", policy => policy.RequireRole("Administrador"));
     options.AddPolicy("GestionarEquipos", policy => policy.RequireRole("GestionarEquipos"));
     options.AddPolicy("OperadorOAdministrador", policy => policy.RequireRole("Operador", "Administrador"));
+    // Lecturas de listado para los dropdowns de la web (S6): más amplias que las mutaciones.
+    // Espejo de las políticas del gateway (defensa en profundidad).
+    options.AddPolicy("DirectorioUsuarios", policy => policy.RequireRole("Administrador", "GestionarEquipos"));
+    options.AddPolicy("ListadoEquipos", policy => policy.RequireRole("GestionarPartidas", "GestionarEquipos"));
     // El flujo propio del participante (su equipo, invitaciones) lo concede el rol: el panel de
     // gobernanza deja al Participante sin GestionarEquipos, que ahora solo abre los paneles de
     // administrar equipos ajenos.

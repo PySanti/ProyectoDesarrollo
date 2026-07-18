@@ -22,6 +22,56 @@ public class PartidaTests
         Assert.Empty(partida.Juegos);
     }
 
+    // El estado de runtime lo escribe SOLO la proyección de eventos de Operaciones de Sesión
+    // (fix 4): PartidaPublicadaEnLobby/Iniciada/Cancelada/Finalizada → Estado.
+    [Fact]
+    public void ProyectarEstado_desde_null_aplica_el_estado_de_runtime()
+    {
+        var partida = CrearManual();
+
+        partida.ProyectarEstado(EstadoPartida.Lobby);
+
+        Assert.Equal(EstadoPartida.Lobby, partida.Estado);
+    }
+
+    [Fact]
+    public void ProyectarEstado_progresa_por_el_ciclo_de_vida()
+    {
+        var partida = CrearManual();
+
+        partida.ProyectarEstado(EstadoPartida.Lobby);
+        partida.ProyectarEstado(EstadoPartida.Iniciada);
+        partida.ProyectarEstado(EstadoPartida.Terminada);
+
+        Assert.Equal(EstadoPartida.Terminada, partida.Estado);
+    }
+
+    // RabbitMQ topic no garantiza orden entre routing keys distintas: un Iniciada/Lobby rezagado
+    // no debe resucitar una partida ya Cancelada o Terminada.
+    [Fact]
+    public void ProyectarEstado_no_pisa_un_estado_terminal_Cancelada()
+    {
+        var partida = CrearManual();
+        partida.ProyectarEstado(EstadoPartida.Lobby);
+        partida.ProyectarEstado(EstadoPartida.Cancelada);
+
+        partida.ProyectarEstado(EstadoPartida.Iniciada); // evento rezagado
+
+        Assert.Equal(EstadoPartida.Cancelada, partida.Estado);
+    }
+
+    [Fact]
+    public void ProyectarEstado_no_pisa_un_estado_terminal_Terminada()
+    {
+        var partida = CrearManual();
+        partida.ProyectarEstado(EstadoPartida.Iniciada);
+        partida.ProyectarEstado(EstadoPartida.Terminada);
+
+        partida.ProyectarEstado(EstadoPartida.Lobby); // evento rezagado
+
+        Assert.Equal(EstadoPartida.Terminada, partida.Estado);
+    }
+
     [Fact]
     public void Crear_guarda_la_fecha_de_creacion_que_recibe()
     {

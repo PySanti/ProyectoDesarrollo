@@ -1,5 +1,6 @@
 // Hub de rankings de Puntuaciones (SP-4c) via gateway. El caller arranca/detiene la conexion.
 import { HubConnectionBuilder } from "@microsoft/signalr";
+import { reconexionIndefinida } from "./reconexion.js";
 
 export function rankingHubUrl(gatewayBaseUrl) {
   return `${gatewayBaseUrl.replace(/\/$/, "")}/puntuaciones/hubs/ranking`;
@@ -10,6 +11,6 @@ export function rankingHubUrl(gatewayBaseUrl) {
 export function crearRankingHub(gatewayBaseUrl, getToken) {
   return new HubConnectionBuilder()
     .withUrl(rankingHubUrl(gatewayBaseUrl), { accessTokenFactory: getToken })
-    .withAutomaticReconnect()
+    .withAutomaticReconnect(reconexionIndefinida)
     .build();
 }

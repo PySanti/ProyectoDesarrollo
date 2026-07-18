@@ -23,6 +23,8 @@ Team, invitation and convocatoria-adjacent membership events also originate here
 
 Configuration is owned here; runtime publication/activation events are emitted by Operaciones de Sesion. Partidas exposes its configuration via gateway-routed queries rather than runtime events.
 
+**Consumes** (fix 4): `PartidaPublicadaEnLobby`/`PartidaIniciada`/`PartidaCancelada`/`PartidaFinalizada` from Operaciones de Sesion, to project each `Partida`'s runtime `Estado` (so the operator listing reflects the real state instead of always "Sin publicar"). Best-effort, terminal-state-wins on out-of-order delivery.
+
 ### Operaciones de Sesion
 
 | Event | Description |

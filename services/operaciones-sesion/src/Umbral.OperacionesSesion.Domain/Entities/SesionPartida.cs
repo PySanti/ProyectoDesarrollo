@@ -26,6 +26,13 @@ public sealed class SesionPartida
     public IReadOnlyList<JuegoResumen> Juegos => _juegos;
     public IReadOnlyList<InscripcionPartida> Inscripciones => _inscripciones;
 
+    // El número de participaciones que cuentan para el quórum de inicio. En Equipo una inscripción
+    // activa no basta: exige al menos una convocatoria aceptada (BR-G09). Es el mismo criterio que
+    // usa AplicarInicio, expuesto para que el lobby muestre lo que el inicio va a exigir de verdad.
+    public int ParticipacionesConfirmadas => Modalidad == Modalidad.Equipo
+        ? _inscripciones.Count(i => i.EsActiva && i.ConvocatoriasAceptadas >= 1)
+        : _inscripciones.Count(i => i.EsActiva);
+
     private SesionPartida() { } // EF
 
     private SesionPartida(Guid partidaId, ConfiguracionSnapshot snapshot)
@@ -179,6 +186,11 @@ public sealed class SesionPartida
             throw new SesionNoEnLobbyException(PartidaId);
         if (ModoInicioPartida is not (ModoInicioPartida.Manual or ModoInicioPartida.ManualYAutomatico))
             throw new ModoInicioNoCompatibleException(PartidaId);
+        // Inicio manual: no alcanzar los mínimos NO cancela — se rechaza y la partida sigue en
+        // Lobby para que el operador acepte las solicitudes pendientes y reintente. La cancelación
+        // automática por mínimos es exclusiva del inicio por tiempo (IntentarInicioAutomatico).
+        if (ParticipacionesConfirmadas < MinimosParticipacion)
+            throw new MinimosNoAlcanzadosException(PartidaId, ParticipacionesConfirmadas, MinimosParticipacion);
         return AplicarInicio(now);
     }
 
@@ -240,8 +252,24 @@ public sealed class SesionPartida
         var activa = juego.PreguntaActiva ?? throw new NoHayPreguntaActivaException(PartidaId);
 
         var resultado = activa.RegistrarRespuesta(participanteId, equipoId, opcionId, now) with { JuegoId = juego.JuegoId };
+        // Tercera condición de cierre: todos los elegibles respondieron y ninguno acertó (si alguno
+        // hubiera acertado, RegistrarRespuesta ya habría cerrado). Cierra sin ganador, revelando la
+        // correcta y avanzando, sin esperar el timeout. ParticipacionesConfirmadas queda fija tras
+        // Iniciar (inscribir/cancelar exigen Lobby), y una respuesta = un elegible distinto (el guard
+        // de duplicado impide dos por participante en Individual y dos por equipo en Equipo).
+        if (!resultado.CerroPregunta && activa.Respuestas.Count >= ParticipacionesConfirmadas)
+        {
+            activa.Cerrar(MotivoCierrePregunta.TodosRespondieron, now, ganador: null);
+            resultado = resultado with { CerroPregunta = true };
+        }
         if (resultado.CerroPregunta)
-            juego.ActivarSiguientePregunta(now); // RF-22: al cerrar por acierto, auto-activar la siguiente
+        {
+            // RF-22: al cerrar por acierto, auto-activar la siguiente. Si no hay siguiente,
+            // era la última: finalizar el juego (avanza al siguiente o termina la partida),
+            // igual que el camino por timeout; sin esto la sesión quedaría Iniciada para siempre.
+            if (juego.ActivarSiguientePregunta(now) is null)
+                resultado = resultado with { JuegoFinalizado = FinalizarJuegoActual(now) };
+        }
         return resultado;
     }
 
@@ -283,21 +311,27 @@ public sealed class SesionPartida
 
         var reg = activa.RegistrarTesoro(participanteId, equipoId, texto, resultado, now);
 
+        // Al cerrar la etapa (ganada o vencida) se auto-activa la siguiente. Si no hay siguiente,
+        // era la última: finalizar el juego (avanza al siguiente o termina la partida), igual que
+        // el camino por timeout; sin esto la sesión quedaría Iniciada para siempre.
+        ResultadoAvance? juegoFinalizado = null;
         if (reg.Gano)
         {
-            juego.ActivarSiguienteEtapa(now);
+            if (juego.ActivarSiguienteEtapa(now) is null)
+                juegoFinalizado = FinalizarJuegoActual(now);
         }
         else if (now >= activa.FechaActivacion!.Value.AddSeconds(activa.TiempoLimiteSegundos))
         {
             activa.CerrarPorTiempo(now);
-            juego.ActivarSiguienteEtapa(now);
+            if (juego.ActivarSiguienteEtapa(now) is null)
+                juegoFinalizado = FinalizarJuegoActual(now);
         }
 
         return new ResultadoRegistroTesoro(
             resultado, reg.CerroEtapa || (!reg.Gano && activa.Estado == EstadoEtapa.CerradaPorTiempo),
             reg.Gano, reg.Puntaje, juego.JuegoId, activa.EtapaId, participanteId,
             reg.Gano ? participanteId : null, reg.TiempoResolucionMs, texto, now,
-            equipoId, reg.Gano ? equipoId : null);
+            equipoId, reg.Gano ? equipoId : null, juegoFinalizado);
     }
 
     public ResultadoAvanceEtapa AvanzarEtapa(DateTime now)
@@ -432,10 +466,9 @@ public sealed class SesionPartida
 
     private ResultadoInicio AplicarInicio(DateTime now)
     {
-        var participantes = Modalidad == Modalidad.Equipo
-            ? _inscripciones.Count(i => i.EsActiva && i.ConvocatoriasAceptadas >= 1)
-            : _inscripciones.Count(i => i.EsActiva);
-        if (participantes < MinimosParticipacion)
+        // Alcanzado por el inicio por tiempo (Iniciar ya validó los mínimos antes de llegar aquí):
+        // ahí, no cumplir el quórum sí cancela la partida.
+        if (ParticipacionesConfirmadas < MinimosParticipacion)
         {
             Estado = EstadoSesion.Cancelada;
             FechaFin = now;

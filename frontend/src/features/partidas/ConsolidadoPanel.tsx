@@ -77,7 +77,7 @@ export function ConsolidadoPanel({
       {estado.status === "no-disponible" ? (
         <div className="stack">
           <p className="muted">Consolidado no disponible aún.</p>
-          <button type="button" onClick={() => setIntentoManual((n) => n + 1)}>
+          <button type="button" className="secondary-button" onClick={() => setIntentoManual((n) => n + 1)}>
             Reintentar
           </button>
         </div>

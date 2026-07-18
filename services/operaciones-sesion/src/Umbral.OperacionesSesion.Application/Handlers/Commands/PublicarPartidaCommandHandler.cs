@@ -71,6 +71,7 @@ public sealed class PublicarPartidaCommandHandler : IRequestHandler<PublicarPart
             sesion.MinimosParticipacion,
             sesion.MaximosParticipacion,
             activas.Count,
+            sesion.ParticipacionesConfirmadas,
             activas.Where(i => i.Modalidad == Modalidad.Individual).Select(i => i.ParticipanteId).ToList(),
             sesion.Inscripciones
                 .Where(i => i.Modalidad == Modalidad.Equipo && i.EsActiva && i.EquipoId is not null)

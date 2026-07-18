@@ -1,6 +1,7 @@
 export type AuthUser = {
   sub: string;
   username: string;
+  nombre: string;
   roles: string[];
 };
 

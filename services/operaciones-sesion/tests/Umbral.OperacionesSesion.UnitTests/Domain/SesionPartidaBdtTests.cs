@@ -221,12 +221,29 @@ public class SesionPartidaBdtTests
     }
 
     [Fact]
+    public void ValidarTesoro_gana_ultima_etapa_finaliza_juego_y_termina_sesion()
+    {
+        var jugador = Guid.NewGuid();
+        var sesion = SesionBdtIniciada(jugador, ("QR-1", 60));
+        var now = new DateTime(2026, 6, 28, 10, 0, 5);
+
+        var r = sesion.ValidarTesoro(jugador, Img("QR-1"), now, new TextoQrDecoder());
+
+        // Ganar la última etapa finaliza el juego (único) y termina la sesión, igual que el timeout.
+        Assert.True(r.Gano);
+        Assert.Equal(EstadoSesion.Terminada, sesion.Estado);
+        Assert.NotNull(r.JuegoFinalizado);
+        Assert.True(r.JuegoFinalizado!.Terminada());
+    }
+
+    [Fact]
     public void PrepararPista_bdt_sin_etapa_activa_lanza()
     {
         var jugador = Guid.NewGuid();
         var sesion = SesionBdtIniciada(jugador, ("QR-1", 60));
-        // ganar la única etapa deja el BDT activo pero sin etapa activa (no finaliza el juego)
-        sesion.ValidarTesoro(jugador, Img("QR-1"), new DateTime(2026, 6, 28, 10, 0, 5), new TextoQrDecoder());
+        // El operador avanza la única etapa: el BDT queda activo pero sin etapa activa (AvanzarEtapa
+        // no finaliza el juego; eso lo hace el handler). Ganarla, en cambio, ya finaliza el juego.
+        sesion.AvanzarEtapa(new DateTime(2026, 6, 28, 10, 0, 5));
         Assert.Null(sesion.Juegos.Single().EtapaActiva);
 
         Assert.Throws<NoHayEtapaActivaException>(() => sesion.PrepararPista(jugador));

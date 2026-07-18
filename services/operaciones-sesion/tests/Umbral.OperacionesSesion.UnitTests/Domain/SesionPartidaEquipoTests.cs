@@ -199,17 +199,48 @@ public class SesionPartidaEquipoTests
         Assert.Contains("equipo", ex.Message, StringComparison.OrdinalIgnoreCase);
     }
 
+    // El inicio MANUAL con mínimos incumplidos rechaza y deja la partida en Lobby: la
+    // cancelación automática es del inicio por tiempo (domain-model-summary.md §Partida).
+    // Antes cancelaba: el operador veía la solicitud del equipo en el lobby, pulsaba Iniciar
+    // y perdía la partida sin poder aceptarla.
     [Fact]
-    public void Iniciar_equipo_sin_aceptados_cancela_por_minimos()
+    public void Iniciar_equipo_sin_aceptados_rechaza_y_sigue_en_lobby()
     {
         var sesion = PartidaEquipoEnLobby(minimos: 1);
         sesion.PreinscribirEquipo(Guid.NewGuid(), true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
         // nadie aceptó → 0 equipos participantes < mínimo 1
 
-        var r = sesion.Iniciar(T0);
+        Assert.Throws<MinimosNoAlcanzadosException>(() => sesion.Iniciar(T0));
 
-        Assert.Equal(ResultadoInicio.Cancelada, r);
-        Assert.Equal(EstadoSesion.Cancelada, sesion.Estado);
+        Assert.Equal(EstadoSesion.Lobby, sesion.Estado);
+        Assert.Null(sesion.FechaFin);
+    }
+
+    // El lobby contaba inscripciones activas y el inicio exigía convocatoria aceptada: el
+    // operador leía "1 inscrito" y el inicio veía quórum 0. ParticipacionesConfirmadas es
+    // el número que el inicio usa de verdad.
+    [Fact]
+    public void ParticipacionesConfirmadas_no_cuenta_equipo_activo_sin_convocatoria_aceptada()
+    {
+        var sesion = PartidaEquipoEnLobby(minimos: 1);
+        var insc = sesion.PreinscribirEquipo(
+            Guid.NewGuid(), true, Guid.NewGuid(), new[] { Guid.NewGuid() }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0); // activa, pero nadie aceptó su convocatoria
+
+        Assert.Single(sesion.Inscripciones.Where(i => i.EsActiva));
+        Assert.Equal(0, sesion.ParticipacionesConfirmadas);
+    }
+
+    [Fact]
+    public void ParticipacionesConfirmadas_cuenta_equipo_con_convocatoria_aceptada()
+    {
+        var sesion = PartidaEquipoEnLobby(minimos: 1);
+        var usuario = Guid.NewGuid();
+        var insc = sesion.PreinscribirEquipo(Guid.NewGuid(), true, usuario, new[] { usuario }, false, 0, T0);
+        sesion.AceptarInscripcion(insc.Id.Valor, 0, T0);
+        sesion.ResponderConvocatoria(insc.Convocatorias[0].Id.Valor, usuario, true, false, T0);
+
+        Assert.Equal(1, sesion.ParticipacionesConfirmadas);
     }
 
     [Fact]

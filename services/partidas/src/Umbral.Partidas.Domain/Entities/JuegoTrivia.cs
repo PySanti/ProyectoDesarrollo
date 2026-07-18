@@ -57,6 +57,6 @@ public sealed class JuegoTrivia
         int puntaje,
         int tiempoLimiteSegundos)
     {
-        _preguntas.Add(Pregunta.Crear(texto, opciones, puntaje, tiempoLimiteSegundos));
+        _preguntas.Add(Pregunta.Crear(texto, opciones, puntaje, tiempoLimiteSegundos, _preguntas.Count));
     }
 }

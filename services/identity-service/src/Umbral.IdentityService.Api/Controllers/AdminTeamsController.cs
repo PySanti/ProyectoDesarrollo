@@ -10,7 +10,9 @@ namespace Umbral.IdentityService.Api.Controllers;
 
 [ApiController]
 [Route("identity/admin/teams")]
-[Authorize(Policy = "GestionarEquipos")]
+// Clase = lectura del listado (dropdown de rendimiento): Administrador, GestionarPartidas o
+// GestionarEquipos. Las mutaciones re-exigen GestionarEquipos por acción (AND → GestionarEquipos).
+[Authorize(Policy = "ListadoEquipos")]
 public sealed class AdminTeamsController : ControllerBase
 {
     private readonly ISender _sender;
@@ -25,6 +27,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpGet("{id:guid}")]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> GetEquipoById(Guid id, CancellationToken cancellationToken)
     {
         var response = await _sender.Send(new GetEquipoAdminByIdQuery(id), cancellationToken);
@@ -32,6 +35,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpPost]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> Crear(
         [FromBody] CrearEquipoAdminRequest request,
         [FromServices] IValidator<CrearEquipoAdminCommand> validator,
@@ -46,6 +50,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/name")]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> Renombrar(
         Guid id,
         [FromBody] RenombrarEquipoRequest request,
@@ -61,6 +66,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/leadership")]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> ReasignarLiderazgo(
         Guid id,
         [FromBody] ReasignarLiderazgoAdminRequest request,
@@ -76,6 +82,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpPatch("{id:guid}/estado")]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> CambiarEstado(
         Guid id,
         [FromBody] CambiarEstadoEquipoRequest request,
@@ -91,6 +98,7 @@ public sealed class AdminTeamsController : ControllerBase
     }
 
     [HttpDelete("{id:guid}")]
+    [Authorize(Policy = "GestionarEquipos")]
     public async Task<IActionResult> Eliminar(Guid id, CancellationToken cancellationToken)
     {
         var response = await _sender.Send(new EliminarEquipoAdminCommand(id), cancellationToken);

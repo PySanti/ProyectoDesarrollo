@@ -15,7 +15,7 @@ export function HomeScreen({ navigation }: Props) {
   return (
     <Stage variant="magenta" gradient scroll>
       <Hero
-        title={`Hola, ${session?.user.username ?? "participante"}`}
+        title={`Hola, ${session?.user.nombre ?? "participante"}`}
         subtitle="Elige tu próxima partida."
         titleVariant="display"
         onStage
@@ -57,7 +57,7 @@ export function HomeScreen({ navigation }: Props) {
           feature
           onPress={() => navigation.navigate("TeamPanel")}
         />
-        <NavCard icon="award" label="Rendimiento de mi equipo" onPress={() => navigation.navigate("RendimientoEquipo")} />
+        {/* "Rendimiento de mi equipo" vive dentro de Gestión de equipo (TeamPanel), no aquí (S10). */}
       </View>
 
       <PressableScale onPress={logout} accessibilityRole="button" accessibilityLabel="Cerrar sesión" style={styles.signOut}>

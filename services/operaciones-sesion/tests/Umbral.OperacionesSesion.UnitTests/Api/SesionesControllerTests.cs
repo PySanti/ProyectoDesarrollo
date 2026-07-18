@@ -26,7 +26,7 @@ public class SesionesControllerTests
     }
 
     private static LobbyDto Lobby(Guid partidaId) =>
-        new(partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>(),
+        new(partidaId, Guid.NewGuid(), "Lobby", "Individual", 1, 10, 0, 0, Array.Empty<Guid>(), Array.Empty<EquipoLobbyDto>(),
             Array.Empty<SolicitudIndividualDto>(), Array.Empty<SolicitudEquipoDto>());
 
     [Fact]

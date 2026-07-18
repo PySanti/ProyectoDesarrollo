@@ -17,6 +17,7 @@ public static class SesionRealtimeMessages
     public const string UbicacionActualizada = nameof(UbicacionActualizada);
     public const string PistaEnviada = nameof(PistaEnviada);
     public const string ConvocatoriaCreada = nameof(ConvocatoriaCreada);
+    public const string RespuestaEquipoRegistrada = nameof(RespuestaEquipoRegistrada);
     public const string InscripcionResuelta = nameof(InscripcionResuelta);
 
     public static string GrupoPartida(Guid partidaId) => $"partida:{partidaId}";
